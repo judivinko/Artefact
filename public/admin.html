@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="/app.css" />
+  <style>
+    .grid2 { display:grid; grid-template-columns: 1fr 2fr; gap:12px; }
+    @media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
+    .muted { opacity:.8; }
+    .success { color:#22c55e; }
+    .danger { color:#ef4444; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#1f2937; font-size:12px; color:#93c5fd; }
+    .rowx { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .list { background:#0b1220; border:1px solid #233047; border-radius:10px; padding:12px; white-space:pre-wrap; }
+    .user-row { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:6px 8px; border-bottom:1px solid #1f2a3b; cursor:pointer; }
+    .user-row:hover { background:#0f1624; }
+    .user-row.active { background:#102133; outline:1px solid #2dd4bf; }
+    .nowrap{ white-space:nowrap; }
+    .w100{ width:100px; } .w120{ width:120px; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">ECONOMY • Admin</div>
+    <div id="who" class="muted">Status: unknown</div>
+  </header>
+
+  <main class="container">
+    <!-- Admin Key -->
+    <section class="card">
+      <div class="label">Admin Key</div>
+      <div class="rowx">
+        <input id="admin-key" type="password" placeholder="x-admin-key (dev-admin-key)" class="w120" />
+        <button id="btn-save-key">Set</button>
+        <button id="btn-clear-key" class="secondary">Clear</button>
+        <label class="rowx" style="gap:6px;">
+          <input type="checkbox" id="ck-store-key" />
+          <span>Remember in this browser</span>
+        </label>
+      </div>
+      <div id="key-msg" class="muted"></div>
+    </section>
+
+    <section class="grid2">
+      <!-- LEFT: controls -->
+      <section class="card" style="margin:0;">
+        <div class="label">Controls</div>
+
+        <div class="rowx">
+          <div>Selected user:</div>
+          <div id="sel-email" class="pill">—</div>
+        </div>
+
+        <div class="rowx" style="margin-top:8px;">
+          <input id="gold-amount" type="number" step="1" class="w100" placeholder="Gold amount" />
+          <button id="btn-give" title="Add gold">+ Give</button>
+          <button id="btn-take" class="secondary" title="Remove gold">− Take</button>
+        </div>
+        <div class="muted">Tip: amount is in <b>gold</b> (1g = 100s).</div>
+        <div id="gold-msg" class="muted"></div>
+
+        <hr style="opacity:.2;" />
+
+        <div class="rowx">
+          <button id="btn-disable" class="danger">Disable account</button>
+          <button id="btn-enable" class="secondary">Enable account</button>
+        </div>
+        <div id="disable-msg" class="muted"></div>
+      </section>
+
+      <!-- RIGHT: users & inventory -->
+      <section class="card" style="margin:0;">
+        <div class="rowx" style="justify-content:space-between;">
+          <div class="label">Users</div>
+          <input id="user-search" placeholder="Search email..." class="w120" />
+        </div>
+
+        <div id="users-list" class="list" style="margin-top:8px; max-height:420px; overflow:auto;">Loading…</div>
+        <div id="users-msg" class="muted" style="margin-top:6px;"></div>
+
+        <div class="card" style="margin-top:12px;">
+          <div class="label">Inventory of selected user</div>
+          <div id="inv-box" class="list">Select a user from the list →</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    let ADMIN_KEY = "";
+    let USERS = [];
+    let SELECTED = null; // { id, email, ... }
+
+    function setWho(text){ $("#who").textContent = text; }
+    function msg(id, text, ok=true){ const el=$(id); el.textContent=text; el.className = ok ? "muted success" : "muted danger"; }
+
+    function useHeaders(useKey=false){
+      const h = { "Content-Type":"application/json" };
+      if (useKey && ADMIN_KEY) h["x-admin-key"] = ADMIN_KEY;
+      return h;
+    }
+    async function api(path, opts={}, useKey=false){
+      const res = await fetch(path, { credentials:"include", ...opts, headers: { ...useHeaders(useKey), ...(opts.headers||{}) } });
+      let data=null; try{ data = await res.json(); }catch{}
+      if (!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
+      return data;
+    }
+
+    // Auth status
+    async function refreshMe(){
+      try{
+        const r = await api("/api/me");
+        setWho(`${r.user.email} • ${r.user.is_admin ? "ADMIN" : "USER"} • ${r.user.gold}g ${r.user.silver}s`);
+      }catch{
+        setWho("Not logged in (you can use Admin Key).");
+      }
+    }
+
+    // Admin key
+    function loadKey(){
+      const stored = localStorage.getItem("ADMIN_KEY_V1");
+      if (stored){ ADMIN_KEY = stored; $("#admin-key").value = stored; $("#ck-store-key").checked = true; }
+    }
+    $("#btn-save-key").addEventListener("click", ()=>{
+      ADMIN_KEY = $("#admin-key").value.trim();
+      if ($("#ck-store-key").checked) localStorage.setItem("ADMIN_KEY_V1", ADMIN_KEY);
+      msg("#key-msg", ADMIN_KEY ? "Admin Key set." : "Admin Key cleared.");
+    });
+    $("#btn-clear-key").addEventListener("click", ()=>{
+      ADMIN_KEY = ""; $("#admin-key").value = ""; localStorage.removeItem("ADMIN_KEY_V1");
+      msg("#key-msg", "Admin Key cleared.");
+    });
+
+    // Users
+    function sortUsers(arr){
+      // active (is_disabled=false) first; then alphabetical by email
+      return [...arr].sort((a,b)=>{
+        if (a.is_disabled !== b.is_disabled) return a.is_disabled ? 1 : -1;
+        return a.email.localeCompare(b.email);
+      });
+    }
+    function renderUsers(){
+      const q = ($("#user-search").value||"").trim().toLowerCase();
+      const box = $("#users-list"); box.innerHTML = "";
+      const filtered = sortUsers(USERS).filter(u => u.email.toLowerCase().includes(q));
+      if (!filtered.length){ box.textContent = "No users."; $("#users-msg").textContent=""; return; }
+      for (const u of filtered){
+        const row = document.createElement("div");
+        row.className = "user-row" + (SELECTED && SELECTED.id===u.id ? " active" : "");
+        row.innerHTML = `
+          <div class="nowrap">
+            <span class="pill">${u.is_disabled ? "inactive" : "active"}</span>
+          </div>
+          <div style="flex:1; padding:0 6px;">${u.email}</div>
+          <div class="nowrap muted">${u.gold}g ${u.silver}s</div>
+        `;
+        row.addEventListener("click", ()=> selectUser(u));
+        box.appendChild(row);
+      }
+      $("#users-msg").textContent = `Shown: ${filtered.length} • Total: ${USERS.length}`;
+    }
+    async function loadUsers(){
+      try{
+        const r = await api("/api/admin/users", {}, true);
+        USERS = r.users || [];
+        renderUsers();
+      }catch(e){
+        $("#users-list").textContent = e.message;
+      }
+    }
+
+    async function selectUser(u){
+      SELECTED = u;
+      $("#sel-email").textContent = u.email;
+      renderUsers(); // refresh highlight
+      await loadInventory(u);
+    }
+
+    // Inventory for selected user
+    async function loadInventory(u){
+      $("#inv-box").textContent = "Loading…";
+      try{
+        const r = await api(`/api/admin/user-inventory?user_id=${encodeURIComponent(u.id)}`, {}, true);
+        const parts = [];
+        const items = r.items || [];
+        const recipes = r.recipes || [];
+        parts.push("ITEMS:");
+        if (!items.length) parts.push(" (none)");
+        for (const it of items){
+          parts.push(` • [T${it.tier}] ${it.code} — ${it.name} x${it.qty}`);
+        }
+        parts.push("");
+        parts.push("RECIPES:");
+        if (!recipes.length) parts.push(" (none)");
+        for (const rc of recipes){
+          parts.push(` • [T${rc.tier}] ${rc.code} — ${rc.name} x${rc.qty}`);
+        }
+        $("#inv-box").textContent = parts.join("\n");
+      }catch(e){
+        $("#inv-box").textContent = e.message;
+      }
+    }
+
+    // Gold +/- for selected user
+    async function applyGold(sign){
+      if (!SELECTED){ msg("#gold-msg","Select a user first.", false); return; }
+      const val = parseInt($("#gold-amount").value || "0", 10) || 0;
+      if (val<=0){ msg("#gold-msg","Enter a positive gold amount.", false); return; }
+      const gold = sign>0 ? val : -val;
+      try{
+        const r = await api("/api/admin/adjust-balance", {
+          method:"POST",
+          body: JSON.stringify({ email: SELECTED.email, gold })
+        }, true);
+        msg("#gold-msg", `OK • New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
+        await loadUsers(); // refresh list numbers
+        const nu = USERS.find(x=>x.email===SELECTED.email); if(nu){ SELECTED = nu; renderUsers(); }
+      }catch(e){
+        msg("#gold-msg", e.message, false);
+      }
+    }
+    $("#btn-give").addEventListener("click", ()=> applyGold(+1));
+    $("#btn-take").addEventListener("click", ()=> applyGold(-1));
+
+    // Disable / Enable
+    async function setDisabled(flag){
+      if (!SELECTED){ msg("#disable-msg","Select a user first.", false); return; }
+      try{
+        await api("/api/admin/disable-user", {
+          method:"POST",
+          body: JSON.stringify({ email: SELECTED.email, disabled: !!flag })
+        }, true);
+        msg("#disable-msg", flag ? "Account disabled." : "Account enabled.");
+        await loadUsers();
+        const nu = USERS.find(x=>x.email===SELECTED.email); if(nu){ SELECTED = nu; renderUsers(); }
+      }catch(e){
+        msg("#disable-msg", e.message, false);
+      }
+    }
+    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+
+    // Search
+    $("#user-search").addEventListener("input", renderUsers);
+
+    // init
+    (function init(){
+      const stored = localStorage.getItem("ADMIN_KEY_V1");
+      if (stored){ ADMIN_KEY = stored; $("#admin-key").value = stored; $("#ck-store-key").checked = true; }
+      refreshMe();
+      loadUsers();
+    })();
+  </script>
+</body>
+</html>
