@@ -11,8 +11,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // ---- Config (PORT & secrets via env, with safe fallbacks for dev) ----
-const PORT = process.env.PORT || 3000;
+// MUST be like this on Render
+const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = "0.0.0.0";
+
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const TOKEN_NAME = "token";
 const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
@@ -899,3 +901,4 @@ server.listen(PORT,HOST,()=>{
   console.log(`Server running at http://${HOST}:${PORT}`);
   console.log(`Auctions: fee=${AUCTION_FEE_BPS/100}% • default duration ${DEFAULT_AUCTION_MINUTES}min`);
 });
+
