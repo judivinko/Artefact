@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gem" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#39E1CF"/>
+      <stop offset="1" stop-color="#179E8E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0B1220"/>
+  <!-- double ring -->
+  <circle cx="256" cy="256" r="204" fill="none" stroke="#2B3750" stroke-width="20"/>
+  <circle cx="256" cy="256" r="184" fill="none" stroke="#F5C451" stroke-width="8"/>
+  <!-- shield/gem -->
+  <polygon points="256,140 344,192 344,300 256,352 168,300 168,192" fill="url(#gem)"/>
+  <!-- runic A -->
+  <g fill="none" stroke="#C0C6D3" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M210 336 L256 200 L302 336"/>
+    <path d="M224 286 H288"/>
+  </g>
+  <!-- sparks -->
+  <circle cx="372" cy="150" r="4" fill="#F5C451"/>
+  <circle cx="388" cy="170" r="3" fill="#F5C451"/>
+  <circle cx="140" cy="354" r="3" fill="#F5C451"/>
+</svg>

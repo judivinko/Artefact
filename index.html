@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARTEFAKT — Craft • Auctions</title>
+  <link rel="stylesheet" href="/app.css" />
+
+  <!-- Default favicons (biće zamijenjeni ako postaviš custom logo) -->
+  <link id="favicon-32" rel="icon" href="/artefakt-favicon-32.png" sizes="32x32">
+  <link id="favicon-64" rel="icon" href="/artefakt-favicon-64.png" sizes="64x64">
+
+  <style>
+    .tabs { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+    .tabbtn { background:#334155; color:#e2e8f0; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .tabbtn.active { background:#2dd4bf; color:#0b1220; font-weight:700; }
+    .hidden { display:none; }
+    .list { background:#0b1220; border:1px solid #233047; border-radius:10px; padding:12px; white-space:pre-wrap; }
+    .rowx{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .pill{ display:inline-block; padding:2px 8px; border-radius:999px; background:#1f2937; font-size:12px; color:#93c5fd; }
+    .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .success{ color:#22c55e; }
+    .danger{ color:#ef4444; }
+    .muted{ opacity:.8 }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width: 1100px){ .grid2{ grid-template-columns:1fr; } }
+
+    /* Auctions */
+    .auction-row{ display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #1b2536; }
+    .auction-row:last-child{ border-bottom:0; }
+    .auction-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .searchbox{ display:flex; gap:8px; align-items:center; }
+    .searchbox input{ min-width: 220px; }
+
+    /* Brand image */
+    .brand img{ height:44px; vertical-align:middle; }
+    @media (max-width: 480px){ .brand img{ height:36px; } }
+
+    /* Branding card */
+    .brand-uploader { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+    .brand-uploader .preview { width:220px; height:80px; background:#0b1220; border:1px solid #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .brand-uploader .preview img{ max-width:100%; max-height:100%; object-fit:contain; }
+    .brand-uploader .controls { display:flex; flex-direction:column; gap:8px; }
+    .note { font-size:12px; opacity:.8 }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <!-- Default wordmark; biće zamijenjen custom logom ako ga učitaš -->
+      <img id="brand-img" src="/artefakt-lockup-stacked.svg" alt="ARTEFAKT">
+    </div>
+    <div id="top-user" class="muted">Not signed in</div>
+  </header>
+
+  <main class="container">
+    <!-- AUTH -->
+    <div id="auth" class="card">
+      <div class="grid2">
+        <section class="card" style="margin:0;">
+          <div class="label">Login</div>
+          <div class="row">
+            <input id="login-email" type="email" placeholder="email" />
+            <input id="login-pass" type="password" placeholder="password" />
+            <button id="btn-login">Log in</button>
+          </div>
+          <div id="login-msg" class="muted"></div>
+        </section>
+        <section class="card" style="margin:0;">
+          <div class="label">Register</div>
+          <div class="row">
+            <input id="reg-email" type="email" placeholder="email" />
+            <input id="reg-pass" type="password" placeholder="password (min 6)" />
+            <button id="btn-register">Register</button>
+          </div>
+          <div id="reg-msg" class="muted"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <section id="app" class="card hidden">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="label">Account</div>
+          <div id="email"></div>
+          <div class="muted" id="admin-badge"></div>
+        </div>
+        <div>
+          <div class="label">Wallet</div>
+          <div class="wallet" id="wallet">—</div>
+          <div class="muted" id="next-recipe">—</div>
+        </div>
+        <div>
+          <button id="btn-logout" class="secondary">Log out</button>
+        </div>
+      </div>
+
+      <!-- BRANDING (visible only to admins) -->
+      <section id="brand-card" class="card hidden" style="margin-top:12px;">
+        <div class="label">Branding — Upload site logo</div>
+        <div class="brand-uploader">
+          <div class="preview">
+            <img id="brand-preview" alt="Logo preview" />
+          </div>
+          <div class="controls">
+            <input id="brand-file" type="file" accept="image/*,.svg" />
+            <div class="row">
+              <button id="btn-brand-save">Save as site logo</button>
+              <button id="btn-brand-reset" class="secondary">Reset to default</button>
+            </div>
+            <div class="note">
+              Supported: PNG/JPG/SVG. Your logo is saved locally (browser storage) and applied instantly,
+              including automatic favicons (64×64 & 32×32).
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="tabs">
+        <button class="tabbtn active" data-tab="shop">Shop</button>
+        <button class="tabbtn" data-tab="recipes">Recipes</button>
+        <button class="tabbtn" data-tab="auctions">Auctions</button>
+      </div>
+
+      <!-- SHOP TAB -->
+      <div id="tab-shop">
+        <div class="row" style="align-items:center; gap:8px;">
+          <button id="btn-buy-t1">Buy T1 (1g)</button>
+          <span class="muted">Random T1. Occasionally drops a recipe.</span>
+        </div>
+        <div class="card" style="margin-top:12px;">
+          <div class="label">Results</div>
+          <div id="log" class="list"></div>
+        </div>
+      </div>
+
+      <!-- RECIPES TAB -->
+      <div id="tab-recipes" class="hidden">
+        <div class="row" style="justify-content:space-between;">
+          <div class="label">Your recipes</div>
+          <button id="btn-load-recipes" class="secondary">Refresh</button>
+        </div>
+
+        <!-- Two columns: left list, right details -->
+        <div class="grid2" style="margin-top:12px;">
+          <!-- Left: recipes list -->
+          <section class="card" style="margin:0;">
+            <div id="recipes-list" class="list">—</div>
+          </section>
+
+          <!-- Right: recipe details -->
+          <section class="card" style="margin:0;">
+            <div class="row" style="justify-content:space-between; align-items:center;">
+              <div class="label">Recipe details</div>
+              <div class="row">
+                <button id="btn-close-detail" class="secondary">Close</button>
+              </div>
+            </div>
+            <div id="recipe-detail" class="list">—</div>
+            <div style="margin-top:8px;">
+              <button id="btn-craft" class="hidden">Craft</button>
+              <span id="craft-msg" class="muted"></span>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- AUCTIONS TAB -->
+      <div id="tab-auctions" class="hidden">
+        <div class="grid2">
+          <!-- Left: create auction ABOVE inventory -->
+          <section class="card" style="margin:0;">
+            <div class="card" style="margin:0;">
+              <div class="label">Create auction</div>
+              <div class="rowx">
+                <input id="auc-code" placeholder="type code or click from inventory" />
+                <input id="auc-qty" type="number" min="1" value="1" style="width:90px" />
+              </div>
+              <div class="rowx">
+                <span>Start:</span>
+                <input id="auc-start-g" type="number" min="0" value="0" style="width:80px" /> g
+                <input id="auc-start-s" type="number" min="0" max="99" value="50" style="width:80px" /> s
+              </div>
+              <div class="rowx">
+                <span>Buy-now (optional):</span>
+                <input id="auc-buy-g" type="number" min="0" value="0" style="width:80px" /> g
+                <input id="auc-buy-s" type="number" min="0" max="99" value="0" style="width:80px" /> s
+              </div>
+              <div class="rowx">
+                <span>Duration:</span>
+                <input id="auc-dur" type="number" min="5" value="60" style="width:90px" /> min
+              </div>
+              <div class="rowx" style="margin-top:8px;">
+                <button id="btn-create-auction">Create</button>
+                <span id="auc-msg" class="muted"></span>
+              </div>
+            </div>
+
+            <!-- Inventory below -->
+            <div class="row" style="justify-content:space-between; margin-top:12px;">
+              <div class="label">Your inventory (click to fill the form)</div>
+              <button id="btn-load-inventory" class="secondary">Refresh</button>
+            </div>
+            <div id="inv-items" class="list" style="margin-top:8px;">—</div>
+            <div id="inv-recipes" class="list" style="margin-top:8px;">—</div>
+          </section>
+
+          <!-- Right: live auctions + bids + search -->
+          <section class="card" style="margin:0;">
+            <div class="auction-head">
+              <div class="label">Live auctions & bids</div>
+              <div class="searchbox">
+                <input id="live-search" placeholder="Search by name..." />
+                <button id="btn-load-live" class="secondary">Refresh</button>
+              </div>
+            </div>
+            <div id="live-list" class="list" style="margin-top:8px; max-height:520px; overflow:auto;">—</div>
+            <div id="live-msg" class="muted" style="margin-top:6px;"></div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const state = { me:null, recipes:[], currentRecipe:null, liveAuctions:[] };
+
+    function setWallet(g,s){ $("#wallet").textContent = `${g} g ${s} s`; }
+    function setNextRecipe(b){
+      $("#next-recipe").textContent = (b==null) ? "Next recipe: —" : `Next recipe in: ${b} purchases`;
+    }
+    async function api(path, opts={}){
+      const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data && data.error || `HTTP ${res.status}`);
+      return data;
+    }
+    function appendLog(msg, cls){
+      const p=document.createElement("div"); if(cls) p.className=cls; p.textContent=msg; $("#log").prepend(p);
+    }
+    function fmtMoney(s){ const g=Math.floor(s/100), c=s%100; return `${g}g ${c}s`; }
+
+    // ---------- BRANDING (custom logo & favicons, stored in localStorage) ----------
+    const DEFAULT_LOGO = "/artefakt-lockup-stacked.svg";
+    function dataURLtoImage(dataURL){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        img.onload = ()=> resolve(img);
+        img.onerror = reject;
+        img.src = dataURL;
+      });
+    }
+    function canvasIconFromImage(img, size){
+      const c = document.createElement("canvas"); c.width=size; c.height=size;
+      const ctx = c.getContext("2d");
+      // fill dark bg to look good as favicon
+      ctx.fillStyle = "#0B1220"; ctx.fillRect(0,0,size,size);
+      // contain
+      const m = 6; // margin
+      const scale = Math.min((size-2*m)/img.width, (size-2*m)/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      const x = (size-w)/2, y = (size-h)/2;
+      ctx.drawImage(img, x, y, w, h);
+      return c.toDataURL("image/png");
+    }
+    function applyBrandingFromStorage(){
+      const logo = localStorage.getItem("brand_logo");
+      const fav32 = localStorage.getItem("brand_fav_32");
+      const fav64 = localStorage.getItem("brand_fav_64");
+      $("#brand-img").src = logo || DEFAULT_LOGO;
+      if (fav32) $("#favicon-32").href = fav32;
+      if (fav64) $("#favicon-64").href = fav64;
+      // preview
+      $("#brand-preview").src = logo || DEFAULT_LOGO;
+    }
+    function showBrandCardForAdmins(){
+      // only admins see uploader
+      if (state.me && state.me.is_admin){
+        $("#brand-card").classList.remove("hidden");
+      }else{
+        $("#brand-card").classList.add("hidden");
+      }
+    }
+    // file change
+    $("#brand-file").addEventListener("change", async (e)=>{
+      const f = e.target.files && e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataURL = reader.result;
+        $("#brand-preview").src = dataURL;
+        // live apply to header
+        $("#brand-img").src = dataURL;
+      };
+      reader.readAsDataURL(f);
+    });
+    // save
+    $("#btn-brand-save").addEventListener("click", async ()=>{
+      const src = $("#brand-preview").src;
+      if (!src){ alert("Choose a logo first."); return; }
+      try{
+        const img = await dataURLtoImage(src);
+        const fav32 = canvasIconFromImage(img, 32);
+        const fav64 = canvasIconFromImage(img, 64);
+        localStorage.setItem("brand_logo", src);
+        localStorage.setItem("brand_fav_32", fav32);
+        localStorage.setItem("brand_fav_64", fav64);
+        // apply
+        $("#brand-img").src = src;
+        $("#favicon-32").href = fav32;
+        $("#favicon-64").href = fav64;
+        alert("Logo saved. (Stored locally in this browser)");
+      }catch(err){
+        alert("Could not save logo: "+(err && err.message || err));
+      }
+    });
+    // reset
+    $("#btn-brand-reset").addEventListener("click", ()=>{
+      localStorage.removeItem("brand_logo");
+      localStorage.removeItem("brand_fav_32");
+      localStorage.removeItem("brand_fav_64");
+      applyBrandingFromStorage();
+    });
+
+    // ---------- APP LOGIC ----------
+    async function refreshMe(){
+      try{
+        const r = await api("/api/me");
+        state.me = r.user;
+        $("#top-user").textContent = `${r.user.email} • ${r.user.gold}g ${r.user.silver}s`;
+        $("#email").textContent = r.user.email;
+        $("#admin-badge").textContent = r.user.is_admin ? "ADMIN" : "";
+        setWallet(r.user.gold, r.user.silver);
+        setNextRecipe(r.user.buys_to_next);
+        $("#auth").classList.add("hidden");
+        $("#app").classList.remove("hidden");
+        showBrandCardForAdmins();
+      }catch{
+        $("#auth").classList.remove("hidden");
+        $("#app").classList.add("hidden");
+      }
+      applyBrandingFromStorage();
+    }
+
+    // Tabs
+    document.querySelectorAll(".tabbtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        document.querySelectorAll(".tabbtn").forEach(b=>b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab=btn.getAttribute("data-tab");
+        $("#tab-shop").classList.toggle("hidden", tab!=="shop");
+        $("#tab-recipes").classList.toggle("hidden", tab!=="recipes");
+        $("#tab-auctions").classList.toggle("hidden", tab!=="auctions");
+        if (tab==="recipes") loadRecipes();
+        if (tab==="auctions"){ loadInventory(); loadLive(); }
+      });
+    });
+
+    // Auth
+    $("#btn-login").addEventListener("click", async ()=>{
+      $("#login-msg").textContent="";
+      try{
+        const email=$("#login-email").value.trim();
+        const password=$("#login-pass").value;
+        const r = await api("/api/login", { method:"POST", body:JSON.stringify({ email,password }) });
+        $("#login-msg").textContent=r.message||"OK";
+        await refreshMe();
+      }catch(e){ $("#login-msg").textContent=e.message; }
+    });
+    $("#btn-register").addEventListener("click", async ()=>{
+      $("#reg-msg").textContent="";
+      try{
+        const email=$("#reg-email").value.trim();
+        const password=$("#reg-pass").value;
+        const r = await api("/api/register", { method:"POST", body:JSON.stringify({ email,password }) });
+        $("#reg-msg").textContent=r.message||"OK";
+      }catch(e){ $("#reg-msg").textContent=e.message; }
+    });
+    $("#btn-logout").addEventListener("click", async ()=>{
+      try{ await api("/api/logout"); }catch{}
+      await refreshMe();
+      $("#log").textContent="";
+      $("#recipes-list").textContent="";
+      $("#recipe-detail").textContent="—";
+      $("#btn-craft").classList.add("hidden");
+      $("#craft-msg").textContent="";
+      state.currentRecipe=null;
+    });
+
+    // Shop
+    $("#btn-buy-t1").addEventListener("click", async ()=>{
+      try{
+        const r = await api("/api/shop/buy-t1", { method:"POST", body:JSON.stringify({}) });
+        setWallet(r.gold,r.silver); setNextRecipe(r.buys_to_next);
+        appendLog(`Bought T1 → ${r.addedItem.name}`, "success");
+        if (r.grantedRecipe) appendLog(`🎉 Recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`, "success");
+      }catch(e){ appendLog("Error: "+e.message, "danger"); }
+    });
+
+    // Recipes
+    $("#btn-load-recipes").addEventListener("click", loadRecipes);
+    async function loadRecipes(){
+      $("#recipes-list").textContent="Loading...";
+      try{
+        const r = await api("/api/my/recipes");
+        state.recipes = r.recipes||[];
+        const box=$("#recipes-list"); box.innerHTML="";
+        if (!state.recipes.length){ box.textContent="No recipes."; return; }
+        for (const rec of state.recipes){
+          const row=document.createElement("div"); row.className="rowx";
+          row.innerHTML = `<span class="pill">T${rec.tier}</span> <span>${rec.name}</span> <span class="muted">x${rec.qty}</span> <button>Open</button>`;
+          row.querySelector("button").addEventListener("click", ()=> openRecipe(rec.id));
+          box.appendChild(row);
+        }
+      }catch(e){ $("#recipes-list").textContent=e.message; }
+    }
+    async function openRecipe(id){
+      $("#recipe-detail").textContent="Loading..."; $("#btn-craft").classList.add("hidden"); $("#craft-msg").textContent="";
+      try{
+        const r = await api(`/api/recipes/${id}`);
+        state.currentRecipe = r.recipe;
+        const lines=[];
+        lines.push(`${r.recipe.name} [T${r.recipe.tier}]`);
+        lines.push(`Attempts: ${r.recipe.attempts}`);
+        lines.push("Ingredients:");
+        for (const ing of r.ingredients){
+          const ok = ing.have_qty>=ing.need_qty;
+          lines.push(` • ${ing.name} x${ing.need_qty} — you have ${ing.have_qty} ${ok?"✓":"✗ missing "+(ing.need_qty-ing.have_qty)}`);
+        }
+        lines.push(""); lines.push(`Can craft: ${r.can_craft?"YES ✓":"NO ✗"}`);
+        $("#recipe-detail").innerText=lines.join("\n");
+        if (r.can_craft) $("#btn-craft").classList.remove("hidden");
+      }catch(e){ $("#recipe-detail").textContent=e.message; }
+    }
+    $("#btn-close-detail").addEventListener("click", ()=>{
+      state.currentRecipe=null;
+      $("#recipe-detail").textContent="—";
+      $("#btn-craft").classList.add("hidden");
+      $("#craft-msg").textContent="";
+    });
+    $("#btn-craft").addEventListener("click", async ()=>{
+      const rec=state.currentRecipe; if(!rec) return;
+      $("#btn-craft").disabled=true; $("#craft-msg").textContent="Crafting...";
+      try{
+        const r = await api(`/api/recipes/${rec.id}/craft`, { method:"POST", body:JSON.stringify({}) });
+        if (r.crafted) $("#craft-msg").textContent=`✅ Success! You received: ${r.output.name}`;
+        else if (r.scrap) $("#craft-msg").textContent="❌ Scrap.";
+        await openRecipe(rec.id);
+      }catch(e){ $("#craft-msg").textContent="Error: "+e.message; }
+      finally{ $("#btn-craft").disabled=false; }
+    });
+
+    // INVENTORY (for auctions)
+    $("#btn-load-inventory").addEventListener("click", loadInventory);
+    async function loadInventory(){
+      $("#inv-items").textContent="Loading..."; $("#inv-recipes").textContent="Loading...";
+      try{
+        const r = await api("/api/my/inventory");
+        const iBox=$("#inv-items"), rBox=$("#inv-recipes");
+        iBox.innerHTML=""; rBox.innerHTML="";
+        iBox.append("ITEMS:");
+        if (!(r.items||[]).length) iBox.append("\n(none)");
+        (r.items||[]).forEach(it=>{
+          const d=document.createElement("div"); d.className="rowx";
+          d.innerHTML = `<span class="pill">T${it.tier}</span> <span>${it.name}</span> <span class="muted">x${it.qty}</span> <button>List</button>`;
+          d.querySelector("button").addEventListener("click", ()=>{
+            $("#auc-code").value = it.code;
+            $("#auc-qty").value = 1;
+          });
+          iBox.appendChild(d);
+        });
+        rBox.append("RECIPES:");
+        if (!(r.recipes||[]).length) rBox.append("\n(none)");
+        (r.recipes||[]).forEach(rc=>{
+          const d=document.createElement("div"); d.className="rowx";
+          d.innerHTML = `<span class="pill">T${rc.tier}</span> <span>${rc.name}</span> <span class="muted">x${rc.qty}</span> <button>List</button>`;
+          d.querySelector("button").addEventListener("click", ()=>{
+            $("#auc-code").value = rc.code;
+            $("#auc-qty").value = 1;
+          });
+          rBox.appendChild(d);
+        });
+      }catch(e){
+        $("#inv-items").textContent=e.message; $("#inv-recipes").textContent="";
+      }
+    }
+
+    // CREATE AUCTION
+    $("#btn-create-auction").addEventListener("click", createAuction);
+    async function createAuction(){
+      $("#auc-msg").textContent="";
+      try{
+        const code=$("#auc-code").value.trim();
+        const qty=Number($("#auc-qty").value||1);
+        let sg=Number($("#auc-start-g").value||0), ss=Number($("#auc-start-s").value||0);
+        let bg=Number($("#auc-buy-g").value||0),   bs=Number($("#auc-buy-s").value||0);
+        const dur=Number($("#auc-dur").value||60);
+        if (ss<0||ss>99 || bs<0||bs>99) throw new Error("Silver must be 0..99.");
+        const r = await api("/api/auctions/create", { method:"POST", body:JSON.stringify({ code, qty, start_gold:sg, start_silver:ss, buy_gold:bg, buy_silver:bs, duration_min:dur }) });
+        $("#auc-msg").textContent = `Listed: ${r.auction.name} x${r.auction.qty} (ID ${r.auction.id})`;
+        $("#auc-code").value=""; $("#auc-qty").value=1;
+        await loadLive();
+      }catch(e){ $("#auc-msg").textContent=e.message; }
+    }
+
+    // LIVE AUCTIONS + BIDS (right column)
+    $("#btn-load-live").addEventListener("click", loadLive);
+    $("#live-search").addEventListener("input", renderLiveFiltered);
+
+    function bestScore(a){
+      const cur = (a.highest_bid_s && a.highest_bid_s>0) ? a.highest_bid_s : a.start_price_s;
+      return cur|0;
+    }
+    function matchesQuery(a, q){
+      if (!q) return true;
+      q = q.toLowerCase();
+      const name = (a.name||"").toLowerCase();
+      const code = (a.code||"").toLowerCase(); // allow searching by code even if not shown
+      return name.includes(q) || code.includes(q);
+    }
+    function renderLiveFiltered(){
+      const q = ($("#live-search").value||"").trim().toLowerCase();
+      const box = $("#live-list"); box.innerHTML = "";
+      let list = (state.liveAuctions||[]).filter(a => matchesQuery(a,q));
+      list.sort((a,b)=> bestScore(b) - bestScore(a));
+      if (!list.length){ box.textContent="No results."; $("#live-msg").textContent=""; return; }
+      for (const a of list){
+        const sp = fmtMoney(a.start_price_s), bn = a.buy_now_price_s?fmtMoney(a.buy_now_price_s):"—";
+        const hb = a.highest_bid_s?fmtMoney(a.highest_bid_s):"—";
+        const row=document.createElement("div"); row.className="auction-row";
+        row.innerHTML = `
+          <div class="mono">#${a.id}</div>
+          <span class="pill">${a.type}</span>
+          <span>${a.name}</span>
+          <span class="muted">x${a.qty}</span>
+          <span>Start: ${sp}</span>
+          <span>Highest: ${hb}</span>
+          <span>Buy-now: ${bn}</span>
+          <span class="muted">Ends: ${new Date(a.end_time).toLocaleString()}</span>
+          <span>| Bid:</span>
+          <input type="number" min="0" placeholder="g" style="width:70px" data-bidg="${a.id}" />
+          <input type="number" min="0" max="99" placeholder="s" style="width:70px" data-bids="${a.id}" />
+          <button data-bid="${a.id}">BID</button>
+          ${a.buy_now_price_s ? `<button data-buy="${a.id}">Buy now</button>` : ""}
+        `;
+        row.querySelector(`[data-bid="${a.id}"]`).addEventListener("click", ()=>{
+          const g = Number(document.querySelector(`[data-bidg="${a.id}"]`).value||0);
+          const s = Number(document.querySelector(`[data-bids="${a.id}"]`).value||0);
+          placeBid(a.id, g, s);
+        });
+        if (a.buy_now_price_s){
+          row.querySelector(`[data-buy="${a.id}"]`).addEventListener("click", ()=> buyNow(a.id));
+        }
+        box.appendChild(row);
+      }
+      $("#live-msg").textContent = `Shown: ${list.length} • Total: ${state.liveAuctions.length}`;
+    }
+    async function loadLive(){
+      $("#live-list").textContent="Loading...";
+      try{
+        const r = await api("/api/auctions/live");
+        state.liveAuctions = r.auctions || [];
+        renderLiveFiltered();
+      }catch(e){ $("#live-list").textContent=e.message; }
+    }
+    async function placeBid(id, g, s){
+      try{
+        const r = await api(`/api/auctions/${id}/bid`, { method:"POST", body:JSON.stringify({ gold:g, silver:s }) });
+        alert(`Bid accepted. Highest: ${fmtMoney(r.highest_bid_s)}`);
+        await refreshMe(); await loadLive();
+      }catch(e){ alert("Error: "+e.message); }
+    }
+    async function buyNow(id){
+      try{
+        const r = await api(`/api/auctions/${id}/buy-now`, { method:"POST", body:JSON.stringify({}) });
+        alert(`Bought: ${r.bought.name} x${r.bought.qty} for ${fmtMoney(r.bought.sold_price_s)}`);
+        await refreshMe(); await loadLive(); await loadInventory();
+      }catch(e){ alert("Error: "+e.message); }
+    }
+
+    // Init
+    refreshMe();
+  </script>
+</body>
+</html>
