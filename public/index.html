@@ -6,7 +6,7 @@
   <title>ARTEFAKT — Craft • Auctions</title>
   <link rel="stylesheet" href="/app.css" />
 
-  <!-- Default favicons (biće zamijenjeni ako postaviš custom logo) -->
+  <!-- Default favicons (zamijenit će se kad postaviš custom logo) -->
   <link id="favicon-32" rel="icon" href="/artefakt-favicon-32.png" sizes="32x32">
   <link id="favicon-64" rel="icon" href="/artefakt-favicon-64.png" sizes="64x64">
 
@@ -48,7 +48,7 @@
 <body>
   <header class="header">
     <div class="brand">
-      <!-- Default wordmark; biće zamijenjen custom logom ako ga učitaš -->
+      <!-- Default wordmark; zamijenit će se custom logom ako ga učitaš -->
       <img id="brand-img" src="/artefakt-lockup-stacked.svg" alt="ARTEFAKT">
     </div>
     <div id="top-user" class="muted">Not signed in</div>
@@ -207,7 +207,7 @@
             <div id="inv-recipes" class="list" style="margin-top:8px;">—</div>
           </section>
 
-          <!-- Right: live auctions + bids + search -->
+          <!-- Right: live auctions + bids + search + my auctions -->
           <section class="card" style="margin:0;">
             <div class="auction-head">
               <div class="label">Live auctions & bids</div>
@@ -216,8 +216,17 @@
                 <button id="btn-load-live" class="secondary">Refresh</button>
               </div>
             </div>
-            <div id="live-list" class="list" style="margin-top:8px; max-height:520px; overflow:auto;">—</div>
+            <div id="live-list" class="list" style="margin-top:8px; max-height:360px; overflow:auto;">—</div>
             <div id="live-msg" class="muted" style="margin-top:6px;"></div>
+
+            <div class="card" style="margin-top:12px;">
+              <div class="row" style="justify-content:space-between;">
+                <div class="label">My auctions</div>
+                <button id="btn-load-mine" class="secondary">Refresh</button>
+              </div>
+              <div id="mine-list" class="list" style="margin-top:8px; max-height:320px; overflow:auto;">—</div>
+              <div id="mine-msg" class="muted" style="margin-top:6px;"></div>
+            </div>
           </section>
         </div>
       </div>
@@ -226,7 +235,7 @@
 
   <script>
     const $ = s => document.querySelector(s);
-    const state = { me:null, recipes:[], currentRecipe:null, liveAuctions:[] };
+    const state = { me:null, recipes:[], currentRecipe:null, liveAuctions:[], mine:[] };
 
     function setWallet(g,s){ $("#wallet").textContent = `${g} g ${s} s`; }
     function setNextRecipe(b){
@@ -235,7 +244,7 @@
     async function api(path, opts={}){
       const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
       const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error(data && data.error || `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
       return data;
     }
     function appendLog(msg, cls){
@@ -274,7 +283,8 @@
       if (fav32) $("#favicon-32").href = fav32;
       if (fav64) $("#favicon-64").href = fav64;
       // preview
-      $("#brand-preview").src = logo || DEFAULT_LOGO;
+      const prev = $("#brand-preview");
+      if (prev) prev.src = logo || DEFAULT_LOGO;
     }
     function showBrandCardForAdmins(){
       // only admins see uploader
@@ -285,43 +295,44 @@
       }
     }
     // file change
-    $("#brand-file").addEventListener("change", async (e)=>{
-      const f = e.target.files && e.target.files[0]; if(!f) return;
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataURL = reader.result;
-        $("#brand-preview").src = dataURL;
-        // live apply to header
-        $("#brand-img").src = dataURL;
-      };
-      reader.readAsDataURL(f);
-    });
-    // save
-    $("#btn-brand-save").addEventListener("click", async ()=>{
-      const src = $("#brand-preview").src;
-      if (!src){ alert("Choose a logo first."); return; }
-      try{
-        const img = await dataURLtoImage(src);
-        const fav32 = canvasIconFromImage(img, 32);
-        const fav64 = canvasIconFromImage(img, 64);
-        localStorage.setItem("brand_logo", src);
-        localStorage.setItem("brand_fav_32", fav32);
-        localStorage.setItem("brand_fav_64", fav64);
-        // apply
-        $("#brand-img").src = src;
-        $("#favicon-32").href = fav32;
-        $("#favicon-64").href = fav64;
-        alert("Logo saved. (Stored locally in this browser)");
-      }catch(err){
-        alert("Could not save logo: "+(err && err.message || err));
+    document.addEventListener("change",(e)=>{
+      if (e.target && e.target.id==="brand-file"){
+        const f = e.target.files && e.target.files[0]; if(!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataURL = reader.result;
+          $("#brand-preview").src = dataURL;
+          $("#brand-img").src = dataURL;
+        };
+        reader.readAsDataURL(f);
       }
     });
-    // reset
-    $("#btn-brand-reset").addEventListener("click", ()=>{
-      localStorage.removeItem("brand_logo");
-      localStorage.removeItem("brand_fav_32");
-      localStorage.removeItem("brand_fav_64");
-      applyBrandingFromStorage();
+    // save
+    document.addEventListener("click", async (e)=>{
+      if (e.target && e.target.id==="btn-brand-save"){
+        const src = $("#brand-preview").src;
+        if (!src){ alert("Choose a logo first."); return; }
+        try{
+          const img = await dataURLtoImage(src);
+          const fav32 = canvasIconFromImage(img, 32);
+          const fav64 = canvasIconFromImage(img, 64);
+          localStorage.setItem("brand_logo", src);
+          localStorage.setItem("brand_fav_32", fav32);
+          localStorage.setItem("brand_fav_64", fav64);
+          $("#brand-img").src = src;
+          $("#favicon-32").href = fav32;
+          $("#favicon-64").href = fav64;
+          alert("Logo saved. (Stored locally in this browser)");
+        }catch(err){
+          alert("Could not save logo: "+(err && err.message || err));
+        }
+      }
+      if (e.target && e.target.id==="btn-brand-reset"){
+        localStorage.removeItem("brand_logo");
+        localStorage.removeItem("brand_fav_32");
+        localStorage.removeItem("brand_fav_64");
+        applyBrandingFromStorage();
+      }
     });
 
     // ---------- APP LOGIC ----------
@@ -354,7 +365,7 @@
         $("#tab-recipes").classList.toggle("hidden", tab!=="recipes");
         $("#tab-auctions").classList.toggle("hidden", tab!=="auctions");
         if (tab==="recipes") loadRecipes();
-        if (tab==="auctions"){ loadInventory(); loadLive(); }
+        if (tab==="auctions"){ loadInventory(); loadLive(); loadMine(); }
       });
     });
 
@@ -389,13 +400,18 @@
       state.currentRecipe=null;
     });
 
-    // Shop
+    // Shop (FIX: nema više greške kad dropa recept)
     $("#btn-buy-t1").addEventListener("click", async ()=>{
       try{
         const r = await api("/api/shop/buy-t1", { method:"POST", body:JSON.stringify({}) });
         setWallet(r.gold,r.silver); setNextRecipe(r.buys_to_next);
-        appendLog(`Bought T1 → ${r.addedItem.name}`, "success");
-        if (r.grantedRecipe) appendLog(`🎉 Recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`, "success");
+        if (r.grantedRecipe){ // recept drop
+          appendLog(`🎉 Recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`, "success");
+        } else if (r.addedItem){
+          appendLog(`Bought T1 → ${r.addedItem.name}`, "success");
+        } else {
+          appendLog("Bought T1.", "success");
+        }
       }catch(e){ appendLog("Error: "+e.message, "danger"); }
     });
 
@@ -448,6 +464,7 @@
         if (r.crafted) $("#craft-msg").textContent=`✅ Success! You received: ${r.output.name}`;
         else if (r.scrap) $("#craft-msg").textContent="❌ Scrap.";
         await openRecipe(rec.id);
+        await loadInventory(); // možda potrošio materijale
       }catch(e){ $("#craft-msg").textContent="Error: "+e.message; }
       finally{ $("#btn-craft").disabled=false; }
     });
@@ -501,7 +518,7 @@
         const r = await api("/api/auctions/create", { method:"POST", body:JSON.stringify({ code, qty, start_gold:sg, start_silver:ss, buy_gold:bg, buy_silver:bs, duration_min:dur }) });
         $("#auc-msg").textContent = `Listed: ${r.auction.name} x${r.auction.qty} (ID ${r.auction.id})`;
         $("#auc-code").value=""; $("#auc-qty").value=1;
-        await loadLive();
+        await loadLive(); await loadMine();
       }catch(e){ $("#auc-msg").textContent=e.message; }
     }
 
@@ -576,7 +593,49 @@
       try{
         const r = await api(`/api/auctions/${id}/buy-now`, { method:"POST", body:JSON.stringify({}) });
         alert(`Bought: ${r.bought.name} x${r.bought.qty} for ${fmtMoney(r.bought.sold_price_s)}`);
-        await refreshMe(); await loadLive(); await loadInventory();
+        await refreshMe(); await loadLive(); await loadInventory(); await loadMine();
+      }catch(e){ alert("Error: "+e.message); }
+    }
+
+    // MY AUCTIONS (with Cancel)
+    $("#btn-load-mine").addEventListener("click", loadMine);
+    async function loadMine(){
+      $("#mine-list").textContent="Loading...";
+      try{
+        const r = await api("/api/auctions/mine");
+        state.mine = r.auctions || [];
+        const box = $("#mine-list"); box.innerHTML = "";
+        if (!state.mine.length){ box.textContent = "No auctions."; $("#mine-msg").textContent=""; return; }
+        for (const a of state.mine){
+          const status = a.status.toUpperCase();
+          const hb = a.highest_bid_s ? fmtMoney(a.highest_bid_s) : "—";
+          const sold = a.sold_price_s ? fmtMoney(a.sold_price_s) : "—";
+          const row = document.createElement("div"); row.className="auction-row";
+          row.innerHTML = `
+            <div class="mono">#${a.id}</div>
+            <span class="pill">${a.type}</span>
+            <span>${a.name}</span>
+            <span class="muted">x${a.qty}</span>
+            <span>Status: ${status}</span>
+            <span>Highest: ${hb}</span>
+            <span>Sold: ${sold}</span>
+            <span class="muted">Ends: ${new Date(a.end_time).toLocaleString()}</span>
+            ${a.status==="live" && !a.highest_bid_s ? `<button data-cancel="${a.id}" class="danger">Cancel</button>` : ""}
+          `;
+          if (a.status==="live" && !a.highest_bid_s){
+            row.querySelector(`[data-cancel="${a.id}"]`).addEventListener("click", ()=> cancelAuction(a.id));
+          }
+          box.appendChild(row);
+        }
+        $("#mine-msg").textContent = `Total: ${state.mine.length}`;
+      }catch(e){ $("#mine-list").textContent=e.message; }
+    }
+    async function cancelAuction(id){
+      if (!confirm("Cancel this auction?")) return;
+      try{
+        await api(`/api/auctions/${id}/cancel`, { method:"POST", body:JSON.stringify({}) });
+        alert("Auction canceled.");
+        await loadMine(); await loadInventory(); await loadLive(); await refreshMe();
       }catch(e){ alert("Error: "+e.message); }
     }
 
