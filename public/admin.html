@@ -3,256 +3,303 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Panel</title>
+  <title>ARTEFAKT • Admin</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
-    .grid2 { display:grid; grid-template-columns: 1fr 2fr; gap:12px; }
-    @media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
-    .muted { opacity:.8; }
-    .success { color:#22c55e; }
-    .danger { color:#ef4444; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#1f2937; font-size:12px; color:#93c5fd; }
-    .rowx { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .list { background:#0b1220; border:1px solid #233047; border-radius:10px; padding:12px; white-space:pre-wrap; }
-    .user-row { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:6px 8px; border-bottom:1px solid #1f2a3b; cursor:pointer; }
-    .user-row:hover { background:#0f1624; }
-    .user-row.active { background:#102133; outline:1px solid #2dd4bf; }
-    .nowrap{ white-space:nowrap; }
-    .w100{ width:100px; } .w120{ width:120px; }
+    .two-cols{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    @media (max-width: 980px){.two-cols{grid-template-columns:1fr}}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
+    .pill.ok{background:#063; color:#c7f9cc}
+    .pill.bad{background:#5a1c1c; color:#ffd6d6}
+    .rowx{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
+    .table-wrap{overflow:auto;max-height:380px;border:1px solid #233047;border-radius:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #233047;text-align:left;vertical-align:top}
+    tr:hover{background:#0d1726}
+    .muted{opacity:.85}
+    .right{float:right}
+    .search{width:100%;padding:10px;border-radius:8px;border:1px solid #233047;background:#0b1220;color:#e2e8f0}
+    .btn{background:#334155;color:#e2e8f0;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .btn.secondary{background:#1f2937}
+    .btn.danger{background:#7f1d1d}
+    .btn.success{background:#065f46}
+    .btn.small{padding:6px 10px;font-size:12px}
+    .status{min-height:18px}
+    .lock{display:flex;gap:8px;align-items:center}
   </style>
 </head>
 <body>
   <header class="header">
-    <div class="brand">ECONOMY • Admin</div>
-    <div id="who" class="muted">Status: unknown</div>
+    <div class="brand">ARTEFAKT • Admin</div>
+    <div id="who" class="muted">Status: not signed in</div>
   </header>
 
   <main class="container">
-    <!-- Admin Key -->
+    <!-- ADMIN KEY -->
     <section class="card">
       <div class="label">Admin Key</div>
-      <div class="rowx">
-        <input id="admin-key" type="password" placeholder="x-admin-key (dev-admin-key)" class="w120" />
-        <button id="btn-save-key">Set</button>
-        <button id="btn-clear-key" class="secondary">Clear</button>
-        <label class="rowx" style="gap:6px;">
-          <input type="checkbox" id="ck-store-key" />
-          <span>Remember in this browser</span>
+      <div class="lock">
+        <input id="admin-key" type="password" placeholder="enter admin key" />
+        <button id="btn-lock" class="btn">Lock</button>
+        <button id="btn-unlock" class="btn secondary">Unlock</button>
+        <label class="rowx" style="margin-left:8px;">
+          <input id="remember" type="checkbox" /> <span class="muted">Remember in this browser</span>
         </label>
       </div>
-      <div id="key-msg" class="muted"></div>
+      <div id="key-msg" class="muted status"></div>
     </section>
 
-    <section class="grid2">
-      <!-- LEFT: controls -->
+    <div class="two-cols">
+      <!-- LEFT: CONTROLS -->
       <section class="card" style="margin:0;">
         <div class="label">Controls</div>
-
         <div class="rowx">
-          <div>Selected user:</div>
-          <div id="sel-email" class="pill">—</div>
+          <div class="muted">Selected user:</div>
+          <div id="sel-email" class="mono">—</div>
         </div>
 
         <div class="rowx" style="margin-top:8px;">
-          <input id="gold-amount" type="number" step="1" class="w100" placeholder="Gold amount" />
-          <button id="btn-give" title="Add gold">+ Give</button>
-          <button id="btn-take" class="secondary" title="Remove gold">− Take</button>
+          <input id="amt-gold" type="number" step="1" min="-999999" placeholder="gold amount (e.g. 10)" style="width:180px" />
+          <button id="btn-give" class="btn success">+ Give</button>
+          <button id="btn-take" class="btn danger">– Take</button>
         </div>
-        <div class="muted">Tip: amount is in <b>gold</b> (1g = 100s).</div>
-        <div id="gold-msg" class="muted"></div>
 
-        <hr style="opacity:.2;" />
-
-        <div class="rowx">
-          <button id="btn-disable" class="danger">Disable account</button>
-          <button id="btn-enable" class="secondary">Enable account</button>
+        <div class="rowx" style="margin-top:8px;">
+          <button id="btn-disable" class="btn danger">Disable account</button>
+          <button id="btn-enable" class="btn">Enable account</button>
         </div>
-        <div id="disable-msg" class="muted"></div>
+
+        <div id="ctrl-msg" class="muted status" style="margin-top:8px;"></div>
       </section>
 
-      <!-- RIGHT: users & inventory -->
+      <!-- RIGHT: USERS + INVENTORY -->
       <section class="card" style="margin:0;">
         <div class="rowx" style="justify-content:space-between;">
           <div class="label">Users</div>
-          <input id="user-search" placeholder="Search email..." class="w120" />
+          <input id="search" class="search" placeholder="Search by email..." />
         </div>
 
-        <div id="users-list" class="list" style="margin-top:8px; max-height:420px; overflow:auto;">Loading…</div>
-        <div id="users-msg" class="muted" style="margin-top:6px;"></div>
+        <div class="table-wrap" style="margin-top:8px;">
+          <table id="tbl-users">
+            <thead>
+              <tr>
+                <th>Email</th><th>Status</th><th>Gold</th><th>Created</th><th>Last seen</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="users-msg" class="muted status" style="margin-top:6px;"></div>
 
-        <div class="card" style="margin-top:12px;">
+        <div class="card" style="margin-top:16px;">
           <div class="label">Inventory of selected user</div>
-          <div id="inv-box" class="list">Select a user from the list →</div>
+
+          <div><strong>Items</strong></div>
+          <div class="table-wrap" style="margin-top:6px;">
+            <table id="tbl-items">
+              <thead><tr><th>Tier</th><th>Name</th><th class="mono">Code</th><th>Qty</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:12px;"><strong>Recipes</strong></div>
+          <div class="table-wrap" style="margin-top:6px;">
+            <table id="tbl-recipes">
+              <thead><tr><th>Tier</th><th>Name</th><th class="mono">Code</th><th>Qty</th><th>Attempts</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div id="inv-msg" class="muted status" style="margin-top:6px;"></div>
         </div>
       </section>
-    </section>
+    </div>
   </main>
 
   <script>
     const $ = s => document.querySelector(s);
+    const LS_KEY = "ADMIN_KEY_LOCKED";
+    const LS_VAL = "ADMIN_KEY_VALUE";
     let ADMIN_KEY = "";
     let USERS = [];
-    let SELECTED = null; // { id, email, ... }
+    let SELECTED = null;
 
+    // ------- Helpers -------
     function setWho(text){ $("#who").textContent = text; }
-    function msg(id, text, ok=true){ const el=$(id); el.textContent=text; el.className = ok ? "muted success" : "muted danger"; }
+    function msg(id, text, ok=true){ const el=$(id); el.textContent=text; el.className = ok ? "muted" : "muted danger"; }
+    function gs(total){ const g=Math.floor((total||0)/100), s=(total||0)%100; return `${g}g ${s}s`; }
 
-    function useHeaders(useKey=false){
-      const h = { "Content-Type":"application/json" };
-      if (useKey && ADMIN_KEY) h["x-admin-key"] = ADMIN_KEY;
-      return h;
-    }
-    async function api(path, opts={}, useKey=false){
-      const res = await fetch(path, { credentials:"include", ...opts, headers: { ...useHeaders(useKey), ...(opts.headers||{}) } });
+    async function api(path, opts={}, useKey=true){
+      const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
+      if (useKey && ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
+      const res = await fetch(path, { credentials:"include", ...opts, headers });
       let data=null; try{ data = await res.json(); }catch{}
-      if (!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
+      if(!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
       return data;
     }
 
-    // Auth status
-    async function refreshMe(){
-      try{
-        const r = await api("/api/me");
-        setWho(`${r.user.email} • ${r.user.is_admin ? "ADMIN" : "USER"} • ${r.user.gold}g ${r.user.silver}s`);
-      }catch{
-        setWho("Not logged in (you can use Admin Key).");
+    // ------- Admin Key Lock / Unlock -------
+    function loadKeyFromStorage(){
+      const locked = localStorage.getItem(LS_KEY)==="1";
+      const val = localStorage.getItem(LS_VAL) || "";
+      if(locked && val){ ADMIN_KEY = val; $("#admin-key").value = "••••••••"; $("#admin-key").disabled = true; $("#btn-lock").disabled = true; $("#btn-unlock").disabled = false; msg("#key-msg","Admin Key locked."); }
+      else { $("#admin-key").disabled = false; $("#btn-lock").disabled = false; $("#btn-unlock").disabled = true; }
+      $("#remember").checked = localStorage.getItem("REMEMBER_KEY")==="1";
+    }
+
+    $("#btn-lock").addEventListener("click", ()=>{
+      const v = $("#admin-key").value.trim();
+      if(!v){ msg("#key-msg","Enter your admin key first.", false); return; }
+      ADMIN_KEY = v;
+      if($("#remember").checked){
+        localStorage.setItem(LS_KEY,"1");
+        localStorage.setItem(LS_VAL, ADMIN_KEY);
+        localStorage.setItem("REMEMBER_KEY","1");
       }
-    }
-
-    // Admin key
-    function loadKey(){
-      const stored = localStorage.getItem("ADMIN_KEY_V1");
-      if (stored){ ADMIN_KEY = stored; $("#admin-key").value = stored; $("#ck-store-key").checked = true; }
-    }
-    $("#btn-save-key").addEventListener("click", ()=>{
-      ADMIN_KEY = $("#admin-key").value.trim();
-      if ($("#ck-store-key").checked) localStorage.setItem("ADMIN_KEY_V1", ADMIN_KEY);
-      msg("#key-msg", ADMIN_KEY ? "Admin Key set." : "Admin Key cleared.");
-    });
-    $("#btn-clear-key").addEventListener("click", ()=>{
-      ADMIN_KEY = ""; $("#admin-key").value = ""; localStorage.removeItem("ADMIN_KEY_V1");
-      msg("#key-msg", "Admin Key cleared.");
+      $("#admin-key").value = "••••••••";
+      $("#admin-key").disabled = true;
+      $("#btn-lock").disabled = true;
+      $("#btn-unlock").disabled = false;
+      msg("#key-msg","Admin Key locked.");
+      refreshUsers(); // try immediately
     });
 
-    // Users
-    function sortUsers(arr){
-      // active (is_disabled=false) first; then alphabetical by email
-      return [...arr].sort((a,b)=>{
-        if (a.is_disabled !== b.is_disabled) return a.is_disabled ? 1 : -1;
-        return a.email.localeCompare(b.email);
-      });
-    }
-    function renderUsers(){
-      const q = ($("#user-search").value||"").trim().toLowerCase();
-      const box = $("#users-list"); box.innerHTML = "";
-      const filtered = sortUsers(USERS).filter(u => u.email.toLowerCase().includes(q));
-      if (!filtered.length){ box.textContent = "No users."; $("#users-msg").textContent=""; return; }
-      for (const u of filtered){
-        const row = document.createElement("div");
-        row.className = "user-row" + (SELECTED && SELECTED.id===u.id ? " active" : "");
-        row.innerHTML = `
-          <div class="nowrap">
-            <span class="pill">${u.is_disabled ? "inactive" : "active"}</span>
-          </div>
-          <div style="flex:1; padding:0 6px;">${u.email}</div>
-          <div class="nowrap muted">${u.gold}g ${u.silver}s</div>
+    $("#btn-unlock").addEventListener("click", ()=>{
+      $("#admin-key").disabled = false;
+      $("#admin-key").value = "";
+      $("#btn-lock").disabled = false;
+      $("#btn-unlock").disabled = true;
+      msg("#key-msg","Admin Key unlocked. Enter a key and Lock.");
+      ADMIN_KEY = "";
+      localStorage.removeItem(LS_KEY);
+      localStorage.removeItem(LS_VAL);
+      localStorage.removeItem("REMEMBER_KEY");
+    });
+
+    // ------- Users -------
+    function renderUsers(list){
+      const tb = $("#tbl-users tbody"); tb.innerHTML = "";
+      for(const u of list){
+        const tr = document.createElement("tr");
+        tr.style.cursor = "pointer";
+        tr.innerHTML = `
+          <td class="mono">${u.email}</td>
+          <td>${u.is_disabled ? '<span class="pill bad">DISABLED</span>' : '<span class="pill ok">ACTIVE</span>'}</td>
+          <td>${gs((u.gold||0)*100 + (u.silver||0))}</td>
+          <td class="muted">${u.created_at||""}</td>
+          <td class="muted">${u.last_seen||""}</td>
         `;
-        row.addEventListener("click", ()=> selectUser(u));
-        box.appendChild(row);
+        tr.addEventListener("click", ()=> selectUser(u));
+        tb.appendChild(tr);
       }
-      $("#users-msg").textContent = `Shown: ${filtered.length} • Total: ${USERS.length}`;
+      $("#users-msg").textContent = `Shown: ${list.length}`;
     }
-    async function loadUsers(){
+
+    async function refreshUsers(){
+      $("#users-msg").textContent = "Loading users...";
       try{
-        const r = await api("/api/admin/users", {}, true);
-        USERS = r.users || [];
-        renderUsers();
+        const r = await api("/api/admin/users");
+        // Sort: active first, then A–Z
+        USERS = (r.users||[]).slice().sort((a,b)=>{
+          if (!!a.is_disabled !== !!b.is_disabled) return a.is_disabled ? 1 : -1;
+          return a.email.toLowerCase().localeCompare(b.email.toLowerCase());
+        });
+        const q = $("#search").value.trim().toLowerCase();
+        const filtered = q ? USERS.filter(u=>u.email.toLowerCase().includes(q)) : USERS;
+        renderUsers(filtered);
       }catch(e){
-        $("#users-list").textContent = e.message;
+        $("#users-msg").textContent = e.message;
       }
     }
 
+    $("#search").addEventListener("input", ()=> {
+      const q = $("#search").value.trim().toLowerCase();
+      const filtered = q ? USERS.filter(u=>u.email.toLowerCase().includes(q)) : USERS;
+      renderUsers(filtered);
+    });
+
+    // ------- Selection + Inventory -------
     async function selectUser(u){
       SELECTED = u;
       $("#sel-email").textContent = u.email;
-      renderUsers(); // refresh highlight
-      await loadInventory(u);
+      $("#ctrl-msg").textContent = "";
+      await loadInventory(u.id);
     }
 
-    // Inventory for selected user
-    async function loadInventory(u){
-      $("#inv-box").textContent = "Loading…";
+    async function loadInventory(userId){
+      $("#inv-msg").textContent = "Loading inventory...";
+      $("#tbl-items tbody").innerHTML = "";
+      $("#tbl-recipes tbody").innerHTML = "";
       try{
-        const r = await api(`/api/admin/user-inventory?user_id=${encodeURIComponent(u.id)}`, {}, true);
-        const parts = [];
+        const r = await api(`/api/admin/user-inventory?user_id=${encodeURIComponent(userId)}`);
         const items = r.items || [];
         const recipes = r.recipes || [];
-        parts.push("ITEMS:");
-        if (!items.length) parts.push(" (none)");
-        for (const it of items){
-          parts.push(` • [T${it.tier}] ${it.code} — ${it.name} x${it.qty}`);
+
+        const tbI = $("#tbl-items tbody");
+        for(const it of items){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>T${it.tier}</td><td>${it.name}</td><td class="mono">${it.code}</td><td>${it.qty}</td>`;
+          tbI.appendChild(tr);
         }
-        parts.push("");
-        parts.push("RECIPES:");
-        if (!recipes.length) parts.push(" (none)");
-        for (const rc of recipes){
-          parts.push(` • [T${rc.tier}] ${rc.code} — ${rc.name} x${rc.qty}`);
+        const tbR = $("#tbl-recipes tbody");
+        for(const rc of recipes){
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>T${rc.tier}</td><td>${rc.name}</td><td class="mono">${rc.code}</td><td>${rc.qty}</td><td>${rc.attempts ?? 0}</td>`;
+          tbR.appendChild(tr);
         }
-        $("#inv-box").textContent = parts.join("\n");
+        $("#inv-msg").textContent = `Items: ${items.length} • Recipes: ${recipes.length}`;
       }catch(e){
-        $("#inv-box").textContent = e.message;
+        $("#inv-msg").textContent = e.message + " (tip: ensure /api/admin/user-inventory exists)";
       }
     }
 
-    // Gold +/- for selected user
-    async function applyGold(sign){
-      if (!SELECTED){ msg("#gold-msg","Select a user first.", false); return; }
-      const val = parseInt($("#gold-amount").value || "0", 10) || 0;
-      if (val<=0){ msg("#gold-msg","Enter a positive gold amount.", false); return; }
-      const gold = sign>0 ? val : -val;
+    // ------- Controls: Give/Take + Disable/Enable -------
+    async function adjustBalance(sign){
+      if(!SELECTED){ msg("#ctrl-msg","Select a user first.", false); return; }
+      let g = parseInt($("#amt-gold").value || "0", 10);
+      if(!Number.isFinite(g) || g===0){ msg("#ctrl-msg","Enter gold amount (integer).", false); return; }
+      g = Math.abs(g) * (sign>0 ? 1 : -1);
       try{
         const r = await api("/api/admin/adjust-balance", {
           method:"POST",
-          body: JSON.stringify({ email: SELECTED.email, gold })
-        }, true);
-        msg("#gold-msg", `OK • New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
-        await loadUsers(); // refresh list numbers
-        const nu = USERS.find(x=>x.email===SELECTED.email); if(nu){ SELECTED = nu; renderUsers(); }
-      }catch(e){
-        msg("#gold-msg", e.message, false);
-      }
+          body: JSON.stringify({ email: SELECTED.email, gold: g })
+        });
+        msg("#ctrl-msg", `OK. New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
+        await refreshUsers();
+      }catch(e){ msg("#ctrl-msg", e.message, false); }
     }
-    $("#btn-give").addEventListener("click", ()=> applyGold(+1));
-    $("#btn-take").addEventListener("click", ()=> applyGold(-1));
+    $("#btn-give").addEventListener("click", ()=>adjustBalance(+1));
+    $("#btn-take").addEventListener("click", ()=>adjustBalance(-1));
 
-    // Disable / Enable
     async function setDisabled(flag){
-      if (!SELECTED){ msg("#disable-msg","Select a user first.", false); return; }
+      if(!SELECTED){ msg("#ctrl-msg","Select a user first.", false); return; }
       try{
         await api("/api/admin/disable-user", {
           method:"POST",
           body: JSON.stringify({ email: SELECTED.email, disabled: !!flag })
-        }, true);
-        msg("#disable-msg", flag ? "Account disabled." : "Account enabled.");
-        await loadUsers();
-        const nu = USERS.find(x=>x.email===SELECTED.email); if(nu){ SELECTED = nu; renderUsers(); }
-      }catch(e){
-        msg("#disable-msg", e.message, false);
+        });
+        msg("#ctrl-msg", flag ? "Account disabled." : "Account enabled.");
+        await refreshUsers();
+      }catch(e){ msg("#ctrl-msg", e.message, false); }
+    }
+    $("#btn-disable").addEventListener("click", ()=>setDisabled(true));
+    $("#btn-enable").addEventListener("click", ()=>setDisabled(false));
+
+    // ------- Me (header helper) -------
+    async function refreshMe(){
+      try{
+        const r = await api("/api/me", {}, false);
+        setWho(`${r.user.email} • ${r.user.is_admin ? "ADMIN" : "USER"} • ${r.user.gold}g ${r.user.silver}s`);
+      }catch{
+        setWho("Not signed in (Admin Key mode).");
       }
     }
-    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
-
-    // Search
-    $("#user-search").addEventListener("input", renderUsers);
 
     // init
-    (function init(){
-      const stored = localStorage.getItem("ADMIN_KEY_V1");
-      if (stored){ ADMIN_KEY = stored; $("#admin-key").value = stored; $("#ck-store-key").checked = true; }
-      refreshMe();
-      loadUsers();
-    })();
+    loadKeyFromStorage();
+    refreshMe();
+    refreshUsers();
   </script>
 </body>
 </html>
