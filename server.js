@@ -9,7 +9,6 @@ const cookieParser = require("cookie-parser");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const fs = require("fs");
 
 // ----- Config (ENV first; safe fallbacks for local)
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -40,19 +39,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ----- Persistent DB path (DISK)
-const DEFAULT_DB_NAME = "rps.db";
-const DB_DIR = process.env.DB_DIR || path.join(__dirname, "data");
-const DB_PATH = process.env.DB_PATH || path.join(DB_DIR, DEFAULT_DB_NAME);
-
-try { fs.mkdirSync(path.dirname(DB_PATH), { recursive: true }); } catch {}
-// jednokratna migracija starog fajla (ako postoji u rootu projekta)
-const LEGACY_DB = path.join(__dirname, "rps.db");
-if (!fs.existsSync(DB_PATH) && fs.existsSync(LEGACY_DB)) {
-  try { fs.copyFileSync(LEGACY_DB, DB_PATH); } catch {}
-}
-
-const db = new Database(DB_PATH);
+const db = new Database(path.join(__dirname, "rps.db"));
 db.pragma("journal_mode = WAL");
 
 // ----- Helpers
@@ -475,7 +462,7 @@ app.get("/api/admin/user/:id/inventory",(req,res)=>{
   res.json({ok:true,items,recipes});
 });
 
-// ================== SHOP (recipe replaces material on drop) ==================
+// ================== SHOP (recipe replaces material) ==================
 const T1_CODES=["STONE","WOOD","WOOL","RESIN","COPPER","SAND"];
 function pickWeightedRecipe(){
   const list = db.prepare(`SELECT id, code, name, tier FROM recipes`).all();
@@ -558,7 +545,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
       const g=Math.floor(bal.balance_silver/100), s=bal.balance_silver%100;
 
       return { ok:true,
-        result_type: addedItem ? "ITEM" : "RECIPE",
+        result_type: willDropRecipe ? "RECIPE" : "ITEM",
         addedItem, grantedRecipe,
         gold:g, silver:s, balance_silver:bal.balance_silver,
         shop_buy_count:bal.shop_buy_count, buys_to_next: buysToNext
@@ -602,9 +589,10 @@ app.get("/api/recipes/:id",(req,res)=>{
   res.json({ ok:true, recipe:{ id:rec.id,code:rec.code,name:rec.name,tier:rec.tier,attempts:rec.attempts,output_item_id:rec.output_item_id }, ingredients:enriched, can_craft });
 });
 
-// Craft — artefakti bez škarta; ostalo 10% škart
+// Craft — on SUCCESS consume 1 recipe; on FAIL give SCRAP
 app.post("/api/recipes/:id/craft",(req,res)=>{
-  const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
+  const u=verifyTokenFromCookies(req); 
+  if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const rid=parseInt(req.params.id,10);
   try{
     const out=db.transaction(()=>{
@@ -621,24 +609,21 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
         LEFT JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
         WHERE ri.recipe_id=?
       `).all(u.uid,rid);
-      for(const ing of ings){ if(ing.have_qty<ing.need_qty) throw new Error(`Missing: ${ig ing?ing.code:"ING"} x${ing.need_qty-(ing.have_qty||0)}`); }
-
+      for(const ing of ings){
+        if(ing.have_qty<ing.need_qty) throw new Error(`Missing: ${ing.code} x${ing.need_qty-(ing.have_qty||0)}`);
+      }
       for(const ing of ings){ db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(ing.need_qty,u.uid,ing.id); }
 
-      // upiši pokušaj (čuvamo do 5 radi statistike)
+      // try
       db.prepare("UPDATE user_recipes SET attempts = MIN(attempts + 1, 5) WHERE user_id = ? AND recipe_id = ?").run(u.uid, rec.id);
-
-      // pogledaj izlazni item i primijeni pravilo škarta
-      const outItem=db.prepare("SELECT id,code,name,tier FROM items WHERE id=?").get(rec.output_item_id);
-      const isArtefact = !!(outItem && outItem.tier >= 3); // pretpostavka: artefakti su T3+ (bez škarta)
-      const failP = isArtefact ? 0 : 0.10;
+      const attempts=clamp((rec.attempts|0)+1,0,5);
+      const failP=Math.max(0.15, 0.25 - attempts*0.02);
       const roll=Math.random();
 
       if(roll<failP){
         const scrap=idByCode("SCRAP");
         db.prepare(`
-          INSERT INTO user_items(user_id,item_id,qty)
-          VALUES (?,?,1)
+          INSERT INTO user_items(user_id,item_id,qty) VALUES (?,?,1)
           ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
         `).run(u.uid,scrap);
         db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)").run(u.uid,0,"CRAFT_FAIL",`recipe:${rec.code}`,nowISO());
@@ -649,13 +634,12 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
         if (ch === 0) throw new Error("Recipe not available any more.");
 
         db.prepare(`
-          INSERT INTO user_items(user_id,item_id,qty)
-          VALUES (?,?,1)
+          INSERT INTO user_items(user_id,item_id,qty) VALUES (?,?,1)
           ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
         `).run(u.uid,rec.output_item_id);
         db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)").run(u.uid,0,"CRAFT_SUCCESS",`recipe:${rec.code}`,nowISO());
-        const outItemInfo=db.prepare("SELECT code,name,tier FROM items WHERE id=?").get(rec.output_item_id);
-        return { ok:true, crafted:true, scrap:false, output:outItemInfo, recipe:{id:rec.id,code:rec.code,name:rec.name,tier:rec.tier} };
+        const outItem=db.prepare("SELECT code,name,tier FROM items WHERE id=?").get(rec.output_item_id);
+        return { ok:true, crafted:true, scrap:false, output:outItem, recipe:{id:rec.id,code:rec.code,name:rec.name,tier:rec.tier} };
       }
     })();
     res.json(out);
@@ -915,8 +899,7 @@ app.get("/api/health", (req, res) => {
     msg: "Shop, Recipes, Craft & Auctions ready (T1 materials, weighted recipe drops, admin API)",
     fee_bps: AUCTION_FEE_BPS,
     recipe_drop: { min: RECIPE_DROP_MIN, max: RECIPE_DROP_MAX, approx_every: "~6 buys (random 4–8), replaces T1" },
-    target_per_1000_recipes: TARGET_TIER_MASS,
-    db_path: DB_PATH
+    target_per_1000_recipes: TARGET_TIER_MASS
   });
 });
 
@@ -928,7 +911,6 @@ io.on("connection", s => {
 // ============== START SERVER ==============
 server.listen(PORT, HOST, () => {
   console.log(`Server running at http://${HOST}:${PORT}`);
-  console.log(`DB: ${DB_PATH}`);
   console.log(`Auctions: fee=${AUCTION_FEE_BPS/100}% • default duration ${DEFAULT_AUCTION_MINUTES}min`);
-  console.log(`Recipe drop: ~every 6 buys (random ${RECIPE_DROP_MIN}–${RECIPE_DROP_MAX}), targets per 1000 =`, TARGET_TIER_MASS);
+  console.log(`Recipe drop: ~every 6 buys (random ${RECIPE_DROP_MIN}–${RECIPE_DROP_MAX}), replaces material. Tier targets ~ 900/70/24/4/1 per 1000 recipes.`);
 });
