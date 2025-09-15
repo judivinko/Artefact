@@ -458,6 +458,105 @@ app.get("/api/admin/user-inventory",(req,res)=>{
   `).all(userId);
   res.json({ok:true,items,recipes});
 });
+// ===== ADMIN HELPERS =====
+const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
+
+function isAdminRequest(req){
+  const hdr = (req.headers && (req.headers["x-admin-key"] || req.headers["X-Admin-Key"])) || "";
+  if (hdr && String(hdr) === String(ADMIN_KEY)) return true;
+  try{
+    const tok = verifyTokenFromCookies(req);
+    if (tok){
+      const r = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
+      if (r && r.is_admin === 1) return true;
+    }
+  }catch{}
+  return false;
+}
+
+// Quick check
+app.get("/api/admin/ping",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  res.json({ok:true,message:"Admin OK"});
+});
+
+// Users list (active first, A–Z)
+app.get("/api/admin/users",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const rows = db.prepare(`
+    SELECT id,email,is_admin,is_disabled,created_at,last_seen,balance_silver,shop_buy_count,next_recipe_at
+    FROM users
+    ORDER BY is_disabled ASC, lower(email) ASC
+  `).all();
+  const users = rows.map(u=>({
+    id:u.id, email:u.email, is_admin:!!u.is_admin, is_disabled:!!u.is_disabled,
+    created_at:u.created_at, last_seen:u.last_seen,
+    gold: Math.floor((u.balance_silver||0)/100),
+    silver: (u.balance_silver||0)%100,
+    shop_buy_count: u.shop_buy_count ?? 0,
+    next_recipe_at: u.next_recipe_at ?? null
+  }));
+  res.json({ok:true, users});
+});
+
+// Adjust balance (+/- gold)
+app.post("/api/admin/adjust-balance",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email,gold=0,silver=0,delta_silver} = req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const u = db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
+  if(!u) return res.status(404).json({ok:false,error:"User not found"});
+  let deltaS = (typeof delta_silver==="number") ? Math.trunc(delta_silver) : (Math.trunc(gold)*100 + Math.trunc(silver));
+  if(!Number.isFinite(deltaS) || deltaS===0) return res.status(400).json({ok:false,error:"No change"});
+  try{
+    const tx = db.transaction(()=>{
+      const after = u.balance_silver + deltaS;
+      if(after<0) throw new Error("Insufficient funds");
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(u.id,deltaS,"ADMIN_ADJUST",null,nowISO());
+    });
+    tx();
+    const updated = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
+    res.json({ok:true,balance_silver:updated,gold:Math.floor(updated/100),silver:updated%100});
+  }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
+});
+
+// Disable / Enable
+app.post("/api/admin/disable-user",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email,disabled} = req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const flag = disabled ? 1 : 0;
+  const r = db.prepare("UPDATE users SET is_disabled=? WHERE lower(email)=lower(?)").run(flag,email);
+  if(r.changes===0) return res.status(404).json({ok:false,error:"User not found"});
+  res.json({ok:true});
+});
+
+// Inventory of any user (for admin)
+app.get("/api/admin/user/:id/inventory",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const uid = parseInt(req.params.id,10);
+  if(!Number.isFinite(uid)) return res.status(400).json({ok:false,error:"Bad user id"});
+  const has = db.prepare("SELECT id FROM users WHERE id=?").get(uid);
+  if(!has) return res.status(404).json({ok:false,error:"User not found"});
+
+  const items = db.prepare(`
+    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
+    FROM items i JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
+    WHERE ui.qty>0
+    ORDER BY i.tier ASC,i.name ASC
+  `).all(uid);
+
+  const recipes = db.prepare(`
+    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
+    FROM recipes r JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
+    WHERE ur.qty>0
+    ORDER BY r.tier ASC,r.name ASC
+  `).all(uid);
+
+  res.json({ok:true, items, recipes});
+});
 
 // ================== SHOP (NOVI DROP LOGIC) ==================
 const T1_CODES=["STONE","WOOD","WOOL","RESIN","COPPER","SAND"];
@@ -860,3 +959,4 @@ server.listen(PORT,HOST,()=>{
   console.log(`Auctions: fee=${AUCTION_FEE_BPS/100}% • default duration ${DEFAULT_AUCTION_MINUTES}min`);
   console.log(`Recipe drop: ~every 6 buys (random 4–8), replaces material. Tier targets ~ 900/70/24/4/1 per 1000 recipes.`);
 });
+
