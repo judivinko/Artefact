@@ -225,73 +225,38 @@
   </main>
 
   <script>
+    // ---------- Helpers ----------
     const $ = s => document.querySelector(s);
     const state = { me:null, recipes:[], currentRecipe:null, liveAuctions:[], mine:[] };
 
     function setWallet(g,s){ $("#wallet").textContent = `${g} g ${s} s`; }
-    function setNextRecipe(b){ $("#next-recipe").textContent = (b==null) ? "Next recipe: —" : \`Next recipe in: \${b} purchases\`; }
+    function setNextRecipe(b){ $("#next-recipe").textContent = (b==null) ? "Next recipe: —" : `Next recipe in: ${b} purchases`; }
     async function api(path, opts={}){ 
-      const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts }); 
-      const data = await res.json().catch(()=>({})); 
-      if (!res.ok) throw new Error((data && data.error) || \`HTTP \${res.status}\`); 
-      return data; 
+      const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
+      let data = {};
+      try{ data = await res.json(); }catch{}
+      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+      return data;
     }
     function appendLog(msg, cls){ const p=document.createElement("div"); if(cls) p.className=cls; p.textContent=msg; $("#log").prepend(p); }
-    function fmtMoney(s){ const g=Math.floor(s/100), c=s%100; return \`\${g}g \${c}s\`; }
+    function fmtMoney(s){ const g=Math.floor(s/100), c=s%100; return `${g}g ${c}s`; }
 
-    // ---------- BRANDING ----------
+    // ---------- Branding (local-only) ----------
     const DEFAULT_LOGO = "/artefakt-lockup-stacked.svg";
     function dataURLtoImage(dataURL){ return new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=dataURL; }); }
-    function canvasIconFromImage(img,size){ 
-      const c=document.createElement("canvas"); c.width=size; c.height=size; 
-      const ctx=c.getContext("2d"); ctx.fillStyle="#0B1220"; ctx.fillRect(0,0,size,size); 
-      const m=6, sc=Math.min((size-2*m)/img.width,(size-2*m)/img.height); 
-      const w=img.width*sc, h=img.height*sc, x=(size-w)/2, y=(size-h)/2; 
-      ctx.drawImage(img,x,y,w,h); 
-      return c.toDataURL("image/png"); 
-    }
-    function applyBrandingFromStorage(){ 
-      const logo=localStorage.getItem("brand_logo"); 
-      const fav32=localStorage.getItem("brand_fav_32"); 
-      const fav64=localStorage.getItem("brand_fav_64"); 
-      $("#brand-img").src=logo||DEFAULT_LOGO; 
-      if(fav32) $("#favicon-32").href=fav32; 
-      if(fav64) $("#favicon-64").href=fav64; 
-      $("#brand-preview").src=logo||DEFAULT_LOGO; 
-    }
+    function canvasIconFromImage(img,size){ const c=document.createElement("canvas"); c.width=size; c.height=size; const ctx=c.getContext("2d"); ctx.fillStyle="#0B1220"; ctx.fillRect(0,0,size,size); const m=6, sc=Math.min((size-2*m)/img.width,(size-2*m)/img.height); const w=img.width*sc, h=img.height*sc, x=(size-w)/2, y=(size-h)/2; ctx.drawImage(img,x,y,w,h); return c.toDataURL("image/png"); }
+    function applyBrandingFromStorage(){ const logo=localStorage.getItem("brand_logo"); const fav32=localStorage.getItem("brand_fav_32"); const fav64=localStorage.getItem("brand_fav_64"); $("#brand-img").src=logo||DEFAULT_LOGO; if(fav32) $("#favicon-32").href=fav32; if(fav64) $("#favicon-64").href=fav64; $("#brand-preview").src=logo||DEFAULT_LOGO; }
     function showBrandCardForAdmins(){ (state.me && state.me.is_admin) ? $("#brand-card").classList.remove("hidden") : $("#brand-card").classList.add("hidden"); }
-    $("#brand-file").addEventListener("change", e=>{ 
-      const f=e.target.files && e.target.files[0]; if(!f) return; 
-      const r=new FileReader(); 
-      r.onload=()=>{ const d=r.result; $("#brand-preview").src=d; $("#brand-img").src=d; }; 
-      r.readAsDataURL(f); 
-    });
-    $("#btn-brand-save").addEventListener("click", async ()=>{ 
-      const src=$("#brand-preview").src; if(!src){ alert("Choose a logo first."); return; } 
-      try{ 
-        const img=await dataURLtoImage(src); 
-        const fav32=canvasIconFromImage(img,32); 
-        const fav64=canvasIconFromImage(img,64); 
-        localStorage.setItem("brand_logo",src); 
-        localStorage.setItem("brand_fav_32",fav32); 
-        localStorage.setItem("brand_fav_64",fav64); 
-        $("#favicon-32").href=fav32; $("#favicon-64").href=fav64; 
-        alert("Logo saved."); 
-      }catch(e){ alert("Could not save logo: "+(e.message||e)); }
-    });
-    $("#btn-brand-reset").addEventListener("click", ()=>{ 
-      localStorage.removeItem("brand_logo"); 
-      localStorage.removeItem("brand_fav_32"); 
-      localStorage.removeItem("brand_fav_64"); 
-      applyBrandingFromStorage(); 
-    });
+    $("#brand-file").addEventListener("change", e=>{ const f=e.target.files && e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const d=r.result; $("#brand-preview").src=d; $("#brand-img").src=d; }; r.readAsDataURL(f); });
+    $("#btn-brand-save").addEventListener("click", async ()=>{ const src=$("#brand-preview").src; if(!src){ alert("Choose a logo first."); return; } try{ const img=await dataURLtoImage(src); const fav32=canvasIconFromImage(img,32); const fav64=canvasIconFromImage(img,64); localStorage.setItem("brand_logo",src); localStorage.setItem("brand_fav_32",fav32); localStorage.setItem("brand_fav_64",fav64); $("#favicon-32").href=fav32; $("#favicon-64").href=fav64; alert("Logo saved."); }catch(e){ alert("Could not save logo: "+(e.message||e)); } });
+    $("#btn-brand-reset").addEventListener("click", ()=>{ localStorage.removeItem("brand_logo"); localStorage.removeItem("brand_fav_32"); localStorage.removeItem("brand_fav_64"); applyBrandingFromStorage(); });
 
-    // ---------- APP ----------
+    // ---------- App boot ----------
     async function refreshMe(){
       try{
         const r = await api("/api/me");
         state.me = r.user;
-        $("#top-user").textContent = \`\${r.user.email} • \${r.user.gold}g \${r.user.silver}s\`;
+        $("#top-user").textContent = `${r.user.email} • ${r.user.gold}g ${r.user.silver}s`;
         $("#email").textContent = r.user.email;
         $("#admin-badge").textContent = r.user.is_admin ? "ADMIN" : "";
         setWallet(r.user.gold, r.user.silver);
@@ -320,26 +285,43 @@
       });
     });
 
-    // Auth
-    $("#btn-login").addEventListener("click", async ()=>{
+    // ---------- Auth ----------
+    // (Button click + Enter in password polju)
+    function bindEnter(input, handler){
+      input.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); handler(); }});
+    }
+
+    async function doLogin(){
       $("#login-msg").textContent="";
+      const email=$("#login-email").value.trim();
+      const password=$("#login-pass").value;
+      if(!email || !password){ $("#login-msg").textContent="Enter email and password."; return; }
       try{
-        const email=$("#login-email").value.trim();
-        const password=$("#login-pass").value;
+        $("#btn-login").disabled=true;
         const r = await api("/api/login", { method:"POST", body:JSON.stringify({ email,password }) });
         $("#login-msg").textContent=r.message||"OK";
         await refreshMe();
       }catch(e){ $("#login-msg").textContent=e.message; }
-    });
-    $("#btn-register").addEventListener("click", async ()=>{
+      finally{ $("#btn-login").disabled=false; }
+    }
+    async function doRegister(){
       $("#reg-msg").textContent="";
+      const email=$("#reg-email").value.trim();
+      const password=$("#reg-pass").value;
+      if(!email || !password){ $("#reg-msg").textContent="Enter email and password (min 6)."; return; }
       try{
-        const email=$("#reg-email").value.trim();
-        const password=$("#reg-pass").value;
+        $("#btn-register").disabled=true;
         const r = await api("/api/register", { method:"POST", body:JSON.stringify({ email,password }) });
         $("#reg-msg").textContent=r.message||"OK";
       }catch(e){ $("#reg-msg").textContent=e.message; }
-    });
+      finally{ $("#btn-register").disabled=false; }
+    }
+
+    $("#btn-login").addEventListener("click", doLogin);
+    $("#btn-register").addEventListener("click", doRegister);
+    bindEnter($("#login-pass"), doLogin);
+    bindEnter($("#reg-pass"), doRegister);
+
     $("#btn-logout").addEventListener("click", async ()=>{
       try{ await api("/api/logout"); }catch{}
       await refreshMe();
@@ -351,12 +333,11 @@
       state.currentRecipe=null;
     });
 
-    // Shop
+    // ---------- Shop ----------
     $("#btn-buy-t1").addEventListener("click", async ()=>{
       try{
         const r = await api("/api/shop/buy-t1", { method:"POST", body:JSON.stringify({}) });
         setWallet(r.gold,r.silver); setNextRecipe(r.buys_to_next);
-
         if (r.result_type === "RECIPE" && r.grantedRecipe){
           appendLog(`🎉 Recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`, "success");
         } else if (r.addedItem){
@@ -367,7 +348,7 @@
       }catch(e){ appendLog("Error: "+e.message, "danger"); }
     });
 
-    // Recipes
+    // ---------- Recipes ----------
     $("#btn-load-recipes").addEventListener("click", loadRecipes);
     async function loadRecipes(){
       $("#recipes-list").textContent="Loading...";
@@ -420,7 +401,7 @@
       finally{ $("#btn-craft").disabled=false; }
     });
 
-    // INVENTORY (for auctions)
+    // ---------- Inventory (for auctions) ----------
     $("#btn-load-inventory").addEventListener("click", loadInventory);
     async function loadInventory(){
       $("#inv-items").textContent="Loading..."; $("#inv-recipes").textContent="Loading...";
@@ -455,7 +436,7 @@
       }
     }
 
-    // CREATE AUCTION
+    // ---------- Create auction ----------
     $("#btn-create-auction").addEventListener("click", createAuction);
     async function createAuction(){
       $("#auc-msg").textContent="";
@@ -473,7 +454,7 @@
       }catch(e){ $("#auc-msg").textContent=e.message; }
     }
 
-    // LIVE AUCTIONS + BIDS (right column)
+    // ---------- Live auctions ----------
     $("#btn-load-live").addEventListener("click", loadLive);
     $("#live-search").addEventListener("input", renderLiveFiltered);
 
@@ -548,7 +529,7 @@
       }catch(e){ alert("Error: "+e.message); }
     }
 
-    // MY AUCTIONS (with Cancel)
+    // ---------- My auctions (Cancel) ----------
     $("#btn-load-mine").addEventListener("click", loadMine);
     async function loadMine(){
       $("#mine-list").textContent="Loading...";
