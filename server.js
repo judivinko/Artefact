@@ -1,4 +1,4 @@
-// === ARTEFACT ECONOMY — SERVER (Render-ready) ===
+// === ARTEFAKT ECONOMY — SERVER (Render-ready) ===
 // Currency in SILVER (100s = 1g)
 
 const express = require("express");
@@ -23,7 +23,7 @@ const AUCTION_FEE_BPS = 100;           // 1%
 const DEFAULT_AUCTION_MINUTES = 60;
 
 // Shop / Recipe drop tuning
-// Novi: recept pada prosječno na ~6 kupovina, ali nasumično 4–8 (UMJESTO materijala)
+// Recept pada prosječno na ~6 kupovina, ali nasumično 4–8 (UMJESTO materijala)
 const RECIPE_DROP_MIN = 4;   // inclusive
 const RECIPE_DROP_MAX = 8;   // inclusive
 
@@ -55,14 +55,14 @@ function verifyTokenFromCookies(req){
   try{ return jwt.verify(t,JWT_SECRET);}catch{ return null; }
 }
 function isAdminRequest(req){
-  if (req.headers && req.headers["x-admin-key"]===ADMIN_KEY) return true;
-  const u = verifyTokenFromCookies(req);
-  if (!u) return false;
-  const r = db.prepare("SELECT is_admin FROM users WHERE id=?").get(u.uid);
-  return !!(r && r.is_admin===1);
+  // 1) Admin Key preko headera
+  if (req.headers && req.headers["x-admin-key"] === ADMIN_KEY) return true;
+  // 2) Admin cookie (ulogovan korisnik koji ima is_admin=1)
+  const tok = verifyTokenFromCookies(req);
+  if (!tok) return false;
+  const row = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
+  return !!(row && row.is_admin === 1);
 }
-
-// Random int [a, b]
 function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
 
 // ----- Schema utils
@@ -261,7 +261,7 @@ function ensureRecipe(code,name,tier,outCode,ings){
   return rid;
 }
 
-// ----- Items/Recipes (skraćen demo set; proširi po potrebi)
+// ----- Items/Recipes (kratki set za primjer; tvoji veći ostaju kompatibilni)
 
 // Scrap (volatile)
 ensureItem("SCRAP","Scrap",1,1);
@@ -302,41 +302,13 @@ ensureRecipe("R_MOLD","Mold",2,"MOLD",[["SAND",1],["RESIN",1],["STONE",1]]);
 ensureRecipe("R_FIBER_BUNDLE","Fiber bundle",2,"FIBER_BUNDLE",[["WOOL",2],["RESIN",1]]);
 ensureRecipe("R_CORE_ROD","Core rod",2,"CORE_ROD",[["COPPER",1],["STONE",1],["RESIN",1]]);
 
-// T3 (primjeri)
-ensureItem("BOTTLE","Glass bottle",3,0);
-ensureItem("CABLE","Reinforced cable",3,0);
-ensureItem("BRONZE_KNIFE","Bronze knife",3,0);
-ensureRecipe("R_BOTTLE","Glass bottle",3,"BOTTLE",[["GLASS",1],["TARP",1],["ROPE",1]]);
-ensureRecipe("R_CABLE","Reinforced cable",3,"CABLE",[["WIRE",1],["FIBER_BUNDLE",1],["COAT",1]]);
-ensureRecipe("R_BRONZE_KNIFE","Bronze knife",3,"BRONZE_KNIFE",[["BLADE",1],["HANDLE",1],["COAT",1]]);
-
-// T4
-ensureItem("LAMP","Lamp",4,0);
-ensureItem("PRECISION_TOOL","Precision tool",4,0);
-ensureRecipe("R_LAMP","Lamp",4,"LAMP",[["BOTTLE",1],["CABLE",1],["BRONZE_PLATE",1]]);
-ensureRecipe("R_PRECISION_TOOL","Precision tool",4,"PRECISION_TOOL",[["BRONZE_KNIFE",1],["MOLD",1],["PAPER",1]]);
-
-// T5
-ensureItem("GENERATOR","Generator",5,0);
-ensureItem("MODULE","Module",5,0);
-ensureRecipe("R_GENERATOR","Generator",5,"GENERATOR",[["LAMP",1],["PRECISION_TOOL",1],["CORE_ROD",1]]);
-ensureRecipe("R_MODULE","Module",5,"MODULE",[["LAMP",1],["CABLE",1],["BRONZE_KNIFE",1]]);
-
-// T6 artefacts (primjeri; može ostati 1 ili više — distribucija je dinamička)
-ensureItem("AR1","Artifact Alpha",6,0);
-ensureItem("AR2","Artifact Beta",6,0);
-ensureItem("AR3","Artifact Gamma",6,0);
-ensureRecipe("R_AR1","Artifact Alpha",6,"AR1",[["GENERATOR",1],["MODULE",1],["PRECISION_TOOL",1]]);
-ensureRecipe("R_AR2","Artifact Beta",6,"AR2",[["GENERATOR",1],["LAMP",1],["BRONZE_KNIFE",1]]);
-ensureRecipe("R_AR3","Artifact Gamma",6,"AR3",[["MODULE",1],["PRECISION_TOOL",1],["BOTTLE",1]]);
-
-// ----- Maintenance (cleanup only-unavailable recipes/items in user tables)
+// ----- Maintenance (cleanup orphans)
 try{
   db.exec(`DELETE FROM user_recipes WHERE recipe_id NOT IN (SELECT id FROM recipes);`);
   db.exec(`DELETE FROM user_items   WHERE item_id   NOT IN (SELECT id FROM items);`);
 }catch{}
 
-// ----- On boot: remove volatile items (scrap) from inventories (fresh start)
+// ----- On boot: remove volatile items (scrap) from inventories
 try{
   const ids=db.prepare("SELECT id FROM items WHERE volatile=1").all().map(r=>r.id);
   if(ids.length){ db.prepare(`DELETE FROM user_items WHERE item_id IN (${ids.map(()=>"?").join(",")})`).run(...ids); }
@@ -374,22 +346,17 @@ app.get("/api/logout",(req,res)=>{
   res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:false});
   res.json({ok:true,message:"Logged out."});
 });
-
-// Robust /api/me (clears invalid token)
 app.get("/api/me",(req,res)=>{
   const u=verifyTokenFromCookies(req);
   if(!u) return res.status(401).json({ok:false});
-
   const r=db.prepare(`
     SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at
     FROM users WHERE id=?
   `).get(u.uid);
-
   if(!r){
     res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:false});
     return res.status(401).json({ok:false,error:"Session expired, log in again."});
   }
-
   const g=Math.floor((r.balance_silver||0)/100), s=(r.balance_silver||0)%100;
   const buysToNext=(r.next_recipe_at==null)?null:Math.max(0,(r.next_recipe_at)-(r.shop_buy_count||0));
   res.json({ok:true,user:{
@@ -399,7 +366,25 @@ app.get("/api/me",(req,res)=>{
   }});
 });
 
-// ================== ADMIN (skraćeno; ostalo kao prije) ==================
+// ================== ADMIN ==================
+
+// users list (active first, A–Z)
+app.get("/api/admin/users",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const rows=db.prepare(`
+    SELECT id,email,is_admin,is_disabled,created_at,last_seen,balance_silver,shop_buy_count,next_recipe_at
+    FROM users
+    ORDER BY is_disabled ASC, LOWER(email) ASC
+  `).all();
+  const users = rows.map(r=>({
+    id:r.id,email:r.email,is_admin:!!r.is_admin,is_disabled:!!r.is_disabled,
+    gold:Math.floor((r.balance_silver||0)/100), silver:(r.balance_silver||0)%100,
+    created_at:r.created_at,last_seen:r.last_seen,shop_buy_count:r.shop_buy_count,next_recipe_at:r.next_recipe_at
+  }));
+  res.json({ok:true,users});
+});
+
+// adjust balance (±gold or delta_silver)
 app.post("/api/admin/adjust-balance",(req,res)=>{
   if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const {email,gold=0,silver=0,delta_silver}=req.body||{};
@@ -421,19 +406,57 @@ app.post("/api/admin/adjust-balance",(req,res)=>{
   }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
 });
 
-app.get("/api/admin/users",(req,res)=>{
+// disable / enable user
+app.post("/api/admin/disable-user",(req,res)=>{
   if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const rows=db.prepare(`
-    SELECT id,email,is_admin,is_disabled,created_at,last_seen,balance_silver,shop_buy_count,next_recipe_at
-    FROM users
-    ORDER BY is_disabled ASC, LOWER(email) ASC
-  `).all();
-  const users = rows.map(r=>({
-    id:r.id,email:r.email,is_admin:!!r.is_admin,is_disabled:!!r.is_disabled,
-    gold:Math.floor((r.balance_silver||0)/100), silver:(r.balance_silver||0)%100,
-    created_at:r.created_at,last_seen:r.last_seen,shop_buy_count:r.shop_buy_count,next_recipe_at:r.next_recipe_at
-  }));
-  res.json({ok:true,users});
+  const {email,disabled}=req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Invalid email."});
+  const u=db.prepare("SELECT id FROM users WHERE email=?").get(email.toLowerCase());
+  if(!u) return res.status(404).json({ok:false,error:"User not found."});
+  db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(!!disabled?1:0,u.id);
+  res.json({ok:true});
+});
+
+// rescue: make-admin
+app.post("/api/admin/make-admin",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email}=req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Invalid email."});
+  const u=db.prepare("SELECT id FROM users WHERE email=?").get(email.toLowerCase());
+  if(!u) return res.status(404).json({ok:false,error:"User not found."});
+  db.prepare("UPDATE users SET is_admin=1 WHERE id=?").run(u.id);
+  res.json({ok:true,message:"User promoted to admin."});
+});
+
+// rescue: reset-password
+app.post("/api/admin/reset-password", async (req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email,new_password}=req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Invalid email."});
+  if(!isValidPassword(new_password)) return res.status(400).json({ok:false,error:"Password must be at least 6 chars."});
+  const u=db.prepare("SELECT id FROM users WHERE email=?").get(email.toLowerCase());
+  if(!u) return res.status(404).json({ok:false,error:"User not found."});
+  const pass=await bcrypt.hash(new_password,10);
+  db.prepare("UPDATE users SET pass_hash=? WHERE id=?").run(pass,u.id);
+  res.json({ok:true,message:"Password reset."});
+});
+
+// user inventory (admin view)
+app.get("/api/admin/user-inventory",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const userId = parseInt(String(req.query.user_id||""),10);
+  if(!Number.isFinite(userId)) return res.status(400).json({ok:false,error:"Invalid user_id"});
+  const items=db.prepare(`
+    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
+    FROM items i JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
+    WHERE ui.qty>0 ORDER BY i.tier ASC,i.name ASC
+  `).all(userId);
+  const recipes=db.prepare(`
+    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty, COALESCE(ur.attempts,0) attempts
+    FROM recipes r JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
+    WHERE ur.qty>0 ORDER BY r.tier ASC,r.name ASC
+  `).all(userId);
+  res.json({ok:true,items,recipes});
 });
 
 // ================== SHOP (NOVI DROP LOGIC) ==================
@@ -448,7 +471,7 @@ function pickWeightedRecipe(){
   const counts = {};
   for (const r of list){ counts[r.tier] = (counts[r.tier]||0) + 1; }
 
-  // Dodaj težinu svakom receptu = (target masa za taj tier) / (# recepata u tom tieru)
+  // Težina po receptu = (target masa za taj tier) / (# recepata u tom tieru)
   const weighted = [];
   for (const r of list){
     const mass = TARGET_TIER_MASS[r.tier] || 0.0001; // safety
@@ -457,7 +480,7 @@ function pickWeightedRecipe(){
     weighted.push({ ...r, weight: w });
   }
 
-  // Izbor s težinama (float ok)
+  // Izbor s težinama
   const total = weighted.reduce((s,a)=>s+a.weight, 0);
   let roll = Math.random() * total;
   for (const a of weighted){
@@ -525,7 +548,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
         addedItem = itemRow;
       }
 
-      // povećaj brojač kupovina (na kraju)
+      // povećaj brojač kupovina
       db.prepare("UPDATE users SET shop_buy_count=shop_buy_count+1 WHERE id=?").run(user.id);
 
       // vrati stanje
@@ -578,7 +601,7 @@ app.get("/api/recipes/:id",(req,res)=>{
   res.json({ ok:true, recipe:{ id:rec.id,code:rec.code,name:rec.name,tier:rec.tier,attempts:rec.attempts,output_item_id:rec.output_item_id }, ingredients:enriched, can_craft });
 });
 
-// Craft: pokušaj + scrap na fail; recept se troši na USPJEHU (1 kom)
+// Craft: fail daje scrap; NA Uspjehu potroši 1 recept
 app.post("/api/recipes/:id/craft",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const rid=parseInt(req.params.id,10);
@@ -655,7 +678,7 @@ function findItemOrRecipeByCode(code){
   }
 }
 
-// ================== AUCTIONS (isto kao prije, skraćeno zbog dužine)
+// ================== AUCTIONS (skraćeno)
 app.post("/api/auctions/create",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const {code,qty=1,start_gold=0,start_silver=0,buy_gold=0,buy_silver=0,duration_min}=req.body||{};
