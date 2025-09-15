@@ -46,6 +46,7 @@
 <body>
   <header class="header">
     <div class="brand">
+      <!-- Default wordmark; zamijenit će se custom logom ako ga učitaš -->
       <img id="brand-img" src="/artefakt-lockup-stacked.svg" alt="ARTEFAKT">
     </div>
     <div id="top-user" class="muted">Not signed in</div>
@@ -105,7 +106,7 @@
               <button id="btn-brand-save">Save as site logo</button>
               <button id="btn-brand-reset" class="secondary">Reset to default</button>
             </div>
-            <div class="note">Supported: PNG/JPG/SVG. Logo se čuva lokalno (browser storage) i odmah se primjenjuje, uključujući favicone (64×64 & 32×32).</div>
+            <div class="note">Supported: PNG/JPG/SVG. Logo se čuva lokalno i odmah primjenjuje (uključujući favicone).</div>
           </div>
         </div>
       </section>
@@ -120,7 +121,7 @@
       <div id="tab-shop">
         <div class="row" style="align-items:center;gap:8px;">
           <button id="btn-buy-t1">Buy T1 (1g)</button>
-          <span class="muted">Random T1. Ponekad padne recept (umjesto T1).</span>
+          <span class="muted">Random T1. Ponekad umjesto materijala — recept.</span>
         </div>
         <div class="card" style="margin-top:12px;">
           <div class="label">Results</div>
@@ -228,65 +229,69 @@
     const state = { me:null, recipes:[], currentRecipe:null, liveAuctions:[], mine:[] };
 
     function setWallet(g,s){ $("#wallet").textContent = `${g} g ${s} s`; }
-    function setNextRecipe(b){ $("#next-recipe").textContent = (b==null) ? "Next recipe: —" : `Next recipe in: ${b} purchases`; }
-    async function api(path, opts={}){
-      const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
-      return data;
+    function setNextRecipe(b){ $("#next-recipe").textContent = (b==null) ? "Next recipe: —" : \`Next recipe in: \${b} purchases\`; }
+    async function api(path, opts={}){ 
+      const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts }); 
+      const data = await res.json().catch(()=>({})); 
+      if (!res.ok) throw new Error((data && data.error) || \`HTTP \${res.status}\`); 
+      return data; 
     }
     function appendLog(msg, cls){ const p=document.createElement("div"); if(cls) p.className=cls; p.textContent=msg; $("#log").prepend(p); }
-    function fmtMoney(s){ const g=Math.floor(s/100), c=s%100; return `${g}g ${c}s`; }
+    function fmtMoney(s){ const g=Math.floor(s/100), c=s%100; return \`\${g}g \${c}s\`; }
 
     // ---------- BRANDING ----------
     const DEFAULT_LOGO = "/artefakt-lockup-stacked.svg";
     function dataURLtoImage(dataURL){ return new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=dataURL; }); }
-    function canvasIconFromImage(img,size){
-      const c=document.createElement("canvas"); c.width=size; c.height=size;
-      const ctx=c.getContext("2d");
-      ctx.fillStyle="#0B1220"; ctx.fillRect(0,0,size,size);
-      const m=6, scale=Math.min((size-2*m)/img.width,(size-2*m)/img.height);
-      const w=img.width*scale, h=img.height*scale, x=(size-w)/2, y=(size-h)/2;
-      ctx.drawImage(img,x,y,w,h);
-      return c.toDataURL("image/png");
+    function canvasIconFromImage(img,size){ 
+      const c=document.createElement("canvas"); c.width=size; c.height=size; 
+      const ctx=c.getContext("2d"); ctx.fillStyle="#0B1220"; ctx.fillRect(0,0,size,size); 
+      const m=6, sc=Math.min((size-2*m)/img.width,(size-2*m)/img.height); 
+      const w=img.width*sc, h=img.height*sc, x=(size-w)/2, y=(size-h)/2; 
+      ctx.drawImage(img,x,y,w,h); 
+      return c.toDataURL("image/png"); 
     }
-    function applyBrandingFromStorage(){
-      const logo=localStorage.getItem("brand_logo");
-      const fav32=localStorage.getItem("brand_fav_32");
-      const fav64=localStorage.getItem("brand_fav_64");
-      $("#brand-img").src = logo || DEFAULT_LOGO;
-      if (fav32) $("#favicon-32").href=fav32;
-      if (fav64) $("#favicon-64").href=fav64;
-      $("#brand-preview").src = logo || DEFAULT_LOGO;
+    function applyBrandingFromStorage(){ 
+      const logo=localStorage.getItem("brand_logo"); 
+      const fav32=localStorage.getItem("brand_fav_32"); 
+      const fav64=localStorage.getItem("brand_fav_64"); 
+      $("#brand-img").src=logo||DEFAULT_LOGO; 
+      if(fav32) $("#favicon-32").href=fav32; 
+      if(fav64) $("#favicon-64").href=fav64; 
+      $("#brand-preview").src=logo||DEFAULT_LOGO; 
     }
     function showBrandCardForAdmins(){ (state.me && state.me.is_admin) ? $("#brand-card").classList.remove("hidden") : $("#brand-card").classList.add("hidden"); }
-    $("#brand-file").addEventListener("change", async (e)=>{
-      const f=e.target.files && e.target.files[0]; if(!f) return;
-      const reader=new FileReader();
-      reader.onload=()=>{ const dataURL=reader.result; $("#brand-preview").src=dataURL; $("#brand-img").src=dataURL; };
-      reader.readAsDataURL(f);
+    $("#brand-file").addEventListener("change", e=>{ 
+      const f=e.target.files && e.target.files[0]; if(!f) return; 
+      const r=new FileReader(); 
+      r.onload=()=>{ const d=r.result; $("#brand-preview").src=d; $("#brand-img").src=d; }; 
+      r.readAsDataURL(f); 
     });
-    $("#btn-brand-save").addEventListener("click", async ()=>{
-      const src=$("#brand-preview").src; if(!src){ alert("Choose a logo first."); return; }
-      try{
-        const img=await dataURLtoImage(src);
-        const fav32=canvasIconFromImage(img,32);
-        const fav64=canvasIconFromImage(img,64);
-        localStorage.setItem("brand_logo",src);
-        localStorage.setItem("brand_fav_32",fav32);
-        localStorage.setItem("brand_fav_64",fav64);
-        $("#favicon-32").href=fav32; $("#favicon-64").href=fav64;
-        alert("Logo saved (local to this browser).");
-      }catch(err){ alert("Could not save logo: "+(err && err.message || err)); }
+    $("#btn-brand-save").addEventListener("click", async ()=>{ 
+      const src=$("#brand-preview").src; if(!src){ alert("Choose a logo first."); return; } 
+      try{ 
+        const img=await dataURLtoImage(src); 
+        const fav32=canvasIconFromImage(img,32); 
+        const fav64=canvasIconFromImage(img,64); 
+        localStorage.setItem("brand_logo",src); 
+        localStorage.setItem("brand_fav_32",fav32); 
+        localStorage.setItem("brand_fav_64",fav64); 
+        $("#favicon-32").href=fav32; $("#favicon-64").href=fav64; 
+        alert("Logo saved."); 
+      }catch(e){ alert("Could not save logo: "+(e.message||e)); }
     });
-    $("#btn-brand-reset").addEventListener("click", ()=>{ localStorage.removeItem("brand_logo"); localStorage.removeItem("brand_fav_32"); localStorage.removeItem("brand_fav_64"); applyBrandingFromStorage(); });
+    $("#btn-brand-reset").addEventListener("click", ()=>{ 
+      localStorage.removeItem("brand_logo"); 
+      localStorage.removeItem("brand_fav_32"); 
+      localStorage.removeItem("brand_fav_64"); 
+      applyBrandingFromStorage(); 
+    });
 
     // ---------- APP ----------
     async function refreshMe(){
       try{
         const r = await api("/api/me");
         state.me = r.user;
-        $("#top-user").textContent = `${r.user.email} • ${r.user.gold}g ${r.user.silver}s`;
+        $("#top-user").textContent = \`\${r.user.email} • \${r.user.gold}g \${r.user.silver}s\`;
         $("#email").textContent = r.user.email;
         $("#admin-badge").textContent = r.user.is_admin ? "ADMIN" : "";
         setWallet(r.user.gold, r.user.silver);
@@ -357,7 +362,7 @@
         } else if (r.addedItem){
           appendLog(`Bought T1 → ${r.addedItem.name}`, "success");
         } else {
-          appendLog("Bought T1.", "muted");
+          appendLog("OK", "success");
         }
       }catch(e){ appendLog("Error: "+e.message, "danger"); }
     });
@@ -429,7 +434,8 @@
           const d=document.createElement("div"); d.className="rowx";
           d.innerHTML = `<span class="pill">T${it.tier}</span> <span>${it.name}</span> <span class="muted">x${it.qty}</span> <button>List</button>`;
           d.querySelector("button").addEventListener("click", ()=>{
-            $("#auc-code").value = it.code; $("#auc-qty").value = 1;
+            $("#auc-code").value = it.code;
+            $("#auc-qty").value = 1;
           });
           iBox.appendChild(d);
         });
@@ -439,7 +445,8 @@
           const d=document.createElement("div"); d.className="rowx";
           d.innerHTML = `<span class="pill">T${rc.tier}</span> <span>${rc.name}</span> <span class="muted">x${rc.qty}</span> <button>List</button>`;
           d.querySelector("button").addEventListener("click", ()=>{
-            $("#auc-code").value = rc.code; $("#auc-qty").value = 1;
+            $("#auc-code").value = rc.code;
+            $("#auc-qty").value = 1;
           });
           rBox.appendChild(d);
         });
@@ -466,11 +473,21 @@
       }catch(e){ $("#auc-msg").textContent=e.message; }
     }
 
-    // LIVE AUCTIONS + BIDS
+    // LIVE AUCTIONS + BIDS (right column)
     $("#btn-load-live").addEventListener("click", loadLive);
     $("#live-search").addEventListener("input", renderLiveFiltered);
-    function bestScore(a){ const cur=(a.highest_bid_s && a.highest_bid_s>0) ? a.highest_bid_s : a.start_price_s; return cur|0; }
-    function matchesQuery(a,q){ if(!q) return true; q=q.toLowerCase(); const name=(a.name||"").toLowerCase(); const code=(a.code||"").toLowerCase(); return name.includes(q)||code.includes(q); }
+
+    function bestScore(a){
+      const cur = (a.highest_bid_s && a.highest_bid_s>0) ? a.highest_bid_s : a.start_price_s;
+      return cur|0;
+    }
+    function matchesQuery(a, q){
+      if (!q) return true;
+      q = q.toLowerCase();
+      const name = (a.name||"").toLowerCase();
+      const code = (a.code||"").toLowerCase();
+      return name.includes(q) || code.includes(q);
+    }
     function renderLiveFiltered(){
       const q = ($("#live-search").value||"").trim().toLowerCase();
       const box = $("#live-list"); box.innerHTML = "";
@@ -531,40 +548,46 @@
       }catch(e){ alert("Error: "+e.message); }
     }
 
-    // MY AUCTIONS (Cancel)
+    // MY AUCTIONS (with Cancel)
     $("#btn-load-mine").addEventListener("click", loadMine);
     async function loadMine(){
       $("#mine-list").textContent="Loading...";
       try{
         const r = await api("/api/auctions/mine");
         state.mine = r.auctions || [];
-        const box = $("#mine-list"); box.innerHTML="";
-        if (!state.mine.length){ box.textContent="No auctions."; $("#mine-msg").textContent=""; return; }
+        const box = $("#mine-list"); box.innerHTML = "";
+        if (!state.mine.length){ box.textContent = "No auctions."; return; }
         for (const a of state.mine){
-          const hb = a.highest_bid_s?fmtMoney(a.highest_bid_s):"—";
-          const sold = (a.status==="paid") ? ` • SOLD ${fmtMoney(a.sold_price_s)}` : "";
-          const row=document.createElement("div"); row.className="auction-row";
+          const canCancel = a.status === "live" && (!a.highest_bid_s || a.highest_bid_s === 0);
+          const bn = a.buy_now_price_s ? fmtMoney(a.buy_now_price_s) : "—";
+          const hb = a.highest_bid_s ? fmtMoney(a.highest_bid_s) : "—";
+          const row = document.createElement("div"); row.className="auction-row";
           row.innerHTML = `
             <div class="mono">#${a.id}</div>
             <span class="pill">${a.type}</span>
             <span>${a.name}</span>
             <span class="muted">x${a.qty}</span>
-            <span>Status: ${a.status}${sold}</span>
+            <span>Status: ${a.status}</span>
+            <span>Start: ${fmtMoney(a.start_price_s)}</span>
             <span>Highest: ${hb}</span>
-            ${a.status==="live" && !(a.highest_bid_s>0) ? `<button data-cancel="${a.id}" class="danger">Cancel</button>` : ""}
+            <span>Buy-now: ${bn}</span>
+            ${a.status==='live' ? `<span class="muted">Ends: ${new Date(a.end_time).toLocaleString()}</span>` : ""}
+            ${canCancel ? `<button data-cancel="${a.id}" class="danger">Cancel</button>` : ""}
           `;
-          const btn = row.querySelector(`[data-cancel="${a.id}"]`);
-          if (btn) btn.addEventListener("click", ()=> cancelAuction(a.id));
+          if (canCancel){
+            row.querySelector(`[data-cancel="${a.id}"]`).addEventListener("click", ()=> cancelAuction(a.id));
+          }
           box.appendChild(row);
         }
         $("#mine-msg").textContent = `Total: ${state.mine.length}`;
       }catch(e){ $("#mine-list").textContent=e.message; }
     }
     async function cancelAuction(id){
-      if (!confirm("Cancel this auction? Items will be returned to your inventory.")) return;
+      if (!confirm("Cancel this auction?")) return;
       try{
         await api(`/api/auctions/${id}/cancel`, { method:"POST", body:JSON.stringify({}) });
-        await loadMine(); await loadLive(); await loadInventory();
+        alert("Auction canceled.");
+        await loadMine(); await loadInventory(); await loadLive();
       }catch(e){ alert("Error: "+e.message); }
     }
 
