@@ -3,303 +3,278 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ARTEFAKT • Admin</title>
+  <title>ARTEFACT • Admin</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
-    .two-cols{display:grid;grid-template-columns:320px 1fr;gap:16px}
-    @media (max-width: 980px){.two-cols{grid-template-columns:1fr}}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
-    .pill.ok{background:#063; color:#c7f9cc}
-    .pill.bad{background:#5a1c1c; color:#ffd6d6}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width: 900px){.grid2{grid-template-columns:1fr}}
+    .list{background:#0b1220;border:1px solid #233047;border-radius:10px;padding:12px;white-space:pre-wrap}
     .rowx{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
-    .table-wrap{overflow:auto;max-height:380px;border:1px solid #233047;border-radius:10px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #233047;text-align:left;vertical-align:top}
-    tr:hover{background:#0d1726}
-    .muted{opacity:.85}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f2937;font-size:12px;color:#93c5fd}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .muted{opacity:.8}
+    .success{color:#22c55e}.danger{color:#ef4444}
+    .pointer{cursor:pointer}
     .right{float:right}
-    .search{width:100%;padding:10px;border-radius:8px;border:1px solid #233047;background:#0b1220;color:#e2e8f0}
-    .btn{background:#334155;color:#e2e8f0;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
-    .btn.secondary{background:#1f2937}
-    .btn.danger{background:#7f1d1d}
-    .btn.success{background:#065f46}
-    .btn.small{padding:6px 10px;font-size:12px}
-    .status{min-height:18px}
-    .lock{display:flex;gap:8px;align-items:center}
+    .lock{margin-left:8px}
+    .search{width:100%;padding:8px;border-radius:8px;border:1px solid #233047;background:#0b1220;color:#e2e8f0}
+    .user-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:8px}
+    .user-row:hover{background:#0f172a}
+    .tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#1f2937}
+    .tag.red{background:#3b1113;color:#fecaca}
+    .tag.green{background:#0f2e1b;color:#bbf7d0}
+    .tight{margin:0;padding:0}
   </style>
 </head>
 <body>
   <header class="header">
-    <div class="brand">ARTEFAKT • Admin</div>
-    <div id="who" class="muted">Status: not signed in</div>
+    <div class="brand">ARTEFACT • Admin</div>
+    <div id="who" class="muted">Status: unknown</div>
   </header>
 
   <main class="container">
-    <!-- ADMIN KEY -->
+    <!-- Admin Key -->
     <section class="card">
       <div class="label">Admin Key</div>
-      <div class="lock">
-        <input id="admin-key" type="password" placeholder="enter admin key" />
-        <button id="btn-lock" class="btn">Lock</button>
-        <button id="btn-unlock" class="btn secondary">Unlock</button>
-        <label class="rowx" style="margin-left:8px;">
-          <input id="remember" type="checkbox" /> <span class="muted">Remember in this browser</span>
+      <div class="rowx">
+        <input id="admin-key" type="password" placeholder="x-admin-key" />
+        <button id="btn-key-set">Set</button>
+        <button id="btn-key-clear" class="secondary">Clear</button>
+        <label class="rowx lock">
+          <input type="checkbox" id="key-lock" />
+          <span>Lock key</span>
         </label>
+        <label class="rowx lock">
+          <input type="checkbox" id="key-remember" />
+          <span>Remember in this browser</span>
+        </label>
+        <span id="key-msg" class="muted"></span>
       </div>
-      <div id="key-msg" class="muted status"></div>
     </section>
 
-    <div class="two-cols">
-      <!-- LEFT: CONTROLS -->
-      <section class="card" style="margin:0;">
+    <section class="grid2">
+      <!-- LEFT: Controls -->
+      <div class="card">
         <div class="label">Controls</div>
-        <div class="rowx">
-          <div class="muted">Selected user:</div>
-          <div id="sel-email" class="mono">—</div>
+        <div class="muted tight" id="sel-user-label">Selected user: —</div>
+        <div class="rowx" style="margin-top:8px">
+          <input id="gold-amount" type="number" min="-999999" step="1" placeholder="Gold amount (1g = 100s)" />
+          <button id="btn-give">+ Give</button>
+          <button id="btn-take" class="secondary">– Take</button>
         </div>
-
-        <div class="rowx" style="margin-top:8px;">
-          <input id="amt-gold" type="number" step="1" min="-999999" placeholder="gold amount (e.g. 10)" style="width:180px" />
-          <button id="btn-give" class="btn success">+ Give</button>
-          <button id="btn-take" class="btn danger">– Take</button>
+        <div class="rowx" style="margin-top:8px">
+          <button id="btn-disable" class="danger">Disable account</button>
+          <button id="btn-enable" class="secondary">Enable account</button>
         </div>
+        <div id="ops-msg" class="muted" style="margin-top:6px"></div>
+      </div>
 
-        <div class="rowx" style="margin-top:8px;">
-          <button id="btn-disable" class="btn danger">Disable account</button>
-          <button id="btn-enable" class="btn">Enable account</button>
-        </div>
-
-        <div id="ctrl-msg" class="muted status" style="margin-top:8px;"></div>
-      </section>
-
-      <!-- RIGHT: USERS + INVENTORY -->
-      <section class="card" style="margin:0;">
+      <!-- RIGHT: Users + Inventory -->
+      <div class="card">
         <div class="rowx" style="justify-content:space-between;">
-          <div class="label">Users</div>
-          <input id="search" class="search" placeholder="Search by email..." />
+          <div class="label">Users (active first, A–Z)</div>
+          <button id="btn-refresh-users" class="secondary">Refresh</button>
         </div>
 
-        <div class="table-wrap" style="margin-top:8px;">
-          <table id="tbl-users">
-            <thead>
-              <tr>
-                <th>Email</th><th>Status</th><th>Gold</th><th>Created</th><th>Last seen</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div id="users-msg" class="muted status" style="margin-top:6px;"></div>
+        <input id="search" class="search" placeholder="Search email…" />
+        <div id="users" class="list" style="margin-top:8px;max-height:320px;overflow:auto;">—</div>
 
-        <div class="card" style="margin-top:16px;">
-          <div class="label">Inventory of selected user</div>
-
-          <div><strong>Items</strong></div>
-          <div class="table-wrap" style="margin-top:6px;">
-            <table id="tbl-items">
-              <thead><tr><th>Tier</th><th>Name</th><th class="mono">Code</th><th>Qty</th></tr></thead>
-              <tbody></tbody>
-            </table>
+        <div class="card" style="margin-top:12px;">
+          <div class="rowx" style="justify-content:space-between;">
+            <div class="label">Inventory of selected user</div>
+            <button id="btn-refresh-inv" class="secondary">Reload</button>
           </div>
-
-          <div style="margin-top:12px;"><strong>Recipes</strong></div>
-          <div class="table-wrap" style="margin-top:6px;">
-            <table id="tbl-recipes">
-              <thead><tr><th>Tier</th><th>Name</th><th class="mono">Code</th><th>Qty</th><th>Attempts</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div id="inv-msg" class="muted status" style="margin-top:6px;"></div>
+          <div id="inv" class="list">Select a user from the list →</div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
 
   <script>
     const $ = s => document.querySelector(s);
-    const LS_KEY = "ADMIN_KEY_LOCKED";
-    const LS_VAL = "ADMIN_KEY_VALUE";
     let ADMIN_KEY = "";
-    let USERS = [];
-    let SELECTED = null;
+    let LOCKED = false;
+    let REMEMBER = false;
+    let users = [];
+    let selected = null;
 
-    // ------- Helpers -------
+    function msg(el, text, ok=true){ const e=$(el); e.textContent=text; e.className = ok ? "muted success" : "muted danger"; }
     function setWho(text){ $("#who").textContent = text; }
-    function msg(id, text, ok=true){ const el=$(id); el.textContent=text; el.className = ok ? "muted" : "muted danger"; }
-    function gs(total){ const g=Math.floor((total||0)/100), s=(total||0)%100; return `${g}g ${s}s`; }
 
-    async function api(path, opts={}, useKey=true){
+    // ---------- Persist key / lock
+    function loadPrefs(){
+      ADMIN_KEY = localStorage.getItem("admin.key") || "";
+      LOCKED = localStorage.getItem("admin.lock") === "1";
+      REMEMBER = localStorage.getItem("admin.remember") === "1";
+      $("#admin-key").value = ADMIN_KEY;
+      $("#key-lock").checked = LOCKED;
+      $("#key-remember").checked = REMEMBER;
+      applyLock();
+    }
+    function savePrefs(){
+      if (REMEMBER) localStorage.setItem("admin.key", ADMIN_KEY);
+      else localStorage.removeItem("admin.key");
+      localStorage.setItem("admin.lock", LOCKED ? "1" : "0");
+      localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
+    }
+    function applyLock(){
+      $("#admin-key").disabled = LOCKED;
+      $("#btn-key-set").disabled = LOCKED;
+      $("#btn-key-clear").disabled = LOCKED;
+    }
+
+    // ---------- Fetch helper with header
+    async function api(path, opts={}){
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
-      if (useKey && ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
+      if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
       const res = await fetch(path, { credentials:"include", ...opts, headers });
-      let data=null; try{ data = await res.json(); }catch{}
-      if(!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
+      let data = null;
+      try{ data = await res.json(); }catch{}
+      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
       return data;
     }
 
-    // ------- Admin Key Lock / Unlock -------
-    function loadKeyFromStorage(){
-      const locked = localStorage.getItem(LS_KEY)==="1";
-      const val = localStorage.getItem(LS_VAL) || "";
-      if(locked && val){ ADMIN_KEY = val; $("#admin-key").value = "••••••••"; $("#admin-key").disabled = true; $("#btn-lock").disabled = true; $("#btn-unlock").disabled = false; msg("#key-msg","Admin Key locked."); }
-      else { $("#admin-key").disabled = false; $("#btn-lock").disabled = false; $("#btn-unlock").disabled = true; }
-      $("#remember").checked = localStorage.getItem("REMEMBER_KEY")==="1";
+    async function checkAdmin(){
+      try{
+        await api("/api/admin/ping");
+        msg("#key-msg", "Admin OK");
+      }catch(e){
+        msg("#key-msg", "Key invalid or missing ("+e.message+")", false);
+      }
     }
 
-    $("#btn-lock").addEventListener("click", ()=>{
-      const v = $("#admin-key").value.trim();
-      if(!v){ msg("#key-msg","Enter your admin key first.", false); return; }
-      ADMIN_KEY = v;
-      if($("#remember").checked){
-        localStorage.setItem(LS_KEY,"1");
-        localStorage.setItem(LS_VAL, ADMIN_KEY);
-        localStorage.setItem("REMEMBER_KEY","1");
-      }
-      $("#admin-key").value = "••••••••";
-      $("#admin-key").disabled = true;
-      $("#btn-lock").disabled = true;
-      $("#btn-unlock").disabled = false;
-      msg("#key-msg","Admin Key locked.");
-      refreshUsers(); // try immediately
-    });
-
-    $("#btn-unlock").addEventListener("click", ()=>{
-      $("#admin-key").disabled = false;
-      $("#admin-key").value = "";
-      $("#btn-lock").disabled = false;
-      $("#btn-unlock").disabled = true;
-      msg("#key-msg","Admin Key unlocked. Enter a key and Lock.");
-      ADMIN_KEY = "";
-      localStorage.removeItem(LS_KEY);
-      localStorage.removeItem(LS_VAL);
-      localStorage.removeItem("REMEMBER_KEY");
-    });
-
-    // ------- Users -------
-    function renderUsers(list){
-      const tb = $("#tbl-users tbody"); tb.innerHTML = "";
-      for(const u of list){
-        const tr = document.createElement("tr");
-        tr.style.cursor = "pointer";
-        tr.innerHTML = `
-          <td class="mono">${u.email}</td>
-          <td>${u.is_disabled ? '<span class="pill bad">DISABLED</span>' : '<span class="pill ok">ACTIVE</span>'}</td>
-          <td>${gs((u.gold||0)*100 + (u.silver||0))}</td>
-          <td class="muted">${u.created_at||""}</td>
-          <td class="muted">${u.last_seen||""}</td>
+    // ---------- Users
+    function renderUsers(){
+      const q = $("#search").value.trim().toLowerCase();
+      const box = $("#users"); box.innerHTML = "";
+      let list = users.slice();
+      // sort: active first, then email A–Z
+      list.sort((a,b)=>{
+        if (a.is_disabled !== b.is_disabled) return a.is_disabled ? 1 : -1;
+        return a.email.localeCompare(b.email);
+      });
+      if (q) list = list.filter(u => u.email.toLowerCase().includes(q));
+      if (!list.length){ box.textContent = "No users."; return; }
+      for (const u of list){
+        const row = document.createElement("div"); row.className = "user-row pointer";
+        row.innerHTML = `
+          <div>
+            <span class="mono">#${u.id}</span>
+            <span class="mono">${u.email}</span>
+            ${u.is_disabled ? `<span class="tag red">disabled</span>` : `<span class="tag green">active</span>`}
+          </div>
+          <div class="muted">${u.gold}g ${u.silver}s</div>
         `;
-        tr.addEventListener("click", ()=> selectUser(u));
-        tb.appendChild(tr);
+        row.addEventListener("click", ()=> selectUser(u));
+        box.appendChild(row);
       }
-      $("#users-msg").textContent = `Shown: ${list.length}`;
     }
-
-    async function refreshUsers(){
-      $("#users-msg").textContent = "Loading users...";
+    async function loadUsers(){
+      $("#users").textContent = "Loading…";
       try{
         const r = await api("/api/admin/users");
-        // Sort: active first, then A–Z
-        USERS = (r.users||[]).slice().sort((a,b)=>{
-          if (!!a.is_disabled !== !!b.is_disabled) return a.is_disabled ? 1 : -1;
-          return a.email.toLowerCase().localeCompare(b.email.toLowerCase());
-        });
-        const q = $("#search").value.trim().toLowerCase();
-        const filtered = q ? USERS.filter(u=>u.email.toLowerCase().includes(q)) : USERS;
-        renderUsers(filtered);
+        users = r.users || [];
+        renderUsers();
       }catch(e){
-        $("#users-msg").textContent = e.message;
+        $("#users").textContent = e.message;
       }
     }
 
-    $("#search").addEventListener("input", ()=> {
-      const q = $("#search").value.trim().toLowerCase();
-      const filtered = q ? USERS.filter(u=>u.email.toLowerCase().includes(q)) : USERS;
-      renderUsers(filtered);
-    });
-
-    // ------- Selection + Inventory -------
-    async function selectUser(u){
-      SELECTED = u;
-      $("#sel-email").textContent = u.email;
-      $("#ctrl-msg").textContent = "";
-      await loadInventory(u.id);
+    function selectUser(u){
+      selected = u;
+      $("#sel-user-label").textContent = `Selected user: ${u.email} (id ${u.id})`;
+      $("#ops-msg").textContent = "";
+      loadInventory();
     }
 
-    async function loadInventory(userId){
-      $("#inv-msg").textContent = "Loading inventory...";
-      $("#tbl-items tbody").innerHTML = "";
-      $("#tbl-recipes tbody").innerHTML = "";
+    async function loadInventory(){
+      const box = $("#inv");
+      if (!selected){ box.textContent = "Select a user from the list →"; return; }
+      box.textContent = "Loading…";
       try{
-        const r = await api(`/api/admin/user-inventory?user_id=${encodeURIComponent(userId)}`);
-        const items = r.items || [];
-        const recipes = r.recipes || [];
-
-        const tbI = $("#tbl-items tbody");
-        for(const it of items){
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>T${it.tier}</td><td>${it.name}</td><td class="mono">${it.code}</td><td>${it.qty}</td>`;
-          tbI.appendChild(tr);
-        }
-        const tbR = $("#tbl-recipes tbody");
-        for(const rc of recipes){
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td>T${rc.tier}</td><td>${rc.name}</td><td class="mono">${rc.code}</td><td>${rc.qty}</td><td>${rc.attempts ?? 0}</td>`;
-          tbR.appendChild(tr);
-        }
-        $("#inv-msg").textContent = `Items: ${items.length} • Recipes: ${recipes.length}`;
-      }catch(e){
-        $("#inv-msg").textContent = e.message + " (tip: ensure /api/admin/user-inventory exists)";
-      }
+        const r = await api(`/api/admin/user/${selected.id}/inventory`);
+        const lines = [];
+        lines.push("ITEMS:");
+        if (!(r.items||[]).length) lines.push("(none)");
+        (r.items||[]).forEach(it=> lines.push(` • [T${it.tier}] ${it.name} x${it.qty}`));
+        lines.push("");
+        lines.push("RECIPES:");
+        if (!(r.recipes||[]).length) lines.push("(none)");
+        (r.recipes||[]).forEach(rc=> lines.push(` • [T${rc.tier}] ${rc.name} x${rc.qty}`));
+        box.textContent = lines.join("\n");
+      }catch(e){ box.textContent = e.message; }
     }
 
-    // ------- Controls: Give/Take + Disable/Enable -------
-    async function adjustBalance(sign){
-      if(!SELECTED){ msg("#ctrl-msg","Select a user first.", false); return; }
-      let g = parseInt($("#amt-gold").value || "0", 10);
-      if(!Number.isFinite(g) || g===0){ msg("#ctrl-msg","Enter gold amount (integer).", false); return; }
-      g = Math.abs(g) * (sign>0 ? 1 : -1);
+    // ---------- Controls
+    async function changeGold(sign){
+      if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
+      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
+      if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
+      const gold = sign>0 ? amount : -amount;
       try{
         const r = await api("/api/admin/adjust-balance", {
-          method:"POST",
-          body: JSON.stringify({ email: SELECTED.email, gold: g })
+          method:"POST", body: JSON.stringify({ email: selected.email, gold })
         });
-        msg("#ctrl-msg", `OK. New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
-        await refreshUsers();
-      }catch(e){ msg("#ctrl-msg", e.message, false); }
+        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
+        await loadUsers();
+        // update selection reference
+        const found = users.find(x=>x.id===selected.id);
+        if (found) selected = found;
+        await loadInventory();
+      }catch(e){ msg("#ops-msg", e.message, false); }
     }
-    $("#btn-give").addEventListener("click", ()=>adjustBalance(+1));
-    $("#btn-take").addEventListener("click", ()=>adjustBalance(-1));
-
     async function setDisabled(flag){
-      if(!SELECTED){ msg("#ctrl-msg","Select a user first.", false); return; }
+      if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
       try{
-        await api("/api/admin/disable-user", {
-          method:"POST",
-          body: JSON.stringify({ email: SELECTED.email, disabled: !!flag })
-        });
-        msg("#ctrl-msg", flag ? "Account disabled." : "Account enabled.");
-        await refreshUsers();
-      }catch(e){ msg("#ctrl-msg", e.message, false); }
-    }
-    $("#btn-disable").addEventListener("click", ()=>setDisabled(true));
-    $("#btn-enable").addEventListener("click", ()=>setDisabled(false));
-
-    // ------- Me (header helper) -------
-    async function refreshMe(){
-      try{
-        const r = await api("/api/me", {}, false);
-        setWho(`${r.user.email} • ${r.user.is_admin ? "ADMIN" : "USER"} • ${r.user.gold}g ${r.user.silver}s`);
-      }catch{
-        setWho("Not signed in (Admin Key mode).");
-      }
+        await api("/api/admin/disable-user", { method:"POST", body: JSON.stringify({ email: selected.email, disabled: flag }) });
+        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
+        await loadUsers();
+        const found = users.find(x=>x.id===selected.id);
+        if (found) selected = found;
+        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
+      }catch(e){ msg("#ops-msg", e.message, false); }
     }
 
-    // init
-    loadKeyFromStorage();
-    refreshMe();
-    refreshUsers();
+    // ---------- Events
+    $("#btn-key-set").addEventListener("click", async ()=>{
+      ADMIN_KEY = $("#admin-key").value.trim();
+      REMEMBER = $("#key-remember").checked;
+      LOCKED = $("#key-lock").checked;
+      savePrefs(); applyLock();
+      await checkAdmin();
+      await loadUsers();
+    });
+    $("#btn-key-clear").addEventListener("click", ()=>{
+      ADMIN_KEY = ""; savePrefs(); applyLock(); msg("#key-msg","Cleared.");
+    });
+    $("#key-lock").addEventListener("change", ()=>{
+      LOCKED = $("#key-lock").checked;
+      savePrefs(); applyLock();
+    });
+    $("#key-remember").addEventListener("change", ()=>{
+      REMEMBER = $("#key-remember").checked;
+      savePrefs();
+    });
+
+    $("#btn-refresh-users").addEventListener("click", loadUsers);
+    $("#btn-refresh-inv").addEventListener("click", loadInventory);
+    $("#search").addEventListener("input", renderUsers);
+
+    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
+    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
+    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+
+    // ---------- Init
+    loadPrefs();
+    (async ()=>{
+      try{
+        const me = await fetch("/api/me", {credentials:"include"}).then(r=>r.ok?r.json():null).catch(()=>null);
+        if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
+        else setWho("Not logged in (key mode).");
+      }catch{ setWho("Not logged in (key mode)."); }
+      if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); }
+    })();
   </script>
 </body>
 </html>
