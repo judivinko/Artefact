@@ -46,7 +46,6 @@
 <body>
   <header class="header">
     <div class="brand">
-      <!-- Default wordmark; zamijenit će se custom logom ako ga učitaš -->
       <img id="brand-img" src="/artefakt-lockup-stacked.svg" alt="ARTEFAKT">
     </div>
     <div id="top-user" class="muted">Not signed in</div>
@@ -95,7 +94,7 @@
         </div>
       </div>
 
-      <!-- BRANDING (samo admin vidi) -->
+      <!-- BRANDING (samo admin) -->
       <section id="brand-card" class="card hidden" style="margin-top:12px;">
         <div class="label">Branding — Upload site logo</div>
         <div class="brand-uploader">
@@ -137,12 +136,12 @@
         </div>
 
         <div class="grid2" style="margin-top:12px;">
-          <!-- Left: recipes list -->
+          <!-- Left -->
           <section class="card" style="margin:0;">
             <div id="recipes-list" class="list">—</div>
           </section>
 
-          <!-- Right: recipe details -->
+          <!-- Right -->
           <section class="card" style="margin:0;">
             <div class="row" style="justify-content:space-between;align-items:center;">
               <div class="label">Recipe details</div>
@@ -160,7 +159,7 @@
       <!-- AUCTIONS TAB -->
       <div id="tab-auctions" class="hidden">
         <div class="grid2">
-          <!-- Left: create auction + inventory -->
+          <!-- Left: create + inventory -->
           <section class="card" style="margin:0;">
             <div class="card" style="margin:0;">
               <div class="label">Create auction</div>
@@ -197,7 +196,7 @@
             <div id="inv-recipes" class="list" style="margin-top:8px;">—</div>
           </section>
 
-          <!-- Right: live + my auctions -->
+          <!-- Right: live + mine -->
           <section class="card" style="margin:0;">
             <div class="auction-head">
               <div class="label">Live auctions & bids</div>
@@ -247,8 +246,7 @@
       const ctx=c.getContext("2d");
       ctx.fillStyle="#0B1220"; ctx.fillRect(0,0,size,size);
       const m=6, scale=Math.min((size-2*m)/img.width,(size-2*m)/img.height);
-      const w=img.width*scale, h=img.height*scale;
-      const x=(size-w)/2, y=(size-h)/2;
+      const w=img.width*scale, h=img.height*scale, x=(size-w)/2, y=(size-h)/2;
       ctx.drawImage(img,x,y,w,h);
       return c.toDataURL("image/png");
     }
@@ -354,7 +352,6 @@
         const r = await api("/api/shop/buy-t1", { method:"POST", body:JSON.stringify({}) });
         setWallet(r.gold,r.silver); setNextRecipe(r.buys_to_next);
 
-        // FIX: ne čitati name kad je recipe-drop
         if (r.result_type === "RECIPE" && r.grantedRecipe){
           appendLog(`🎉 Recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`, "success");
         } else if (r.addedItem){
