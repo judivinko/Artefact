@@ -26,8 +26,8 @@ const DEFAULT_AUCTION_MINUTES = 60;
 // Recipe drops on average every ~6 buys (random 4–8), replaces T1 material
 const RECIPE_DROP_MIN = 4; // inclusive
 const RECIPE_DROP_MAX = 8; // inclusive
-// Target tier mass per 1000 recipes: 900/70/24/4/1  (T2..T6)
-const TARGET_TIER_MASS = { 2: 900, 3: 70, 4: 24, 5: 4, 6: 1 };
+// Target tier mass per 1000 recipes: 800/150/37/12/1  (T2..T6)
+const TARGET_TIER_MASS = { 2: 800, 3: 150, 4: 37, 5: 12, 6: 1 };
 
 const SHOP_T1_COST_S = 100; // 1g
 
@@ -907,4 +907,5 @@ server.listen(PORT, HOST, () => {
   console.log(`Auctions: fee=${AUCTION_FEE_BPS/100}% • default duration ${DEFAULT_AUCTION_MINUTES}min`);
   console.log(`Recipe drop: ~every 6 buys (random ${RECIPE_DROP_MIN}–${RECIPE_DROP_MAX}), replaces material. Tier targets ~ 900/70/24/4/1 per 1000 recipes.`);
 });
+
 
