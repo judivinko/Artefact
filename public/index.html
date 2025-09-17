@@ -1,264 +1,401 @@
-// ===============================
-// FILE: public/index.html
-// (Login/Register first → then 3 tabs: Shop, Crafting, Auctions)
-// Works with your existing server.js API (register/login/me, shop T1, recipes, auctions)
-// ===============================
-
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
-    .hide{display:none}
-    .auth-card{max-width:520px;margin:40px auto}
-    .auth-tabs{display:flex;gap:8px;margin-bottom:10px}
-    .auth-tabs .btn{flex:1}
-
-    .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111827;border-bottom:1px solid #1f2937}
+    :root{--bg:#0b1220;--card:#0f172a;--muted:#94a3b8;--line:#233047;--acc:#14b8a6}
+    body{margin:0;background:var(--bg);color:#e2e8f0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line)}
     .brand{font-weight:800;letter-spacing:.3px}
-    .container{max-width:1100px;margin:16px auto;padding:0 12px}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:6px 10px;border:1px solid #233047;border-radius:10px;background:#0b1220;color:#e2e8f0;cursor:pointer}
-    .tab.active{border-color:#2dd4bf;box-shadow:0 0 0 1px #2dd4bf inset}
-    .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;margin:16px 0}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{border-bottom:1px solid #1f2937;padding:8px 10px;text-align:left}
-    .table th{color:#94a3b8;font-weight:600}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    .input{background:#0b1220;border:1px solid #233047;border-radius:8px;color:#e2e8f0;padding:6px 8px}
-    .btn{background:#0b1220;border:1px solid #334155;border-radius:10px;color:#e2e8f0;padding:6px 10px;cursor:pointer}
-    .btn:hover{border-color:#2dd4bf}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f2937;color:#93c5fd;font-size:12px;margin-left:6px}
-    .muted{color:#94a3b8}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width: 900px){.grid2{grid-template-columns:1fr}}
+    .pill{padding:2px 8px;border-radius:999px;background:#111827;border:1px solid #1f2937;font-size:12px}
+    .btn{background:#10b981;border:none;color:#052e2b;padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn.outline{background:transparent;color:#e2e8f0;border:1px solid var(--line)}
+    .btn.small{padding:6px 10px;font-size:14px;border-radius:8px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .tabs{display:flex;gap:8px}
+    .tab{padding:8px 12px;border-radius:10px;background:#0e223f;border:1px solid #123055;cursor:pointer}
+    .tab.active{background:#0b3a3b;border-color:#115e59}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+    .stack{display:grid;gap:10px}
+    .mt{margin-top:12px}
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    input,select{background:#0b1220;color:#e2e8f0;border:1px solid var(--line);border-radius:10px;padding:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #132035}
+    th{color:#93c5fd;text-align:left;font-weight:600}
+    .right{margin-left:auto}
+    .hidden{display:none}
+    .section-title{font-size:22px;font-weight:800;margin:0 0 4px 0}
+    .sub{font-size:14px;color:var(--muted)}
+    .danger{color:#fecaca}
+    .ok{color:#bbf7d0}
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="brand">ARTEFACT</div>
-    <div id="userBar" class="row"></div>
-  </header>
+<header>
+  <div class="brand">ARTEFACT</div>
+  <div id="userbar" class="row hidden">
+    <span id="who" class="pill">—</span>
+    <button id="btn-logout" class="btn small outline">Logout</button>
+  </div>
+</header>
 
-  <main class="container">
-    <!-- AUTH: first screen has only Register/Login -->
-    <section id="auth" class="card auth-card">
-      <h2>Welcome</h2>
-      <div class="auth-tabs">
-        <button class="btn" onclick="showAuth('login')">Login</button>
-        <button class="btn" onclick="showAuth('register')">Register</button>
+<main class="wrap">
+  <!-- AUTH FIRST -->
+  <section id="auth" class="card">
+    <div class="section-title">Welcome</div>
+    <div class="sub">Please register or login to continue.</div>
+    <div class="stack mt">
+      <div class="row">
+        <input id="reg-email" type="email" placeholder="Email (register)" />
+        <input id="reg-pass" type="password" placeholder="Password (min 6)" />
+        <button id="btn-register" class="btn">Register</button>
       </div>
-      <div id="auth-login">
-        <div class="row" style="margin-bottom:8px">
-          <input id="login-email" class="input" placeholder="email" />
-          <input id="login-pass"  class="input" type="password" placeholder="password" />
-        </div>
-        <button class="btn" onclick="login()">Login</button>
-        <div id="login-msg" class="muted" style="margin-top:6px"></div>
+      <div class="row">
+        <input id="log-email" type="email" placeholder="Email (login)" />
+        <input id="log-pass" type="password" placeholder="Password" />
+        <button id="btn-login" class="btn outline">Login</button>
       </div>
-      <div id="auth-register" class="hide">
-        <div class="row" style="margin-bottom:8px">
-          <input id="reg-email" class="input" placeholder="email" />
-          <input id="reg-pass"  class="input" type="password" placeholder="password (≥6)" />
-        </div>
-        <button class="btn" onclick="register()">Register</button>
-        <div id="reg-msg" class="muted" style="margin-top:6px"></div>
+      <div id="auth-msg" class="muted"></div>
+    </div>
+  </section>
+
+  <!-- APP (hidden until logged) -->
+  <section id="app" class="hidden">
+    <div class="tabs mt">
+      <button class="tab active" data-tab="shop">Shop</button>
+      <button class="tab" data-tab="craft">Crafting</button>
+      <button class="tab" data-tab="auctions">Auctions</button>
+    </div>
+
+    <!-- SHOP -->
+    <section id="tab-shop" class="card mt">
+      <div class="section-title">Shop (T1 only)</div>
+      <div class="sub">Each purchase costs <b>1 gold</b> (100s). You either get a random T1 material or a recipe drop (T2–T5 weighted).</div>
+      <div class="row mt">
+        <button id="btn-buy-t1" class="btn">Buy T1 Pack (1g)</button>
+        <span id="shop-msg" class="muted"></span>
       </div>
     </section>
 
-    <!-- APP: after login, exactly 3 tabs -->
-    <section id="app" class="hide">
-      <div class="tabs">
-        <button class="tab active" data-tab="shop" onclick="showTab('shop')">Shop</button>
-        <button class="tab" data-tab="craft" onclick="showTab('craft')">Crafting</button>
-        <button class="tab" data-tab="auctions" onclick="showTab('auctions')">Auctions</button>
+    <!-- CRAFTING -->
+    <section id="tab-craft" class="card mt hidden">
+      <div class="section-title">Crafting</div>
+      <div class="sub">Use your recipes to craft items. 10% fail (creates Scrap), Tier 6 has no fail.</div>
+
+      <div class="row mt">
+        <button id="btn-load-recipes" class="btn small">Load my recipes</button>
+        <button id="btn-craft-artefact" class="btn small outline right">Craft ARTEFACT (10x T5)</button>
       </div>
 
-      <section id="shop" class="card"></section>
-      <section id="craft" class="card" style="display:none"></section>
-      <section id="auctions" class="card" style="display:none"></section>
+      <div id="recipes-box" class="mt">
+        <table>
+          <thead><tr><th>Name</th><th>Tier</th><th>Owned</th><th></th></tr></thead>
+          <tbody id="recipes-rows"><tr><td colspan="4" class="muted">No data.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div id="recipe-detail" class="card mt hidden"></div>
+      <div id="craft-msg" class="muted mt"></div>
     </section>
-  </main>
+
+    <!-- AUCTIONS -->
+    <section id="tab-auctions" class="card mt hidden">
+      <div class="section-title">Auctions</div>
+      <div class="sub">Create auctions for items or recipes by internal code (e.g. <span class="mono">T2_BRONZE_DOOR</span> or <span class="mono">R_T2_BRONZE_DOOR</span>).</div>
+
+      <div class="stack mt">
+        <div class="row">
+          <input id="auc-code" placeholder="Code (item or recipe)" />
+          <input id="auc-qty" type="number" min="1" step="1" placeholder="Qty" style="width:110px" />
+          <input id="auc-start-g" type="number" min="0" step="1" placeholder="Start g" style="width:110px" />
+          <input id="auc-start-s" type="number" min="0" max="99" step="1" placeholder="Start s" style="width:110px" />
+          <input id="auc-buy-g" type="number" min="0" step="1" placeholder="Buy g (opt)" style="width:120px" />
+          <input id="auc-buy-s" type="number" min="0" max="99" step="1" placeholder="Buy s (opt)" style="width:120px" />
+          <button id="btn-create-auction" class="btn">Create</button>
+        </div>
+        <div id="auc-msg" class="muted"></div>
+      </div>
+
+      <div class="mt">
+        <div class="row">
+          <button id="btn-refresh-live" class="btn small">Refresh live</button>
+          <button id="btn-refresh-mine" class="btn small outline">Refresh mine</button>
+        </div>
+        <div class="stack mt">
+          <div class="card">
+            <div class="section-title">Live</div>
+            <table>
+              <thead><tr><th>Item</th><th>Qty</th><th>Start</th><th>Highest</th><th>Ends</th><th>Buy</th><th>Actions</th></tr></thead>
+              <tbody id="live-rows"><tr><td colspan="7" class="muted">No data.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="section-title">My auctions</div>
+            <table>
+              <thead><tr><th>Item</th><th>Qty</th><th>Status</th><th>Sold</th><th>Ends</th></tr></thead>
+              <tbody id="mine-rows"><tr><td colspan="5" class="muted">No data.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
 
 <script>
-const $ = s => document.querySelector(s);
-
-async function api(path, opts={}){
-  const res = await fetch(path, { credentials:"include", headers:{"Content-Type":"application/json"}, ...opts });
-  let data=null; try{ data=await res.json(); }catch{}
-  if(!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
-  return data;
-}
-
-// ---------- AUTH ----------
-let ME = null;
-function goldText(s){ return `${Math.floor((s||0)/100)}g ${(s||0)%100}s`; }
-function setUserBar(){
-  const box=$('#userBar');
-  if(ME&&ME.user){ const u=ME.user;
-    box.innerHTML = `
-      <span>${u.email}</span>
-      <span class="pill">${u.gold}g ${u.silver}s</span>
-      <button class="btn" onclick="logout()">Logout</button>
-      <a class="btn" href="/admin">Admin</a>
-    `;
-  }else{ box.innerHTML = `<span class="muted">Not logged in</span>`; }
-}
-function showAuth(which){
-  $('#auth-login').classList.toggle('hide', which!=='login');
-  $('#auth-register').classList.toggle('hide', which!=='register');
-}
-async function me(){
-  try{ ME = await api('/api/me'); }catch{ ME=null; }
-  const logged = !!(ME&&ME.ok&&ME.user);
-  $('#auth').classList.toggle('hide', logged);
-  $('#app').classList.toggle('hide', !logged);
-  setUserBar();
-  if(logged) showTab('shop');
-}
-async function login(){
-  const email=$('#login-email').value.trim(), password=$('#login-pass').value;
-  $('#login-msg').textContent='';
-  try{ await api('/api/login',{method:'POST',body:JSON.stringify({email,password})}); await me(); }
-  catch(e){ $('#login-msg').textContent=e.message; }
-}
-async function register(){
-  const email=$('#reg-email').value.trim(), password=$('#reg-pass').value;
-  $('#reg-msg').textContent='';
-  try{ await api('/api/register',{method:'POST',body:JSON.stringify({email,password})});
-       await api('/api/login',{method:'POST',body:JSON.stringify({email,password})});
-       await me(); }
-  catch(e){ $('#reg-msg').textContent=e.message; }
-}
-async function logout(){ try{ await api('/api/logout'); }catch{} finally{ ME=null; await me(); } }
-
-// ---------- TABS ----------
-function showTab(id){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${id}"]`).classList.add('active');
-  ['shop','craft','auctions'].forEach(s=>$('#'+s).style.display=(s===id?'block':'none'));
-  if(id==='shop') loadShop();
-  if(id==='craft') loadCraft();
-  if(id==='auctions') loadAuctions();
-}
-
-// ---------- SHOP (T1 only, 1g per buy) ----------
-async function loadShop(){
-  try{
-    await me();
-    const u = ME && ME.user;
-    $('#shop').innerHTML = `
-      <h2>Shop (T1 only)</h2>
-      <p class="muted">Each purchase costs <b>1 gold</b> (100s). You either get a random T1 material or a recipe drop (T2–T5/T6 weighted).</p>
-      <div class="row">
-        <button class="btn" onclick="buyT1()">Buy T1 Pack (1g)</button>
-        ${u && u.buys_to_next!=null ? `<span class=\"pill\">Next recipe in ${u.buys_to_next}</span>` : ''}
-      </div>
-      <div id="shop-msg" class="muted" style="margin-top:8px"></div>
-    `;
-  }catch(e){ $('#shop').innerHTML = `<p class="muted">${e.message}</p>`; }
-}
-async function buyT1(){
-  try{
-    const r = await api('/api/shop/buy-t1',{method:'POST',body:JSON.stringify({})});
-    const msg = r.result_type==='RECIPE' ? `Recipe gained: [T${r.grantedRecipe.tier}] ${r.grantedRecipe.name}` : `Material gained: ${r.addedItem.name}`;
-    $('#shop-msg').textContent = `${msg} • Balance: ${goldText(r.balance_silver)} • Next in ${r.buys_to_next}`;
-    await me();
-  }catch(e){ $('#shop-msg').textContent = e.message; }
-}
-
-// ---------- CRAFTING ----------
-async function loadCraft(){
-  const r = await api('/api/my/recipes');
-  if(!(r.recipes||[]).length){ $('#craft').innerHTML='<p class="muted">No recipes yet. Buy in Shop to get drops.</p>'; return; }
-  const cards = r.recipes.map(x=>`<div class=\"card\"><div class=\"row\" style=\"justify-content:space-between\"> <h3>${x.name}</h3> <span class=\"pill\">T${x.tier}</span></div>
-    <div class=\"row\"><span class=\"muted\">Owned: x${x.qty}</span><button class=\"btn\" onclick=\"openRecipe(${x.id})\">Open</button></div>
-  </div>`).join('');
-  $('#craft').innerHTML = `<div class="grid2">${cards}</div><div id="rec-detail" class="card"></div>`;
-}
-async function openRecipe(id){
-  try{
-    const r = await api('/api/recipes/'+id);
-    const list = r.ingredients.map(x=>`<li>${x.name} ${x.tier?`(T${x.tier})`:''} — need ${x.need_qty} • have ${x.have_qty} ${x.missing?'<span class=bad>(missing)</span>':'<span class=ok>OK</span>'}</li>`).join('');
-    $('#rec-detail').innerHTML = `
-      <h3>${r.recipe.name} (T${r.recipe.tier})</h3>
-      <ul>${list}</ul>
-      <button class="btn" ${r.can_craft?'':'disabled'} onclick="craft(${r.recipe.id})">Craft</button>
-      ${r.can_craft?'':'<span class="muted"> missing ingredients</span>'}
-    `;
-  }catch(e){ alert(e.message); }
-}
-async function craft(id){
-  try{ const r=await api('/api/recipes/'+id+'/craft',{method:'POST',body:JSON.stringify({})}); alert((r.crafted?('Crafted: '+r.output.name):'Craft failed (Scrap)')); await me(); loadCraft(); }
-  catch(e){ alert(e.message); }
-}
-
-// ---------- AUCTIONS ----------
-async function loadAuctions(){
-  const list=(await api('/api/auctions/live')).auctions||[];
-  $('#auctions').innerHTML = `
-    <h2>Auctions <span class="pill">${list.length} live</span></h2>
-    <div class="card">
-      <h3>Create auction</h3>
-      <div class="row" style="margin-bottom:10px">
-        <input id="ac_code" class="input" placeholder="Code (item or recipe, e.g. R_TOME or BRONZE_PLATE)" />
-        <input id="ac_qty" class="input" type="number" min="1" value="1" />
-        <input id="ac_sg" class="input" type="number" min="0" placeholder="Start g" />
-        <input id="ac_ss" class="input" type="number" min="0" max="99" placeholder="Start s" />
-        <input id="ac_bg" class="input" type="number" min="0" placeholder="Buy g (opt)" />
-        <input id="ac_bs" class="input" type="number" min="0" max="99" placeholder="Buy s (opt)" />
-        <input id="ac_dur" class="input" type="number" min="5" value="60" placeholder="Minutes" />
-        <button class="btn" onclick="createAuction()">Create</button>
-      </div>
-    </div>
-    <table class="table">
-      <thead><tr><th>Item</th><th>Qty</th><th>Start</th><th>Buy-now</th><th>Highest</th><th>Ends</th><th>Actions</th></tr></thead>
-      <tbody>
-        ${list.map(a=>`<tr>
-          <td>${a.name}</td><td>${a.qty}</td>
-          <td>${Math.floor(a.start_price_s/100)}g ${a.start_price_s%100}s</td>
-          <td>${a.buy_now_price_s!=null?`${Math.floor(a.buy_now_price_s/100)}g ${a.buy_now_price_s%100}s`:'—'}</td>
-          <td>${a.highest_bid_s!=null?`${Math.floor(a.highest_bid_s/100)}g ${a.highest_bid_s%100}s`:'—'}</td>
-          <td>${new Date(a.end_time).toLocaleString()}</td>
-          <td class="row">
-            <input id="bidg_${a.id}" class="input" type="number" min="0" placeholder="g" />
-            <input id="bids_${a.id}" class="input" type="number" min="0" max="99" placeholder="s" />
-            <button class="btn" onclick="bid(${a.id})">Bid</button>
-            ${a.buy_now_price_s!=null?`<button class=\"btn\" onclick=\"buyNow(${a.id})\">Buy now</button>`:''}
-            <button class="btn" onclick="cancelAuction(${a.id})">Cancel</button>
-          </td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  `;
-}
-async function createAuction(){
-  const payload={
-    code: $('#ac_code').value.trim(),
-    qty:  parseInt($('#ac_qty').value||'1',10),
-    start_gold: parseInt($('#ac_sg').value||'0',10),
-    start_silver: parseInt($('#ac_ss').value||'0',10),
-    buy_gold: parseInt($('#ac_bg').value||'0',10),
-    buy_silver: parseInt($('#ac_bs').value||'0',10),
-    duration_min: parseInt($('#ac_dur').value||'60',10)
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
+  const el = s => document.createElement(s);
+  const api = async (path, opts={})=>{
+    const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
+    let data=null; try{ data=await res.json(); }catch{}
+    if(!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+    return data;
   };
-  try{ await api('/api/auctions/create',{method:'POST',body:JSON.stringify(payload)}); loadAuctions(); }
-  catch(e){ alert(e.message); }
-}
-async function bid(id){
-  const g=parseInt($('#bidg_'+id).value||'0',10), s=parseInt($('#bids_'+id).value||'0',10);
-  try{ await api(`/api/auctions/${id}/bid`,{method:'POST',body:JSON.stringify({gold:g,silver:s})}); loadAuctions(); }
-  catch(e){ alert(e.message); }
-}
-async function buyNow(id){ try{ await api(`/api/auctions/${id}/buy-now`,{method:'POST',body:JSON.stringify({})}); loadAuctions(); }catch(e){ alert(e.message); } }
-async function cancelAuction(id){ try{ await api(`/api/auctions/${id}/cancel`,{method:'POST',body:JSON.stringify({})}); loadAuctions(); }catch(e){ alert(e.message); } }
+  const fmtMoney = s => `${Math.floor((s||0)/100)}g ${(s||0)%100}s`;
 
-// init
-showAuth('login');
-me();
+  let ME = null;
+
+  function setAuthVisible(showAuth){
+    $("#auth").classList.toggle("hidden", !showAuth);
+    $("#app").classList.toggle("hidden", showAuth);
+    $("#userbar").classList.toggle("hidden", showAuth);
+  }
+  function updateUserBar(){
+    if(!ME){ $("#who").textContent = "—"; return; }
+    $("#who").textContent = `${ME.email} • ${ME.gold}g ${ME.silver}s`;
+  }
+
+  async function fetchMe(){
+    try{
+      const r = await api("/api/me");
+      ME = r.user;
+      updateUserBar();
+      setAuthVisible(false); // show app
+    }catch{
+      ME = null;
+      setAuthVisible(true);  // show login/register
+    }
+  }
+
+  // ---------- Auth actions ----------
+  $("#btn-register").addEventListener("click", async ()=>{
+    const email = $("#reg-email").value.trim();
+    const pass = $("#reg-pass").value;
+    $("#auth-msg").textContent = "Registering…";
+    try{
+      await api("/api/register",{method:"POST",body:JSON.stringify({email,password:pass})});
+      $("#auth-msg").textContent = "Registered. Now login.";
+      $("#log-email").value = email;
+    }catch(e){ $("#auth-msg").textContent = e.message; }
+  });
+
+  $("#btn-login").addEventListener("click", async ()=>{
+    const email = $("#log-email").value.trim();
+    const pass = $("#log-pass").value;
+    $("#auth-msg").textContent = "Logging in…";
+    try{
+      await api("/api/login",{method:"POST",body:JSON.stringify({email,password:pass})});
+      $("#auth-msg").textContent = "";
+      await fetchMe();
+    }catch(e){ $("#auth-msg").textContent = e.message; }
+  });
+
+  $("#btn-logout").addEventListener("click", async ()=>{
+    try{ await api("/api/logout"); }catch{}
+    ME = null; updateUserBar(); setAuthVisible(true);
+  });
+
+  // ---------- Tabs ----------
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active");
+      const id = t.dataset.tab;
+      ["shop","craft","auctions"].forEach(k=>{
+        $("#tab-"+k).classList.toggle("hidden", k!==id);
+      });
+    });
+  });
+
+  // ---------- Shop ----------
+  $("#btn-buy-t1").addEventListener("click", async ()=>{
+    $("#shop-msg").textContent = "Processing…";
+    try{
+      const r = await api("/api/shop/buy-t1",{method:"POST"});
+      if(r.result_type === "RECIPE"){
+        $("#shop-msg").innerHTML = `Recipe drop: <b>${r.grantedRecipe.name}</b> [T${r.grantedRecipe.tier}] • Balance: ${r.gold}g ${r.silver}s`;
+      }else{
+        $("#shop-msg").innerHTML = `Item: <b>${r.addedItem.name}</b> • Balance: ${r.gold}g ${r.silver}s`;
+      }
+      // refresh me
+      await fetchMe();
+    }catch(e){
+      $("#shop-msg").innerHTML = `<span class="danger">${e.message}</span>`;
+    }
+  });
+
+  // ---------- Crafting ----------
+  $("#btn-load-recipes").addEventListener("click", loadRecipes);
+  async function loadRecipes(){
+    const tbody = $("#recipes-rows");
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">Loading…</td></tr>`;
+    try{
+      const r = await api("/api/my/recipes");
+      if(!(r.recipes||[]).length){
+        tbody.innerHTML = `<tr><td colspan="4" class="muted">You own no recipes.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = "";
+      for(const rc of r.recipes){
+        const tr = el("tr");
+        tr.innerHTML = `<td>${rc.name}</td><td>T${rc.tier}</td><td>${rc.qty}</td>
+                        <td><button class="btn small outline">Details</button></td>`;
+        tr.querySelector("button").addEventListener("click", ()=> showRecipe(rc.id));
+        tbody.appendChild(tr);
+      }
+    }catch(e){ tbody.innerHTML = `<tr><td colspan="4" class="danger">${e.message}</td></tr>`; }
+  }
+
+  async function showRecipe(id){
+    const box = $("#recipe-detail"); box.classList.remove("hidden");
+    box.innerHTML = "Loading…";
+    try{
+      const r = await api(`/api/recipes/${id}`);
+      const {recipe,ingredients,can_craft} = r;
+      const lines = [
+        `<div class="section-title">${recipe.name} <span class="muted">[T${recipe.tier}]</span></div>`,
+        `<div class="sub">Attempts: ${recipe.attempts}</div>`,
+        `<table class="mt"><thead><tr><th>Ingredient</th><th>Need</th><th>Have</th></tr></thead><tbody>${
+          ingredients.map(x=>`<tr><td>${x.name}</td><td>${x.need_qty}</td><td>${x.have_qty}</td></tr>`).join("")
+        }</tbody></table>`,
+        `<div class="row mt"><button id="btn-do-craft" class="btn"${can_craft?"":" disabled"}>Craft</button>
+           <span class="muted">${can_craft?"":"Missing ingredients"}</span></div>`
+      ];
+      box.innerHTML = lines.join("");
+      $("#btn-do-craft").addEventListener("click", async ()=>{
+        $("#craft-msg").textContent = "Crafting…";
+        try{
+          const out = await api(`/api/recipes/${recipe.id}/craft`,{method:"POST"});
+          if(out.crafted){
+            $("#craft-msg").innerHTML = `<span class="ok">Crafted: ${out.output.name} [T${out.output.tier}]</span>`;
+          }else{
+            $("#craft-msg").innerHTML = `<span class="danger">Failed → Scrap</span>`;
+          }
+          await loadRecipes();
+          await fetchMe();
+        }catch(e){ $("#craft-msg").innerHTML = `<span class="danger">${e.message}</span>`; }
+      });
+    }catch(e){ box.innerHTML = `<span class="danger">${e.message}</span>`; }
+  }
+
+  $("#btn-craft-artefact").addEventListener("click", async ()=>{
+    $("#craft-msg").textContent = "Crafting Artefact…";
+    try{
+      const r = await api("/api/craft/artefact",{method:"POST"});
+      $("#craft-msg").innerHTML = `<span class="ok">Artefact crafted! Consumed: ${r.consumed.join(", ")}</span>`;
+      await fetchMe();
+    }catch(e){ $("#craft-msg").innerHTML = `<span class="danger">${e.message}</span>`; }
+  });
+
+  // ---------- Auctions ----------
+  $("#btn-create-auction").addEventListener("click", async ()=>{
+    const code = $("#auc-code").value.trim();
+    const qty  = parseInt($("#auc-qty").value||"1",10);
+    const sg   = parseInt($("#auc-start-g").value||"0",10);
+    const ss   = parseInt($("#auc-start-s").value||"0",10);
+    const bg   = parseInt($("#auc-buy-g").value||"0",10);
+    const bs   = parseInt($("#auc-buy-s").value||"0",10);
+    $("#auc-msg").textContent = "Creating…";
+    try{
+      await api("/api/auctions/create",{method:"POST",body:JSON.stringify({
+        code, qty, start_gold:sg, start_silver:ss, buy_gold:bg, buy_silver:bs
+      })});
+      $("#auc-msg").textContent = "Created.";
+      await refreshLive(); await refreshMine();
+    }catch(e){ $("#auc-msg").textContent = e.message; }
+  });
+
+  $("#btn-refresh-live").addEventListener("click", refreshLive);
+  $("#btn-refresh-mine").addEventListener("click", refreshMine);
+
+  async function refreshLive(){
+    const tbody = $("#live-rows");
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">Loading…</td></tr>`;
+    try{
+      const r = await api("/api/auctions/live");
+      if(!(r.auctions||[]).length){ tbody.innerHTML = `<tr><td colspan="7" class="muted">No live auctions.</td></tr>`; return; }
+      tbody.innerHTML = "";
+      for(const a of r.auctions){
+        const tr = el("tr");
+        const start = fmtMoney(a.start_price_s||0);
+        const high  = a.highest_bid_s!=null ? fmtMoney(a.highest_bid_s) : "—";
+        const buy   = a.buy_now_price_s!=null ? fmtMoney(a.buy_now_price_s) : "—";
+        tr.innerHTML = `
+          <td>${a.name} <span class="mono">(${a.code})</span></td>
+          <td>${a.qty}</td>
+          <td>${start}</td>
+          <td>${high}</td>
+          <td>${new Date(a.end_time).toLocaleString()}</td>
+          <td>${buy}</td>
+          <td class="row">
+            <input type="number" min="0" max="999999" step="1" placeholder="g" style="width:70px">
+            <input type="number" min="0" max="99" step="1" placeholder="s" style="width:60px">
+            <button class="btn small">Bid</button>
+            ${a.buy_now_price_s?'<button class="btn small outline">Buy now</button>':''}
+          </td>`;
+        const [inG,inS,btnBid,btnBuy] = tr.querySelectorAll("td:last-child *");
+        btnBid.addEventListener("click", async ()=>{
+          try{
+            await api(`/api/auctions/${a.id}/bid`,{method:"POST",body:JSON.stringify({
+              gold:parseInt(inG.value||"0",10), silver:parseInt(inS.value||"0",10)
+            })});
+            await fetchMe(); await refreshLive();
+          }catch(e){ alert(e.message); }
+        });
+        if(btnBuy){
+          btnBuy.addEventListener("click", async ()=>{
+            try{ await api(`/api/auctions/${a.id}/buy-now`,{method:"POST"}); await fetchMe(); await refreshLive(); }
+            catch(e){ alert(e.message); }
+          });
+        }
+        tbody.appendChild(tr);
+      }
+    }catch(e){ tbody.innerHTML = `<tr><td colspan="7" class="danger">${e.message}</td></tr>`; }
+  }
+
+  async function refreshMine(){
+    const tbody = $("#mine-rows");
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`;
+    try{
+      const r = await api("/api/auctions/mine");
+      if(!(r.auctions||[]).length){ tbody.innerHTML = `<tr><td colspan="5" class="muted">No auctions.</td></tr>`; return; }
+      tbody.innerHTML = "";
+      for(const a of r.auctions){
+        const tr = el("tr");
+        tr.innerHTML = `
+          <td>${a.name} <span class="mono">(${a.code})</span></td>
+          <td>${a.qty}</td>
+          <td>${a.status}</td>
+          <td>${a.sold_price_s!=null?fmtMoney(a.sold_price_s):"—"}</td>
+          <td>${new Date(a.end_time).toLocaleString()}</td>`;
+        tbody.appendChild(tr);
+      }
+    }catch(e){ tbody.innerHTML = `<tr><td colspan="5" class="danger">${e.message}</td></tr>`; }
+  }
+
+  // ---------- Init ----------
+  (async ()=>{
+    await fetchMe(); // decides: auth screen or app
+    if(ME){ refreshLive(); refreshMine(); }
+  })();
 </script>
 </body>
 </html>
