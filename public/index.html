@@ -1,105 +1,107 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ARTEFACT</title>
-<link rel="stylesheet" href="/app.css"/>
-<style>
-  :root{--bg:#0b1220;--card:#0f172a;--ink:#e2e8f0;--muted:#94a3b8;--accent:#10b981;}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  .wrap{max-width:1100px;margin:24px auto;padding:0 12px}
-  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-  .brand{font-weight:800;letter-spacing:.3px}
-  .pill{padding:6px 10px;border:1px solid #233047;border-radius:999px;background:#0b1220}
-  .btn{padding:8px 12px;border:none;border-radius:10px;background:var(--accent);color:#012;cursor:pointer;font-weight:600}
-  .btn.secondary{background:#1f2937;color:var(--ink)}
-  .btn.small{padding:6px 10px;border-radius:8px}
-  .tabs{display:flex;gap:8px;margin-bottom:12px}
-  .tab{padding:8px 12px;background:#122038;border:1px solid #233047;border-radius:999px;cursor:pointer}
-  .tab.active{outline:2px solid var(--accent)}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-  .card{background:#0f172a;border:1px solid #233047;border-radius:12px;padding:12px}
-  .muted{color:var(--muted)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  input,select{background:#0b1220;border:1px solid #233047;border-radius:8px;color:var(--ink);padding:8px}
-  table{width:100%;border-collapse:collapse} th,td{padding:10px;border-bottom:1px solid #1f2a45}
-  .right{float:right}
-  .recipe-row,.sale-row{display:flex;align-items:center;justify-content:space-between;padding:8px;border-bottom:1px solid #1f2a45}
-  .title{font-weight:700}
-  .badge{padding:2px 8px;border-radius:999px;background:#0b1220;border:1px solid #233047}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ARTEFACT</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#0f172a; --muted:#93a4bf; --text:#e2e8f0; --accent:#34d399; --chip:#1f2937;
+      --btn:#22c55e; --btn2:#374151; --danger:#ef4444; --border:#233047;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#0d1324;border-bottom:1px solid var(--border)}
+    .brand{font-weight:800;letter-spacing:.5px}
+    .pill{padding:4px 10px;border-radius:999px;background:#132037;color:#a7c0ff;font-size:12px}
+    .container{max-width:1100px;margin:18px auto;padding:0 12px}
+    .tabs{display:flex;gap:8px;margin-bottom:12px}
+    .tabs button{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#132037;color:#bcd7ff;cursor:pointer}
+    .tabs button.active{background:#0d1d2f;color:#e8f1ff;border-color:#2b4770}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .col{flex:1 1 330px}
+    input,select{background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px}
+    button{border:0;border-radius:10px;cursor:pointer;padding:8px 12px}
+    .btn{background:var(--btn);color:#05130a}
+    .btn2{background:var(--btn2);color:#c8d2e5}
+    .btn-danger{background:#3b1113;color:#fecaca}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #182237}
+    .right{float:right}
+    .muted{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+    .tag{font-size:11px;background:var(--chip);padding:2px 6px;border-radius:6px;margin-left:6px}
+    .space{height:8px}
+    .search{width:100%}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="header">
-    <div class="brand">ARTEFACT</div>
-    <div id="authbar" class="row">
-      <span id="who" class="pill muted">Not logged in</span>
-    </div>
+<header>
+  <div class="brand">ARTEFACT</div>
+  <div>
+    <span id="who" class="pill">Not logged in</span>
+    <button id="btn-logout" class="btn2" style="margin-left:8px;display:none">Logout</button>
   </div>
+</header>
 
-  <!-- Auth -->
-  <div id="auth" class="card">
+<main class="container">
+  <!-- AUTH PANEL -->
+  <section id="auth" class="card">
+    <h3>Welcome — please register or log in</h3>
     <div class="row">
-      <button id="show-login" class="btn small">Login</button>
-      <button id="show-register" class="btn small secondary">Register</button>
+      <div class="col">
+        <h4>Register</h4>
+        <input id="reg-email" placeholder="email" style="width:100%"/><div class="space"></div>
+        <input id="reg-pass" type="password" placeholder="password (min 6)" style="width:100%"/><div class="space"></div>
+        <button id="btn-register" class="btn">Create account</button>
+        <span id="reg-msg" class="muted" style="margin-left:8px"></span>
+      </div>
+      <div class="col">
+        <h4>Login</h4>
+        <input id="log-email" placeholder="email" style="width:100%"/><div class="space"></div>
+        <input id="log-pass" type="password" placeholder="password" style="width:100%"/><div class="space"></div>
+        <button id="btn-login" class="btn">Login</button>
+        <span id="log-msg" class="muted" style="margin-left:8px"></span>
+      </div>
     </div>
-    <div id="login-box" class="row" style="margin-top:10px;">
-      <input id="login-email" placeholder="email"/>
-      <input id="login-pass" type="password" placeholder="password"/>
-      <button id="btn-login" class="btn">Login</button>
-    </div>
-    <div id="register-box" class="row" style="margin-top:10px;display:none">
-      <input id="reg-email" placeholder="email"/>
-      <input id="reg-pass"  type="password" placeholder="password (min 6)"/>
-      <button id="btn-register" class="btn">Register</button>
-    </div>
-  </div>
+  </section>
 
-  <!-- App -->
-  <div id="app" style="display:none;">
-    <div class="row" style="justify-content:space-between;">
-      <div class="tabs">
-        <div class="tab active" data-tab="shop">Shop</div>
-        <div class="tab" data-tab="crafting">Crafting</div>
-        <div class="tab" data-tab="sales">Sales</div>
-        <div class="tab" data-tab="inventory">Inventory</div>
-      </div>
-      <div class="row">
-        <span id="balance" class="badge">0g 0s</span>
-        <button id="btn-logout" class="btn small secondary">Logout</button>
-      </div>
+  <!-- APP -->
+  <section id="app" style="display:none">
+    <div class="tabs">
+      <button data-tab="shop" class="active">Shop</button>
+      <button data-tab="craft">Crafting</button>
+      <button data-tab="sales">Sales</button>
+      <button data-tab="inv">Inventory</button>
     </div>
 
     <!-- SHOP -->
     <section id="tab-shop" class="card">
       <h3>Shop (T1 only)</h3>
-      <p class="muted">Each purchase costs <b>1 gold</b> (100s). You get either a random T1 material or a <b>recipe drop</b> (every ~4–8 buys). Drop weights per 1000: T2=800, T3=150, T4=37, T5=12, T6=1.</p>
+      <p class="muted">Each purchase costs <b>1 gold</b> (100s). You either get a random T1 material or a recipe drop (T2–T5 weighted, with a tiny chance mapped from T6).</p>
       <button id="btn-buy-t1" class="btn">Buy T1 Pack (1g)</button>
-      <span id="shop-next" class="muted" style="margin-left:8px"></span>
+      <span id="shop-msg" class="muted" style="margin-left:8px"></span>
     </section>
 
     <!-- CRAFTING -->
-    <section id="tab-crafting" class="card" style="display:none">
-      <div class="row" style="justify-content:space-between;">
+    <section id="tab-craft" class="card" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3>Crafting</h3>
-        <div class="row">
-          <button id="btn-crafting-refresh" class="btn small secondary">Refresh</button>
-          <button id="btn-craft-art" class="btn small">Craft ARTEFACT (10× distinct T5)</button>
+        <div>
+          <button id="btn-craft-refresh" class="btn2">Refresh</button>
+          <button id="btn-craft-artefact" class="btn" style="margin-left:6px">Craft ARTEFACT (10× distinct T5)</button>
         </div>
       </div>
       <div class="grid2">
         <div>
-          <div id="crafting-list"></div>
+          <div class="muted" style="margin-bottom:6px">Your recipes</div>
+          <div id="recipes-box" class="card" style="background:#0b1220"></div>
         </div>
         <div>
-          <div class="muted">Recipe details</div>
-          <table>
-            <thead><tr><th>Ingredient</th><th class="right">Have / Need</th></tr></thead>
-            <tbody id="ing-body"></tbody>
-          </table>
+          <div class="muted" style="margin-bottom:6px">Recipe details</div>
+          <div id="recipe-detail" class="card" style="background:#0b1220">Select a recipe on the left →</div>
         </div>
       </div>
     </section>
@@ -109,242 +111,277 @@
       <h3>Sales (fixed price)</h3>
       <div class="grid2">
         <div>
-          <div class="muted">Create listing</div>
-          <div class="row" style="margin-top:6px">
-            <select id="sale-select" style="min-width:240px"></select>
+          <div class="muted" style="margin-bottom:6px">Create listing</div>
+          <div class="row">
+            <select id="sale-item" style="flex:2"></select>
             <input id="sale-qty" type="number" min="1" step="1" value="1" style="width:80px"/>
           </div>
-          <div class="row" style="margin:8px 0">
-            <input id="sale-price-gold" type="number" min="0" step="1" placeholder="Gold (g)" style="width:120px"/>
-            <input id="sale-price-silver" type="number" min="0" max="99" step="1" placeholder="Silver (0–99)" style="width:140px"/>
-            <button id="btn-sale-create" class="btn">List for sale</button>
+          <div class="row" style="margin-top:8px">
+            <input id="sale-gold" type="number" min="0" step="1" placeholder="Gold (g)" style="width:120px"/>
+            <input id="sale-silver" type="number" min="0" max="99" step="1" placeholder="Silver (0–99)" style="width:140px"/>
+            <button id="btn-sale-list" class="btn">List for sale</button>
           </div>
+          <div id="sale-msg" class="muted" style="margin-top:6px"></div>
 
-          <div class="muted" style="margin-top:6px">Your listings</div>
-          <div id="my-listings" class="card" style="margin-top:6px"></div>
+          <div class="space"></div>
+          <h4>Your listings</h4>
+          <table id="mine-table">
+            <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
         <div>
-          <div class="muted">Marketplace</div>
-          <div id="market" class="card" style="margin-top:6px"></div>
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="muted">Marketplace</div>
+            <input id="market-search" class="search" placeholder="Search by name…"/>
+          </div>
+          <table id="market-table" style="margin-top:8px">
+            <thead><tr><th>Item</th><th>Tier</th><th>Qty</th><th>Price</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
     </section>
 
     <!-- INVENTORY -->
-    <section id="tab-inventory" class="card" style="display:none">
+    <section id="tab-inv" class="card" style="display:none">
       <h3>Inventory</h3>
       <div class="grid2">
         <div>
-          <div class="muted">Items</div>
-          <div id="inv-items" class="card" style="margin-top:6px"></div>
+          <h4>Items</h4>
+          <table id="inv-items"><thead><tr><th>Item</th><th>Tier</th><th>Qty</th></tr></thead><tbody></tbody></table>
         </div>
         <div>
-          <div class="muted">Recipes</div>
-          <div id="inv-recipes" class="card" style="margin-top:6px"></div>
+          <h4>Recipes</h4>
+          <table id="inv-recipes"><thead><tr><th>Recipe</th><th>Tier</th><th>Qty</th></tr></thead><tbody></tbody></table>
         </div>
       </div>
     </section>
-  </div>
-</div>
+  </section>
+</main>
 
 <script>
-  // ------- tiny helpers
-  const $ = s=>document.querySelector(s);
-  const api = (p,opts={})=> fetch(p,{credentials:"include", headers:{"Content-Type":"application/json"}, ...opts}).then(r=>r.json().then(j=>r.ok?j:Promise.reject(new Error(j.error||("HTTP "+r.status)))));
+const $ = s => document.querySelector(s);
+const el = s => document.createElement(s);
+function fmtGoldS(s){ s = s|0; return `${Math.floor(s/100)}g ${s%100}s`; }
+function msg(id,text,ok=true){ const e=$(id); e.textContent=text; e.style.color = ok ? "#93a4bf" : "#fecaca"; }
 
-  const state = { user:null, recipes:[], selectedRecipe:null, inventory:{items:[],recipes:[]} };
+async function api(path,opts={}){
+  const res = await fetch(path,{credentials:"include", ...opts, headers:{ "Content-Type":"application/json", ...(opts.headers||{}) }});
+  let data=null; try{ data=await res.json(); }catch{}
+  if(!res.ok) throw new Error((data&&data.error)||`HTTP ${res.status}`);
+  return data;
+}
 
-  function setTab(name){
-    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
-    ["shop","crafting","sales","inventory"].forEach(id=>{
-      $("#tab-"+id).style.display = (id===name) ? "" : "none";
-    });
-    if(name==="crafting"){ loadMyRecipes(); }
-    if(name==="sales"){ loadInventory().then(renderSales); }
-    if(name==="inventory"){ loadInventory(); }
-  }
+let ME = null;
+let RECIPES = [];  // left list
 
-  // ------- Auth UI
-  $("#show-login").onclick = ()=>{ $("#login-box").style.display="flex"; $("#register-box").style.display="none"; };
-  $("#show-register").onclick = ()=>{ $("#login-box").style.display="none"; $("#register-box").style.display="flex"; };
+function showApp(){
+  $("#auth").style.display = "none";
+  $("#app").style.display = "block";
+  $("#btn-logout").style.display = "inline-block";
+}
+function showAuth(){
+  $("#app").style.display = "none";
+  $("#auth").style.display = "block";
+  $("#btn-logout").style.display = "none";
+}
+function setWho(){
+  if(ME) $("#who").textContent = `${ME.user.email} • ${ME.user.gold}g ${ME.user.silver}s`;
+  else $("#who").textContent = "Not logged in";
+}
 
-  $("#btn-register").onclick = async ()=>{
-    try{
-      const email=$("#reg-email").value.trim(), password=$("#reg-pass").value;
-      const r = await api("/api/register",{method:"POST",body:JSON.stringify({email,password})});
-      alert("Registered. Now login."); $("#show-login").click();
-    }catch(e){ alert(e.message); }
-  };
-  $("#btn-login").onclick = async ()=>{
-    try{
-      const email=$("#login-email").value.trim(), password=$("#login-pass").value;
-      await api("/api/login",{method:"POST",body:JSON.stringify({email,password})});
-      await initMe();
-    }catch(e){ alert(e.message); }
-  };
-  $("#btn-logout").onclick = async ()=>{ await api("/api/logout"); state.user=null; $("#app").style.display="none"; $("#auth").style.display="block"; $("#who").textContent="Not logged in"; };
+// ---- auth events
+$("#btn-register").addEventListener("click", async ()=>{
+  try{
+    const email=$("#reg-email").value.trim(), password=$("#reg-pass").value;
+    const r=await api("/api/register", {method:"POST", body:JSON.stringify({email,password})});
+    msg("#reg-msg", r.message);
+  }catch(e){ msg("#reg-msg", e.message, false); }
+});
+$("#btn-login").addEventListener("click", async ()=>{
+  try{
+    const email=$("#log-email").value.trim(), password=$("#log-pass").value;
+    const r=await api("/api/login", {method:"POST", body:JSON.stringify({email,password})});
+    await loadMe();
+    showApp();
+  }catch(e){ msg("#log-msg", e.message, false); }
+});
+$("#btn-logout").addEventListener("click", async ()=>{
+  await api("/api/logout");
+  ME=null; setWho(); showAuth();
+});
 
-  async function initMe(){
-    try{
-      const r = await api("/api/me");
-      state.user = r.user;
-      $("#auth").style.display="none";
-      $("#app").style.display="block";
-      $("#who").textContent = r.user.email;
-      updateHeader();
-      setTab("shop");
-    }catch{ $("#auth").style.display="block"; $("#app").style.display="none"; }
-  }
-  function updateHeader(){
-    const u=state.user||{};
-    $("#balance").textContent = `${Math.floor((u.balance_silver||0)/100)}g ${(u.balance_silver||0)%100}s`;
-    const hint = (u.buys_to_next==null) ? "" : `Next recipe in ~${u.buys_to_next} buys`;
-    $("#shop-next").textContent = hint;
-  }
+// ---- tabs
+for(const b of document.querySelectorAll(".tabs button")){
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    const id=b.dataset.tab;
+    ["shop","craft","sales","inv"].forEach(t=> $("#tab-"+t).style.display = (t===id)?"block":"none");
+  });
+}
 
-  // ------- Tabs switching
-  document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=> setTab(t.dataset.tab));
+// ---- shop
+$("#btn-buy-t1").addEventListener("click", async ()=>{
+  try{
+    const r=await api("/api/shop/buy-t1",{method:"POST"});
+    msg("#shop-msg", r.result_type==="RECIPE" ? `Dropped recipe: ${r.grantedRecipe.name}` : `Got T1 item: ${r.addedItem.name}`);
+    await loadMe(); await loadInventory(); if($("#tab-craft").style.display!=="none") await loadRecipes();
+  }catch(e){ msg("#shop-msg", e.message, false); }
+});
 
-  // ------- Shop
-  $("#btn-buy-t1").onclick = async ()=>{
-    try{
-      const r = await api("/api/shop/buy-t1",{method:"POST"});
-      if(r.result_type==="ITEM") alert(`You got T1: ${r.addedItem.name}`);
-      else if(r.result_type==="RECIPE") alert(`Recipe drop: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`);
-      state.user.balance_silver = r.balance_silver;
-      state.user.shop_buy_count = r.shop_buy_count;
-      state.user.buys_to_next = r.buys_to_next;
-      updateHeader();
-      await loadInventory();
-    }catch(e){ alert(e.message); }
-  };
-
-  // ------- Crafting
-  async function loadMyRecipes(){
-    const r = await api("/api/my/recipes");
-    state.recipes = r.recipes || [];
-    renderCrafting();
-  }
-  function renderCrafting(){
-    const box = $("#crafting-list"); box.innerHTML = "";
-    if(!state.recipes.length){ box.innerHTML = `<div class="muted">You don't own any recipes.</div>`; $("#ing-body").innerHTML=""; return; }
-    state.recipes.forEach(rc=>{
-      const row=document.createElement("div"); row.className="recipe-row";
-      row.innerHTML = `<div class="left"><div class="title">[T${rc.tier}] ${rc.name}</div><div class="muted">Owned: ${rc.qty}</div></div>
-      <div class="right"><button class="btn small secondary" data-id="${rc.id}">Details</button>
-      <button class="btn small" data-craft="${rc.id}">Craft</button></div>`;
-      row.querySelector("[data-id]").onclick = ()=> openRecipe(rc.id);
-      row.querySelector("[data-craft]").onclick = ()=> craftRecipe(rc.id);
+// ---- crafting
+async function loadRecipes(){
+  try{
+    const r=await api("/api/my/recipes");
+    RECIPES = r.recipes||[];
+    const box=$("#recipes-box"); box.innerHTML="";
+    if(!RECIPES.length){ box.textContent="No recipes."; return; }
+    for(const rc of RECIPES){
+      const row=el("div"); row.className="row"; row.style.justifyContent="space-between"; row.style.padding="6px 8px"; row.style.borderBottom="1px solid #172238";
+      row.innerHTML = `<div>${rc.name} <span class="tag">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div>`;
+      row.addEventListener("click", ()=> openRecipe(rc.id));
       box.appendChild(row);
-    });
+    }
+  }catch(e){
+    $("#recipes-box").textContent = e.message;
   }
-  async function openRecipe(id){
-    const r = await api(`/api/recipes/${id}`);
-    state.selectedRecipe = r.recipe;
-    const tb = $("#ing-body"); tb.innerHTML="";
-    (r.ingredients||[]).forEach(it=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>[T${it.tier}] ${it.name}</td><td class="right">${it.have_qty}/${it.need_qty}</td>`;
+}
+async function openRecipe(id){
+  try{
+    const r=await api(`/api/recipes/${id}`);
+    const d=$("#recipe-detail"); d.innerHTML="";
+    const h=el("div"); h.innerHTML=`<b>${r.recipe.name}</b> <span class="tag">T${r.recipe.tier}</span>`;
+    const t=el("table");
+    t.innerHTML=`<thead><tr><th>Ingredient</th><th>Have</th><th>Need</th></tr></thead>`;
+    const tb=el("tbody");
+    (r.ingredients||[]).forEach(x=>{
+      const tr=el("tr");
+      tr.innerHTML=`<td>${x.name}</td><td>${x.have_qty}</td><td>${x.need_qty}</td>`;
       tb.appendChild(tr);
     });
-  }
-  async function craftRecipe(id){
-    try{
-      const r = await api(`/api/recipes/${id}/craft`,{method:"POST"});
-      alert(r.crafted ? `Crafted: ${r.output.name} [T${r.output.tier}]` : "Craft failed (Scrap received).");
-      await loadMyRecipes(); await loadInventory(); await openRecipe(id);
-    }catch(e){ alert(e.message); }
-  }
-  $("#btn-crafting-refresh").onclick = ()=> loadMyRecipes();
-  $("#btn-craft-art").onclick = async ()=>{
-    try{
-      const r = await api("/api/craft/artefact",{method:"POST"});
-      alert("Crafted: ARTEFACT");
-      await loadInventory();
-    }catch(e){ alert(e.message); }
-  };
+    t.appendChild(tb);
+    const btn=el("button"); btn.className="btn"; btn.textContent="Craft"; btn.style.marginTop="8px";
+    btn.disabled = !r.can_craft;
+    btn.addEventListener("click", async ()=>{
+      try{
+        const rr=await api(`/api/recipes/${id}/craft`,{method:"POST"});
+        alert(rr.crafted ? `Crafted: ${rr.output.name} [T${rr.output.tier}]` : `Craft failed → Scrap`);
+        await loadInventory(); await loadRecipes(); setTimeout(()=>openRecipe(id), 200);
+        await loadMe();
+      }catch(e){ alert(e.message); }
+    });
+    d.appendChild(h); d.appendChild(t); d.appendChild(btn);
+  }catch(e){ $("#recipe-detail").textContent=e.message; }
+}
+$("#btn-craft-refresh").addEventListener("click", loadRecipes);
+$("#btn-craft-artefact").addEventListener("click", async ()=>{
+  try{
+    const r=await api("/api/craft/artefact",{method:"POST"});
+    alert(r.message || "OK");
+    await loadInventory(); await loadMe();
+  }catch(e){ alert(e.message); }
+});
 
-  // ------- Inventory
-  async function loadInventory(){
-    const r = await api("/api/my/inventory");
-    state.inventory = r;
-    // render Items
-    const ii=$("#inv-items"); ii.innerHTML="";
+// ---- sales
+async function loadInventoryForSale(){
+  try{
+    const r=await api("/api/my/inventory");
+    const sel=$("#sale-item"); sel.innerHTML="";
+    // items
     (r.items||[]).forEach(it=>{
-      const d=document.createElement("div"); d.className="recipe-row";
-      d.innerHTML=`<div class="left">[T${it.tier}] ${it.name}</div><div class="right">x${it.qty}</div>`;
-      ii.appendChild(d);
+      const o=el("option");
+      o.value=it.code;
+      o.textContent=`[T${it.tier}] ${it.name} x${it.qty}`;
+      sel.appendChild(o);
     });
-    const ir=$("#inv-recipes"); ir.innerHTML="";
+    // recipes
     (r.recipes||[]).forEach(rc=>{
-      const d=document.createElement("div"); d.className="recipe-row";
-      d.innerHTML=`<div class="left">[T${rc.tier}] ${rc.name}</div><div class="right">x${rc.qty}</div>`;
-      ir.appendChild(d);
+      const o=el("option");
+      o.value=rc.code;  // R_...
+      o.textContent=`[T${rc.tier}] ${rc.name} (Recipe) x${rc.qty}`;
+      sel.appendChild(o);
     });
-    fillSaleSelect();
-    return r;
-  }
-
-  // ------- Sales
-  function fillSaleSelect(){
-    const sel=$("#sale-select"); sel.innerHTML="";
-    const optg1=document.createElement("optgroup"); optg1.label="Items";
-    (state.inventory.items||[]).forEach(it=>{
-      const o=document.createElement("option");
-      o.value=it.code; o.textContent=`[T${it.tier}] ${it.name} x${it.qty}`; optg1.appendChild(o);
+  }catch(e){ msg("#sale-msg", e.message, false); }
+}
+$("#btn-sale-list").addEventListener("click", async ()=>{
+  try{
+    const code=$("#sale-item").value;
+    const qty=parseInt($("#sale-qty").value||"1",10);
+    const price_gold=parseInt($("#sale-gold").value||"0",10);
+    const price_silver=parseInt($("#sale-silver").value||"0",10);
+    const r=await api("/api/sales/create",{method:"POST",body:JSON.stringify({code,qty,price_gold,price_silver})});
+    msg("#sale-msg","Listed.");
+    await loadInventory(); await loadInventoryForSale(); await loadMineSales(); await loadMarket();
+  }catch(e){ msg("#sale-msg", e.message, false); }
+});
+async function loadMineSales(){
+  try{
+    const r=await api("/api/sales/mine");
+    const tb=$("#mine-table tbody"); tb.innerHTML="";
+    (r.sales||[]).forEach(s=>{
+      const tr=el("tr");
+      const price=fmtGoldS(s.price_s);
+      tr.innerHTML=`<td>${s.name}</td><td>${s.qty}</td><td>${price}</td><td>${s.status}</td><td></td>`;
+      if(s.status==="live"){
+        const b=el("button"); b.className="btn2"; b.textContent="Cancel";
+        b.addEventListener("click", async ()=>{
+          try{ await api(`/api/sales/${s.id}/cancel`,{method:"POST"}); await loadMineSales(); await loadMarket(); await loadInventory(); await loadInventoryForSale(); }
+          catch(e){ alert(e.message); }
+        });
+        tr.lastChild.appendChild(b);
+      }
+      tb.appendChild(tr);
     });
-    const optg2=document.createElement("optgroup"); optg2.label="Recipes";
-    (state.inventory.recipes||[]).forEach(rc=>{
-      const o=document.createElement("option");
-      o.value=rc.code; o.textContent=`${rc.code} x${rc.qty}`; optg2.appendChild(o);
-    });
-    sel.appendChild(optg1); sel.appendChild(optg2);
-  }
-  function renderSales(){
-    Promise.all([api("/api/sales/live"), api("/api/sales/mine")]).then(([live,mine])=>{
-      const mk=$("#market"); mk.innerHTML="";
-      (live.sales||[]).forEach(s=>{
-        const d=document.createElement("div"); d.className="sale-row";
-        const g=Math.floor(s.price_s/100), ss=s.price_s%100;
-        d.innerHTML=`<div class="left">${s.name} x${s.qty}</div><div class="right">${g}g ${ss}s <button class="btn small" data-buy="${s.id}">Buy</button></div>`;
-        d.querySelector("[data-buy]").onclick = ()=> buyNow(s.id);
-        mk.appendChild(d);
+  }catch(e){ /* ignore */ }
+}
+async function loadMarket(){
+  try{
+    const q=encodeURIComponent($("#market-search").value||"");
+    const r=await api(`/api/sales/live?search=${q}`);
+    const tb=$("#market-table tbody"); tb.innerHTML="";
+    (r.sales||[]).forEach(s=>{
+      const tr=el("tr");
+      tr.innerHTML=`<td>${s.name}</td><td>T${s.tier}</td><td>${s.qty}</td><td>${fmtGoldS(s.price_s)}</td><td></td>`;
+      const b=el("button"); b.className="btn"; b.textContent="Buy";
+      b.addEventListener("click", async ()=>{
+        try{ const rr=await api(`/api/sales/${s.id}/buy`,{method:"POST"}); await loadMe(); await loadInventory(); await loadMarket(); }
+        catch(e){ alert(e.message); }
       });
-      const mineBox=$("#my-listings"); mineBox.innerHTML="";
-      (mine.sales||[]).forEach(s=>{
-        const d=document.createElement("div"); d.className="sale-row";
-        const g=Math.floor(s.price_s/100), ss=s.price_s%100;
-        let right=`${g}g ${ss}s`;
-        if(s.status==='live') right += ` <button class="btn small secondary" data-cancel="${s.id}">Cancel</button>`;
-        d.innerHTML=`<div class="left">${s.name} x${s.qty}</div><div class="right">${right}</div>`;
-        if(s.status==='live') d.querySelector("[data-cancel]").onclick = ()=> cancelSale(s.id);
-        mineBox.appendChild(d);
-      });
-    }).catch(e=>{
-      $("#market").textContent=e.message; $("#my-listings").textContent=e.message;
+      tr.lastChild.appendChild(b); tb.appendChild(tr);
     });
-  }
-  $("#btn-sale-create").onclick = async ()=>{
-    try{
-      const code=$("#sale-select").value;
-      const qty=parseInt($("#sale-qty").value||"1",10);
-      const g=parseInt($("#sale-price-gold").value||"0",10);
-      const s=parseInt($("#sale-price-silver").value||"0",10);
-      if(s<0||s>99) throw new Error("Silver must be 0–99.");
-      await api("/api/sales/create",{method:"POST",body:JSON.stringify({code,qty,price_gold:g,price_silver:s})});
-      alert("Listed.");
-      await loadInventory(); renderSales();
-    }catch(e){ alert(e.message); }
-  };
-  async function buyNow(id){
-    try{ await api(`/api/sales/${id}/buy`,{method:"POST"}); alert("Purchased."); await loadInventory(); renderSales(); const me=await api("/api/me"); state.user=me.user; updateHeader(); }catch(e){ alert(e.message); }
-  }
-  async function cancelSale(id){
-    try{ await api(`/api/sales/${id}/cancel`,{method:"POST"}); alert("Canceled."); await loadInventory(); renderSales(); }catch(e){ alert(e.message); }
-  }
+  }catch(e){ /* ignore */ }
+}
+$("#market-search").addEventListener("input", ()=>{ clearTimeout(window.__mkT); window.__mkT=setTimeout(loadMarket, 250); });
 
-  // ------- boot
-  initMe();
+// ---- inventory
+async function loadInventory(){
+  try{
+    const r=await api("/api/my/inventory");
+    const ti=$("#inv-items tbody"); ti.innerHTML="";
+    (r.items||[]).forEach(it=>{
+      const tr=el("tr"); tr.innerHTML=`<td>${it.name}</td><td>T${it.tier}</td><td>${it.qty}</td>`; ti.appendChild(tr);
+    });
+    const trc=$("#inv-recipes tbody"); trc.innerHTML="";
+    (r.recipes||[]).forEach(rc=>{
+      const tr=el("tr"); tr.innerHTML=`<td>${rc.name}</td><td>T${rc.tier}</td><td>${rc.qty}</td>`; trc.appendChild(tr);
+    });
+  }catch(e){ /* ignore */ }
+}
+
+// ---- me + boot
+async function loadMe(){
+  try{
+    const r=await api("/api/me");
+    ME=r; setWho(); return true;
+  }catch{ ME=null; setWho(); return false; }
+}
+(async ()=>{
+  const ok = await loadMe();
+  if(ok){ showApp(); await loadInventory(); await loadInventoryForSale(); await loadMineSales(); await loadMarket(); await loadRecipes(); }
+  else showAuth();
+})();
 </script>
 </body>
 </html>
