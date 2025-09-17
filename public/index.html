@@ -6,15 +6,15 @@
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
-    :root{--bg:#0b1220;--card:#0f172a;--muted:#94a3b8;--line:#233047;--acc:#14b8a6}
+    :root{--bg:#0b1220;--card:#0f172a;--muted:#94a3b8;--line:#233047}
     body{margin:0;background:var(--bg);color:#e2e8f0;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif}
     .wrap{max-width:1100px;margin:0 auto;padding:16px}
-    header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--line)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
     .brand{font-weight:800;letter-spacing:.3px}
     .pill{padding:2px 8px;border-radius:999px;background:#111827;border:1px solid #1f2937;font-size:12px}
-    .btn{background:#10b981;border:none;color:#052e2b;padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn{background:#10b981;border:none;color:#052e2b;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
     .btn:disabled{opacity:.6;cursor:not-allowed}
-    .btn.outline{background:transparent;color:#e2e8f0;border:1px solid var(--line)}
+    .btn.outline{background:transparent;color:#e2e8f0;border:1px solid #335}
     .btn.small{padding:6px 10px;font-size:14px;border-radius:8px}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .tabs{display:flex;gap:8px}
@@ -24,17 +24,16 @@
     .stack{display:grid;gap:10px}
     .mt{margin-top:12px}
     .muted{color:var(--muted)}
+    .danger{color:#fecaca}
+    .ok{color:#bbf7d0}
     .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
     input,select{background:#0b1220;color:#e2e8f0;border:1px solid var(--line);border-radius:10px;padding:10px}
     table{width:100%;border-collapse:collapse}
     th,td{padding:10px;border-bottom:1px solid #132035}
     th{color:#93c5fd;text-align:left;font-weight:600}
-    .right{margin-left:auto}
     .hidden{display:none}
     .section-title{font-size:22px;font-weight:800;margin:0 0 4px 0}
     .sub{font-size:14px;color:var(--muted)}
-    .danger{color:#fecaca}
-    .ok{color:#bbf7d0}
   </style>
 </head>
 <body>
@@ -47,10 +46,10 @@
 </header>
 
 <main class="wrap">
-  <!-- AUTH FIRST -->
+  <!-- AUTH -->
   <section id="auth" class="card">
     <div class="section-title">Welcome</div>
-    <div class="sub">Please register or login to continue.</div>
+    <div class="sub">Register or login to continue.</div>
     <div class="stack mt">
       <div class="row">
         <input id="reg-email" type="email" placeholder="Email (register)" />
@@ -66,7 +65,7 @@
     </div>
   </section>
 
-  <!-- APP (hidden until logged) -->
+  <!-- APP -->
   <section id="app" class="hidden">
     <div class="tabs mt">
       <button class="tab active" data-tab="shop">Shop</button>
@@ -77,7 +76,7 @@
     <!-- SHOP -->
     <section id="tab-shop" class="card mt">
       <div class="section-title">Shop (T1 only)</div>
-      <div class="sub">Each purchase costs <b>1 gold</b> (100s). You either get a random T1 material or a recipe drop (T2–T5 weighted).</div>
+      <div class="sub">Each purchase costs <b>1 gold</b> (100s). Random T1 <i>or</i> recipe drop (T2–T6 weighted 800/150/37/12/1). Recipe drops se događaju otprilike svake 4–8 kupovine.</div>
       <div class="row mt">
         <button id="btn-buy-t1" class="btn">Buy T1 Pack (1g)</button>
         <span id="shop-msg" class="muted"></span>
@@ -87,14 +86,21 @@
     <!-- CRAFTING -->
     <section id="tab-craft" class="card mt hidden">
       <div class="section-title">Crafting</div>
-      <div class="sub">Use your recipes to craft items. 10% fail (creates Scrap), Tier 6 has no fail.</div>
+      <div class="sub">Craft from your recipes. 10% fail (-> Scrap), Tier 6 has no fail. Artefact se pravi od 10 različitih T5 (bez recepta).</div>
 
       <div class="row mt">
         <button id="btn-load-recipes" class="btn small">Load my recipes</button>
-        <button id="btn-craft-artefact" class="btn small outline right">Craft ARTEFACT (10x T5)</button>
+        <button id="btn-load-inv" class="btn small outline">Load inventory</button>
+        <button id="btn-craft-artefact" class="btn small outline">Craft ARTEFACT (10x T5)</button>
       </div>
 
-      <div id="recipes-box" class="mt">
+      <div class="mt">
+        <div class="section-title" style="font-size:18px">Inventory</div>
+        <div id="inv-box" class="muted">—</div>
+      </div>
+
+      <div class="mt">
+        <div class="section-title" style="font-size:18px">Recipes</div>
         <table>
           <thead><tr><th>Name</th><th>Tier</th><th>Owned</th><th></th></tr></thead>
           <tbody id="recipes-rows"><tr><td colspan="4" class="muted">No data.</td></tr></tbody>
@@ -150,7 +156,6 @@
 </main>
 
 <script>
-  // ---------- Helpers ----------
   const $ = s => document.querySelector(s);
   const el = s => document.createElement(s);
   const api = async (path, opts={})=>{
@@ -172,20 +177,14 @@
     if(!ME){ $("#who").textContent = "—"; return; }
     $("#who").textContent = `${ME.email} • ${ME.gold}g ${ME.silver}s`;
   }
-
   async function fetchMe(){
     try{
       const r = await api("/api/me");
-      ME = r.user;
-      updateUserBar();
-      setAuthVisible(false); // show app
-    }catch{
-      ME = null;
-      setAuthVisible(true);  // show login/register
-    }
+      ME = r.user; updateUserBar(); setAuthVisible(false);
+    }catch{ ME = null; setAuthVisible(true); }
   }
 
-  // ---------- Auth actions ----------
+  // Auth
   $("#btn-register").addEventListener("click", async ()=>{
     const email = $("#reg-email").value.trim();
     const pass = $("#reg-pass").value;
@@ -196,7 +195,6 @@
       $("#log-email").value = email;
     }catch(e){ $("#auth-msg").textContent = e.message; }
   });
-
   $("#btn-login").addEventListener("click", async ()=>{
     const email = $("#log-email").value.trim();
     const pass = $("#log-pass").value;
@@ -205,15 +203,15 @@
       await api("/api/login",{method:"POST",body:JSON.stringify({email,password:pass})});
       $("#auth-msg").textContent = "";
       await fetchMe();
+      await refreshAll();
     }catch(e){ $("#auth-msg").textContent = e.message; }
   });
-
   $("#btn-logout").addEventListener("click", async ()=>{
     try{ await api("/api/logout"); }catch{}
     ME = null; updateUserBar(); setAuthVisible(true);
   });
 
-  // ---------- Tabs ----------
+  // Tabs
   document.querySelectorAll(".tab").forEach(t=>{
     t.addEventListener("click", ()=>{
       document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
@@ -225,7 +223,7 @@
     });
   });
 
-  // ---------- Shop ----------
+  // Shop
   $("#btn-buy-t1").addEventListener("click", async ()=>{
     $("#shop-msg").textContent = "Processing…";
     try{
@@ -235,15 +233,24 @@
       }else{
         $("#shop-msg").innerHTML = `Item: <b>${r.addedItem.name}</b> • Balance: ${r.gold}g ${r.silver}s`;
       }
-      // refresh me
-      await fetchMe();
+      await refreshCraftingViews(); // odmah se vidi u craftingu
     }catch(e){
       $("#shop-msg").innerHTML = `<span class="danger">${e.message}</span>`;
     }
   });
 
-  // ---------- Crafting ----------
+  // Crafting
   $("#btn-load-recipes").addEventListener("click", loadRecipes);
+  $("#btn-load-inv").addEventListener("click", loadInventory);
+  $("#btn-craft-artefact").addEventListener("click", async ()=>{
+    $("#craft-msg").textContent = "Crafting Artefact…";
+    try{
+      const r = await api("/api/craft/artefact",{method:"POST"});
+      $("#craft-msg").innerHTML = `<span class="ok">Artefact crafted! Consumed: ${r.consumed.join(", ")}</span>`;
+      await refreshCraftingViews();
+    }catch(e){ $("#craft-msg").innerHTML = `<span class="danger">${e.message}</span>`; }
+  });
+
   async function loadRecipes(){
     const tbody = $("#recipes-rows");
     tbody.innerHTML = `<tr><td colspan="4" class="muted">Loading…</td></tr>`;
@@ -263,7 +270,6 @@
       }
     }catch(e){ tbody.innerHTML = `<tr><td colspan="4" class="danger">${e.message}</td></tr>`; }
   }
-
   async function showRecipe(id){
     const box = $("#recipe-detail"); box.classList.remove("hidden");
     box.innerHTML = "Loading…";
@@ -289,23 +295,34 @@
           }else{
             $("#craft-msg").innerHTML = `<span class="danger">Failed → Scrap</span>`;
           }
-          await loadRecipes();
-          await fetchMe();
+          await refreshCraftingViews();
         }catch(e){ $("#craft-msg").innerHTML = `<span class="danger">${e.message}</span>`; }
       });
     }catch(e){ box.innerHTML = `<span class="danger">${e.message}</span>`; }
   }
 
-  $("#btn-craft-artefact").addEventListener("click", async ()=>{
-    $("#craft-msg").textContent = "Crafting Artefact…";
+  async function loadInventory(){
+    const box = $("#inv-box");
+    box.textContent = "Loading…";
     try{
-      const r = await api("/api/craft/artefact",{method:"POST"});
-      $("#craft-msg").innerHTML = `<span class="ok">Artefact crafted! Consumed: ${r.consumed.join(", ")}</span>`;
-      await fetchMe();
-    }catch(e){ $("#craft-msg").innerHTML = `<span class="danger">${e.message}</span>`; }
-  });
+      const r = await api("/api/my/inventory");
+      const items = (r.items||[]).map(i=>`[T${i.tier}] ${i.name} x${i.qty}`).join(" • ");
+      box.innerHTML = items || "Empty.";
+    }catch(e){ box.innerHTML = `<span class="danger">${e.message}</span>`; }
+  }
 
-  // ---------- Auctions ----------
+  async function refreshCraftingViews(){
+    await fetchMe();
+    await loadInventory();
+    await loadRecipes();
+  }
+  async function refreshAll(){
+    await refreshCraftingViews();
+    await refreshLive();
+    await refreshMine();
+  }
+
+  // Auctions
   $("#btn-create-auction").addEventListener("click", async ()=>{
     const code = $("#auc-code").value.trim();
     const qty  = parseInt($("#auc-qty").value||"1",10);
@@ -391,10 +408,10 @@
     }catch(e){ tbody.innerHTML = `<tr><td colspan="5" class="danger">${e.message}</td></tr>`; }
   }
 
-  // ---------- Init ----------
+  // Init
   (async ()=>{
-    await fetchMe(); // decides: auth screen or app
-    if(ME){ refreshLive(); refreshMine(); }
+    await fetchMe();           // odlučuje: auth vs app
+    if(ME){ await refreshAll(); }
   })();
 </script>
 </body>
