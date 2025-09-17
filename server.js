@@ -1,14 +1,15 @@
 // ==============================================
-// ARTEFACT ECON • FULL SERVER (Node/Express + SQLite)
+// ARTEFACT ECON — FULL SERVER (Node/Express + SQLite, Render-ready)
 // - Auth (register/login/logout/me) [JWT in httpOnly cookie]
-// - Shop: buy T1 pack for 1g (100s) with weighted recipe drops (T2–T6)
-// - Crafting: craft via recipes; 10% fail -> Scrap (tier 6 has 0% fail)
-// - Special (optional): /api/craft/artefact — 10 different T5 -> ARTEFACT (no fail)
-// - Sales (fixed price): create, list mine/live, buy, cancel (escrow + ledger)
-// - Inventory endpoints for the UI
-// - Static: /public (index.html + app.css)
-// ENV: PORT, HOST, JWT_SECRET, ADMIN_KEY, DEFAULT_ADMIN_EMAIL
-// DB: artefact.db
+// - Shop: ONLY T1 purchases (1g = 100s). Randomly grants T1 material OR a recipe (T2–T6 weighted 800/150/37/12/1)
+// - Crafting: craft via recipes; 10% fail => Scrap (except tier 6). Special /api/craft/artefact: 10 DISTINCT T5 => ARTEFACT (no fail)
+// - Sales (fixed-price marketplace, NO bidding): create, mine, live, buy, cancel (escrow & money flow)
+// - Admin: ping, users, adjust balance, disable, view user inventory; /admin serves admin.html if present
+// - Static: serves /public (index.html + assets)
+//
+// ENV needed on Render:
+//   PORT (auto), JWT_SECRET, ADMIN_KEY, DEFAULT_ADMIN_EMAIL,
+//   DB_PATH=/opt/render/project/src/data/artefact.db   <-- on persistent disk
 // ==============================================
 
 const express = require("express");
@@ -28,9 +29,9 @@ const TOKEN_NAME = "token";
 const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com").toLowerCase();
 
 // Economy
-const SHOP_T1_COST_S = 100;        // 1 gold = 100 silver
-const AUCTION_FEE_BPS = 100;       // 1% fee
-const RECIPE_DROP_MIN = 4;         // next recipe after 4–8 purchases
+const SHOP_T1_COST_S = 100;  // 1 gold = 100 silver
+const AUCTION_FEE_BPS = 100; // 1% for sales payout
+const RECIPE_DROP_MIN = 4;
 const RECIPE_DROP_MAX = 8;
 
 // ----- App
@@ -38,10 +39,10 @@ const app = express();
 const server = http.createServer(app);
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public"))); // index.html, app.css
+app.use(express.static(path.join(__dirname, "public"))); // index.html, app.css, admin.html
 
-// ----- DB
-const DB_PATH = path.join(__dirname, "artefact.db");
+// ----- DB (Render disk via DB_PATH)
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 
@@ -169,16 +170,6 @@ CREATE TABLE IF NOT EXISTS auctions(
   FOREIGN KEY (winner_user_id) REFERENCES users(id)
 );`);
 ensureTable(`
-CREATE TABLE IF NOT EXISTS bids(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  auction_id INTEGER NOT NULL,
-  bidder_user_id INTEGER NOT NULL,
-  amount_s INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY(auction_id) REFERENCES auctions(id),
-  FOREIGN KEY(bidder_user_id) REFERENCES users(id)
-);`);
-ensureTable(`
 CREATE TABLE IF NOT EXISTS money_holds(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   auction_id INTEGER NOT NULL UNIQUE,
@@ -187,20 +178,6 @@ CREATE TABLE IF NOT EXISTS money_holds(
   created_at TEXT NOT NULL,
   FOREIGN KEY(auction_id) REFERENCES auctions(id),
   FOREIGN KEY(user_id) REFERENCES users(id)
-);`);
-ensureTable(`
-CREATE TABLE IF NOT EXISTS inventory_escrow(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  auction_id INTEGER NOT NULL UNIQUE,
-  owner_user_id INTEGER NOT NULL,
-  item_id INTEGER,
-  recipe_id INTEGER,
-  qty INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
-  FOREIGN KEY(auction_id) REFERENCES auctions(id),
-  FOREIGN KEY(owner_user_id) REFERENCES users(id),
-  FOREIGN KEY(item_id) REFERENCES items(id),
-  FOREIGN KEY(recipe_id) REFERENCES recipes(id)
 );`);
 
 // ----- Seed helpers
@@ -223,7 +200,6 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
     rid=r.id;
     db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id=?").run(rid);
   }
-  // Each ingredient is unique, qty=1
   for(const c of ingCodes){
     const iid=idByCode(c); if(!iid) throw new Error("Missing ingredient "+c);
     db.prepare("INSERT INTO recipe_ingredients(recipe_id,item_id,qty) VALUES (?,?,?)").run(rid,iid,1);
@@ -231,11 +207,12 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
   return rid;
 }
 
-// ----- Items & Recipes (Nor set) -----
+// ----- Items & Recipes (NOR set)
+
 // Scrap
 ensureItem("SCRAP","Scrap",1,1);
 
-// T1 materials (10, unique)
+// T1 materials (10)
 const T1 = [
   ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
   ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
@@ -243,7 +220,7 @@ const T1 = [
 ];
 for(const [c,n] of T1) ensureItem(c,n,1,0);
 
-// T2 items + recipes (each uses 4–7 unique T1, qty=1 each)
+// T2 items + recipes
 ensureItem("T2_BRONZE_DOOR","Nor Bronze Door",2);
 ensureItem("T2_SILVER_GOBLET","Nor Silver Goblet",2);
 ensureItem("T2_GOLDEN_RING","Nor Golden Ring",2);
@@ -266,7 +243,7 @@ ensureRecipe("R_T2_CRYSTAL_ORB","Nor Crystal Orb",2,"T2_CRYSTAL_ORB",["CRYSTAL",
 ensureRecipe("R_T2_OBSIDIAN_KNIFE","Nor Obsidian Knife",2,"T2_OBSIDIAN_KNIFE",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]);
 ensureRecipe("R_T2_IRON_ARMOR","Nor Iron Armor",2,"T2_IRON_ARMOR",["IRON","BRONZE","LEATHER","CLOTH","STONE"]);
 
-// T3 (from T2)
+// T3
 ensureItem("T3_GATE_OF_MIGHT","Nor Gate of Might",3);
 ensureItem("T3_GOBLET_OF_WISDOM","Nor Goblet of Wisdom",3);
 ensureItem("T3_RING_OF_GLARE","Nor Ring of Glare",3);
@@ -294,7 +271,7 @@ ensureRecipe("R_T3_ORB_OF_VISION","Nor Orb of Vision",3,"T3_ORB_OF_VISION",[T2C.
 ensureRecipe("R_T3_KNIFE_OF_SHADOW","Nor Knife of Shadow",3,"T3_KNIFE_OF_SHADOW",[T2C.KNIFE,T2C.DOOR,T2C.ARMOR,T2C.CHEST]);
 ensureRecipe("R_T3_ARMOR_OF_GUARD","Nor Armor of Guard",3,"T3_ARMOR_OF_GUARD",[T2C.ARMOR,T2C.GOBLET,T2C.RING,T2C.BAG,T2C.TENT]);
 
-// T4 (from T3)
+// T4
 ensureItem("T4_ENGINE_CORE","Nor Engine Core",4);
 ensureItem("T4_CRYSTAL_LENS","Nor Crystal Lens",4);
 ensureItem("T4_MIGHT_GATE","Nor Reinforced Gate",4);
@@ -311,6 +288,7 @@ const T3C = {
   CHEST:"T3_CHEST_OF_SECRETS", PILLAR:"T3_PILLAR_OF_STRENGTH", BAG:"T3_TRAVELERS_BAG",
   TENT:"T3_NOMAD_TENT", ORB:"T3_ORB_OF_VISION", KNIFE:"T3_KNIFE_OF_SHADOW", ARMOR:"T3_ARMOR_OF_GUARD"
 };
+
 ensureRecipe("R_T4_ENGINE_CORE","Nor Engine Core",4,"T4_ENGINE_CORE",[T3C.GATE,T3C.KNIFE,T3C.ARMOR,T3C.ORB]);
 ensureRecipe("R_T4_CRYSTAL_LENS","Nor Crystal Lens",4,"T4_CRYSTAL_LENS",[T3C.ORB,T3C.RING,T3C.GOBLET,T3C.CHEST,T3C.PILLAR]);
 ensureRecipe("R_T4_MIGHT_GATE","Nor Reinforced Gate",4,"T4_MIGHT_GATE",[T3C.GATE,T3C.CHEST,T3C.ARMOR,T3C.BAG]);
@@ -322,7 +300,7 @@ ensureRecipe("R_T4_NOMAD_DWELLING","Nor Nomad Dwelling",4,"T4_NOMAD_DWELLING",[T
 ensureRecipe("R_T4_VISION_CORE","Nor Vision Core",4,"T4_VISION_CORE",[T3C.ORB,T3C.KNIFE,T3C.GATE,T3C.GOBLET,T3C.CHEST]);
 ensureRecipe("R_T4_SHADOW_BLADE","Nor Shadow Blade",4,"T4_SHADOW_BLADE",[T3C.KNIFE,T3C.GATE,T3C.CHEST,T3C.ARMOR]);
 
-// T5 (from T4)
+// T5
 ensureItem("T5_ANCIENT_RELIC","Nor Ancient Relic",5);
 ensureItem("T5_SUN_LENS","Nor Sun Lens",5);
 ensureItem("T5_GUARDIAN_GATE","Nor Guardian Gate",5);
@@ -339,6 +317,7 @@ const T4C = {
   CHEST:"T4_SECRET_CHEST", PILLAR:"T4_STRENGTH_PILLAR", SATCHEL:"T4_TRAVELER_SATCHEL",
   DWELL:"T4_NOMAD_DWELLING", VISION:"T4_VISION_CORE", SHADOW:"T4_SHADOW_BLADE"
 };
+
 ensureRecipe("R_T5_ANCIENT_RELIC","Nor Ancient Relic",5,"T5_ANCIENT_RELIC",[T4C.CORE,T4C.LENS,T4C.GOB,T4C.CHEST]);
 ensureRecipe("R_T5_SUN_LENS","Nor Sun Lens",5,"T5_SUN_LENS",[T4C.LENS,T4C.VISION,T4C.RGATE,T4C.PILLAR,T4C.SATCHEL]);
 ensureRecipe("R_T5_GUARDIAN_GATE","Nor Guardian Gate",5,"T5_GUARDIAN_GATE",[T4C.RGATE,T4C.CORE,T4C.SATCHEL,T4C.DWELL]);
@@ -350,7 +329,7 @@ ensureRecipe("R_T5_NOMAD_HALL","Nor Nomad Hall",5,"T5_NOMAD_HALL",[T4C.DWELL,T4C
 ensureRecipe("R_T5_EYE_OF_TRUTH","Nor Eye of Truth",5,"T5_EYE_OF_TRUTH",[T4C.VISION,T4C.SHADOW,T4C.CORE,T4C.GOB,T4C.CHEST]);
 ensureRecipe("R_T5_NIGHTFALL_EDGE","Nor Nightfall Edge",5,"T5_NIGHTFALL_EDGE",[T4C.SHADOW,T4C.RGATE,T4C.CHEST,T4C.CORE]);
 
-// T6 (special craft)
+// T6
 ensureItem("ARTEFACT","Artefact",6);
 
 // ----- Initial admin
@@ -364,7 +343,7 @@ app.post("/api/register", async (req,res)=>{
   try{
     const {email,password}=req.body||{};
     if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Invalid email."});
-    if(!isValidPassword(password)) return res.status(400).json({ok:false,error:"Password must be at least 6 characters."});
+    if(!isValidPassword(password)) return res.status(400).json({ok:false,error:"Password must be at least 6 chars."});
     const ex=db.prepare("SELECT id FROM users WHERE email=?").get(email.toLowerCase());
     if(ex) return res.status(409).json({ok:false,error:"User already exists."});
     const pass=await bcrypt.hash(password,10);
@@ -411,12 +390,78 @@ app.get("/api/me",(req,res)=>{
   }});
 });
 
+// ============================== ADMIN ==============================
+app.get("/api/admin/ping",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  res.json({ok:true,message:"Admin OK"});
+});
+app.get("/api/admin/users",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const rows=db.prepare(`
+    SELECT id,email,is_admin,is_disabled,created_at,last_seen,balance_silver,shop_buy_count,next_recipe_at
+    FROM users
+    ORDER BY is_disabled ASC, lower(email) ASC
+  `).all();
+  const users = rows.map(u=>({
+    id:u.id,email:u.email,is_admin:!!u.is_admin,is_disabled:!!u.is_disabled,
+    created_at:u.created_at,last_seen:u.last_seen,
+    gold:Math.floor((u.balance_silver||0)/100), silver:(u.balance_silver||0)%100,
+    shop_buy_count:u.shop_buy_count ?? 0, next_recipe_at:u.next_recipe_at ?? null
+  }));
+  res.json({ok:true,users});
+});
+app.post("/api/admin/adjust-balance",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email,gold=0,silver=0,delta_silver}=req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const u=db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
+  if(!u) return res.status(404).json({ok:false,error:"User not found"});
+  let deltaS=(typeof delta_silver==="number")?Math.trunc(delta_silver):(Math.trunc(gold)*100+Math.trunc(silver));
+  if(!Number.isFinite(deltaS) || deltaS===0) return res.status(400).json({ok:false,error:"No change"});
+  try{
+    const tx=db.transaction(()=>{
+      const after=u.balance_silver+deltaS;
+      if(after<0) throw new Error("Insufficient funds");
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(u.id,deltaS,"ADMIN_ADJUST",null,nowISO());
+    });
+    tx();
+    const updated=db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
+    res.json({ok:true,balance_silver:updated,gold:Math.floor(updated/100),silver:updated%100});
+  }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
+});
+app.post("/api/admin/disable-user",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const {email,disabled}=req.body||{};
+  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const flag = disabled ? 1 : 0;
+  const r = db.prepare("UPDATE users SET is_disabled=? WHERE lower(email)=lower(?)").run(flag,email);
+  if(r.changes===0) return res.status(404).json({ok:false,error:"User not found"});
+  res.json({ok:true});
+});
+app.get("/api/admin/user/:id/inventory",(req,res)=>{
+  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const uid=parseInt(req.params.id,10);
+  const items=db.prepare(`
+    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
+    FROM items i JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
+    WHERE ui.qty>0 ORDER BY i.tier ASC,i.name ASC
+  `).all(uid);
+  const recipes=db.prepare(`
+    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
+    FROM recipes r JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
+    WHERE ur.qty>0 ORDER BY r.tier ASC,r.name ASC
+  `).all(uid);
+  res.json({ok:true,items,recipes});
+});
+
 // ============================== SHOP ==============================
 const T1_CODES = T1.map(([code]) => code);
 
-// Weighted recipe pick per 1000: T2 800 / T3 150 / T4 37 / T5 12 / T6 1
+// Per 1000: T2 800 / T3 150 / T4 37 / T5 12 / T6 1
 function pickWeightedRecipe(){
-  const list = db.prepare(`SELECT id, code, name, tier FROM recipes`).all();
+  const list = db.prepare(`SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN 2 AND 6`).all();
   if (!list.length) return null;
 
   const byTier = {};
@@ -424,17 +469,15 @@ function pickWeightedRecipe(){
     if (!byTier[r.tier]) byTier[r.tier] = [];
     byTier[r.tier].push(r);
   }
-
-  const roll = randInt(1, 1000);
+  const roll = randInt(1,1000);
   let targetTier;
-  if (roll === 1) targetTier = 6;           // 1 / 1000
-  else if (roll <= 13) targetTier = 5;      // 12 / 1000
-  else if (roll <= 50) targetTier = 4;      // 37 / 1000
-  else if (roll <= 200) targetTier = 3;     // 150 / 1000
-  else targetTier = 2;                      // 800 / 1000
+  if (roll === 1) targetTier = 6;        // 1
+  else if (roll <= 13) targetTier = 5;   // 12
+  else if (roll <= 50) targetTier = 4;   // 37
+  else if (roll <= 200) targetTier = 3;  // 150
+  else targetTier = 2;                   // 800
 
   let tier = targetTier;
-  // Fallback to nearest lower tier if none exist (e.g., no T6 recipes defined)
   while (tier >= 2 && !byTier[tier]) tier--;
   if (!byTier[tier]) tier = 2;
 
@@ -458,7 +501,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
         .run(user.id,-SHOP_T1_COST_S,"SHOP_BUY_T1",null,nowISO());
 
-      // init target if missing
+      // init next if needed
       if (user.next_recipe_at == null){
         const firstAt = user.shop_buy_count + nextRecipeInterval();
         db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(firstAt, user.id);
@@ -515,7 +558,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
   }
 });
 
-// ============================== RECIPES / CRAFT ==============================
+// ============================== RECIPES & CRAFT ==============================
 app.get("/api/my/recipes",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false});
   const rows=db.prepare(`
@@ -526,7 +569,6 @@ app.get("/api/my/recipes",(req,res)=>{
   `).all(u.uid);
   res.json({ok:true,recipes:rows});
 });
-
 app.get("/api/recipes/:id",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false});
   const rid=parseInt(req.params.id,10);
@@ -548,7 +590,7 @@ app.get("/api/recipes/:id",(req,res)=>{
   res.json({ ok:true, recipe:{ id:rec.id,code:rec.code,name:rec.name,tier:rec.tier,attempts:rec.attempts,output_item_id:rec.output_item_id }, ingredients:enriched, can_craft });
 });
 
-// Craft — T6 no fail, others 10% fail -> Scrap
+// Craft — ARTEFACT zero-fail; others 10% fail to SCRAP
 app.post("/api/recipes/:id/craft",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const rid=parseInt(req.params.id,10);
@@ -567,7 +609,7 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
         LEFT JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
         WHERE ri.recipe_id=?
       `).all(u.uid,rid);
-      for(const ing of ings){ if(igShort(ing.have_qty) < ing.need_qty) throw new Error("Missing: "+ing.code+" x"+(ing.need_qty-ing.have_qty)); }
+      for(const ing of ings){ if(ing.have_qty<ing.need_qty) throw new Error("Missing: "+ing.code+" x"+(ing.need_qty-ing.have_qty)); }
       for(const ing of ings){ db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(ing.need_qty,u.uid,ing.id); }
 
       db.prepare("UPDATE user_recipes SET attempts = MIN(attempts + 1, 5) WHERE user_id = ? AND recipe_id = ?").run(u.uid, rec.id);
@@ -586,6 +628,7 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
       }else{
         const ch = db.prepare("UPDATE user_recipes SET qty = qty - 1 WHERE user_id = ? AND recipe_id = ? AND qty > 0").run(u.uid, rec.id).changes;
         if (ch === 0) throw new Error("Recipe not available any more.");
+
         db.prepare(`INSERT INTO user_items(user_id,item_id,qty) VALUES (?,?,1)
                     ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1`).run(u.uid,rec.output_item_id);
         db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)").run(u.uid,0,"CRAFT_SUCCESS","recipe:"+rec.code,nowISO());
@@ -596,34 +639,33 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
     res.json(out);
   }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
 });
-function igShort(n){ return n|0; }
 
-// Optional special craft: 10 distinct T5 -> ARTEFACT (no fail)
+// Special: 10 DISTINCT T5 -> ARTEFACT
 app.post("/api/craft/artefact",(req,res)=>{
-  const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false});
+  const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   try{
-    const result = db.transaction(()=>{
-      // Find up to 10 distinct T5 items user owns
+    const out=db.transaction(()=>{
       const t5 = db.prepare(`
-        SELECT i.id,i.code,COALESCE(ui.qty,0) qty
-        FROM items i JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
-        WHERE i.tier=5 AND ui.qty>0
-        LIMIT 10
+        SELECT i.id,i.code,i.name,ui.qty
+        FROM user_items ui JOIN items i ON i.id=ui.item_id
+        WHERE ui.user_id=? AND i.tier=5 AND ui.qty>0
+        ORDER BY i.code ASC
       `).all(u.uid);
-      if(t5.length<10) throw new Error("You need 10 different T5 items.");
-      for(const r of t5){
-        db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=? AND qty>0").run(u.uid, r.id);
+      if (t5.length < 10) throw new Error("You need at least 10 different T5 items.");
+      const use = t5.slice(0,10);
+      for(const it of use){
+        db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=? AND qty>0").run(u.uid,it.id);
       }
       const art = idByCode("ARTEFACT");
       db.prepare(`INSERT INTO user_items(user_id,item_id,qty) VALUES (?,?,1)
-                  ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1`).run(u.uid, art);
-      return {ok:true, crafted:true, output:{code:"ARTEFACT",name:"Artefact",tier:6}};
+                  ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1`).run(u.uid,art);
+      return {ok:true,crafted:true,item:{code:"ARTEFACT",name:"Artefact",tier:6}};
     })();
-    res.json(result);
+    res.json(out);
   }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
 });
 
-// ============================== INVENTORY (for Sales UI) ==============================
+// ============================== INVENTORY (for sales)
 app.get("/api/my/inventory",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false});
   const items=db.prepare(`
@@ -639,7 +681,6 @@ app.get("/api/my/inventory",(req,res)=>{
   res.json({ok:true,items,recipes});
 });
 
-// ============================== SALES (fixed price using auction tables) ===============
 function findItemOrRecipeByCode(code){
   if(!code || typeof code!=="string") return null;
   if(code.startsWith("R_")){
@@ -651,18 +692,15 @@ function findItemOrRecipeByCode(code){
   }
 }
 
-// Create sale (fixed price = start == buy-now)
-app.post("/api/auctions/create",(req,res)=>{
+// ============================== SALES (fixed price, no bidding)
+app.post("/api/sales/create",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
-  const {code,qty=1,start_gold=0,start_silver=0,buy_gold=0,buy_silver=0,duration_min}=req.body||{};
+  const {code,qty=1,price_gold=0,price_silver=0} = req.body || {};
   const look=findItemOrRecipeByCode((code||"").trim());
   if(!look) return res.status(400).json({ok:false,error:"Unknown code (item or recipe)."});
   const q=Math.max(1,Math.trunc(qty));
-  const sStart=Math.trunc(start_gold||0)*100 + Math.trunc(start_silver||0);
-  const sBuy  =Math.trunc(buy_gold ||0)*100 + Math.trunc(buy_silver ||0);
-  if(sStart<=0) return res.status(400).json({ok:false,error:"Start price must be > 0."});
-  if(sBuy && sBuy<sStart) return res.status(400).json({ok:false,error:"Buy price must be >= start price."});
-  const fee_bps=AUCTION_FEE_BPS;
+  const sPrice=Math.trunc(price_gold||0)*100 + Math.trunc(price_silver||0);
+  if(sPrice<=0) return res.status(400).json({ok:false,error:"Price must be > 0."});
   try{
     const result=db.transaction(()=>{
       if(look.kind==="item"){
@@ -675,50 +713,41 @@ app.post("/api/auctions/create",(req,res)=>{
         db.prepare("UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?").run(q,u.uid,look.rec.id);
       }
       const now=nowISO();
-      const mins = Number.isFinite(duration_min)?Math.max(5,Math.trunc(duration_min)):1440;
-      const end=addMinutes(now, mins);
-      const buyNow = sBuy || sStart; // force fixed price if buy-now omitted
-
+      const end=addMinutes(now, 60*24*30); // ~30 days
       db.prepare(`
         INSERT INTO auctions
         (seller_user_id,type,item_id,recipe_id,qty,title,description,start_price_s,buy_now_price_s,highest_bid_s,highest_bidder_user_id,fee_bps,status,start_time,end_time,created_at)
-        VALUES (?,?,?,?,?,?,?, ?,?,?,NULL,?, 'live',?,?,?)
+        VALUES (?,?,?,?,?,?,?, ?,NULL,NULL,NULL,?, 'live',?,?,?)
       `).run(u.uid,look.kind,look.kind==="item"?look.it.id:null,look.kind==="recipe"?look.rec.id:null,q,
-              look.kind==="item"?`${look.it.code}`:`${look.rec.code}`,null,sStart,buyNow,null,fee_bps,now,end,now);
-
+              look.kind==="item"?`${look.it.code}`:`${look.rec.code}`,null,sPrice,AUCTION_FEE_BPS,now,end,now);
       const aid=db.prepare("SELECT last_insert_rowid() id").get().id;
       db.prepare("INSERT INTO inventory_escrow(auction_id,owner_user_id,item_id,recipe_id,qty,created_at) VALUES (?,?,?,?,?,?)")
         .run(aid,u.uid,look.kind==="item"?look.it.id:null,look.kind==="recipe"?look.rec.id:null,q,now);
-
       const a=db.prepare(`
-        SELECT a.id,a.type,a.qty,a.start_price_s,a.buy_now_price_s,a.end_time,COALESCE(i.code,r.code) code,COALESCE(i.name,r.name) name
+        SELECT a.id,a.type,a.qty,a.buy_now_price_s,a.end_time,COALESCE(i.code,r.code) code,COALESCE(i.name,r.name) name
         FROM auctions a LEFT JOIN items i ON i.id=a.item_id LEFT JOIN recipes r ON r.id=a.recipe_id WHERE a.id=?
       `).get(aid);
-      return {ok:true,auction:a};
+      return {ok:true,sale:a};
     })();
     res.json(result);
   }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
 });
-
-// Live sales
-app.get("/api/auctions/live",(req,res)=>{
+app.get("/api/sales/live",(req,res)=>{
   const rows=db.prepare(`
-    SELECT a.id,a.type,a.qty,a.start_price_s,a.buy_now_price_s,a.highest_bid_s,a.end_time,a.status,
+    SELECT a.id,a.type,a.qty,a.buy_now_price_s,a.status,
            COALESCE(i.code,r.code) code, COALESCE(i.name,r.name) name
     FROM auctions a
     LEFT JOIN items i ON i.id=a.item_id
     LEFT JOIN recipes r ON r.id=a.recipe_id
     WHERE a.status='live'
-    ORDER BY datetime(a.end_time) ASC, a.id ASC
+    ORDER BY a.id DESC
   `).all();
-  res.json({ok:true,auctions:rows});
+  res.json({ok:true,sales:rows});
 });
-
-// Your sales
-app.get("/api/auctions/mine",(req,res)=>{
+app.get("/api/sales/mine",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false});
   const rows=db.prepare(`
-    SELECT a.id,a.type,a.qty,a.start_price_s,a.buy_now_price_s,a.highest_bid_s,a.end_time,a.status,a.sold_price_s,a.winner_user_id,
+    SELECT a.id,a.type,a.qty,a.buy_now_price_s,a.status,a.sold_price_s,a.winner_user_id,
            COALESCE(i.code,r.code) code, COALESCE(i.name,r.name) name
     FROM auctions a
     LEFT JOIN items i ON i.id=a.item_id
@@ -726,44 +755,36 @@ app.get("/api/auctions/mine",(req,res)=>{
     WHERE a.seller_user_id=?
     ORDER BY a.id DESC
   `).all(u.uid);
-  res.json({ok:true,auctions:rows});
+  res.json({ok:true,sales:rows});
 });
-
-// Buy (fixed price)
-app.post("/api/auctions/:id/buy-now",(req,res)=>{
+app.post("/api/sales/:id/buy",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const aid=parseInt(req.params.id,10);
   try{
     const result=db.transaction(()=>{
       const a=db.prepare("SELECT * FROM auctions WHERE id=?").get(aid);
-      if(!a||a.status!=="live") throw new Error("Sale not active.");
-      if(!a.buy_now_price_s) throw new Error("No buy price set.");
-      if(u.uid===a.seller_user_id) throw new Error("You cannot buy your own sale.");
-
-      // release any previous holds (in case someone bid in some other flow)
-      const oldHold = db.prepare("SELECT * FROM money_holds WHERE auction_id=?").get(a.id);
-      if (oldHold) {
-        db.prepare("UPDATE users SET balance_silver = balance_silver + ? WHERE id = ?").run(oldHold.amount_s, oldHold.user_id);
-        db.prepare("DELETE FROM money_holds WHERE auction_id = ?").run(a.id);
-      }
+      if(!a||a.status!=="live") throw new Error("Listing not active.");
+      if(!a.buy_now_price_s) throw new Error("No price set.");
+      if(u.uid===a.seller_user_id) throw new Error("Can't buy your own listing.");
 
       const buyer = db.prepare("SELECT id,balance_silver FROM users WHERE id=?").get(u.uid);
+      if (!buyer) throw new Error("Session expired. Log in again.");
       if (buyer.balance_silver < a.buy_now_price_s) throw new Error("Insufficient funds.");
       const seller = db.prepare("SELECT id FROM users WHERE id=?").get(a.seller_user_id);
 
-      // pay
+      // take money from buyer
       db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id = ?").run(a.buy_now_price_s, buyer.id);
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(buyer.id, -a.buy_now_price_s, "SALE_BUY", "auction:"+a.id, nowISO());
+        .run(buyer.id, -a.buy_now_price_s, "SALE_BUY", "sale:"+a.id, nowISO());
 
-      // fee + net
+      // pay seller minus fee
       const fee = Math.floor((a.buy_now_price_s * a.fee_bps) / 10000);
       const net = a.buy_now_price_s - fee;
       db.prepare("UPDATE users SET balance_silver = balance_silver + ? WHERE id = ?").run(net, seller.id);
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(seller.id, net, "SALE_NET", "auction:"+a.id, nowISO());
+        .run(seller.id, net, "SALE_NET", "sale:"+a.id, nowISO());
 
-      // escrow -> buyer
+      // release escrow
       const esc = db.prepare("SELECT item_id,recipe_id,qty FROM inventory_escrow WHERE auction_id=?").get(a.id);
       if (esc) {
         if (esc.item_id) {
@@ -782,6 +803,7 @@ app.post("/api/auctions/:id/buy-now",(req,res)=>{
       }
       db.prepare("DELETE FROM inventory_escrow WHERE auction_id=?").run(a.id);
 
+      // close listing
       db.prepare("UPDATE auctions SET status='paid', sold_price_s=?, winner_user_id=? WHERE id=?")
         .run(a.buy_now_price_s, buyer.id, a.id);
 
@@ -807,17 +829,14 @@ app.post("/api/auctions/:id/buy-now",(req,res)=>{
     res.status(400).json({ ok: false, error: String(e.message || e) });
   }
 });
-
-// Cancel (only if no bids/highest bid)
-app.post("/api/auctions/:id/cancel", (req, res) => {
+app.post("/api/sales/:id/cancel", (req, res) => {
   const u = verifyTokenFromCookies(req); if (!u) return res.status(401).json({ ok: false, error: "Not logged in." });
   const aid = parseInt(req.params.id, 10);
   try {
     const result = db.transaction(() => {
       const a = db.prepare("SELECT * FROM auctions WHERE id=?").get(aid);
-      if (!a || a.seller_user_id !== u.uid) throw new Error("Not your sale.");
-      if (a.status !== "live") throw new Error("Sale not active.");
-      if (a.highest_bid_s && a.highest_bid_s > 0) throw new Error("Already has bids.");
+      if (!a || a.seller_user_id !== u.uid) throw new Error("Not your listing.");
+      if (a.status !== "live") throw new Error("Listing not active.");
 
       const esc = db.prepare("SELECT item_id,recipe_id,qty FROM inventory_escrow WHERE auction_id=?").get(a.id);
       if (esc) {
@@ -845,64 +864,19 @@ app.post("/api/auctions/:id/cancel", (req, res) => {
   }
 });
 
-// ============================== ADMIN (optional, for /admin.html if you add it) =======
-app.get("/api/admin/ping",(req,res)=>{
-  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  res.json({ok:true,message:"Admin OK"});
-});
-app.get("/api/admin/users",(req,res)=>{
-  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const rows=db.prepare(`
-    SELECT id,email,is_admin,is_disabled,created_at,last_seen,balance_silver,shop_buy_count,next_recipe_at
-    FROM users
-    ORDER BY is_disabled ASC, lower(email) ASC
-  `).all();
-  const users = rows.map(u=>({
-    id:u.id,email:u.email,is_admin:!!u.is_admin,is_disabled:!!u.is_disabled,
-    created_at:u.created_at,last_seen:u.last_seen,
-    gold:Math.floor((u.balance_silver||0)/100), silver:(u.balance_silver||0)%100,
-    shop_buy_count:u.shop_buy_count ?? 0, next_recipe_at:u.next_recipe_at ?? null
-  }));
-  res.json({ok:true,users});
-});
-app.post("/api/admin/adjust-balance",(req,res)=>{
-  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const {email,gold=0,silver=0,delta_silver}=req.body||{};
-  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
-  const u=db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
-  if(!u) return res.status(404).json({ok:false,error:"User not found"});
-  let deltaS=(typeof delta_silver==="number")?Math.trunc(delta_silver):(Math.trunc(gold)*100+Math.trunc(silver));
-  if(!Number.isFinite(deltaS) || deltaS===0) return res.status(400).json({ok:false,error:"No change"});
-  try{
-    const tx=db.transaction(()=>{
-      const after=u.balance_silver+deltaS;
-      if(after<0) throw new Error("Insufficient funds");
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
-      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(u.id,deltaS,"ADMIN_ADJUST",null,nowISO());
-    });
-    tx();
-    const updated=db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
-    res.json({ok:true,balance_silver:updated,gold:Math.floor(updated/100),silver:updated%100});
-  }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
-});
-app.post("/api/admin/disable-user",(req,res)=>{
-  if(!isAdminRequest(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const {email,disabled}=req.body||{};
-  if(!isValidEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
-  const flag = disabled ? 1 : 0;
-  const r = db.prepare("UPDATE users SET is_disabled=? WHERE lower(email)=lower(?)").run(flag,email);
-  if(r.changes===0) return res.status(404).json({ok:false,error:"User not found"});
-  res.json({ok:true});
-});
-
-// ============== HEALTH ==============
+// ============== HEALTH & STATIC ==============
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
-    msg: "Shop (T1 only), Crafting & Sales ready",
-    distribution_per_1000: { T2:800, T3:150, T4:37, T5:12, T6:1 },
+    msg: "Shop, Recipes, Craft & Sales ready",
     db_path: DB_PATH
+  });
+});
+
+// Serve admin page if present
+app.get("/admin", (req,res)=>{
+  res.sendFile(path.join(__dirname,"public","admin.html"), err=>{
+    if (err) res.status(404).send("admin.html not found");
   });
 });
 
