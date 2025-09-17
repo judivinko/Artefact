@@ -1,23 +1,24 @@
 <!doctype html>
-<html lang="bs">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ARTEFAKT</title>
+  <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
     :root{
       --bg:#0b1220; --card:#0e1627; --muted:#9fb3d1; --text:#e6eefc;
-      --accent:#14b8a6; --accent2:#0891b2; --danger:#ef4444; --ok:#22c55e; --border:#233047;
+      --accent:#14b8a6; --danger:#ef4444; --ok:#22c55e; --border:#233047;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
-    .wrap{max-width:1100px;margin:18px auto;padding:0 12px}
+    .wrap{max-width:1140px;margin:18px auto;padding:0 12px}
     header{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:12px}
     .brand{font-weight:800;letter-spacing:.4px}
     .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:#0f1a2b;color:var(--muted);font-size:12px}
     .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--accent);color:#05201d;font-weight:700;cursor:pointer}
     .btn.secondary{background:#122036;color:var(--text)}
+    .btn.ghost{background:#0b1220;color:var(--muted)}
     .btn.danger{background:#3b1113;color:#fecaca}
     .btn.small{padding:6px 10px;font-size:14px}
     .btn:disabled{opacity:.55;cursor:not-allowed}
@@ -27,8 +28,8 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media (max-width: 920px){.grid2{grid-template-columns:1fr}}
-    .list{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow:auto}
-    .row{display:flex;align-items:center;gap:8px;justify-content:space-between;border:1px solid var(--border);background:#0d1729;padding:8px 10px;border-radius:10px}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
+    .row{display:flex;align-items:center;gap:10px;justify-content:space-between;border:1px solid var(--border);background:#0d1729;padding:10px;border-radius:10px}
     .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
     .muted{color:var(--muted)}
     input,select{background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px}
@@ -37,49 +38,50 @@
     .title{font-weight:800;margin-bottom:8px}
     .hint{font-size:13px;color:var(--muted)}
     .right{display:flex;align-items:center;gap:8px}
-    .grid3{display:grid;grid-template-columns:1fr auto auto;gap:8px}
     .divider{height:1px;background:var(--border);margin:10px 0}
     .toast{position:fixed;right:14px;bottom:14px;background:#0b1b2e;border:1px solid var(--border);padding:10px 12px;border-radius:10px}
-    a.link{color:#7dd3fc;text-decoration:none}
-    /* Auth */
-    .auth{max-width:420px;margin:60px auto}
-    .switch-auth{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
-    .switch-auth .tab{min-width:120px;text-align:center}
-    .center{display:flex;justify-content:center}
+    .kpi{display:flex;gap:8px;flex-wrap:wrap}
+    .kpi .pill{background:#0d2134}
+    .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media (max-width:580px){.price-grid{grid-template-columns:1fr}}
+    .sale-card{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    @media (max-width:700px){.sale-card{grid-template-columns:1fr;gap:6px}}
+    .tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#1f2937;color:#cbd5e1}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <div class="brand">ARTEFAKT</div>
+      <div class="brand">ARTEFACT</div>
       <div class="right">
-        <div id="who" class="pill">Nisi prijavljen</div>
+        <div id="who" class="pill">Not signed in</div>
         <button id="btn-logout" class="btn small" style="display:none">Logout</button>
       </div>
     </header>
 
     <!-- AUTH -->
-    <section id="auth-view" class="auth card" style="display:none">
-      <div class="switch-auth">
-        <button class="tab active" id="tab-login">Prijava</button>
-        <button class="tab" id="tab-register">Registracija</button>
+    <section id="auth-view" class="auth card" style="display:none;max-width:460px;margin:60px auto">
+      <div class="switch-auth" style="display:flex;gap:8px;justify-content:center;margin-bottom:12px">
+        <button class="tab active" id="tab-login">Login</button>
+        <button class="tab" id="tab-register">Register</button>
       </div>
       <div id="form-login">
         <div class="label">Email</div>
         <input id="login-email" type="email" placeholder="you@example.com" style="width:100%">
-        <div class="label" style="margin-top:8px">Lozinka</div>
+        <div class="label" style="margin-top:8px">Password</div>
         <input id="login-pass" type="password" placeholder="••••••" style="width:100%">
-        <div class="center" style="margin-top:12px">
-          <button id="btn-login" class="btn">Prijavi se</button>
+        <div class="right" style="margin-top:12px;justify-content:center">
+          <button id="btn-login" class="btn">Login</button>
         </div>
       </div>
       <div id="form-register" style="display:none">
         <div class="label">Email</div>
         <input id="reg-email" type="email" placeholder="you@example.com" style="width:100%">
-        <div class="label" style="margin-top:8px">Lozinka (min 6)</div>
+        <div class="label" style="margin-top:8px">Password (min 6)</div>
         <input id="reg-pass" type="password" placeholder="••••••" style="width:100%">
-        <div class="center" style="margin-top:12px">
-          <button id="btn-register" class="btn">Registruj se</button>
+        <div class="right" style="margin-top:12px;justify-content:center">
+          <button id="btn-register" class="btn">Create account</button>
         </div>
       </div>
       <div id="auth-msg" class="hint" style="margin-top:10px;text-align:center"></div>
@@ -88,79 +90,115 @@
     <!-- APP -->
     <section id="app-view" style="display:none">
       <nav class="tabs">
-        <button class="tab active" data-tab="shop">Prodavnica</button>
-        <button class="tab" data-tab="craft">Krafting</button>
-        <button class="tab" data-tab="auctions">Aukcije</button>
+        <button class="tab active" data-tab="shop">Shop</button>
+        <button class="tab" data-tab="craft">Crafting</button>
+        <button class="tab" data-tab="sales">Sales</button>
       </nav>
 
       <!-- SHOP -->
       <div id="tab-shop" class="card">
-        <div class="title">Prodavnica (samo T1)</div>
-        <div class="hint">Svaka kupovina košta <b>1 gold</b> (100 silvera). Dobijaš nasumično T1 materijal
-          ili drop recepta (težinski: T2 800 / T3 150 / T4 37 / T5 12 / T6 1).</div>
-        <div class="input-row" style="margin-top:12px">
-          <button id="btn-buy-t1" class="btn">Kupi T1 paket (1g)</button>
-          <div id="shop-next" class="pill">Recept za: —</div>
+        <div class="title">Shop (T1 only)</div>
+        <div class="hint">
+          Each purchase costs <b>1 gold</b> (100 silver). You get a random T1 material,
+          or a recipe drop with weighted odds: T2 800 / T3 150 / T4 37 / T5 12 / T6 1 (per 1000).
+        </div>
+        <div class="kpi" style="margin-top:12px">
+          <button id="btn-buy-t1" class="btn">Buy T1 Pack (1g)</button>
+          <div id="shop-next" class="pill">Next recipe in: —</div>
         </div>
         <div id="shop-log" class="hint" style="margin-top:10px"></div>
       </div>
 
       <!-- CRAFT -->
       <div id="tab-craft" class="card" style="display:none">
-        <div class="title">Krafting</div>
+        <div class="title">Crafting</div>
         <div class="grid2">
           <div>
-            <div class="label">Moji recepti</div>
+            <div class="section-head">
+              <div class="label">Your Recipes</div>
+              <button id="btn-refresh-recipes" class="btn small ghost">Refresh</button>
+            </div>
             <div id="recipes-list" class="list"></div>
           </div>
           <div>
-            <div class="label">Detalji recepta</div>
+            <div class="label">Recipe Details</div>
             <div id="recipe-box" class="card" style="background:#0c1525">
-              <div class="hint">Odaberi recept sa lijeve strane.</div>
+              <div class="hint">Select a recipe on the left.</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- AUCTIONS -->
-      <div id="tab-auctions" class="card" style="display:none">
-        <div class="title">Aukcije</div>
+      <!-- SALES (fixed-price marketplace) -->
+      <div id="tab-sales" class="card" style="display:none">
+        <div class="title">Sales Marketplace</div>
         <div class="grid2">
+          <!-- LEFT -->
           <div>
             <div class="card" style="background:#0c1525">
-              <div class="label">Postavi aukciju</div>
+              <div class="label">Create Sale (fixed price)</div>
+
               <div class="input-row">
-                <select id="sell-code"></select>
-                <input id="sell-qty" type="number" min="1" value="1" style="width:100px" />
+                <div style="flex:1;min-width:260px">
+                  <div class="label">Choose item/recipe</div>
+                  <select id="sell-code" style="width:100%"></select>
+                </div>
+                <div>
+                  <div class="label">Quantity</div>
+                  <input id="sell-qty" type="number" min="1" value="1" style="width:120px" />
+                </div>
               </div>
+
+              <div class="price-grid" style="margin-top:8px">
+                <div>
+                  <div class="label">Price (Gold)</div>
+                  <input id="sell-price-g" type="number" min="0" value="1" placeholder="Gold">
+                </div>
+                <div>
+                  <div class="label">Price (Silver)</div>
+                  <input id="sell-price-s" type="number" min="0" max="99" value="0" placeholder="Silver (0–99)">
+                </div>
+              </div>
+
               <div class="input-row" style="margin-top:8px">
-                <input id="sell-start-g" type="number" min="0" value="1" placeholder="Start g" style="width:90px">
-                <input id="sell-start-s" type="number" min="0" max="99" value="0" placeholder="Start s" style="width:90px">
-                <input id="sell-buy-g" type="number" min="0" value="0" placeholder="Buy g (opcionalno)" style="width:140px">
-                <input id="sell-buy-s" type="number" min="0" max="99" value="0" placeholder="Buy s" style="width:90px">
-                <input id="sell-min" type="number" min="5" value="60" placeholder="Trajanje min" style="width:130px">
-                <button id="btn-sell" class="btn">Postavi</button>
+                <div>
+                  <div class="label">Duration (minutes)</div>
+                  <input id="sell-min" type="number" min="5" value="1440" style="width:140px">
+                </div>
+                <button id="btn-sell" class="btn">List for Sale</button>
+              </div>
+
+              <div class="hint" style="margin-top:6px">
+                Fixed-price only. Buyers will see a single <b>Buy</b> button.
               </div>
             </div>
 
             <div class="divider"></div>
 
             <div>
-              <div class="label">Tvoj inventar (za prodaju)</div>
+              <div class="section-head">
+                <div class="label">Your Inventory (click to prefill)</div>
+                <button id="btn-refresh-inv" class="btn small ghost">Refresh</button>
+              </div>
               <div id="inv-for-sale" class="list"></div>
             </div>
           </div>
 
+          <!-- RIGHT -->
           <div>
-            <div>
-              <div class="label">Moje aukcije</div>
-              <div id="my-auctions" class="list"></div>
+            <div class="section-head">
+              <div class="label">Your Sales</div>
+              <button id="btn-refresh-sales" class="btn small ghost">Refresh</button>
             </div>
+            <div id="my-auctions" class="list"></div>
+
             <div class="divider"></div>
-            <div>
-              <div class="label">Aktivne aukcije</div>
-              <div id="live-auctions" class="list"></div>
+
+            <div class="section-head">
+              <div class="label">Live Sales</div>
+              <button id="btn-refresh-live" class="btn small ghost">Refresh</button>
             </div>
+            <div id="live-auctions" class="list"></div>
           </div>
         </div>
       </div>
@@ -174,7 +212,6 @@
     const $ = sel => document.querySelector(sel);
     const CE = (tag, opts={}) => Object.assign(document.createElement(tag), opts);
 
-    // ----------------- API helper -----------------
     async function api(path, opts={}){
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
       const res = await fetch(path, { credentials:"include", ...opts, headers });
@@ -183,7 +220,6 @@
       return data;
     }
 
-    // ----------------- State -----------------
     let user = null;
     let recipes = [];
     let invItems = [];
@@ -196,29 +232,27 @@
       t.style.borderColor = ok ? "#1b4d2b" : "#5b1e23";
       t.style.color = ok ? "#c8f8d2" : "#fecaca";
       t.textContent = msg;
-      setTimeout(()=> t.style.display="none", 2600);
+      clearTimeout(showToast.tid);
+      showToast.tid = setTimeout(()=> t.style.display="none", 2600);
     }
-
     function setAuthVisible(showAuth){
       $("#auth-view").style.display = showAuth ? "block" : "none";
       $("#app-view").style.display = showAuth ? "none" : "block";
       $("#btn-logout").style.display = showAuth ? "none" : "inline-flex";
     }
-
     function fmtGoldS(s){
       s = s|0; return `${Math.floor(s/100)}g ${s%100}s`;
     }
-
     function setWho(){
-      if(!user){ $("#who").textContent = "Nisi prijavljen"; return; }
+      if(!user){ $("#who").textContent = "Not signed in"; return; }
       const g = Math.floor((user.balance_silver||0)/100);
       const s = (user.balance_silver||0)%100;
       $("#who").textContent = `${user.email} • ${g}g ${s}s`;
       const buysLeft = (user.buys_to_next==null) ? "—" : user.buys_to_next;
-      $("#shop-next").textContent = `Recept za: ${buysLeft}`;
+      $("#shop-next").textContent = `Next recipe in: ${buysLeft}`;
     }
 
-    // ----------------- Auth UI -----------------
+    // ---------- Auth UI ----------
     $("#tab-login").addEventListener("click", ()=>{
       $("#tab-login").classList.add("active");
       $("#tab-register").classList.remove("active");
@@ -233,13 +267,12 @@
       $("#form-login").style.display="none";
       $("#auth-msg").textContent="";
     });
-
     $("#btn-register").addEventListener("click", async ()=>{
       const email = $("#reg-email").value.trim();
       const password = $("#reg-pass").value;
       try{
         await api("/api/register",{method:"POST",body:JSON.stringify({email,password})});
-        $("#auth-msg").textContent="Registracija uspjela. Prijavi se.";
+        $("#auth-msg").textContent="Registration successful. Please log in.";
         showToast("Registration successful.", true);
         $("#tab-login").click();
       }catch(e){ $("#auth-msg").textContent=e.message; showToast(e.message,false); }
@@ -257,7 +290,7 @@
       user=null; setAuthVisible(true); setWho();
     });
 
-    // ----------------- Tabs -----------------
+    // ---------- Tabs ----------
     document.querySelectorAll('.tabs .tab').forEach(t=>{
       t.addEventListener("click", ()=>{
         document.querySelectorAll('.tabs .tab').forEach(x=>x.classList.remove('active'));
@@ -265,45 +298,49 @@
         const tab = t.dataset.tab;
         $("#tab-shop").style.display = (tab==="shop")?"block":"none";
         $("#tab-craft").style.display = (tab==="craft")?"block":"none";
-        $("#tab-auctions").style.display = (tab==="auctions")?"block":"none";
+        $("#tab-sales").style.display = (tab==="sales")?"block":"none";
         if(tab==="craft"){ loadMyRecipes(); }
-        if(tab==="auctions"){ refreshAuctions(); loadInventoryForSale(); }
+        if(tab==="sales"){ refreshSales(); loadInventoryForSale(); }
       });
     });
 
-    // ----------------- Shop -----------------
+    // ---------- Shop ----------
     $("#btn-buy-t1").addEventListener("click", async ()=>{
       try{
         const r = await api("/api/shop/buy-t1",{method:"POST"});
         await refreshMe();
         if(r.result_type==="RECIPE" && r.grantedRecipe){
-          showToast(`Dobio si recept: [T${r.grantedRecipe.tier}] ${r.grantedRecipe.name}`, true);
+          showToast(`You received a recipe: [T${r.grantedRecipe.tier}] ${r.grantedRecipe.name}`, true);
           loadMyRecipes();
         }else if(r.addedItem){
-          showToast(`Dobio si: ${r.addedItem.name}`, true);
-          loadInventoryForSale(); // update aukcije inventar
+          showToast(`You received: ${r.addedItem.name}`, true);
+          loadInventoryForSale();
         }else{
-          showToast("Kupljeno.", true);
+          showToast("Purchased.", true);
         }
       }catch(e){ showToast(e.message,false); }
     });
 
-    // ----------------- Crafting -----------------
+    // ---------- Crafting ----------
+    $("#btn-refresh-recipes").addEventListener("click", loadMyRecipes);
+
     async function loadMyRecipes(){
       try{
         const r = await api("/api/my/recipes");
         recipes = r.recipes||[];
         const box = $("#recipes-list"); box.innerHTML="";
-        if(!recipes.length){ box.innerHTML="<div class='hint'>Nema recepata.</div>"; return; }
+        if(!recipes.length){ box.innerHTML="<div class='hint'>No recipes.</div>"; return; }
         for(const rc of recipes){
           const row = CE("div",{className:"row"});
-          row.innerHTML = `<div><b>[T${rc.tier}] ${rc.name}</b> <span class="muted">x${rc.qty}</span></div><div class='muted'>pokušaja: ${rc.attempts}</div>`;
+          row.innerHTML = `<div><b>[T${rc.tier}] ${rc.name}</b> <span class="muted">x${rc.qty}</span></div>
+                           <div class='muted'>tries: ${rc.attempts}</div>`;
           row.addEventListener("click", ()=> openRecipe(rc.id));
           box.appendChild(row);
         }
         if(selectedRecipeId){
           const exists = recipes.find(x=>x.id===selectedRecipeId);
           if(exists) openRecipe(selectedRecipeId);
+          else $("#recipe-box").innerHTML = `<div class="hint">Select a recipe on the left.</div>`;
         }
       }catch(e){ $("#recipes-list").innerHTML = `<div class='hint'>${e.message}</div>`; }
     }
@@ -345,93 +382,114 @@
       try{
         const r = await api(`/api/recipes/${id}/craft`,{method:"POST"});
         await refreshMe();
-        if(r.scrap){ showToast("Craft neuspješan → dobio si Scrap.", false); }
-        else if(r.crafted){ showToast(`Craft uspio: ${r.output.name}`, true); }
-        loadMyRecipes();
+        if(r.scrap){ showToast("Craft failed → Scrap obtained.", false); }
+        else if(r.crafted){ showToast(`Crafted: ${r.output.name}`, true); }
+        loadMyRecipes();      // Refresh list (removes consumed recipes)
         loadInventoryForSale();
       }catch(e){ showToast(e.message,false); }
     }
 
-    // ----------------- Auctions -----------------
+    // ---------- Sales ----------
+    $("#btn-refresh-inv").addEventListener("click", loadInventoryForSale);
+    $("#btn-refresh-sales").addEventListener("click", refreshSales);
+    $("#btn-refresh-live").addEventListener("click", refreshSales);
+
     async function loadInventoryForSale(){
       try{
         const r = await api("/api/my/inventory");
         invItems = r.items||[];
         invRecipes = r.recipes||[];
+
         // selector
         const sel = $("#sell-code"); sel.innerHTML="";
         for(const it of invItems){ sel.appendChild(CE("option",{value:it.code, textContent:`ITEM • [T${it.tier}] ${it.name} x${it.qty}`})); }
         for(const rc of invRecipes){ sel.appendChild(CE("option",{value:rc.code, textContent:`RECIPE • [T${rc.tier}] ${rc.name} x${rc.qty}`})); }
 
-        // visible inventory list
+        // clickable inventory list
         const box = $("#inv-for-sale"); box.innerHTML="";
-        if(!invItems.length && !invRecipes.length){ box.innerHTML = "<div class='hint'>Inventar je prazan.</div>"; return; }
-        function addRow(txt){ const row=CE("div",{className:"row"}); row.textContent=txt; box.appendChild(row); }
-        invItems.forEach(it=> addRow(`ITEM • [T${it.tier}] ${it.name} x${it.qty}`));
-        invRecipes.forEach(rc=> addRow(`RECIPE • [T${rc.tier}] ${rc.name} x${rc.qty}`));
+        if(!invItems.length && !invRecipes.length){ box.innerHTML = "<div class='hint'>Inventory is empty.</div>"; return; }
+        function addRow(txt, code){
+          const row=CE("div",{className:"row"});
+          row.textContent=txt;
+          row.style.cursor="pointer";
+          row.title="Click to prefill the sale form";
+          row.addEventListener("click", ()=>{
+            $("#sell-code").value = code;
+            $("#sell-qty").value = 1;
+          });
+          box.appendChild(row);
+        }
+        invItems.forEach(it=> addRow(`ITEM • [T${it.tier}] ${it.name} x${it.qty}`, it.code));
+        invRecipes.forEach(rc=> addRow(`RECIPE • [T${rc.tier}] ${rc.name} x${rc.qty}`, rc.code));
       }catch(e){ $("#inv-for-sale").innerHTML = `<div class="hint">${e.message}</div>`; }
     }
 
     $("#btn-sell").addEventListener("click", async ()=>{
       const code = $("#sell-code").value;
       const qty  = parseInt($("#sell-qty").value||"1",10);
-      const start_gold = parseInt($("#sell-start-g").value||"0",10);
-      const start_silver = parseInt($("#sell-start-s").value||"0",10);
-      const buy_gold = parseInt($("#sell-buy-g").value||"0",10);
-      const buy_silver = parseInt($("#sell-buy-s").value||"0",10);
-      const duration_min = parseInt($("#sell-min").value||"60",10);
+      const price_g = parseInt($("#sell-price-g").value||"0",10);
+      const price_s = parseInt($("#sell-price-s").value||"0",10);
+      const duration_min = parseInt($("#sell-min").value||"1440",10);
       try{
-        const r = await api("/api/auctions/create",{
-          method:"POST",
-          body: JSON.stringify({code,qty,start_gold,start_silver,buy_gold,buy_silver,duration_min})
-        });
-        showToast("Aukcija postavljena.", true);
+        // Fixed-price: set start == buy-now
+        const body = {
+          code, qty,
+          start_gold: price_g, start_silver: price_s,
+          buy_gold: price_g,   buy_silver: price_s,
+          duration_min
+        };
+        await api("/api/auctions/create",{ method:"POST", body: JSON.stringify(body) });
+        showToast("Sale listed.", true);
         loadInventoryForSale();
-        refreshAuctions();
+        refreshSales();
       }catch(e){ showToast(e.message,false); }
     });
 
-    async function refreshAuctions(){
+    async function refreshSales(){
       try{
-        // my auctions
+        // your sales
         const mine = await api("/api/auctions/mine");
         const boxM = $("#my-auctions"); boxM.innerHTML="";
-        if(!(mine.auctions||[]).length) boxM.innerHTML="<div class='hint'>Nema tvojih aukcija.</div>";
+        if(!(mine.auctions||[]).length) boxM.innerHTML="<div class='hint'>You have no sales.</div>";
         (mine.auctions||[]).forEach(a=>{
           const row = CE("div",{className:"row"});
-          const price = a.sold_price_s!=null ? fmtGoldS(a.sold_price_s) :
-                        (a.highest_bid_s!=null ? fmtGoldS(a.highest_bid_s) : fmtGoldS(a.start_price_s));
-          row.innerHTML = `<div><b>${a.code}</b> <span class="muted">x${a.qty}</span><br>
-            <span class="hint">Status: ${a.status} • Cijena: ${price}</span></div>`;
+          const price = a.sold_price_s!=null ? fmtGoldS(a.sold_price_s)
+                        : (a.buy_now_price_s!=null ? fmtGoldS(a.buy_now_price_s)
+                        : fmtGoldS(a.start_price_s));
+          row.innerHTML = `<div>
+              <div><b>${a.code}</b> <span class="muted">x${a.qty}</span> ${tag(a.status)}</div>
+              <div class="hint">Price: ${price}</div>
+            </div>`;
           const right = CE("div");
           if(a.status==="live" && !a.highest_bid_s){
             const btn = CE("button",{className:"btn small danger",innerText:"Cancel"});
-            btn.addEventListener("click", ()=> cancelAuction(a.id));
+            btn.addEventListener("click", ()=> cancelSale(a.id));
             right.appendChild(btn);
           }
           row.appendChild(right);
           boxM.appendChild(row);
         });
 
-        // live auctions (all)
+        // live sales (others + yours; Buy only if buy-now exists)
         const live = await api("/api/auctions/live");
         const boxL = $("#live-auctions"); boxL.innerHTML="";
-        if(!(live.auctions||[]).length){ boxL.innerHTML="<div class='hint'>Nema aktivnih aukcija.</div>"; return; }
+        if(!(live.auctions||[]).length){ boxL.innerHTML="<div class='hint'>No live sales.</div>"; return; }
         (live.auctions||[]).forEach(a=>{
-          const row = CE("div",{className:"row"});
-          const price = a.highest_bid_s!=null ? fmtGoldS(a.highest_bid_s) : fmtGoldS(a.start_price_s);
-          row.innerHTML = `<div><b>${a.code}</b> <span class="muted">x${a.qty}</span><br>
-            <span class="hint">Trenutno: ${price} • do ${new Date(a.end_time).toLocaleString()}</span></div>`;
-          const actions = CE("div",{className:"input-row"});
-          const inG = CE("input",{type:"number",min:"0",value:0,style:"width:80px"});
-          const inS = CE("input",{type:"number",min:"0",max:"99",value:0,style:"width:80px"});
-          const bBid = CE("button",{className:"btn small",innerText:"Bid"});
-          bBid.addEventListener("click", ()=> bidAuction(a.id, inG.value|0, inS.value|0));
-          actions.appendChild(inG); actions.appendChild(inS); actions.appendChild(bBid);
+          const row = CE("div",{className:"row sale-card"});
+          const price = a.buy_now_price_s!=null ? fmtGoldS(a.buy_now_price_s)
+                        : fmtGoldS(a.start_price_s);
+          row.innerHTML = `<div>
+              <div><b>${a.code}</b> <span class="muted">x${a.qty}</span></div>
+              <div class="hint">Price: ${price} • Ends: ${new Date(a.end_time).toLocaleString()}</div>
+            </div>`;
+          const actions = CE("div",{className:"right"});
           if(a.buy_now_price_s){
             const bBuy = CE("button",{className:"btn small",innerText:"Buy"});
-            bBuy.addEventListener("click", ()=> buyNowAuction(a.id));
+            bBuy.addEventListener("click", ()=> buyNowSale(a.id));
             actions.appendChild(bBuy);
+          }else{
+            const note = CE("div",{className:"pill",innerText:"No buy-now"});
+            actions.appendChild(note);
           }
           row.appendChild(actions);
           boxL.appendChild(row);
@@ -442,28 +500,25 @@
       }
     }
 
-    async function cancelAuction(id){
-      try{ await api(`/api/auctions/${id}/cancel`,{method:"POST"}); showToast("Aukcija otkazana.", true); refreshAuctions(); loadInventoryForSale(); }
+    function tag(status){
+      const span = `<span class="tag">${status}</span>`;
+      return span;
+    }
+
+    async function cancelSale(id){
+      try{ await api(`/api/auctions/${id}/cancel`,{method:"POST"}); showToast("Sale canceled.", true); refreshSales(); loadInventoryForSale(); }
       catch(e){ showToast(e.message,false); }
     }
-    async function bidAuction(id,g,s){
-      try{
-        const r = await api(`/api/auctions/${id}/bid`,{method:"POST",body:JSON.stringify({gold:g,silver:s})});
-        showToast("Ponuda postavljena.", true);
-        await refreshMe();
-        refreshAuctions();
-      }catch(e){ showToast(e.message,false); }
-    }
-    async function buyNowAuction(id){
+    async function buyNowSale(id){
       try{
         await api(`/api/auctions/${id}/buy-now`,{method:"POST"});
-        showToast("Kupljeno (buy-now).", true);
+        showToast("Purchased.", true);
         await refreshMe();
-        refreshAuctions(); loadInventoryForSale();
+        refreshSales(); loadInventoryForSale();
       }catch(e){ showToast(e.message,false); }
     }
 
-    // ----------------- Boot / Me -----------------
+    // ---------- Me / Boot ----------
     async function refreshMe(){
       try{
         const r = await api("/api/me");
@@ -475,19 +530,18 @@
       await refreshMe();
       if(!user){ setAuthVisible(true); return; }
       setAuthVisible(false);
-      // open first tab (shop)
       document.querySelector('.tabs .tab[data-tab="shop"]').click();
       loadInventoryForSale();
       loadMyRecipes();
-      refreshAuctions();
+      refreshSales();
     }
 
     // initial
     (async ()=> {
       try{ await boot(); }catch{ setAuthVisible(true); }
-      // Poll auctions lightly when on the tab
+      // Light polling when on Sales tab
       setInterval(()=> {
-        if($("#tab-auctions").style.display==="block") refreshAuctions();
+        if($("#tab-sales").style.display==="block") refreshSales();
       }, 15000);
     })();
   </script>
