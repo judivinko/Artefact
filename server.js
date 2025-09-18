@@ -1027,10 +1027,14 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: nowISO() });
 });
 
-// ============================== START ===============================
+// =============== START ===============
+const PORT = parseInt(process.env.PORT || '3000', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
+
 
 
 
