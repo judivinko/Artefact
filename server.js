@@ -499,58 +499,93 @@ app.get("/api/me",(req,res)=>{
   }});
 });
 
-// =============== ADMIN minimal  (⚠️ NISAM DIRA0 LOGIKU — samo stringove popravio)
+// =============== ADMIN minimal
 app.get("/api/admin/ping",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   res.json({ok:true});
 });
+
 app.get("/api/admin/users",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const rows = db.prepare(`SELECT id,email,is_admin,is_disabled,balance_silver,created_at,last_seen,shop_buy_count,next_recipe_at FROM users`).all();
+  const rows = db.prepare(`
+    SELECT id,email,is_admin,is_disabled,balance_silver,
+           created_at,last_seen,shop_buy_count,next_recipe_at
+    FROM users
+  `).all();
   const users = rows.map(u=>({
-    id:u.id,email:u.email,is_admin:!!u.is_admin,is_disabled:!!u.is_disabled,
-    gold:Math.floor(u.balance_silver/100), silver:u.balance_silver%100,
-    created_at:u.created_at,last_seen:u.last_seen,
-    shop_buy_count:u.shop_buy_count,next_recipe_at:u.next_recipe_at
+    id:u.id,
+    email:u.email,
+    is_admin:!!u.is_admin,
+    is_disabled:!!u.is_disabled,
+    gold:Math.floor(u.balance_silver/100),
+    silver:u.balance_silver%100,
+    created_at:u.created_at,
+    last_seen:u.last_seen,
+    shop_buy_count:u.shop_buy_count,
+    next_recipe_at:u.next_recipe_at
   }));
   res.json({ok:true,users});
 });
+
 app.post("/api/admin/adjust-balance",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const {email,gold=0,silver=0,delta_silver} = req.body||{};
   if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
   const u = db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
   if (!u) return res.status(404).json({ok:false,error:"User not found"});
-  let deltaS = (typeof delta_silver==="number") ? Math.trunc(delta_silver)
-             : (Math.trunc(gold)*100 + Math.trunc(silver));
-  if (!Number.isFinite(deltaS) || deltaS===0) return res.status(400).json({ok:false,error:"No change"});
+
+  let deltaS = (typeof delta_silver==="number")
+    ? Math.trunc(delta_silver)
+    : (Math.trunc(gold)*100 + Math.trunc(silver));
+
+  if (!Number.isFinite(deltaS) || deltaS===0)
+    return res.status(400).json({ok:false,error:"No change"});
+
   const tx = db.transaction(()=>{
-    const after = u.balance_silver + deltaS; if (after<0) throw new Error("Insufficient");
+    const after = u.balance_silver + deltaS;
+    if (after<0) throw new Error("Insufficient");
     db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
     db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,created_at) VALUES (?,?,?,?)")
       .run(u.id,deltaS,"ADMIN_ADJUST",nowISO());
-  }); 
+  });
   try{ tx(); }catch(e){ return res.status(400).json({ok:false,error:String(e.message||e)}); }
+
   const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
   res.json({ok:true,balance_silver:bal});
 });
+
 app.get("/api/admin/user/:id/inventory",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const uid = parseInt(req.params.id,10);
   const items = db.prepare(`
     SELECT i.id,i.code,i.name,i.tier,ui.qty
-    FROM user_items ui JOIN items i ON i.id=ui.item_id
-    WHERE ui.user_id=? AND ui.qty>0 ORDER BY i.tier,i.name
+    FROM user_items ui
+    JOIN items i ON i.id=ui.item_id
+    WHERE ui.user_id=? AND ui.qty>0
+    ORDER BY i.tier,i.name
   `).all(uid);
   const recipes = db.prepare(`
     SELECT r.id,r.code,r.name,r.tier,ur.qty
-    FROM user_recipes ur JOIN recipes r ON r.id=ur.recipe_id
-    WHERE ur.user_id=? AND ur.qty>0 ORDER BY r.tier,r.name
+    FROM user_recipes ur
+    JOIN recipes r ON r.id=ur.recipe_id
+    WHERE ur.user_id=? AND ur.qty>0
+    ORDER BY r.tier,r.name
   `).all(uid);
   res.json({ok:true,items,recipes});
 });
 
+// dodatno: enable/disable user (admin.html koristi ovo)
+app.post("/api/admin/disable-user",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+  const { email, disabled } = req.body || {};
+  if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const u = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
+  if (!u) return res.status(404).json({ok:false,error:"User not found"});
+  db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(disabled ? 1 : 0, u.id);
+  res.json({ ok:true });
+});
 // =============== SHOP (T1 only) ===============
+
 
 // --- helpers (local to this block) ---
 function ensureColumn(table, column, type, defaultExpr = null) {
@@ -1021,3 +1056,4 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
