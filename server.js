@@ -806,7 +806,9 @@ function mapListing(a) {
     seller_user_id: a.seller_user_id,
     status: a.status,
     start_time: a.start_time,
-    end_time: a.end_time
+    end_time: a.end_time,
+    name: a.name ?? null,
+    tier: a.tier ?? null
   };
 }
 
@@ -816,7 +818,7 @@ app.get("/api/sales/live", (req, res) => {
   try {
     const q = (req.query && String(req.query.q || "").trim().toLowerCase()) || "";
 
-    // Učitaj sve live + pridruži ime/tier
+    // Live aukcije + pridruženo ime/tier
     const rows = db.prepare(`
       SELECT a.*,
              COALESCE(i.name, r.name)  AS name,
@@ -830,24 +832,9 @@ app.get("/api/sales/live", (req, res) => {
     `).all();
 
     let result = rows;
-    if (q) {
-      result = rows.filter(a => (a.name || "").toLowerCase().includes(q));
-    }
+    if (q) result = rows.filter(a => (a.name || "").toLowerCase().includes(q));
 
-    res.json({ ok: true, listings: result.map(a => ({
-      id: a.id,
-      kind: a.type,
-      item_id: a.item_id,
-      recipe_id: a.recipe_id,
-      qty: a.qty,
-      price_s: a.buy_now_price_s,
-      seller_user_id: a.seller_user_id,
-      status: a.status,
-      start_time: a.start_time,
-      end_time: a.end_time,
-      name: a.name,
-      tier: a.tier
-    }))});
+    res.json({ ok: true, listings: result.map(mapListing) });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e.message || e) });
   }
@@ -870,24 +857,12 @@ app.get("/api/sales/mine", (req, res) => {
       LIMIT 500
     `).all(uid);
 
-    res.json({ ok: true, listings: rows.map(a => ({
-      id: a.id,
-      kind: a.type,
-      item_id: a.item_id,
-      recipe_id: a.recipe_id,
-      qty: a.qty,
-      price_s: a.buy_now_price_s,
-      seller_user_id: a.seller_user_id,
-      status: a.status,
-      start_time: a.start_time,
-      end_time: a.end_time,
-      name: a.name,
-      tier: a.tier
-    }))});
+    res.json({ ok: true, listings: rows.map(mapListing) });
   } catch (e) {
     res.status(401).json({ ok: false, error: String(e.message || e) });
   }
 });
+
 // CREATE LISTING (fixed price / buy-now)
 // body: { kind: 'item'|'recipe', id: number, qty: number, gold: number, silver: number }
 app.post("/api/sales/list", (req, res) => {
@@ -977,6 +952,7 @@ app.post("/api/sales/cancel", (req, res) => {
       const esc = db.prepare(`SELECT * FROM inventory_escrow WHERE auction_id=?`).get(id);
       if (!esc) throw new Error("Missing escrow.");
 
+      // vrati u inventory
       addInv(uid, esc.item_id, esc.recipe_id, esc.qty);
 
       db.prepare(`UPDATE auctions SET status='canceled' WHERE id=?`).run(id);
@@ -1012,17 +988,21 @@ app.post("/api/sales/buy", (req, res) => {
       const esc = db.prepare(`SELECT * FROM inventory_escrow WHERE auction_id=?`).get(id);
       if (!esc) throw new Error("Missing escrow.");
 
+      // fee 1%
       const fee = Math.floor((a.fee_bps || 100) * price / 10000);
       const net = price - fee;
 
+      // skini kupcu
       db.prepare(`UPDATE users SET balance_silver=balance_silver-? WHERE id=?`).run(price, buyerId);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(buyerId, -price, "SALE_BUY", String(id), nowISO());
 
+      // uplati prodavaču
       db.prepare(`UPDATE users SET balance_silver=balance_silver+? WHERE id=?`).run(net, a.seller_user_id);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(a.seller_user_id, net, "SALE_EARN", String(id), nowISO());
 
+      // prebacivanje robe
       addInv(buyerId, esc.item_id, esc.recipe_id, esc.qty);
 
       db.prepare(`
@@ -1044,6 +1024,7 @@ app.post("/api/sales/buy", (req, res) => {
 
 app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
 
+
 // ============================== HEALTH ==============================
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: nowISO() });
@@ -1053,6 +1034,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
