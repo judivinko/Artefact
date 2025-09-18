@@ -818,4 +818,174 @@ app.post("/api/sales/cancel", (req, res) => {
       // vrati u inventory
       addInv(uid, esc.item_id, esc.recipe_id, esc.qty);
 
-      // mark canceled
+      // mark canceled & clear escrow
+      db.prepare(`UPDATE auctions SET status='canceled' WHERE id=?`).run(id);
+      db.prepare(`DELETE FROM inventory_escrow WHERE auction_id=?`).run(id);
+
+      return { id, status: "canceled" };
+    })();
+
+    res.json({ ok: true, listing: out });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+// BUY NOW
+// body: { id }
+app.post("/api/sales/buy", (req, res) => {
+  try {
+    const buyerId = requireAuth(req);
+    const id = parseInt(req.body && req.body.id, 10);
+    if (!id) throw new Error("Missing id.");
+
+    const out = db.transaction(() => {
+      const a = db.prepare(`SELECT * FROM auctions WHERE id=?`).get(id);
+      if (!a) throw new Error("Not found.");
+      if (a.status !== "live") throw new Error("Not live.");
+      if (!a.buy_now_price_s) throw new Error("Not a buy-now listing.");
+      if (a.seller_user_id === buyerId) throw new Error("You can't buy your own listing.");
+
+      const price = a.buy_now_price_s;
+      const buyer = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(buyerId);
+      if (!buyer || buyer.balance_silver < price) throw new Error("Insufficient funds.");
+
+      const esc = db.prepare(`SELECT * FROM inventory_escrow WHERE auction_id=?`).get(id);
+      if (!esc) throw new Error("Missing escrow.");
+
+      // fee 1% (100 bps) ili custom ako postoji
+      const feeBps = (a.fee_bps == null ? 100 : Math.max(0, parseInt(a.fee_bps, 10) || 0));
+      const fee = Math.floor(feeBps * price / 10000);
+      const net = price - fee;
+
+      // skini sredstva kupcu
+      db.prepare(`UPDATE users SET balance_silver=balance_silver-? WHERE id=?`).run(price, buyerId);
+      db.prepare(`
+        INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
+        VALUES (?,?,?,?,?)
+      `).run(buyerId, -price, "SALE_BUY", String(id), nowISO());
+
+      // isplati prodavača (neto)
+      db.prepare(`UPDATE users SET balance_silver=balance_silver+? WHERE id=?`).run(net, a.seller_user_id);
+      db.prepare(`
+        INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
+        VALUES (?,?,?,?,?)
+      `).run(a.seller_user_id, net, "SALE_EARN", String(id), nowISO());
+
+      // prebaci robu kupcu
+      addInv(buyerId, esc.item_id, esc.recipe_id, esc.qty);
+
+      // zaključi aukciju
+      db.prepare(`
+        UPDATE auctions
+        SET status='paid',
+            winner_user_id=?,
+            sold_price_s=?,
+            end_time=?,
+            highest_bid_s=?,
+            highest_bidder_user_id=?
+        WHERE id=?
+      `).run(buyerId, price, nowISO(), price, buyerId, id);
+
+      // clear escrow
+      db.prepare(`DELETE FROM inventory_escrow WHERE auction_id=?`).run(id);
+
+      return { id, paid_s: price, fee_bps: feeBps, fee_s: fee, seller_net_s: net };
+    })();
+
+    res.json({ ok: true, result: out });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+// LIVE MARKETPLACE (opcija: q=search po imenu item/recipe)
+app.get("/api/sales/live", (req, res) => {
+  try {
+    const q = (req.query && String(req.query.q || "").trim().toLowerCase()) || "";
+    const rows = db.prepare(`
+      SELECT a.*
+      FROM auctions a
+      WHERE a.status='live'
+      ORDER BY a.id DESC
+      LIMIT 500
+    `).all();
+
+    let result = rows;
+    if (q) {
+      const items = db.prepare(`SELECT id, lower(name) n FROM items`).all();
+      const recipes = db.prepare(`SELECT id, lower(name) n FROM recipes`).all();
+      const iname = new Map(items.map(r => [r.id, r.n]));
+      const rname = new Map(recipes.map(r => [r.id, r.n]));
+      result = rows.filter(a => {
+        const n = a.type === 'item' ? (iname.get(a.item_id) || "") : (rname.get(a.recipe_id) || "");
+        return n.includes(q);
+      });
+    }
+
+    // mapiranje na manji payload
+    const mapped = result.map(a => ({
+      id: a.id,
+      kind: a.type,
+      item_id: a.item_id,
+      recipe_id: a.recipe_id,
+      qty: a.qty,
+      price_s: a.buy_now_price_s,
+      seller_user_id: a.seller_user_id,
+      status: a.status,
+      start_time: a.start_time,
+      end_time: a.end_time
+    }));
+
+    res.json({ ok: true, listings: mapped });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+// MOJI LISTINZI
+// GET /api/sales/mine
+app.get("/api/sales/mine", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+    const rows = db.prepare(`
+      SELECT *
+      FROM auctions
+      WHERE seller_user_id=? AND status IN ('live','paid','canceled')
+      ORDER BY id DESC
+      LIMIT 500
+    `).all(uid);
+
+    const mapped = rows.map(a => ({
+      id: a.id,
+      kind: a.type,
+      item_id: a.item_id,
+      recipe_id: a.recipe_id,
+      qty: a.qty,
+      price_s: a.buy_now_price_s,
+      seller_user_id: a.seller_user_id,
+      status: a.status,
+      start_time: a.start_time,
+      end_time: a.end_time,
+      sold_price_s: a.sold_price_s,
+      winner_user_id: a.winner_user_id
+    }));
+
+    res.json({ ok: true, listings: mapped });
+  } catch (e) {
+    res.status(401).json({ ok: false, error: String(e.message || e) });
+  }
+});
+
+// (opciono) ping za brzi test da rute postoje
+app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
+
+// ============================== HEALTH ==============================
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, time: nowISO() });
+});
+
+// =============== START ===============
+server.listen(PORT, HOST, () => {
+  console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
+});
