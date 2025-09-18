@@ -782,7 +782,7 @@ app.post("/api/sales/create",(req,res)=>{
         const saleId = db.prepare(`
           INSERT INTO sales(seller_user_id,status,kind,item_id,qty,price_s,created_at)
           VALUES (?,?,?,?,?,?,?)
-        `).run(uTok.uid,'live','item',it.id,qty,p
+       .run(uTok.uid,'live','item',it.id,qty,p);
                // -- create listing -----------------------------------------------------------
 // Sales endpoints (fixed price) implemented on top of the existing auctions table.
 // We set start_price_s = buy_now_price_s = fixed price, and keep status='live'.
@@ -1036,4 +1036,5 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
