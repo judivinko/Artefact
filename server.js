@@ -881,55 +881,80 @@ app.get("/api/sales/mine", (req, res) => {
   }
 });
 
-// -- create listing
-app.post("/api/sales/create", (req, res) => {
-  const tok = verifyTokenFromCookies(req);
-  if (!tok) return res.status(401).json({ ok: false, error: "Not logged in." });
-
+// -- create listing (fixed price buy-now only)
+// body: { kind: 'item'|'recipe', id: number, qty: number, gold: number, silver: number }
+app.post("/api/sales/list", (req, res) => {
   try {
-    const { type, item_id, recipe_id, qty = 1, gold = 0, silver = 0 } = req.body || {};
-    const kind = type === "recipe" ? "recipe" : "item";
-    const refId = kind === "item" ? Number(item_id) : Number(recipe_id);
-    const q = Math.max(1, Number(qty) || 1);
-    const priceS = Math.max(0, (Number(gold) || 0) * 100 + (Number(silver) || 0));
-    if (!refId || priceS <= 0) return res.status(400).json({ ok: false, error: "Bad payload." });
+    const uid = requireAuth(req);
+    const { kind, id, qty, gold = 0, silver = 0 } = req.body || {};
 
-    // provjeri količinu kod korisnika
-    const inv = (kind === "item")
-      ? db.prepare("SELECT COALESCE(qty,0) AS qty FROM user_items WHERE user_id=? AND item_id=?").get(tok.uid, refId)
-      : db.prepare("SELECT COALESCE(qty,0) AS qty FROM user_recipes WHERE user_id=? AND recipe_id=?").get(tok.uid, refId);
-    if (!inv || inv.qty < q) return res.status(400).json({ ok: false, error: "Not enough quantity." });
+    if (!(kind === "item" || kind === "recipe")) throw new Error("Bad kind.");
+    const targetId = parseInt(id, 10);
+    if (!targetId) throw new Error("Bad id.");
 
-    const runTx = db.transaction(() => {
-      // skini iz user inventara
+    const q = Math.max(1, parseInt(qty, 10) || 1);
+    const price =
+      (Math.max(0, parseInt(gold, 10) || 0) * 100) +
+      (Math.max(0, parseInt(silver, 10) || 0) % 100);
+    if (price <= 0) throw new Error("Price must be > 0.");
+
+    const out = db.transaction(() => {
+      // rezerviši iz inventory-ja
       if (kind === "item") {
-        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(q, tok.uid, refId);
+        const row = db
+          .prepare(`SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?`)
+          .get(uid, targetId);
+        if (!row || row.qty < q) throw new Error("Not enough items.");
+        db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(q, uid, targetId);
       } else {
-        db.prepare("UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?").run(q, tok.uid, refId);
+        const row = db
+          .prepare(`SELECT COALESCE(qty,0) qty FROM user_recipes WHERE user_id=? AND recipe_id=?`)
+          .get(uid, targetId);
+        if (!row || row.qty < q) throw new Error("Not enough recipes.");
+        db.prepare(`UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?`).run(q, uid, targetId);
       }
 
-      // stavi u escrow
+      // kreiraj aukciju kao “live” sa fiksnom cijenom (start=buy_now=price)
+      const ins = db.prepare(`
+        INSERT INTO auctions
+          (seller_user_id,type,item_id,recipe_id,qty,
+           start_price_s,buy_now_price_s,fee_bps,status,start_time,end_time)
+        VALUES (?,?,?,?,?,
+                ?,?,100,'live',?,?)
+      `).run(
+        uid,
+        kind,
+        kind === "item" ? targetId : null,
+        kind === "recipe" ? targetId : null,
+        q,
+        price,
+        price,
+        nowISO(),
+        addMinutes(nowISO(), 7 * 24 * 60) // 7 dana
+      );
+
+      // prebaci u escrow (bez kolone "type"!)
       db.prepare(`
-        INSERT INTO inventory_escrow (seller_user_id, type, item_id, recipe_id, qty, created_at)
+        INSERT INTO inventory_escrow(auction_id,owner_user_id,item_id,recipe_id,qty,created_at)
         VALUES (?,?,?,?,?,?)
-      `).run(tok.uid, kind, kind === "item" ? refId : null, kind === "recipe" ? refId : null, q, nowISO());
-      const escrowId = db.prepare("SELECT last_insert_rowid() AS id").get().id;
+      `).run(
+        ins.lastInsertRowid,
+        uid,
+        kind === "item" ? targetId : null,
+        kind === "recipe" ? targetId : null,
+        q,
+        nowISO()
+      );
 
-      // kreiraj prodaju (fixed price)
-      const saleId = db.prepare(`
-        INSERT INTO sales (seller_user_id, escrow_id, kind, ref_id, qty, price_s, status, created_at)
-        VALUES (?,?,?,?,?,?, 'live', ?)
-      `).run(tok.uid, escrowId, kind, refId, q, priceS, nowISO()).lastInsertRowid;
+      return { id: ins.lastInsertRowid, status: "live", price_s: price, qty: q };
+    })();
 
-      return saleId;
-    });
-
-    const saleId = runTx();
-    res.json({ ok: true, sale_id: saleId });
+    res.json({ ok: true, listing: out });
   } catch (e) {
-    res.status(500).json({ ok: false, error: String(e.message || e) });
+    res.status(400).json({ ok: false, error: String(e.message || e) });
   }
 });
+
 
 
 // CANCEL LISTING
@@ -1033,6 +1058,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
