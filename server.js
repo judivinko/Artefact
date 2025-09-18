@@ -810,13 +810,20 @@ function mapListing(a) {
   };
 }
 
-// Live market (q filter po imenu)
+// LIVE MARKETPLACE (s opcionalnim search by name)
+// GET /api/sales/live?q=ring
 app.get("/api/sales/live", (req, res) => {
   try {
     const q = (req.query && String(req.query.q || "").trim().toLowerCase()) || "";
+
+    // Učitaj sve live + pridruži ime/tier
     const rows = db.prepare(`
-      SELECT a.*
+      SELECT a.*,
+             COALESCE(i.name, r.name)  AS name,
+             COALESCE(i.tier, r.tier)  AS tier
       FROM auctions a
+      LEFT JOIN items   i ON a.type='item'   AND i.id=a.item_id
+      LEFT JOIN recipes r ON a.type='recipe' AND r.id=a.recipe_id
       WHERE a.status='live'
       ORDER BY a.id DESC
       LIMIT 500
@@ -824,17 +831,23 @@ app.get("/api/sales/live", (req, res) => {
 
     let result = rows;
     if (q) {
-      const items = db.prepare(`SELECT id, lower(name) n FROM items`).all();
-      const recipes = db.prepare(`SELECT id, lower(name) n FROM recipes`).all();
-      const iname = new Map(items.map(r => [r.id, r.n]));
-      const rname = new Map(recipes.map(r => [r.id, r.n]));
-      result = rows.filter(a => {
-        const n = a.type === 'item' ? (iname.get(a.item_id) || "") : (rname.get(a.recipe_id) || "");
-        return n.includes(q);
-      });
+      result = rows.filter(a => (a.name || "").toLowerCase().includes(q));
     }
 
-    res.json({ ok: true, listings: result.map(mapListing) });
+    res.json({ ok: true, listings: result.map(a => ({
+      id: a.id,
+      kind: a.type,
+      item_id: a.item_id,
+      recipe_id: a.recipe_id,
+      qty: a.qty,
+      price_s: a.buy_now_price_s,
+      seller_user_id: a.seller_user_id,
+      status: a.status,
+      start_time: a.start_time,
+      end_time: a.end_time,
+      name: a.name,
+      tier: a.tier
+    }))});
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e.message || e) });
   }
@@ -1018,4 +1031,5 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
