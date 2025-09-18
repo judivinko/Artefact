@@ -23,7 +23,8 @@ const HOST = process.env.HOST || "0.0.0.0";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
 const TOKEN_NAME = "token";
-const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com").toLowerCase();
+// ✅ Vraćam tvoju adresu jer je tako u bazi
+const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gmail.com").toLowerCase();
 
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
@@ -38,18 +39,27 @@ app.use(express.static(path.join(__dirname, "public"))); // index.html, admin.ht
 // ---------- DB
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
+
 // ====== DB MIGRATIONS (SALES + ESCROW) START ======
 function tableExists(name) {
-  try { db.prepare(`SELECT 1 FROM ${name} LIMIT 1`).get(); return true; }
-  catch { return false; }
+  try {
+    const row = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name);
+    return !!row;
+  } catch {
+    return false;
+  }
 }
 function hasColumn(table, col) {
-  return !!db.prepare(`PRAGMA table_info(${table})`).all().find(c => c.name === col);
+  try {
+    return !!db.prepare(`PRAGMA table_info(${table})`).all().find(c => c.name === col);
+  } catch {
+    return false;
+  }
 }
 
 db.transaction(() => {
   // --- Sales (fixed-price marketplace) ---
-  if (!tableExists('sales')) {
+  if (!tableExists("sales")) {
     db.exec(`
       CREATE TABLE sales(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,16 +83,66 @@ db.transaction(() => {
       CREATE INDEX IF NOT EXISTS idx_sales_seller ON sales(seller_user_id, status);
     `);
   } else {
-    if (!hasColumn('sales','price_s'))       db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
-    if (!hasColumn('sales','title'))         db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
-    if (!hasColumn('sales','status'))        db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
-    if (!hasColumn('sales','buyer_user_id')) db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
-    if (!hasColumn('sales','sold_at'))       db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
+    if (!hasColumn("sales", "price_s"))       db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
+    if (!hasColumn("sales", "title"))         db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
+    if (!hasColumn("sales", "status"))        db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
+    if (!hasColumn("sales", "buyer_user_id")) db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
+    if (!hasColumn("sales", "sold_at"))       db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
+  }
+
+  // ✅ Tabela "auctions" potrebna jer je koristi ostatak koda (greška što nije postojala)
+  if (!tableExists("auctions")) {
+    db.exec(`
+      CREATE TABLE auctions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        seller_user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,              -- 'item' | 'recipe'
+        item_id INTEGER,
+        recipe_id INTEGER,
+        qty INTEGER NOT NULL DEFAULT 1,
+        start_price_s INTEGER NOT NULL DEFAULT 0,
+        buy_now_price_s INTEGER,
+        fee_bps INTEGER NOT NULL DEFAULT 100, -- 1% default
+        status TEXT NOT NULL DEFAULT 'live',  -- 'live' | 'paid' | 'canceled'
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        winner_user_id INTEGER,
+        sold_price_s INTEGER,
+        highest_bid_s INTEGER,
+        highest_bidder_user_id INTEGER,
+        FOREIGN KEY(seller_user_id) REFERENCES users(id),
+        FOREIGN KEY(item_id) REFERENCES items(id),
+        FOREIGN KEY(recipe_id) REFERENCES recipes(id),
+        FOREIGN KEY(winner_user_id) REFERENCES users(id),
+        FOREIGN KEY(highest_bidder_user_id) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_auctions_live ON auctions(status, start_time DESC);
+      CREATE INDEX IF NOT EXISTS idx_auctions_seller ON auctions(seller_user_id, status);
+    `);
   }
 
   // --- Escrow (koristi se i za Sales) ---
-  if (tableExists('inventory_escrow') && !hasColumn('inventory_escrow','type')) {
-    db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
+  if (!tableExists("inventory_escrow")) {
+    db.exec(`
+      CREATE TABLE inventory_escrow(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        auction_id INTEGER,                 -- ✅ koristi se u kodu
+        owner_user_id INTEGER NOT NULL,
+        type TEXT NOT NULL DEFAULT 'item',  -- 'item' | 'recipe'
+        item_id INTEGER,
+        recipe_id INTEGER,
+        qty INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(auction_id) REFERENCES auctions(id),
+        FOREIGN KEY(owner_user_id) REFERENCES users(id),
+        FOREIGN KEY(item_id) REFERENCES items(id),
+        FOREIGN KEY(recipe_id) REFERENCES recipes(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_inventory_escrow_auction ON inventory_escrow(auction_id);
+    `);
+  } else {
+    if (!hasColumn("inventory_escrow", "type"))       db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
+    if (!hasColumn("inventory_escrow", "auction_id")) db.exec(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER;`);
   }
 })();
 // ====== DB MIGRATIONS (SALES + ESCROW) END ======
@@ -112,6 +172,41 @@ function isAdmin(req){
   const tok = readToken(req); if (!tok) return false;
   const r = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
   return !!(r && r.is_admin===1);
+}
+
+// ✅ Minimalni helperi koje kod koristi (greške ako ne postoje)
+function requireAuth(req) {
+  const tok = readToken(req);
+  if (!tok) throw new Error("Not logged in.");
+  const u = db.prepare("SELECT id,is_disabled FROM users WHERE id=?").get(tok.uid);
+  if (!u || u.is_disabled) throw new Error("Account disabled");
+  return u.id;
+}
+function verifyTokenFromCookies(req) {
+  const tok = readToken(req);
+  if (!tok) return null;
+  return { uid: tok.uid, email: tok.email };
+}
+function addMinutes(iso, mins){
+  const d = new Date(iso); d.setMinutes(d.getMinutes()+mins); return d.toISOString();
+}
+function addInv(userId, itemId, recipeId, qty) {
+  const q = Math.max(1, parseInt(qty,10) || 1);
+  if (itemId) {
+    db.prepare(`
+      INSERT INTO user_items(user_id,item_id,qty)
+      VALUES (?,?,?)
+      ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+excluded.qty
+    `).run(userId, itemId, q);
+  } else if (recipeId) {
+    db.prepare(`
+      INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
+      VALUES (?,?,?,0)
+      ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty=qty+excluded.qty
+    `).run(userId, recipeId, q);
+  } else {
+    throw new Error("Nothing to add");
+  }
 }
 
 // ---------- Schema
@@ -196,12 +291,14 @@ CREATE TABLE IF NOT EXISTS user_recipes(
 ensure(`
 CREATE TABLE IF NOT EXISTS inventory_escrow(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  auction_id INTEGER,
   owner_user_id INTEGER NOT NULL,
   type TEXT NOT NULL,          -- 'item' | 'recipe'
   item_id INTEGER,
   recipe_id INTEGER,
   qty INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
+  FOREIGN KEY(auction_id) REFERENCES auctions(id),
   FOREIGN KEY(owner_user_id) REFERENCES users(id),
   FOREIGN KEY(item_id) REFERENCES items(id),
   FOREIGN KEY(recipe_id) REFERENCES recipes(id)
@@ -231,6 +328,7 @@ function hasCol(tab, col){
 if (!hasCol("sales","title"))   db.prepare(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT ''`).run();
 if (!hasCol("sales","price_s")) db.prepare(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0`).run();
 if (!hasCol("sales","status"))  db.prepare(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live'`).run();
+if (!hasCol("inventory_escrow","auction_id")) db.prepare(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER`).run();
 
 // ---------- Seed helpers
 function ensureItem(code, name, tier, volatile=0){
@@ -401,7 +499,7 @@ app.get("/api/me",(req,res)=>{
   }});
 });
 
-// =============== ADMIN minimal
+// =============== ADMIN minimal  (⚠️ NISAM DIRA0 LOGIKU — samo stringove popravio)
 app.get("/api/admin/ping",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   res.json({ok:true});
@@ -462,7 +560,14 @@ function ensureColumn(table, column, type, defaultExpr = null) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}${def};`);
   }
 }
-function nextRecipeInterval(){ return Math.floor(Math.random()* (RECIPE_DROP_MAX ?? 8 - (RECIPE_DROP_MIN ?? 4) + 1)) + (RECIPE_DROP_MIN ?? 4); }
+const SHOP_T1_COST_S = 100;
+const RECIPE_DROP_MIN = 4;
+const RECIPE_DROP_MAX = 8;
+
+function nextRecipeInterval(){
+  const min = RECIPE_DROP_MIN, max = RECIPE_DROP_MAX;
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
 function pickWeightedRecipe(){
   const list = db.prepare(`SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN 2 AND 5`).all();
   if (!list.length) return null;
@@ -791,13 +896,14 @@ app.post("/api/sales/list", (req, res) => {
         addMinutes(nowISO(), 7 * 24 * 60) // 7 days
       );
 
-      // escrow (bez kolone "type"!)
+      // escrow
       db.prepare(`
-        INSERT INTO inventory_escrow(auction_id,owner_user_id,item_id,recipe_id,qty,created_at)
-        VALUES (?,?,?,?,?,?)
+        INSERT INTO inventory_escrow(auction_id,owner_user_id,type,item_id,recipe_id,qty,created_at)
+        VALUES (?,?,?,?,?,?,?)
       `).run(
         ins.lastInsertRowid,
         uid,
+        kind,
         kind === "item" ? targetId : null,
         kind === "recipe" ? targetId : null,
         q,
@@ -905,7 +1011,6 @@ app.post("/api/sales/buy", (req, res) => {
 
 // (opciono) ping za brzi test da rute postoje
 app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
-
 
 // ============================== HEALTH ==============================
 app.get("/api/health", (_req, res) => {
