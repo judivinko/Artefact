@@ -38,6 +38,55 @@ app.use(express.static(path.join(__dirname, "public"))); // index.html, admin.ht
 // ---------- DB
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
+// ====== DB MIGRATIONS (SALES + ESCROW) START ======
+function tableExists(name) {
+  try { db.prepare(`SELECT 1 FROM ${name} LIMIT 1`).get(); return true; }
+  catch { return false; }
+}
+function hasColumn(table, col) {
+  return !!db.prepare(`PRAGMA table_info(${table})`).all().find(c => c.name === col);
+}
+
+db.transaction(() => {
+  // --- Sales (fixed-price marketplace) ---
+  if (!tableExists('sales')) {
+    db.exec(`
+      CREATE TABLE sales(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        seller_user_id INTEGER NOT NULL,
+        type TEXT NOT NULL,            -- 'item' | 'recipe'
+        item_id INTEGER,
+        recipe_id INTEGER,
+        qty INTEGER NOT NULL DEFAULT 1,
+        price_s INTEGER NOT NULL,      -- cijena u silveru (1g = 100s)
+        title TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'live',  -- 'live' | 'sold' | 'canceled'
+        created_at TEXT NOT NULL,
+        sold_at TEXT,
+        buyer_user_id INTEGER,
+        FOREIGN KEY(seller_user_id) REFERENCES users(id),
+        FOREIGN KEY(item_id) REFERENCES items(id),
+        FOREIGN KEY(recipe_id) REFERENCES recipes(id),
+        FOREIGN KEY(buyer_user_id) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_sales_live ON sales(status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_sales_seller ON sales(seller_user_id, status);
+    `);
+  } else {
+    if (!hasColumn('sales','price_s'))       db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
+    if (!hasColumn('sales','title'))         db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
+    if (!hasColumn('sales','status'))        db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
+    if (!hasColumn('sales','buyer_user_id')) db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
+    if (!hasColumn('sales','sold_at'))       db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
+  }
+
+  // --- Escrow (koristi se i za Sales) ---
+  if (tableExists('inventory_escrow') && !hasColumn('inventory_escrow','type')) {
+    db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
+  }
+})();
+// ====== DB MIGRATIONS (SALES + ESCROW) END ======
+
 
 // ---------- Helpers
 const nowISO = () => new Date().toISOString();
@@ -772,3 +821,4 @@ app.get("/admin", (req,res)=> res.sendFile(path.join(__dirname,"public","admin.h
 server.listen(PORT, HOST, ()=>{
   console.log(`ARTEFACT running: http://${HOST}:${PORT} (DB: ${DB_FILE})`);
 });
+
