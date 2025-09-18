@@ -672,216 +672,76 @@ app.get("/api/inventory",(req,res)=>{
 });
 
 
-// =============== AUCTIONS (Sales – fixed price) ===============     [ANCHOR]
-// Minimalna migracija za Sales i Escrow (dodaje kolone ako fale)
-db.exec(`
-  CREATE TABLE IF NOT EXISTS sales(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    seller_user_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'live',   -- live | sold | canceled
-    kind TEXT NOT NULL,                    -- 'item' | 'recipe'
-    item_id INTEGER,
-    recipe_id INTEGER,
-    qty INTEGER NOT NULL DEFAULT 1,
-    price_s INTEGER NOT NULL,             -- cijena u silveru (gold*100 + silver)
-    title TEXT,
-    created_at TEXT NOT NULL,
-    sold_at TEXT,
-    buyer_user_id INTEGER,
-    FOREIGN KEY(seller_user_id) REFERENCES users(id),
-    FOREIGN KEY(buyer_user_id)  REFERENCES users(id),
-    FOREIGN KEY(item_id) REFERENCES items(id),
-    FOREIGN KEY(recipe_id) REFERENCES recipes(id)
-  );
-`);
-db.exec(`
-  CREATE TABLE IF NOT EXISTS inventory_escrow(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_user_id INTEGER NOT NULL,
-    type TEXT NOT NULL,      -- 'item' | 'recipe'
-    item_id INTEGER,
-    recipe_id INTEGER,
-    qty INTEGER NOT NULL DEFAULT 1,
-    sale_id INTEGER,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(owner_user_id) REFERENCES users(id),
-    FOREIGN KEY(item_id) REFERENCES items(id),
-    FOREIGN KEY(recipe_id) REFERENCES recipes(id),
-    FOREIGN KEY(sale_id) REFERENCES sales(id)
-  );
-`);
-// dodaj kolone ako fale (za stare baze)
-ensureColumn("sales","price_s","INTEGER","0");
-ensureColumn("inventory_escrow","type","TEXT","'item'");
+// ================= SALES (Marketplace) =================
 
-// -- list live (marketplace)
-app.get("/api/sales",(req,res)=>{
-  const q = (req.query.q||"").toString().trim().toLowerCase();
-  const rows = db.prepare(`
-    SELECT s.id,s.kind,s.qty,s.price_s,s.created_at,
-           i.name AS item_name, i.tier AS item_tier,
-           r.name AS recipe_name, r.tier AS recipe_tier
-    FROM sales s
-    LEFT JOIN items   i ON i.id=s.item_id
-    LEFT JOIN recipes r ON r.id=s.recipe_id
-    WHERE s.status='live'
-    ORDER BY s.created_at DESC
-  `).all();
-  const list = rows.map(x=>({
-    id:x.id,
-    name: x.kind==='item' ? x.item_name : x.recipe_name,
-    tier: x.kind==='item' ? x.item_tier  : x.recipe_tier,
-    qty: x.qty,
-    price_s: x.price_s
-  })).filter(x=> q? (x.name||"").toLowerCase().includes(q) : true);
-  res.json({ok:true, listings:list});
-});
-
-// -- my listings
-app.get("/api/sales/mine",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  const rows = db.prepare(`
-    SELECT s.id,s.kind,s.qty,s.price_s,s.status,s.created_at,
-           i.name AS item_name, i.tier AS item_tier,
-           r.name AS recipe_name, r.tier AS recipe_tier
-    FROM sales s
-    LEFT JOIN items   i ON i.id=s.item_id
-    LEFT JOIN recipes r ON r.id=s.recipe_id
-    WHERE s.seller_user_id=? 
-    ORDER BY s.created_at DESC
-  `).all(uTok.uid);
-  const list = rows.map(x=>({
-    id:x.id, status:x.status,
-    name: x.kind==='item' ? x.item_name : x.recipe_name,
-    tier: x.kind==='item' ? x.item_tier  : x.recipe_tier,
-    qty: x.qty, price_s: x.price_s
-  }));
-  res.json({ok:true, listings:list});
-});
-
-// -- create listing
-app.post("/api/sales/create",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  const { kind, code, qty=1, price_gold=0, price_silver=0 } = req.body||{};
-  if (kind!=='item' && kind!=='recipe') return res.status(400).json({ok:false,error:"Bad kind"});
-  const pS = Math.trunc(price_gold||0)*100 + Math.trunc(price_silver||0);
-  if (pS<=0) return res.status(400).json({ok:false,error:"Price must be > 0"});
-  if (!code) return res.status(400).json({ok:false,error:"Missing code"});
-
-  try{
-    const data = db.transaction(()=>{
-      if (kind==='item'){
-        const it = db.prepare("SELECT id,name,tier FROM items WHERE code=?").get(code);
-        if(!it) throw new Error("Item not found.");
-        const inv = db.prepare("SELECT qty FROM user_items WHERE user_id=? AND item_id=?").get(uTok.uid,it.id);
-        if(!inv || inv.qty < qty) throw new Error("Not enough items.");
-        // skini iz inventara i stavi u escrow
-        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(qty,uTok.uid,it.id);
-        const saleId = db.prepare(`
-  INSERT INTO sales (uid, status, item_id, qty, price_g, price_s)
-  VALUES (?, 'live', ?, ?, ?, ?)
-`).run(uTok.uid, it.id, qty, p.g, p.s);
-
-               // -- create listing -----------------------------------------------------------
-// Sales endpoints (fixed price) implemented on top of the existing auctions table.
-// We set start_price_s = buy_now_price_s = fixed price, and keep status='live'.
-// Escrow is stored in inventory_escrow (already in your DB schema).
-
-function requireAuth(req) {
-  const t = verifyTokenFromCookies(req);
-  if (!t) throw new Error("Not logged in.");
-  const u = db.prepare("SELECT id, is_disabled FROM users WHERE id=?").get(t.uid);
-  if (!u) throw new Error("Session expired.");
-  if (u.is_disabled) throw new Error("Account disabled.");
-  return u.id;
+// Helper za formatiranje jednog listinga
+function mapListing(a) {
+  return {
+    id: a.id,
+    kind: a.type,                // 'item' | 'recipe'
+    item_id: a.item_id,
+    recipe_id: a.recipe_id,
+    qty: a.qty,
+    price_s: a.buy_now_price_s,  // cijena u silveru (buy-now)
+    seller_user_id: a.seller_user_id,
+    status: a.status,
+    start_time: a.start_time,
+    end_time: a.end_time
+  };
 }
 
-function toPriceS(gold, silver) {
-  const g = Math.max(0, Math.trunc(Number(gold) || 0));
-  const s = Math.max(0, Math.trunc(Number(silver) || 0)) % 100;
-  return g * 100 + s;
-}
-
-function addInv(uid, item_id, recipe_id, qty) {
-  if (item_id) {
-    db.prepare(`
-      INSERT INTO user_items(user_id,item_id,qty) VALUES (?,?,?)
-      ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+excluded.qty
-    `).run(uid, item_id, qty);
-  } else {
-    db.prepare(`
-      INSERT INTO user_recipes(user_id,recipe_id,qty,attempts) VALUES (?,?,?,0)
-      ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty=qty+excluded.qty
-    `).run(uid, recipe_id, qty);
-  }
-}
-
-function subInv(uid, item_id, recipe_id, qty) {
-  if (item_id) {
-    const r = db.prepare(`SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(uid, item_id);
-    if (!r || r.qty < qty) throw new Error("Not enough quantity.");
-    db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(qty, uid, item_id);
-  } else {
-    const r = db.prepare(`SELECT qty FROM user_recipes WHERE user_id=? AND recipe_id=?`).get(uid, recipe_id);
-    if (!r || r.qty < qty) throw new Error("Not enough quantity.");
-    db.prepare(`UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?`).run(qty, uid, recipe_id);
-  }
-}
-
-// LIST MARKET (everyone else's live fixed-price listings)
-app.get("/api/sales/market", (req, res) => {
+// LIVE MARKETPLACE (s opcionalnim search by name)
+// GET /api/sales/live?q=ring
+app.get("/api/sales/live", (req, res) => {
   try {
-    const me = verifyTokenFromCookies(req);
-    const q = String((req.query.q || "")).toLowerCase().trim();
+    const q = (req.query && String(req.query.q || "").trim().toLowerCase()) || "";
+    // Učitaj sve live listinge
     const rows = db.prepare(`
-      SELECT a.id, a.seller_user_id, a.qty,
-             a.buy_now_price_s AS price_s,
-             a.type, a.item_id, a.recipe_id,
-             COALESCE(i.name, r.name) AS name,
-             COALESCE(i.tier, r.tier) AS tier,
-             a.created_at
+      SELECT a.*
       FROM auctions a
-      LEFT JOIN items   i ON i.id = a.item_id
-      LEFT JOIN recipes r ON r.id = a.recipe_id
       WHERE a.status='live'
-        AND a.buy_now_price_s IS NOT NULL
-        AND (? IS NULL OR a.seller_user_id <> ?)
-        AND ( ? = '' OR lower(COALESCE(i.name,r.name)) LIKE '%' || ? || '%' )
-      ORDER BY a.created_at DESC
-      LIMIT 200
-    `).all(me ? me.uid : null, me ? me.uid : null, q, q);
-    res.json({ ok: true, listings: rows });
+      ORDER BY a.id DESC
+      LIMIT 500
+    `).all();
+
+    // Ako je dan q, filtriraj po imenu item/recipe
+    let result = rows;
+    if (q) {
+      const items = db.prepare(`SELECT id, lower(name) n FROM items`).all();
+      const recipes = db.prepare(`SELECT id, lower(name) n FROM recipes`).all();
+      const iname = new Map(items.map(r => [r.id, r.n]));
+      const rname = new Map(recipes.map(r => [r.id, r.n]));
+      result = rows.filter(a => {
+        const n = a.type === 'item' ? (iname.get(a.item_id) || "") : (rname.get(a.recipe_id) || "");
+        return n.includes(q);
+      });
+    }
+
+    res.json({ ok: true, listings: result.map(mapListing) });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e.message || e) });
   }
 });
 
-// LIST MINE (my active listings)
+// MOJI LISTINZI
+// GET /api/sales/mine
 app.get("/api/sales/mine", (req, res) => {
   try {
     const uid = requireAuth(req);
     const rows = db.prepare(`
-      SELECT a.id, a.qty,
-             a.buy_now_price_s AS price_s,
-             a.type, a.item_id, a.recipe_id,
-             COALESCE(i.name, r.name) AS name,
-             COALESCE(i.tier, r.tier) AS tier,
-             a.status, a.created_at
-      FROM auctions a
-      LEFT JOIN items   i ON i.id = a.item_id
-      LEFT JOIN recipes r ON r.id = a.recipe_id
-      WHERE a.status='live' AND a.seller_user_id=?
-      ORDER BY a.created_at DESC
+      SELECT *
+      FROM auctions
+      WHERE seller_user_id=? AND status IN ('live','paid','canceled')
+      ORDER BY id DESC
+      LIMIT 500
     `).all(uid);
-    res.json({ ok: true, listings: rows });
+    res.json({ ok: true, listings: rows.map(mapListing) });
   } catch (e) {
     res.status(401).json({ ok: false, error: String(e.message || e) });
   }
 });
 
-// -- create listing (fixed price buy-now only)
+// CREATE LISTING (fixed price / buy-now)
 // body: { kind: 'item'|'recipe', id: number, qty: number, gold: number, silver: number }
 app.post("/api/sales/list", (req, res) => {
   try {
@@ -899,22 +759,20 @@ app.post("/api/sales/list", (req, res) => {
     if (price <= 0) throw new Error("Price must be > 0.");
 
     const out = db.transaction(() => {
-      // rezerviši iz inventory-ja
+      // skini iz inventara
       if (kind === "item") {
-        const row = db
-          .prepare(`SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?`)
+        const row = db.prepare(`SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?`)
           .get(uid, targetId);
         if (!row || row.qty < q) throw new Error("Not enough items.");
         db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(q, uid, targetId);
       } else {
-        const row = db
-          .prepare(`SELECT COALESCE(qty,0) qty FROM user_recipes WHERE user_id=? AND recipe_id=?`)
+        const row = db.prepare(`SELECT COALESCE(qty,0) qty FROM user_recipes WHERE user_id=? AND recipe_id=?`)
           .get(uid, targetId);
         if (!row || row.qty < q) throw new Error("Not enough recipes.");
         db.prepare(`UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?`).run(q, uid, targetId);
       }
 
-      // kreiraj aukciju kao “live” sa fiksnom cijenom (start=buy_now=price)
+      // kreiraj aukciju s fiksnom cijenom (start=buy_now)
       const ins = db.prepare(`
         INSERT INTO auctions
           (seller_user_id,type,item_id,recipe_id,qty,
@@ -930,10 +788,10 @@ app.post("/api/sales/list", (req, res) => {
         price,
         price,
         nowISO(),
-        addMinutes(nowISO(), 7 * 24 * 60) // 7 dana
+        addMinutes(nowISO(), 7 * 24 * 60) // 7 days
       );
 
-      // prebaci u escrow (bez kolone "type"!)
+      // escrow (bez kolone "type"!)
       db.prepare(`
         INSERT INTO inventory_escrow(auction_id,owner_user_id,item_id,recipe_id,qty,created_at)
         VALUES (?,?,?,?,?,?)
@@ -955,8 +813,6 @@ app.post("/api/sales/list", (req, res) => {
   }
 });
 
-
-
 // CANCEL LISTING
 // body: { id }
 app.post("/api/sales/cancel", (req, res) => {
@@ -974,7 +830,7 @@ app.post("/api/sales/cancel", (req, res) => {
       const esc = db.prepare(`SELECT * FROM inventory_escrow WHERE auction_id=?`).get(id);
       if (!esc) throw new Error("Missing escrow.");
 
-      // return to seller
+      // vrati u inventory
       addInv(uid, esc.item_id, esc.recipe_id, esc.qty);
 
       // mark canceled & clear escrow
@@ -1012,24 +868,24 @@ app.post("/api/sales/buy", (req, res) => {
       const esc = db.prepare(`SELECT * FROM inventory_escrow WHERE auction_id=?`).get(id);
       if (!esc) throw new Error("Missing escrow.");
 
-      // money move
-      const fee = Math.floor((a.fee_bps || 100) * price / 10000); // default 1%
+      // fee 1%
+      const fee = Math.floor((a.fee_bps || 100) * price / 10000);
       const net = price - fee;
 
-      // debit buyer
+      // plati
       db.prepare(`UPDATE users SET balance_silver=balance_silver-? WHERE id=?`).run(price, buyerId);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(buyerId, -price, "SALE_BUY", String(id), nowISO());
 
-      // credit seller
+      // isplati prodavača (neto)
       db.prepare(`UPDATE users SET balance_silver=balance_silver+? WHERE id=?`).run(net, a.seller_user_id);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(a.seller_user_id, net, "SALE_EARN", String(id), nowISO());
 
-      // transfer goods to buyer
+      // prebaci robu kupcu
       addInv(buyerId, esc.item_id, esc.recipe_id, esc.qty);
 
-      // finalize auction & remove escrow
+      // zaključi aukciju
       db.prepare(`
         UPDATE auctions
         SET status='paid', winner_user_id=?, sold_price_s=?, end_time=?, highest_bid_s=?, highest_bidder_user_id=?
@@ -1047,6 +903,10 @@ app.post("/api/sales/buy", (req, res) => {
   }
 });
 
+// (opciono) ping za brzi test da rute postoje
+app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
+
+
 // ============================== HEALTH ==============================
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: nowISO() });
@@ -1058,6 +918,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
