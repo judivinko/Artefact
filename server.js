@@ -1,19 +1,26 @@
 // ==============================================
 // ARTEFACT ECON • FULL SERVER (Node/Express + SQLite)
-// - Auth (register/login/logout/me) [JWT u httpOnly cookie]
-// - Shop: kupnja T1 paketa (1g) s dropom recepata (T2–T5; T6 po želji — vidi pickWeightedRecipe)
-// - Crafting: craft preko recepata; 10% fail => Scrap (osim tier 6); posebni /api/craft/artefact
-// - Sales (fiksna prodaja): create/live/mine/buy/cancel + escrow
+// - Auth (register/login/logout/me) [JWT in httpOnly cookie]
+// - Shop: buy T1 (1g) with weighted recipe drops (T2–T5)
+// - Crafting: craft via recipes; 10% fail -> Scrap (except T6); special /api/craft/artefact
+// - Sales (fixed price): create/live/mine/buy/cancel + escrow
 // - Admin: ping, users, adjust balance, disable user, user inventory
-// - Static: /public (index.html + admin.html), /admin ruta
+// - Static: /public (index.html + admin.html), /admin route
 //
-// ENV: PORT, HOST, JWT_SECRET, ADMIN_KEY, DEFAULT_ADMIN_EMAIL
-// DB: artefact.db (u rootu projekta)
+// IMPORTANT (Render):
+//   Set Environment Variables:
+//     DB_DIR = <your disk mount path>  e.g. /var/data
+//     JWT_SECRET = <random long secret>
+//     ADMIN_KEY  = <your admin key>
+//
+//   Make sure your Render Persistent Disk is mounted at the same path as DB_DIR.
+//
 // ==============================================
 
 const express = require("express");
 const http = require("http");
 const path = require("path");
+const fs = require("fs");
 const Database = require("better-sqlite3");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
@@ -26,11 +33,13 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
 const TOKEN_NAME = "token";
 const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "admin@example.com").toLowerCase();
+const NODE_ENV = (process.env.NODE_ENV || "development").toLowerCase();
+const COOKIE_SECURE = NODE_ENV === "production"; // https on Render
 
 // Economy
 const SHOP_T1_COST_S = 100;       // 1 gold = 100 silver
-const SALES_FEE_BPS = 100;        // 1% fee seller pays (net = price - fee)
-const RECIPE_DROP_MIN = 4;        // after N shop buys you get a recipe drop
+const SALES_FEE_BPS = 100;        // 1%
+const RECIPE_DROP_MIN = 4;
 const RECIPE_DROP_MAX = 8;
 
 // ----- App
@@ -40,8 +49,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public"))); // index.html, app.css, admin.html
 
-// ----- DB
-const DB_PATH = path.join(__dirname, "artefact.db");
+// ----- DB on Persistent Disk
+const DB_DIR = process.env.DB_DIR || process.env.DATA_DIR || "/var/data"; // set this to your disk Mount Path
+try { fs.mkdirSync(DB_DIR, { recursive: true }); } catch {}
+const DB_PATH = process.env.DB_FILE || path.join(DB_DIR, "artefact.db");
+
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 
@@ -163,8 +175,8 @@ CREATE TABLE IF NOT EXISTS sales(
   qty INTEGER NOT NULL DEFAULT 1,
   price_s INTEGER NOT NULL,
   status TEXT NOT NULL,        -- 'live' | 'sold' | 'canceled'
-  title TEXT,                  -- display text (optional)
-  search_name TEXT,            -- lower(name) for filtering
+  title TEXT,
+  search_name TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (seller_user_id) REFERENCES users(id),
@@ -215,10 +227,6 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
   }
   return rid;
 }
-function recIdByCode(code){
-  const r = db.prepare("SELECT id FROM recipes WHERE code=?").get(code);
-  return r && r.id;
-}
 function findItemOrRecipeByCode(code){
   if(!code || typeof code!=="string") return null;
   if(code.startsWith("R_")){
@@ -230,7 +238,7 @@ function findItemOrRecipeByCode(code){
   }
 }
 
-// ----- Items & Recipes (Nor set) -----
+// ----- Items & Recipes (Nor set)
 // Scrap
 ensureItem("SCRAP","Scrap",1,1);
 
@@ -242,7 +250,7 @@ const T1 = [
 ];
 for(const [c,n] of T1) ensureItem(c,n,1,0);
 
-// T2 items + recipes (from T1, 4–7 unique, bez duplikata)
+// T2 items + recipes (from T1, 4–7 unique, no duplicates)
 ensureItem("T2_BRONZE_DOOR","Nor Bronze Door",2);
 ensureItem("T2_SILVER_GOBLET","Nor Silver Goblet",2);
 ensureItem("T2_GOLDEN_RING","Nor Golden Ring",2);
@@ -351,7 +359,7 @@ ensureRecipe("R_T5_NOMAD_HALL","Nor Nomad Hall",5,"T5_NOMAD_HALL",[T4C.DWELL,T4C
 ensureRecipe("R_T5_EYE_OF_TRUTH","Nor Eye of Truth",5,"T5_EYE_OF_TRUTH",[T4C.VISION,T4C.SHADOW,T4C.CORE,T4C.GOB,T4C.CHEST]);
 ensureRecipe("R_T5_NIGHTFALL_EDGE","Nor Nightfall Edge",5,"T5_NIGHTFALL_EDGE",[T4C.SHADOW,T4C.RGATE,T4C.CHEST,T4C.CORE]);
 
-// T6 (Artefact via special craft)
+// T6 (Artefact)
 ensureItem("ARTEFACT","Artefact",6);
 
 // ----- Initial admin
@@ -382,14 +390,14 @@ app.post("/api/login", async (req,res)=>{
     const ok=await bcrypt.compare(password||"",u.pass_hash);
     if(!ok) return res.status(401).json({ok:false,error:"Wrong password."});
     const token=signToken(u);
-    res.cookie(TOKEN_NAME,token,{httpOnly:true,sameSite:"lax",secure:false,maxAge:7*24*60*60*1000});
+    res.cookie(TOKEN_NAME,token,{httpOnly:true,sameSite:"lax",secure:COOKIE_SECURE,maxAge:7*24*60*60*1000});
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(),u.id);
     res.json({ok:true,message:"Logged in."});
   }catch(e){ res.status(500).json({ok:false,error:"Server error."}); }
 });
 app.get("/api/logout",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(u) db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(),u.uid);
-  res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:false});
+  res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:COOKIE_SECURE});
   res.json({ok:true,message:"Logged out."});
 });
 app.get("/api/me",(req,res)=>{
@@ -400,7 +408,7 @@ app.get("/api/me",(req,res)=>{
     FROM users WHERE id=?
   `).get(u.uid);
   if(!r){
-    res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:false});
+    res.clearCookie(TOKEN_NAME,{httpOnly:true,sameSite:"lax",secure:COOKIE_SECURE});
     return res.status(401).json({ok:false,error:"Session expired."});
   }
   const g=Math.floor((r.balance_silver||0)/100), s=(r.balance_silver||0)%100;
@@ -481,7 +489,7 @@ app.get("/api/admin/user/:id/inventory",(req,res)=>{
 // ============================== SHOP ==============================
 const T1_CODES = T1.map(([code]) => code);
 
-// Drop per 1000: T2 800 / T3 150 / T4 37 / T5 12  (T6 disabled by default)
+// Drop per 1000: T2 800 / T3 150 / T4 37 / T5 12
 function pickWeightedRecipe(){
   const list = db.prepare(`SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN 2 AND 5`).all();
   if (!list.length) return null;
@@ -494,14 +502,13 @@ function pickWeightedRecipe(){
   const roll = randInt(1,1000);
   let targetTier;
   if (roll <= 12) targetTier = 5;        // 12
-  else if (roll <= 49) targetTier = 4;   // 37
-  else if (roll <= 199) targetTier = 3;  // 150
-  else targetTier = 2;                   // 800
+  else if (roll <= 49) targetTier = 4;   // +37 = 49
+  else if (roll <= 199) targetTier = 3;  // +150 = 199
+  else targetTier = 2;                   // else 800
 
   let tier = targetTier;
   while (tier >= 2 && !byTier[tier]) tier--;
   if (!byTier[tier]) tier = 2;
-
   const arr = byTier[tier];
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -517,12 +524,12 @@ app.post("/api/shop/buy-t1",(req,res)=>{
       if(!user) throw new Error("Session expired. Log in again.");
       if(user.balance_silver<SHOP_T1_COST_S) throw new Error("Insufficient funds.");
 
-      // naplata
+      // charge
       db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(SHOP_T1_COST_S,user.id);
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
         .run(user.id,-SHOP_T1_COST_S,"SHOP_BUY_T1",null,nowISO());
 
-      // init cilja
+      // init drop goal
       if (user.next_recipe_at == null){
         const firstAt = user.shop_buy_count + nextRecipeInterval();
         db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(firstAt, user.id);
@@ -612,7 +619,7 @@ app.get("/api/recipes/:id",(req,res)=>{
   res.json({ ok:true, recipe:{ id:rec.id,code:rec.code,name:rec.name,tier:rec.tier,attempts:rec.attempts,output_item_id:rec.output_item_id }, ingredients:enriched, can_craft });
 });
 
-// Craft — Artefakt bez škarta; ostalo 10% fail
+// Craft — Artefact no-fail; others 10% fail
 app.post("/api/recipes/:id/craft",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const rid=parseInt(req.params.id,10);
@@ -638,7 +645,7 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
 
       const outTierRow = db.prepare("SELECT tier FROM items WHERE id=?").get(rec.output_item_id);
       const outTier = outTierRow ? (outTierRow.tier|0) : rec.tier;
-      const failP = (outTier >= 6) ? 0.0 : 0.10; // Artefakt 0%, ostalo 10%
+      const failP = (outTier >= 6) ? 0.0 : 0.10;
       const roll=Math.random();
 
       if(roll<failP){
@@ -662,12 +669,11 @@ app.post("/api/recipes/:id/craft",(req,res)=>{
   }catch(e){ res.status(400).json({ok:false,error:String(e.message||e)}); }
 });
 
-// Special: Craft Artefact from 10 distinct T5 items
+// Special: Craft Artefact from 10 distinct T5
 app.post("/api/craft/artefact",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   try{
     const result = db.transaction(()=>{
-      // distinct T5 items user has >=1
       const t5 = db.prepare(`
         SELECT i.id,i.code,i.name,COALESCE(ui.qty,0) qty
         FROM items i JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
@@ -676,7 +682,6 @@ app.post("/api/craft/artefact",(req,res)=>{
       `).all(u.uid);
       if(!t5 || t5.length<10) throw new Error("Need at least 10 distinct T5 items.");
 
-      // consume 1 of first 10
       const take = t5.slice(0,10);
       for(const it of take){
         db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=?").run(u.uid,it.id);
@@ -708,7 +713,7 @@ app.get("/api/my/inventory",(req,res)=>{
   res.json({ok:true,items,recipes});
 });
 
-// ============================== SALES (fixed price) ==============================
+// ============================== SALES (fixed price)
 app.post("/api/sales/create",(req,res)=>{
   const u=verifyTokenFromCookies(req); if(!u) return res.status(401).json({ok:false,error:"Not logged in."});
   const {code,qty=1,gold=0,silver=0}=req.body||{};
@@ -805,14 +810,14 @@ app.post("/api/sales/:id/buy",(req,res)=>{
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
         .run(buyer.id, -s.price_s, "SALE_BUY", "sale:"+s.id, nowISO());
 
-      // fee and payout
+      // fee + payout
       const fee = Math.floor((s.price_s * SALES_FEE_BPS) / 10000);
       const net = s.price_s - fee;
       db.prepare("UPDATE users SET balance_silver = balance_silver + ? WHERE id = ?").run(net, seller.id);
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
         .run(seller.id, net, "SALE_PAYOUT_NET", "sale:"+s.id, nowISO());
 
-      // deliver escrow to buyer
+      // deliver escrow
       const esc = db.prepare("SELECT item_id,recipe_id,qty FROM sales_escrow WHERE sale_id=?").get(s.id);
       if(esc){
         if(esc.item_id){
@@ -880,11 +885,13 @@ app.get("/admin",(req,res)=>{
 
 // ============== HEALTH ==============
 app.get("/api/health", (req, res) => {
+  const ucount = db.prepare("SELECT COUNT(1) as n FROM users").get().n;
   res.json({
     ok: true,
     msg: "Auth, Shop, Craft & Sales ready",
-    distribution_per_1000: { T2:800, T3:150, T4:37, T5:12 },
-    db_path: DB_PATH
+    db_path: DB_PATH,
+    users_count: ucount,
+    distribution_per_1000: { T2:800, T3:150, T4:37, T5:12 }
   });
 });
 
