@@ -6,36 +6,14 @@
 <title>ARTEFACT</title>
 <link rel="stylesheet" href="/app.css" />
 <style>
-:root{--bg:#0b1220;--card:#0f172a;--muted:#93a3b8;--fg:#e5eefc;--teal:#10b981;--danger:#ef4444;--line:#233047}
-*{box-sizing:border-box;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-body{margin:0;background:var(--bg);color:var(--fg)}
-.header{display:flex;gap:12px;align-items:center;justify-content:space-between;max-width:1100px;margin:16px auto}
-.brand{font-weight:800;letter-spacing:.5px}
-.badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
-.btn{padding:8px 12px;border-radius:10px;background:#16a34a;color:white;border:0;cursor:pointer}
-.btn.secondary{background:#0b5bd1}
-.btn.muted{background:#1f2937}
-.btn.danger{background:#b91c1c}
-.btn:disabled{opacity:.6;cursor:not-allowed}
-.tabbar{display:flex;gap:10px}
-.tabbar .chip{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#0d1b2a;cursor:pointer}
-.tabbar .chip.active{background:#0e3a2f}
-.container{max-width:1100px;margin:0 auto;padding:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px}
-.label{opacity:.8;font-size:13px;margin-bottom:6px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
-.input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0b1220;color:var(--fg)}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
-.itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
-.itemrow:last-child{border-bottom:0}
-.kv{display:grid;grid-template-columns:1fr auto;gap:6px}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-.muted{color:var(--muted)}
-.right{margin-left:auto}
-.toast{position:fixed;right:12px;bottom:12px;background:#0b5bd1;color:#fff;padding:10px 12px;border-radius:10px}
-.hidden{display:none}
+  /* sitni dodaci samo za ovaj file */
+  .hidden{display:none}
+  .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
+  .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
+  .itemrow:last-child{border-bottom:0}
+  .list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .chip{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#0d1b2a;cursor:pointer}
+  .chip.active{background:#0e3a2f}
 </style>
 </head>
 <body>
@@ -43,6 +21,7 @@ body{margin:0;background:var(--bg);color:var(--fg)}
     <div class="brand">ARTEFACT</div>
     <div class="row">
       <span id="who" class="badge">–</span>
+      <span id="balance" class="badge">0g 0s</span>
       <button id="btn-logout" class="btn muted hidden">Log out</button>
     </div>
   </header>
@@ -71,39 +50,24 @@ body{margin:0;background:var(--bg);color:var(--fg)}
 
     <!-- App -->
     <section id="app" class="hidden">
-      <div class="tabbar">
+      <div class="tabbar row">
         <div class="chip active" data-tab="shop">Shop</div>
         <div class="chip" data-tab="craft">Crafting</div>
         <div class="chip" data-tab="sales">Sales</div>
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
-     // -------- SHOP
-$("#btn-buy-t1").addEventListener("click", async ()=>{
-  try{
-    const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-    // server vraća: { ok, balance_silver, gotItem?, gotRecipe? }
-    WHO.balance_silver = r.balance_silver;
-    renderBalance();
-
-    if (r.gotRecipe){
-      $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
-    } else if (r.gotItem){
-      $("#shop-msg").textContent = `Got item: ${r.gotItem.name} (T${r.gotItem.tier})`;
-    } else {
-      $("#shop-msg").textContent = "OK";
-    }
-
-    // osvježi indikator “Buys to next recipe” preko /api/me
-    await loadMe();
-
-    // osvježi panele
-    loadInventoryPanel(); 
-    loadRecipes(); 
-    loadInventoryFull();
-  }catch(e){ alert(e.message); }
-});
-
+      <!-- SHOP -->
+      <div id="tab-shop" class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="label">Buy T1 (100s)</div>
+          <span id="buysToNext" class="muted">Buys to next recipe: —</span>
+        </div>
+        <div class="row">
+          <button id="btn-buy-t1" class="btn">Buy</button>
+          <div id="shop-msg" class="muted"></div>
+        </div>
+      </div>
 
       <!-- Crafting -->
       <div id="tab-craft" class="card hidden">
@@ -173,18 +137,21 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
   <div id="toast" class="toast hidden"></div>
 
 <script>
-const $ = s=>document.querySelector(s); const $$ = s=>Array.from(document.querySelectorAll(s));
+const $  = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
+
 const api = async (p,opts={})=>{
   const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
   let data=null; try{data=await r.json()}catch{}
   if(!r.ok) throw new Error((data&&data.error)||("HTTP "+r.status));
   return data;
 };
-function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
 
 let WHO=null; let SEL_INV=null; // { kind, id, name, tier }
 let INVENTORY_CACHE = { items: [], recipes: [] };
 
+// Tabs
 function setTab(tab){
   $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
   $("#tab-shop").classList.toggle("hidden", tab!=="shop");
@@ -194,16 +161,36 @@ function setTab(tab){
 }
 $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
 
-<script>
-// --- loadMe + balance render (REPLACE THIS BLOCK) ---
+// Auth
+$("#btn-register").addEventListener("click", async ()=>{
+  $("#reg-msg").textContent="…";
+  try{
+    await api("/api/register",{method:"POST",body:JSON.stringify({email:$("#reg-email").value, password:$("#reg-pass").value})});
+    $("#reg-msg").textContent="OK — now log in.";
+  }catch(e){ $("#reg-msg").textContent=e.message; }
+});
+$("#btn-login").addEventListener("click", async ()=>{
+  $("#log-msg").textContent="…";
+  try{
+    await api("/api/login",{method:"POST",body:JSON.stringify({email:$("#log-email").value, password:$("#log-pass").value})});
+    $("#log-msg").textContent="OK";
+    await loadMe();
+    setTab("shop");
+  }catch(e){ $("#log-msg").textContent=e.message; }
+});
+$("#btn-logout").addEventListener("click", async ()=>{
+  try{ await api("/api/logout"); }catch{}
+  WHO=null; $("#who").textContent="Not logged in"; $("#balance").textContent="0g 0s";
+  $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden");
+});
+
+// loadMe + balance render
 async function loadMe(){
   try{
-    // sigurnije učitavanje /api/me
     const resp = await fetch("/api/me", { credentials:"include" });
     const r = resp.ok ? await resp.json() : null;
 
     if (!r || !r.ok || !r.user){
-      // not logged → pokaži auth
       $("#auth").classList.remove("hidden");
       $("#app").classList.add("hidden");
       $("#who").textContent = "Not logged in";
@@ -211,69 +198,56 @@ async function loadMe(){
       return;
     }
 
-    // logged in → pokaži app
     WHO = r.user;
     $("#auth").classList.add("hidden");
     $("#app").classList.remove("hidden");
     $("#who").textContent = WHO.email;
     $("#btn-logout").classList.remove("hidden");
-
     renderBalance();
-    if (typeof WHO.buys_to_next === "number")
-      $("#buysToNext").textContent = "Buys to next recipe: " + WHO.buys_to_next;
-    else
-      $("#buysToNext").textContent = "Buys to next recipe: —";
+    $("#buysToNext").textContent = (typeof WHO.buys_to_next==="number")
+      ? ("Buys to next recipe: "+WHO.buys_to_next)
+      : "Buys to next recipe: —";
 
-    // inicijalna učitavanja (inventar prvo)
     await loadInventoryPanel();
     loadRecipes();
     loadMarket();
     loadMine();
     loadInventoryFull();
-  }catch(_e){
-    // u slučaju greške također pokaži auth
+  }catch{
     $("#auth").classList.remove("hidden");
     $("#app").classList.add("hidden");
     $("#who").textContent = "Not logged in";
     $("#btn-logout").classList.add("hidden");
   }
 }
-
 function renderBalance(){
-  if (!WHO) return;
-  $("#balance").textContent =
-    `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
+  if(!WHO) return;
+  $("#balance").textContent = `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
 }
-// --- end loadMe + balance render ---
-</script>
 
-// -------- SHOP
+// SHOP
 $("#btn-buy-t1").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-    // Backend vraća { balance_silver, gotItem?, gotRecipe? }
     WHO.balance_silver = r.balance_silver;
     renderBalance();
-    if (r.gotRecipe) {
+    if (r.gotRecipe){
       $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
-    } else if (r.gotItem) {
+    } else if (r.gotItem){
       $("#shop-msg").textContent = `Got item: ${r.gotItem.name} (T${r.gotItem.tier})`;
     } else {
       $("#shop-msg").textContent = "OK";
     }
-    // osvježi buys_to_next preko /api/me
-    await loadMe();
-    // osvježi prikaze
+    await loadMe(); // refresh buys_to_next
     await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
   }catch(e){ alert(e.message); }
 });
 
-// -------- CRAFTING
-// Nema /api/recipes/* na backendu, pa listamo recepte iz /api/inventory
+// Crafting
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
-    // koristimo cache iz loadInventoryPanel (ako postoji); ako ne, dohvati
+    // koristi cache iz loadInventoryPanel; ako nema, dohvati
     if (!INVENTORY_CACHE.recipes.length) {
       const inv = await api("/api/inventory");
       INVENTORY_CACHE = inv;
@@ -300,7 +274,6 @@ function recipeDetailsHTML(rec){
     `<div class="itemrow"><button id="btn-craft" class="btn">Craft</button><span class="muted">10% fail → Scrap (server checks ingredients)</span></div>`
   ].join("");
 }
-
 async function openRecipe(rec){
   const box=$("#rec-details"); box.textContent="Loading…";
   try{
@@ -316,7 +289,7 @@ async function openRecipe(rec){
     });
   }catch(e){ box.textContent=e.message; }
 }
-
+// Gumb za ARTEFACT
 $("#btn-artefact").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
@@ -326,12 +299,14 @@ $("#btn-artefact").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
-// -------- Inventory panel (for Sales create)
+// Inventory panel (Sales create koristi)
 async function loadInventoryPanel(){
-  const box=$("#inv-list"); box.textContent="Loading…";
+  const box=$("#inv-list"); if(!box) return;
+  box.textContent="Loading…";
   try{
     const r = await api("/api/inventory");
-    const q = $("#inv-search").value.trim().toLowerCase();
+    INVENTORY_CACHE = r;
+    const q = $("#inv-search").value?.trim().toLowerCase() || "";
     const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
     const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
     box.innerHTML="";
@@ -340,19 +315,18 @@ async function loadInventoryPanel(){
         const row=document.createElement("div"); row.className="itemrow";
         row.innerHTML=`<div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div><button class="btn muted">Pick</button>`;
         row.querySelector("button").addEventListener("click", ()=>{
-          // spremi ID (server expects { id })
           SEL_INV = { kind, id: it.id, name: it.name };
           $("#list-msg").textContent = "Selected: "+it.name;
         });
         box.appendChild(row);
       }
     };
-    add(items,"item"); 
+    add(items,"item");
     add(recipes,"recipe");
     if (!box.children.length) box.textContent="Empty.";
   }catch(e){ box.textContent=e.message; }
 }
-$("#inv-search").addEventListener("input", loadInventoryPanel);
+$("#inv-search")?.addEventListener("input", loadInventoryPanel);
 
 // Create sale
 $("#btn-list").addEventListener("click", async ()=>{
@@ -365,19 +339,17 @@ $("#btn-list").addEventListener("click", async ()=>{
     const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
     await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
     $("#list-msg").textContent="Listed.";
-    SEL_INV=null; 
-    loadMarket(); 
-    loadMine(); 
-    loadInventoryPanel();
+    SEL_INV=null;
+    loadMarket(); loadMine(); loadInventoryPanel();
   }catch(e){ alert(e.message); }
 });
 
-
 // Market & Mine
 async function loadMarket(){
-  const box=$("#market"); box.textContent="Loading…";
+  const box=$("#market"); if(!box) return;
+  box.textContent="Loading…";
   try{
-    const q=$("#market-q").value.trim();
+    const q=$("#market-q").value?.trim() || "";
     const url = "/api/sales/live" + (q?("?q="+encodeURIComponent(q)):"");
     const r = await api(url);
     const rows = r.listings || [];
@@ -403,10 +375,11 @@ async function loadMarket(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#market-q").addEventListener("input", loadMarket);
+$("#market-q")?.addEventListener("input", loadMarket);
 
 async function loadMine(){
-  const box=$("#mine"); box.textContent="Loading…";
+  const box=$("#mine"); if(!box) return;
+  box.textContent="Loading…";
   try{
     const r = await api("/api/sales/mine");
     const rows = r.listings || [];
@@ -433,11 +406,12 @@ async function loadMine(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#btn-mine").addEventListener("click", loadMine);
+$("#btn-mine")?.addEventListener("click", loadMine);
 
 // Full Inventory tab
 async function loadInventoryFull(){
-  const box=$("#inv-full"); box.textContent="Loading…";
+  const box=$("#inv-full"); if(!box) return;
+  box.textContent="Loading…";
   try{
     const r = await api("/api/inventory");
     const lines=[];
@@ -456,5 +430,3 @@ loadMe();
 </script>
 </body>
 </html>
-
-
