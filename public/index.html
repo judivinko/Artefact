@@ -6,7 +6,6 @@
 <title>ARTEFACT</title>
 <link rel="stylesheet" href="/app.css" />
 <style>
-  /* sitni dodaci samo za ovaj file */
   .hidden{display:none}
   .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
   .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
@@ -53,7 +52,7 @@
       <div class="tabbar row">
         <div class="chip active" data-tab="shop">Shop</div>
         <div class="chip" data-tab="craft">Crafting</div>
-        <div class="chip" data-tab="sales">Sales</div>
+        <div class="chip" data-tab="market">Market</div>
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
@@ -70,66 +69,32 @@
       </div>
 
       <!-- Crafting -->
-<div id="tab-craft" class="card hidden">
-  <div class="row">
-    <div class="label">Crafting</div>
-    <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
-  </div>
-  <div class="grid">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Recipes you own</div>
+      <div id="tab-craft" class="card hidden">
         <div class="row">
-          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
+          <div class="label">Crafting</div>
+          <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="row" style="justify-content:space-between">
+              <div class="label">Recipes you own</div>
+              <div class="row">
+                <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+                <button id="btn-refresh-rec" class="btn muted">Refresh</button>
+              </div>
+            </div>
+            <div id="recipes" class="list">Loading…</div>
+          </div>
+          <div class="card">
+            <div class="label">Details</div>
+            <div id="rec-details" class="list">Select a recipe on the left.</div>
+          </div>
         </div>
       </div>
-      <div id="recipes" class="list">Loading…</div>
-    </div>
-    <div class="card">
-      <div class="label">Details</div>
-      <div id="rec-details" class="list">Select a recipe on the left.</div>
-    </div>
-  </div>
-</div>
 
-<!-- Sales -->
-<div id="tab-sales" class="card hidden">
-  <div class="label">Sales (Marketplace)</div>
-  <div class="grid">
-    <div class="card">
-      <div class="label">Create Sale</div>
-      <input id="inv-search" class="input" placeholder="Search your inventory..." />
-      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-      <div class="row" style="margin-top:8px">
-        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-        <button id="btn-list" class="btn">List for sale</button>
-      </div>
-      <div id="list-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Marketplace</div>
-        <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
-      </div>
-      <div id="market" class="list">Loading…</div>
-
-      <div class="row" style="justify-content:space-between;margin-top:12px">
-        <div class="label">My listings</div>
-        <button id="btn-mine" class="btn muted">Reload</button>
-      </div>
-      <div id="mine" class="list">Loading…</div>
-    </div>
-  </div>
-</div>
-
-
-      <!-- Sales -->
-      <div id="tab-sales" class="card hidden">
-        <div class="label">Sales (Marketplace)</div>
+      <!-- Market (Create Sale + Marketplace + Mine) -->
+      <div id="tab-market" class="card hidden">
+        <div class="label">Market</div>
         <div class="grid">
           <div class="card">
             <div class="label">Create Sale</div>
@@ -182,16 +147,16 @@ const api = async (p,opts={})=>{
   return data;
 };
 
-let WHO=null; let SEL_INV=null; // { kind, id, name, tier }
+let WHO=null; let SEL_INV=null; // { kind, id, name }
 let INVENTORY_CACHE = { items: [], recipes: [] };
 
 // Tabs
 function setTab(tab){
   $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
-  $("#tab-shop").classList.toggle("hidden", tab!=="shop");
-  $("#tab-craft").classList.toggle("hidden", tab!=="craft");
-  $("#tab-sales").classList.toggle("hidden", tab!=="sales");
-  $("#tab-inv").classList.toggle("hidden", tab!=="inv");
+  $("#tab-shop").classList.toggle("hidden",   tab!=="shop");
+  $("#tab-craft").classList.toggle("hidden",  tab!=="craft");
+  $("#tab-market").classList.toggle("hidden", tab!=="market");
+  $("#tab-inv").classList.toggle("hidden",    tab!=="inv");
 }
 $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
 
@@ -277,9 +242,7 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
-// -------- CRAFTING
-// Koristimo dedicated /api/recipes/* rute, i craftamo na /api/craft/do
-
+// -------- CRAFTING (dedicated /api/recipes/* i /api/craft/*)
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
@@ -348,8 +311,9 @@ $("#btn-artefact").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
+// ===== Market =====
 
-// Inventory panel (Sales create koristi)
+// Inventory panel (Create Sale)
 async function loadInventoryPanel(){
   const box=$("#inv-list"); if(!box) return;
   box.textContent="Loading…";
@@ -394,7 +358,7 @@ $("#btn-list").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
-// Market & Mine
+// Marketplace
 async function loadMarket(){
   const box=$("#market"); if(!box) return;
   box.textContent="Loading…";
@@ -407,7 +371,9 @@ async function loadMarket(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`;
+      const label = s.name
+        ? `${s.name} <span class="badge">T${s.tier}</span>`
+        : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
       const row=document.createElement("div"); row.className="itemrow";
       row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
                      <div class="row">
@@ -427,6 +393,7 @@ async function loadMarket(){
 }
 $("#market-q")?.addEventListener("input", loadMarket);
 
+// My listings
 async function loadMine(){
   const box=$("#mine"); if(!box) return;
   box.textContent="Loading…";
@@ -437,7 +404,9 @@ async function loadMine(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`;
+      const label = s.name
+        ? `${s.name} <span class="badge">T${s.tier}</span>`
+        : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
       const row=document.createElement("div"); row.className="itemrow";
       row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
                      <div class="row">
@@ -480,6 +449,3 @@ loadMe();
 </script>
 </body>
 </html>
-
-
-
