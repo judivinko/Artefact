@@ -167,7 +167,8 @@ const api = async (p,opts={})=>{
 };
 function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
 
-let WHO=null; let SEL_INV=null; // selected item/recipe to list
+let WHO=null; let SEL_INV=null; // { kind, id, name, tier }
+let INVENTORY_CACHE = { items: [], recipes: [] };
 
 function setTab(tab){
   $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
@@ -188,7 +189,8 @@ async function loadMe(){
     renderBalance();
     if (typeof WHO.buys_to_next==="number") $("#buysToNext").textContent = "Buys to next recipe: "+WHO.buys_to_next; else $("#buysToNext").textContent = "Buys to next recipe: —";
     // initial loads
-    loadRecipes(); loadInventoryPanel(); loadMarket(); loadMine(); loadInventoryFull();
+    await loadInventoryPanel(); // also fills INVENTORY_CACHE
+    loadRecipes(); loadMarket(); loadMine(); loadInventoryFull();
   }catch{ $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden"); }
 }
 function renderBalance(){
@@ -222,28 +224,42 @@ $("#btn-logout").addEventListener("click", async ()=>{
 $("#btn-buy-t1").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+    // Backend vraća { balance_silver, gotItem?, gotRecipe? }
     WHO.balance_silver = r.balance_silver;
     renderBalance();
-    $("#shop-msg").textContent = r.got==="item" ? ("Got item: "+r.name) : ("Got recipe: "+r.name);
-    if (typeof r.buys_to_next==="number") $("#buysToNext").textContent = "Buys to next recipe: "+r.buys_to_next;
-    loadInventoryPanel(); loadRecipes(); loadInventoryFull();
+    if (r.gotRecipe) {
+      $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
+    } else if (r.gotItem) {
+      $("#shop-msg").textContent = `Got item: ${r.gotItem.name} (T${r.gotItem.tier})`;
+    } else {
+      $("#shop-msg").textContent = "OK";
+    }
+    // osvježi buys_to_next preko /api/me
+    await loadMe();
+    // osvježi prikaze
+    await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
   }catch(e){ alert(e.message); }
 });
 
 // -------- CRAFTING
+// Nema /api/recipes/* na backendu, pa listamo recepte iz /api/inventory
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
-    const r = await api("/api/recipes/list");
+    // koristimo cache iz loadInventoryPanel (ako postoji); ako ne, dohvati
+    if (!INVENTORY_CACHE.recipes.length) {
+      const inv = await api("/api/inventory");
+      INVENTORY_CACHE = inv;
+    }
     const q = $("#filter-recipe").value.trim().toLowerCase();
-    const rows = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+    const rows = (INVENTORY_CACHE.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
     if (!rows.length){ box.textContent="No recipes."; return; }
     box.innerHTML="";
     for (const rec of rows){
       const row=document.createElement("div"); row.className="itemrow";
       row.innerHTML = `<div><b>${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
                        <button class="btn muted">Open</button>`;
-      row.querySelector("button").addEventListener("click",()=>openRecipe(rec.id));
+      row.querySelector("button").addEventListener("click",()=>openRecipe(rec));
       box.appendChild(row);
     }
   }catch(e){ box.textContent=e.message; }
@@ -251,23 +267,24 @@ async function loadRecipes(){
 $("#btn-refresh-rec").addEventListener("click", loadRecipes);
 $("#filter-recipe").addEventListener("input", loadRecipes);
 
-async function openRecipe(id){
+function recipeDetailsHTML(rec){
+  return [
+    `<div class="itemrow"><div><b>${rec.name}</b> <span class="badge">T${rec.tier}</span></div></div>`,
+    `<div class="itemrow"><button id="btn-craft" class="btn">Craft</button><span class="muted">10% fail → Scrap (server checks ingredients)</span></div>`
+  ].join("");
+}
+
+async function openRecipe(rec){
   const box=$("#rec-details"); box.textContent="Loading…";
   try{
-    const r = await api("/api/recipes/ingredients/"+id);
-    if (!r || !r.recipe){ box.textContent="Recipe not found."; return; }
-    const lines=[];
-    lines.push(`<div class="itemrow"><div><b>${r.recipe.name}</b> <span class="badge">T${r.recipe.tier}</span></div></div>`);
-    for(const ing of (r.ingredients||[])){
-      lines.push(`<div class="itemrow"><div>${ing.name}</div><div class="muted">${ing.have}/${ing.qty}</div></div>`);
-    }
-    lines.push(`<div class="itemrow"><button id="btn-craft" class="btn">Craft</button><span class="muted">10% fail → Scrap</span></div>`);
-    box.innerHTML = lines.join("");
+    box.innerHTML = recipeDetailsHTML(rec);
     $("#btn-craft").addEventListener("click", async ()=>{
       try{
-        const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id:id})});
-        toast(r2.result==="success" ? ("Crafted: "+(r.recipe.name||"item")) : "Failed (got Scrap)");
-        loadInventoryPanel(); loadRecipes(); loadInventoryFull();
+        const r2 = await api("/api/craft/recipe",{method:"POST",body:JSON.stringify({recipe_code: rec.code})});
+        if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+        else if (r2.scrap) toast("Failed (got Scrap)");
+        else toast("Done");
+        await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
       }catch(e){ alert(e.message); }
     });
   }catch(e){ box.textContent=e.message; }
@@ -276,8 +293,9 @@ async function openRecipe(id){
 $("#btn-artefact").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-    alert("Crafted: "+(r.crafted||"Artefact"));
-    loadInventoryPanel(); loadInventoryFull();
+    const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
+    alert("Crafted: "+ name);
+    await loadInventoryPanel(); loadInventoryFull();
   }catch(e){ alert(e.message); }
 });
 
@@ -286,6 +304,7 @@ async function loadInventoryPanel(){
   const box=$("#inv-list"); box.textContent="Loading…";
   try{
     const r = await api("/api/inventory");
+    INVENTORY_CACHE = r; // spremi za craft/market
     const q = $("#inv-search").value.trim().toLowerCase();
     const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
     const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
@@ -295,7 +314,7 @@ async function loadInventoryPanel(){
         const row=document.createElement("div"); row.className="itemrow";
         row.innerHTML=`<div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div><button class="btn muted">Pick</button>`;
         row.querySelector("button").addEventListener("click", ()=>{
-          SEL_INV = { kind, code: it.code, recipe_code: it.code, qty:1, name:it.name };
+          SEL_INV = { kind, id: (kind==="item"? it.id : it.id), name: it.name, tier: it.tier };
           $("#list-msg").textContent = "Selected: "+it.name;
         });
         box.appendChild(row);
@@ -307,18 +326,17 @@ async function loadInventoryPanel(){
 }
 $("#inv-search").addEventListener("input", loadInventoryPanel);
 
-// Create sale
+// Create sale -> backend: POST /api/sales/list { kind, id, qty, gold, silver }
 $("#btn-list").addEventListener("click", async ()=>{
   try{
     if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
     const gold=parseInt($("#price-g").value||"0",10)||0;
     const silver=parseInt($("#price-s").value||"0",10)||0;
     const qty=parseInt($("#price-qty").value||"1",10)||1;
-    const body = { kind: SEL_INV.kind, qty, gold, silver };
-    if (SEL_INV.kind==="item") body.code = SEL_INV.code; else body.recipe_code = SEL_INV.recipe_code;
-    await api("/api/sales/create",{method:"POST",body:JSON.stringify(body)});
+    const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
+    await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
     $("#list-msg").textContent="Listed.";
-    SEL_INV=null; loadMarket(); loadMine(); loadInventoryPanel();
+    SEL_INV=null; await loadMarket(); await loadMine(); await loadInventoryPanel();
   }catch(e){ alert(e.message); }
 });
 
@@ -327,14 +345,15 @@ async function loadMarket(){
   const box=$("#market"); box.textContent="Loading…";
   try{
     const q=$("#market-q").value.trim();
-    const r = await api("/api/sales/market"+(q?("?q="+encodeURIComponent(q)):""));
-    const rows=r.sales||[];
+    const r = await api("/api/sales/live"+(q?("?q="+encodeURIComponent(q)):""));
+    const rows=r.listings||[];
     if(!rows.length){ box.textContent="No listings."; return; }
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor(s.price_s/100), ss=s.price_s%100;
+      const label = (s.kind==='item' ? `Item #${s.item_id||'-'}` : `Recipe #${s.recipe_id||'-'}`);
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${s.name} <span class="muted">x${s.qty}</span></div>
+      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        <button class="btn">Buy</button>
@@ -343,7 +362,7 @@ async function loadMarket(){
         try{
           await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
           toast("Purchased.");
-          loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
+          await loadMarket(); await loadMine(); await loadInventoryPanel(); await loadInventoryFull(); await loadMe();
         }catch(e){ alert(e.message); }
       });
       box.appendChild(row);
@@ -356,13 +375,14 @@ async function loadMine(){
   const box=$("#mine"); box.textContent="Loading…";
   try{
     const r = await api("/api/sales/mine");
-    const rows=r.sales||[];
+    const rows=r.listings||[];
     if(!rows.length){ box.textContent="No listings."; return; }
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor(s.price_s/100), ss=s.price_s%100;
+      const label = (s.kind==='item' ? `Item #${s.item_id||'-'}` : `Recipe #${s.recipe_id||'-'}`);
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${s.name} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
+      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
@@ -371,7 +391,7 @@ async function loadMine(){
         row.querySelector("button").addEventListener("click", async ()=>{
           try{
             await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-            loadMarket(); loadMine(); loadInventoryPanel();
+            await loadMarket(); await loadMine(); await loadInventoryPanel();
           }catch(e){ alert(e.message); }
         });
       }
