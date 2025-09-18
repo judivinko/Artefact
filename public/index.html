@@ -6,371 +6,437 @@
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css"/>
   <style>
-    .tabs{display:flex;gap:8px;margin:8px 0}
-    .tab{padding:8px 14px;border-radius:10px;background:#0f172a;border:1px solid #26334a;cursor:pointer}
-    .tab.active{background:#0b1220;color:#93c5fd;border-color:#33507a}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-    .card{background:#0b1220;border:1px solid #26334a;border-radius:12px;padding:12px}
-    .list{max-height:420px;overflow:auto;border:1px solid #223049;border-radius:10px}
-    .li{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #182132}
-    .li:last-child{border-bottom:0}
-    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-    .pill{font-size:11px;padding:2px 6px;border-radius:999px;background:#132030;color:#9cc1ff;margin-left:8px}
-    .btn{padding:8px 12px;border-radius:10px;background:#16a34a;color:#041018;border:0;cursor:pointer}
-    .btn.secondary{background:#0f172a;color:#cbd5e1;border:1px solid #2a3b55}
-    .btn.danger{background:#b91c1c;color:#fff}
-    .btn.small{padding:6px 10px;font-size:13px}
-    .input{padding:8px 10px;border-radius:10px;border:1px solid #26334a;background:#0b1220;color:#e2e8f0}
-    .muted{opacity:.85}
+    :root{
+      --bg:#0b1220;--card:#0f172a;--line:#233047;--muted:#94a3b8;--text:#e2e8f0;
+      --accent:#14b8a6;--accent-2:#22c55e;--chip:#1f2937;--danger:#ef4444;
+    }
+    body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1100px;margin:16px auto;padding:0 12px}
+    .header{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .brand{font-weight:800;letter-spacing:.3px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .tabs{display:flex;gap:8px;margin:10px 0}
+    .tab{padding:8px 14px;border-radius:10px;background:#0e1a2d;border:1px solid var(--line);cursor:pointer}
+    .tab.active{background:#0d253b;outline:1px solid #1f3b5a}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);font-size:12px;color:#93c5fd}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);font-size:12px}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#12314b;color:var(--text);cursor:pointer}
+    .btn:hover{filter:brightness(1.08)}
+    .btn.primary{background:#0f766e;border-color:#0f766e}
+    .btn.good{background:#166534;border-color:#166534}
+    .btn.warn{background:#3b1113;border-color:#7f1d1d}
+    .btn.small{padding:6px 10px;font-size:14px}
+    .btn[disabled]{opacity:.6;pointer-events:none}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:1000px){.two{grid-template-columns:1fr}}
+    input,select{background:#0b1220;border:1px solid var(--line);color:var(--text);padding:8px;border-radius:10px}
+    .list{border:1px solid var(--line);border-radius:10px;overflow:auto}
+    .row-item{display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid #152036}
+    .row-item:last-child{border-bottom:0}
+    .muted{color:var(--muted)}
     .right{float:right}
-    .title{font-weight:700;margin:0 0 8px}
-    .hint{font-size:12px;opacity:.85}
-    .space{height:8px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .label{font-size:13px;color:#cbd5e1;margin-bottom:6px}
+    .table{width:100%;border-collapse:collapse}
+    .table td,.table th{padding:8px;border-bottom:1px solid #17233a}
+    .kpi{padding:6px 10px;background:#0e1a2d;border:1px solid var(--line);border-radius:999px}
+    .sp{height:8px}
+    .ok{color:#22c55e}.err{color:#ef4444}
+    .search{width:100%}
   </style>
 </head>
 <body>
+<div class="wrap">
+
+  <!-- HEADER -->
   <header class="header">
-    <div class="brand">ARTEFACT</div>
-    <div>
+    <div class="row">
+      <div class="brand">ARTEFACT</div>
+      <span id="kpi-balance" class="kpi">—</span>
+      <span id="kpi-next" class="kpi">Buys to next recipe: —</span>
+    </div>
+    <div class="row">
       <span id="who" class="muted">—</span>
-      <span id="wallet" class="pill">0g 0s</span>
-      <span id="next" class="pill">Buys to next recipe: —</span>
-      <button id="btn-logout" class="btn secondary small">Log out</button>
-      <a class="btn secondary small" href="/admin" style="margin-left:8px">Admin</a>
+      <button id="btn-admin" class="btn small" style="display:none" onclick="location.href='/admin'">Admin</button>
+      <button id="btn-logout" class="btn small">Log out</button>
     </div>
   </header>
 
-  <main class="container">
-    <!-- AUTH -->
-    <section id="auth" class="card" style="display:none">
-      <div class="title">Login / Register</div>
-      <div class="row">
-        <input id="auth-email" class="input" placeholder="email"/>
-        <input id="auth-pass" class="input" placeholder="password" type="password"/>
-        <button id="btn-login" class="btn">Login</button>
-        <button id="btn-register" class="btn secondary">Register</button>
-      </div>
-      <div id="auth-msg" class="muted" style="margin-top:6px"></div>
-    </section>
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="shop">Shop</button>
+    <button class="tab" data-tab="craft">Crafting</button>
+    <button class="tab" data-tab="sales">Sales</button>
+  </nav>
 
-    <!-- NAV -->
-    <div class="tabs">
-      <button class="tab active" data-tab="shop">Shop</button>
-      <button class="tab" data-tab="craft">Crafting</button>
-      <button class="tab" data-tab="sales">Sales</button>
-      <button class="tab" data-tab="inv">Inventory</button>
+  <!-- SHOP (T1 + INVENTORY) -->
+  <section id="tab-shop" class="card">
+    <div class="label">Shop (T1 only)</div>
+    <div class="row">
+      <button id="btn-buy-t1" class="btn primary">Buy T1 Pack (1g)</button>
+      <span id="shop-msg" class="muted"></span>
     </div>
 
-    <!-- SHOP -->
-    <section id="tab-shop" class="card">
-      <div class="title">Shop (T1 only)</div>
-      <p class="muted">Each purchase costs <b>1 gold</b> (100 silver). You either get a random T1 material or a weighted recipe drop (T2–T5/T6: 800/150/37/12/1 per 1000).</p>
-      <button id="btn-buy-t1" class="btn">Buy T1 Pack (1g)</button>
-      <div id="shop-msg" class="muted" style="margin-top:8px"></div>
-    </section>
+    <div class="sp"></div>
+    <div class="label">Inventory</div>
+    <div id="inv-box" class="list" style="max-height:420px"></div>
+  </section>
 
-    <!-- CRAFTING -->
-    <section id="tab-craft" class="grid2" style="display:none">
-      <div class="card">
+  <!-- CRAFTING -->
+  <section id="tab-craft" class="card" style="display:none">
+    <div class="two">
+      <!-- LEFT -->
+      <div>
         <div class="row" style="justify-content:space-between">
-          <div class="title">Recipes you own</div>
+          <div class="label">Recipes you own</div>
           <div class="row">
-            <input id="recipes-filter" class="input" style="width:220px" placeholder="filter by name…"/>
-            <button id="btn-recipes-refresh" class="btn secondary small">Refresh</button>
+            <input id="rcp-search" class="search" placeholder="filter by name..." style="width:220px"/>
+            <button id="btn-rcp-refresh" class="btn small">Refresh</button>
           </div>
         </div>
-        <div id="recipes" class="list">—</div>
+        <div id="rcp-list" class="list" style="max-height:460px"></div>
       </div>
 
-      <div class="card">
-        <div class="row" style="justify-content:space-between;">
-          <div class="title">Details</div>
-          <button id="btn-craft-artefact" class="btn small">Craft ARTEFACT (10× distinct T5)</button>
+      <!-- RIGHT -->
+      <div>
+        <div class="row" style="justify-content:space-between">
+          <div class="label">Details</div>
+          <button id="btn-artefact" class="btn good small">Craft ARTEFACT (10× distinct T5)</button>
         </div>
-        <div id="recipe-details" class="muted">Select a recipe on the left.</div>
-      </div>
-    </section>
-
-    <!-- SALES -->
-    <section id="tab-sales" class="grid2" style="display:none">
-      <div class="card">
-        <div class="title">Create Sale</div>
-        <input id="inv-search" class="input" style="width:100%;margin-bottom:8px" placeholder="Search your inventory…"/>
-        <div id="inv-list" class="list">—</div>
-
-        <div class="space"></div>
-        <div class="row">
-          <input id="price-g" class="input" style="width:120px" placeholder="Gold"/>
-          <input id="price-s" class="input" style="width:140px" placeholder="Silver (0–99)"/>
-          <input id="price-q" class="input" style="width:80px" placeholder="Qty"/>
-          <button id="btn-list-sale" class="btn">List for sale</button>
+        <div id="rcp-details" class="card" style="min-height:260px">
+          <div class="muted">Select a recipe on the left.</div>
         </div>
-        <div id="sale-msg" class="muted" style="margin-top:8px">Uses fixed-price sales (Buy-Now). Start price = Buy-Now.</div>
       </div>
+    </div>
+  </section>
 
+  <!-- SALES (netaknuto u ovoj izmjeni) -->
+  <section id="tab-sales" class="card" style="display:none">
+    <div class="row" style="justify-content:space-between">
+      <div class="label">Sales (marketplace)</div>
+      <input id="mk-search" class="search" placeholder="Search by name..." style="width:260px"/>
+    </div>
+    <div class="two">
+      <!-- LEFT create -->
+      <div class="card">
+        <div class="label">Create Sale</div>
+        <input id="mk-own-search" class="search" placeholder="Search your inventory..." />
+        <div id="mk-own" class="list" style="max-height:360px;margin-top:8px"></div>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+          <input id="mk-gold" type="number" min="0" step="1" placeholder="Gold" style="width:110px"/>
+          <input id="mk-silver" type="number" min="0" max="99" step="1" placeholder="Silver (0–99)" style="width:140px"/>
+          <input id="mk-qty" type="number" min="1" step="1" placeholder="Qty" style="width:110px"/>
+          <button id="btn-list-sale" class="btn good">List for sale</button>
+          <span id="mk-msg" class="muted"></span>
+        </div>
+      </div>
+      <!-- RIGHT live + mine -->
       <div class="card">
         <div class="row" style="justify-content:space-between">
-          <div class="title">Marketplace</div>
-          <input id="mkt-search" class="input" style="width:260px" placeholder="Search by name…"/>
+          <div class="label">Marketplace</div>
+          <button id="btn-mk-reload" class="btn small">Reload</button>
         </div>
-        <div id="mkt-list" class="list">—</div>
-
-        <div class="space"></div>
+        <div id="mk-live" class="list" style="max-height:200px"></div>
+        <div class="sp"></div>
         <div class="row" style="justify-content:space-between">
-          <div class="title">My listings</div>
-          <button id="btn-my-reload" class="btn secondary small">Reload</button>
+          <div class="label">My listings</div>
+          <button id="btn-my-reload" class="btn small">Reload</button>
         </div>
-        <div id="my-sales" class="list">—</div>
+        <div id="mk-mine" class="list" style="max-height:160px"></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- INVENTORY -->
-    <section id="tab-inv" class="card" style="display:none">
-      <div class="title">Inventory</div>
-      <div id="inv-view" class="list">—</div>
-    </section>
-  </main>
+  <!-- AUTH -->
+  <section id="auth" class="card" style="display:none;max-width:560px;margin:40px auto">
+    <div class="label">Sign in</div>
+    <div class="row">
+      <input id="a-email" type="email" placeholder="email@example.com" style="width:260px"/>
+      <input id="a-pass" type="password" placeholder="password" style="width:180px"/>
+      <button id="a-login" class="btn primary">Login</button>
+      <button id="a-register" class="btn">Register</button>
+    </div>
+    <div id="a-msg" class="muted" style="margin-top:8px"></div>
+  </section>
+
+</div>
 
 <script>
-const $ = s => document.querySelector(s);
-const el = s => document.createElement(s);
-
-function setTabs(active){
-  document.querySelectorAll('.tab').forEach(t=>{
-    const ok = t.dataset.tab===active;
-    t.classList.toggle('active', ok);
-  });
-  ['shop','craft','sales','inv'].forEach(id=>{
-    $('#tab-'+id).style.display = (id===active)?'grid':(id==='shop'?'block':'none');
-  });
-}
-
-async function api(path, opts={}){
-  const res = await fetch(path, { credentials:'include', headers:{'Content-Type':'application/json'}, ...opts});
-  let data = null; try{ data = await res.json(); }catch{}
-  if(!res.ok) throw new Error((data && data.error) || ('HTTP '+res.status));
-  return data;
-}
-
-function fmtMoney(s){ s = s|0; return `${Math.floor(s/100)}g ${s%100}s`; }
-
-async function loadMe(){
-  try{
-    const r = await api('/api/me');
-    const u = r.user;
-    $('#auth').style.display = 'none';
-    $('#who').textContent = u.email;
-    $('#wallet').textContent = `${u.gold}g ${u.silver}s`;
-    $('#next').textContent = 'Buys to next recipe: ' + (u.buys_to_next==null?'—':u.buys_to_next);
-  }catch{
-    $('#auth').style.display = 'block';
+  // ---------- helpers
+  const $ = s => document.querySelector(s);
+  const el = (tag, cls, txt) => { const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
+  async function api(path, opts={}){
+    const res = await fetch(path, {credentials:'include', headers:{'Content-Type':'application/json', ...(opts.headers||{})}, ...opts});
+    let data = null; try{ data = await res.json(); }catch{}
+    if(!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+    return data;
   }
-}
+  const fmtMoney = s => `${Math.floor(s/100)}g ${s%100}s`;
 
-/* -------- AUTH -------- */
-$('#btn-login').onclick = async()=>{
-  try{
-    const email=$('#auth-email').value.trim(), password=$('#auth-pass').value;
-    await api('/api/login',{method:'POST',body:JSON.stringify({email,password})});
-    $('#auth-msg').textContent = 'Logged in.'; await loadMe(); setTabs('shop'); refreshAll();
-  }catch(e){ $('#auth-msg').textContent = e.message; }
-};
-$('#btn-register').onclick = async()=>{
-  try{
-    const email=$('#auth-email').value.trim(), password=$('#auth-pass').value;
-    await api('/api/register',{method:'POST',body:JSON.stringify({email,password})});
-    $('#auth-msg').textContent = 'Registered. Now log in.';
-  }catch(e){ $('#auth-msg').textContent = e.message; }
-};
-$('#btn-logout').onclick = async()=>{ try{ await api('/api/logout'); location.reload(); }catch{} };
+  // ---------- state
+  let ME = null;
+  let INVENTORY = [];    // [{id,code,name,tier,qty}]
+  let INV_MAP = new Map();
+  let RECIPES = [];      // [{id,name,tier,qty}]
+  let SELECTED_RECIPE = null;
+  let PICK_FOR_SALE = null; // {item_id, name, tier}
 
-/* -------- NAV -------- */
-document.querySelectorAll('.tab').forEach(t=>{
-  t.onclick=()=>{ setTabs(t.dataset.tab); if(t.dataset.tab==='craft') loadRecipes(); if(t.dataset.tab==='sales'){ loadInventoryForSales(); loadMarketplace(); loadMySales(); } if(t.dataset.tab==='inv') loadInventoryView(); };
-});
+  function setWho() {
+    if(!ME){ $("#who").textContent = "—"; $("#kpi-balance").textContent = "—"; $("#kpi-next").textContent="Buys to next recipe: —"; $("#btn-admin").style.display='none'; return; }
+    $("#who").textContent = ME.email;
+    $("#kpi-balance").textContent = `${Math.floor((ME.balance_silver||0)/100)}g ${(ME.balance_silver||0)%100}s`;
+    $("#kpi-next").textContent = `Buys to next recipe: ${ME.buys_to_next ?? '—'}`;
+    $("#btn-admin").style.display = ME.is_admin ? '' : 'none';
+  }
 
-/* -------- SHOP -------- */
-$('#btn-buy-t1').onclick = async()=>{
-  try{
-    const r = await api('/api/shop/buy-t1',{method:'POST'});
-    if(r.result_type==='RECIPE'){
-      $('#shop-msg').textContent = `Got recipe: ${r.grantedRecipe.name} [T${r.grantedRecipe.tier}]`;
-    }else{
-      $('#shop-msg').textContent = `Got item: ${r.addedItem.name}`;
+  function setTabs(name){
+    document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.tab===name));
+    ['shop','craft','sales'].forEach(id=> $("#tab-"+id).style.display = (id===name?'':'none'));
+  }
+
+  // ---------- load blocks
+  async function loadMe(){
+    try{
+      const r = await api('/api/me');
+      if(!r || !r.ok){ throw new Error('not auth'); }
+      ME = r.user;
+      setWho();
+      return true;
+    }catch{
+      ME = null; setWho();
+      document.querySelectorAll('section[id^="tab-"]').forEach(s=> s.style.display='none');
+      $('#auth').style.display='';
+      return false;
     }
-    $('#wallet').textContent = `${r.gold}g ${r.silver}s`;
-  }catch(e){ alert(e.message); }
-};
+  }
+  async function loadInventory(){
+    const r = await api('/api/inventory');
+    INVENTORY = (r.items||[]);
+    INV_MAP.clear(); for(const it of INVENTORY) INV_MAP.set(it.id||it.item_id||it.code, it);
+    // render inventory box (Shop page)
+    const box = $("#inv-box"); box.innerHTML='';
+    if(!INVENTORY.length){ box.append(el('div','row-item muted','Empty.')); return; }
+    for(const it of INVENTORY.sort((a,b)=> (a.tier-b.tier) || a.name.localeCompare(b.name))){
+      const row = el('div','row-item');
+      const left = el('div','');
+      left.append(el('span','mono',`[T${it.tier}] `), el('span','',it.name));
+      const qty = el('div','muted',`x${it.qty}`);
+      row.append(left, qty);
+      box.append(row);
+    }
+  }
+  async function loadRecipes(){
+    const r = await api('/api/recipes');
+    RECIPES = (r.recipes||[]).filter(x => (x.qty||0) > 0);
+    renderRecipeList();
+  }
+  function renderRecipeList(){
+    const q = ($("#rcp-search").value||'').trim().toLowerCase();
+    const box = $("#rcp-list"); box.innerHTML='';
+    const list = RECIPES
+      .filter(r => !q || r.name.toLowerCase().includes(q))
+      .sort((a,b)=> (a.tier-b.tier) || a.name.localeCompare(b.name));
+    if(!list.length){ box.append(el('div','row-item muted','No recipes.')); return; }
+    for(const r of list){
+      const row = el('div','row-item');
+      const l = el('div',''); l.append(el('span','',r.name),' ',el('span','badge',`T${r.tier}`),' ',el('span','muted',`x${r.qty}`));
+      const btn = el('button','btn small','Open');
+      btn.addEventListener('click', ()=> openRecipe(r.id));
+      row.append(l,btn);
+      box.append(row);
+    }
+  }
+  async function openRecipe(id){
+    SELECTED_RECIPE = null;
+    $("#rcp-details").innerHTML = `<div class="muted">Loading…</div>`;
+    try{
+      const r = await api(`/api/recipe/${id}`);
+      const rec = r.recipe || { id, name: r.name, tier: r.tier };
+      const ings = r.ingredients || r.ings || [];
+      SELECTED_RECIPE = { id: rec.id || id, name: rec.name, tier: rec.tier, ings };
 
-/* -------- CRAFTING -------- */
-let RECIPES_CACHE = [];
-async function loadRecipes(){
-  try{
-    const r = await api('/api/my/recipes');
-    RECIPES_CACHE = r.recipes||[];
-    renderRecipes();
-  }catch(e){ $('#recipes').textContent = e.message; }
-}
-function renderRecipes(){
-  const q = ($('#recipes-filter').value||'').toLowerCase();
-  const box = $('#recipes'); box.innerHTML='';
-  const list = RECIPES_CACHE.filter(x=>!q || x.name.toLowerCase().includes(q));
-  if(!list.length){ box.textContent='No recipes.'; return; }
-  list.forEach(r=>{
-    const row = el('div'); row.className='li';
-    const left = el('div'); left.textContent = r.name;
-    const tag = el('span'); tag.className='pill'; tag.textContent = 'T'+r.tier; left.appendChild(tag);
-    const qty = el('span'); qty.className='pill'; qty.textContent = 'x'+(r.qty||0); left.appendChild(qty);
-    const btn = el('button'); btn.className='btn small'; btn.textContent='Open';
-    btn.onclick = ()=> openRecipe(r.id);
-    row.append(left,btn); box.appendChild(row);
-  });
-}
-$('#recipes-filter').oninput = renderRecipes;
-$('#btn-recipes-refresh').onclick = loadRecipes;
+      const wrap = el('div','');
+      wrap.append(el('div','row', `${rec.name} `));
+      const t = el('table','table');
+      const head = el('tr',''); head.append(el('th','','Ingredient'), el('th','','Have / Need'));
+      t.append(head);
+      for(const ing of ings){
+        const need = ing.qty || ing.need || 1;
+        // inventory map can be keyed by item_id or code; try both
+        let have = 0;
+        if (INV_MAP.has(ing.item_id)) have = INV_MAP.get(ing.item_id).qty;
+        else if (INV_MAP.has(ing.code)) have = INV_MAP.get(ing.code).qty;
+        const tr = el('tr','');
+        tr.append(
+          el('td','',`${ing.name} ` + (ing.tier ? `[T${ing.tier}]` : '')),
+          el('td','',`${have} / ${need}`)
+        );
+        t.append(tr);
+      }
+      wrap.append(t);
+      const craftBtn = el('button','btn good','Craft');
+      craftBtn.addEventListener('click', craftSelected);
+      wrap.append(el('div','sp'), craftBtn);
+      $("#rcp-details").innerHTML = ''; $("#rcp-details").append(wrap);
+    }catch(e){
+      $("#rcp-details").innerHTML = `<div class="err">${e.message}</div>`;
+    }
+  }
+  async function craftSelected(){
+    if(!SELECTED_RECIPE){ alert('Open a recipe first.'); return; }
+    try{
+      const r = await api(`/api/craft/${SELECTED_RECIPE.id}`, {method:'POST', body:JSON.stringify({})});
+      alert(r.message || `Crafted: ${r.item?.name || SELECTED_RECIPE.name}`);
+      await Promise.all([loadInventory(), loadRecipes(), loadMe()]);
+      if(SELECTED_RECIPE) openRecipe(SELECTED_RECIPE.id);
+    }catch(e){ alert(e.message); }
+  }
+  async function craftArtefact(){
+    try{
+      const r = await api('/api/craft/artefact', {method:'POST', body:JSON.stringify({})});
+      alert(r.message || 'Crafted: ARTEFACT');
+      await Promise.all([loadInventory(), loadRecipes(), loadMe()]);
+    }catch(e){ alert(e.message); }
+  }
 
-async function openRecipe(id){
-  try{
-    const r = await api('/api/recipes/'+id);
-    const box = $('#recipe-details'); box.innerHTML='';
-    if(!r || !r.recipe){ box.textContent='Recipe not found.'; return; }
-    const h = el('div'); h.innerHTML = `<div class="title">${r.recipe.name} <span class="pill">T${r.recipe.tier}</span></div>`;
-    const ul = el('div'); ul.className='list';
-    (r.ingredients||[]).forEach(ing=>{
-      const li = el('div'); li.className='li';
-      li.innerHTML = `
-        <div>${ing.name || ing.code}<span class="pill">T${ing.tier||'?'}</span></div>
-        <div>${ing.have_qty||0} / ${ing.need_qty||1}</div>
-      `;
-      ul.appendChild(li);
-    });
-    const craftBtn = el('button'); craftBtn.className='btn'; craftBtn.textContent='Craft';
-    craftBtn.onclick = async()=>{
+  // ---------- shop actions
+  async function buyT1(){
+    $("#shop-msg").textContent = 'Working…';
+    try{
+      const r = await api('/api/shop/buy-t1', {method:'POST', body:JSON.stringify({})});
+      $("#shop-msg").textContent = r.drop ? `Got recipe: ${r.drop.name}` : (r.item ? `Got item: ${r.item.name}` : 'Purchased.');
+      await Promise.all([loadInventory(), loadRecipes(), loadMe()]);
+    }catch(e){
+      $("#shop-msg").textContent = e.message;
+    }
+  }
+
+  // ---------- marketplace (ostavljeno minimalno – UI spreman)
+  function renderOwnForSale(){
+    const box = $("#mk-own"); box.innerHTML='';
+    const q = ($("#mk-own-search").value||'').trim().toLowerCase();
+    let list = INVENTORY.filter(x=> x.qty>0);
+    if(q) list = list.filter(x=> x.name.toLowerCase().includes(q));
+    if(!list.length){ box.append(el('div','row-item muted','Empty.')); return; }
+    for(const it of list.sort((a,b)=> (a.tier-b.tier)||a.name.localeCompare(b.name))){
+      const row = el('div','row-item');
+      const l = el('div',''); l.append(el('span','',it.name),' ',el('span','badge',`T${it.tier}`),' ',el('span','muted',`x${it.qty}`));
+      const b = el('button','btn small','Pick'); b.addEventListener('click', ()=>{ PICK_FOR_SALE = { item_id: it.id, name: it.name, tier: it.tier }; $("#mk-msg").textContent = `Selected: ${it.name}`; });
+      row.append(l,b); box.append(row);
+    }
+  }
+  async function listForSale(){
+    if(!PICK_FOR_SALE){ $("#mk-msg").textContent='Pick an item first.'; return; }
+    const g = Math.max(0, parseInt($("#mk-gold").value||'0',10)||0);
+    const s = Math.max(0, Math.min(99, parseInt($("#mk-silver").value||'0',10)||0));
+    const q = Math.max(1, parseInt($("#mk-qty").value||'1',10)||1);
+    const price_s = g*100 + s;
+    $("#mk-msg").textContent='Listing…';
+    try{
+      const r = await api('/api/sales/create', {method:'POST', body:JSON.stringify({ type:'item', item_id:PICK_FOR_SALE.item_id, qty:q, price_s })});
+      $("#mk-msg").textContent = 'Listed.';
+      await Promise.all([loadInventory(), loadMe()]);
+      renderOwnForSale();
+      loadMarketplace();
+      loadMyListings();
+    }catch(e){ $("#mk-msg").textContent = e.message; }
+  }
+  async function loadMarketplace(){
+    const q = ($("#mk-search").value||'').trim();
+    const box = $("#mk-live"); box.innerHTML='Loading…';
+    try{
+      const r = await api('/api/sales/listings'+(q?`?q=${encodeURIComponent(q)}`:'')); // expected server route
+      box.innerHTML='';
+      const rows = (r.list||r.rows||[]);
+      if(!rows.length){ box.append(el('div','row-item muted','No listings.')); return; }
+      for(const a of rows){
+        const row = el('div','row-item');
+        row.append(
+          el('div','', `${a.title||a.name} ` + (a.tier?`[T${a.tier}] `:'') + `x${a.qty}`),
+          el('div','', fmtMoney(a.price_s || a.buy_now_price_s || a.start_price_s || 0))
+        );
+        box.append(row);
+      }
+    }catch(e){
+      box.innerHTML = `<div class="row-item err">${e.message}</div>`;
+    }
+  }
+  async function loadMyListings(){
+    const box = $("#mk-mine"); box.innerHTML='Loading…';
+    try{
+      const r = await api('/api/sales/mine');
+      box.innerHTML='';
+      const rows = (r.list||r.rows||[]);
+      if(!rows.length){ box.append(el('div','row-item muted','None.')); return; }
+      for(const a of rows){
+        const row = el('div','row-item');
+        const l = `${a.title||a.name} x${a.qty} — ${fmtMoney(a.price_s || a.buy_now_price_s || a.start_price_s || 0)}`;
+        const btn = el('button','btn small','Cancel');
+        btn.addEventListener('click', async ()=>{
+          try{ await api(`/api/sales/${a.id}/cancel`, {method:'POST', body:JSON.stringify({})}); await loadMyListings(); await loadMarketplace(); }
+          catch(e){ alert(e.message); }
+        });
+        row.append(el('div','',l), btn);
+        box.append(row);
+      }
+    }catch(e){
+      box.innerHTML = `<div class="row-item err">${e.message}</div>`;
+    }
+  }
+
+  // ---------- init + events
+  document.addEventListener('DOMContentLoaded', async ()=>{
+    // tabs
+    document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', ()=>{
+      setTabs(t.dataset.tab);
+      if(t.dataset.tab==='shop'){ loadInventory(); }
+      if(t.dataset.tab==='craft'){ renderRecipeList(); }
+      if(t.dataset.tab==='sales'){ renderOwnForSale(); loadMarketplace(); loadMyListings(); }
+    }));
+
+    // auth
+    $("#a-login").addEventListener('click', async ()=>{
       try{
-        const out = await api('/api/recipes/'+id+'/craft',{method:'POST'});
-        if(out.crafted){
-          alert('Crafted: '+(out.output?.name || r.recipe.name));
-          loadInventoryView(); loadRecipes();
-        }else if(out.scrap){
-          alert('Craft failed → Scrap received.');
-          loadInventoryView();
-        }
-      }catch(e){ alert(e.message); }
-    };
-    box.append(h, ul, el('div'), craftBtn);
-  }catch(e){ alert(e.message); }
-}
-$('#btn-craft-artefact').onclick = async()=>{
-  try{
-    const r = await api('/api/craft/artefact',{method:'POST'});
-    alert(r.message || 'Crafted ARTEFACT.');
-    loadInventoryView();
-  }catch(e){ alert(e.message); }
-};
-
-/* -------- SALES (fixed price) -------- */
-let SALES_PICK = null;
-async function loadInventoryForSales(){
-  try{
-    const r = await api('/api/my/inventory');
-    const items=[...(r.items||[]),...((r.recipes||[]).map(x=>({...x, recipe:true}))||[])];
-    renderInventoryForSales(items);
-  }catch(e){ $('#inv-list').textContent=e.message; }
-}
-function renderInventoryForSales(items){
-  const q = ($('#inv-search').value||'').toLowerCase();
-  const box = $('#inv-list'); box.innerHTML='';
-  items
-    .filter(x=>x.qty>0)
-    .filter(x=>!q || x.name.toLowerCase().includes(q))
-    .sort((a,b)=> (a.tier-b.tier) || a.name.localeCompare(b.name))
-    .forEach(x=>{
-      const row = el('div'); row.className='li';
-      const left = el('div');
-      left.textContent = x.name+' ';
-      const t=el('span'); t.className='pill'; t.textContent='T'+x.tier; left.appendChild(t);
-      const qx=el('span'); qx.className='pill'; qx.textContent='x'+x.qty; left.appendChild(qx);
-      const btn = el('button'); btn.className='btn small'; btn.textContent='Pick';
-      btn.onclick=()=>{ SALES_PICK = x; $('#sale-msg').textContent='Selected: '+x.name; };
-      row.append(left,btn); box.appendChild(row);
+        const email=$("#a-email").value.trim(), password=$("#a-pass").value;
+        const r = await api('/api/login',{method:'POST', body:JSON.stringify({email,password})});
+        $("#a-msg").textContent = 'Logged in.'; startApp();
+      }catch(e){ $("#a-msg").textContent = e.message; }
     });
-}
-$('#inv-search').oninput = ()=> renderInventoryForSales(SALES_PICK?[]:[]); // rerender on input (list is reloaded from API when entering tab)
-
-$('#btn-list-sale').onclick = async()=>{
-  try{
-    if(!SALES_PICK) throw new Error('Pick an item/recipe first.');
-    const gold = parseInt($('#price-g').value||'0',10)|0;
-    const silver = parseInt($('#price-s').value||'0',10)|0;
-    const qty = Math.max(1, parseInt($('#price-q').value||'1',10)|0);
-    if(silver<0 || silver>99) throw new Error('Silver must be 0–99.');
-    const body = { code: SALES_PICK.code, qty, gold, silver };
-    const r = await api('/api/sales/create',{method:'POST',body:JSON.stringify(body)});
-    $('#sale-msg').textContent = 'Listed: '+(r.sale?.name || SALES_PICK.name)+' @ '+fmtMoney(r.sale?.price_s || (gold*100+silver));
-    SALES_PICK=null; $('#price-q').value=''; loadMarketplace(); loadMySales(); loadInventoryForSales();
-  }catch(e){ alert(e.message); }
-};
-
-async function loadMarketplace(){
-  const q = ($('#mkt-search').value||'').trim();
-  try{
-    const r = await api('/api/sales/live'+(q?('?search='+encodeURIComponent(q)):''));
-    const box = $('#mkt-list'); box.innerHTML='';
-    (r.sales||[]).forEach(s=>{
-      const row = el('div'); row.className='li';
-      const left = el('div'); left.textContent = s.name || s.code;
-      const t=el('span'); t.className='pill'; t.textContent='T'+(s.tier||'?'); left.appendChild(t);
-      const p=el('span'); p.className='pill'; p.textContent=fmtMoney(s.price_s||0); left.appendChild(p);
-      const btn = el('button'); btn.className='btn small'; btn.textContent='Buy';
-      btn.onclick = async()=>{ try{ await api('/api/sales/'+s.id+'/buy',{method:'POST'}); alert('Purchased.'); loadMe(); loadMarketplace(); }catch(e){ alert(e.message); } };
-      row.append(left,btn); box.appendChild(row);
+    $("#a-register").addEventListener('click', async ()=>{
+      try{
+        const email=$("#a-email").value.trim(), password=$("#a-pass").value;
+        const r = await api('/api/register',{method:'POST', body:JSON.stringify({email,password})});
+        $("#a-msg").textContent = 'Registered. You can login now.';
+      }catch(e){ $("#a-msg").textContent = e.message; }
     });
-    if(!(r.sales||[]).length) box.textContent='No listings.';
-  }catch(e){ $('#mkt-list').textContent=e.message; }
-}
-$('#mkt-search').oninput = ()=> loadMarketplace();
+    $("#btn-logout").addEventListener('click', async ()=>{ try{ await api('/api/logout'); }catch{} location.reload(); });
 
-async function loadMySales(){
-  try{
-    const r = await api('/api/sales/mine');
-    const box = $('#my-sales'); box.innerHTML='';
-    (r.sales||[]).forEach(s=>{
-      const row = el('div'); row.className='li';
-      const left = el('div'); left.textContent = (s.name||s.code)+' ';
-      const q=el('span'); q.className='pill'; q.textContent='x'+(s.qty||1); left.appendChild(q);
-      const p=el('span'); p.className='pill'; p.textContent=fmtMoney(s.price_s||0); left.appendChild(p);
-      const st=el('span'); st.className='pill'; st.textContent=s.status; left.appendChild(st);
-      const btn = el('button'); btn.className='btn small secondary'; btn.textContent='Cancel';
-      btn.disabled = (s.status!=='live');
-      btn.onclick = async()=>{ try{ await api('/api/sales/'+s.id+'/cancel',{method:'POST'}); loadMySales(); loadMarketplace(); loadInventoryForSales(); }catch(e){ alert(e.message); }};
-      row.append(left,btn); box.appendChild(row);
-    });
-    if(!(r.sales||[]).length) box.textContent='No listings.';
-  }catch(e){ $('#my-sales').textContent=e.message; }
-}
-$('#btn-my-reload').onclick = loadMySales;
+    // shop
+    $("#btn-buy-t1").addEventListener('click', buyT1);
 
-/* -------- INVENTORY VIEW -------- */
-async function loadInventoryView(){
-  try{
-    const r = await api('/api/my/inventory');
-    const box = $('#inv-view'); box.innerHTML='';
-    const items=[...(r.items||[]),...((r.recipes||[]).map(x=>({...x, recipe:true}))||[])];
-    if(!items.length){ box.textContent='(empty)'; return; }
-    items.sort((a,b)=> (a.tier-b.tier) || a.name.localeCompare(b.name))
-      .forEach(x=>{
-        const row = el('div'); row.className='li';
-        row.innerHTML = `<div>${x.name}<span class="pill">T${x.tier}</span></div><div>x${x.qty}</div>`;
-        box.appendChild(row);
-      });
-  }catch(e){ $('#inv-view').textContent=e.message; }
-}
+    // craft
+    $("#btn-artefact").addEventListener('click', craftArtefact);
+    $("#btn-rcp-refresh").addEventListener('click', async ()=>{ await loadRecipes(); });
+    $("#rcp-search").addEventListener('input', renderRecipeList);
 
-/* -------- INIT -------- */
-function refreshAll(){ loadInventoryView(); loadRecipes(); }
-(async()=>{ await loadMe(); refreshAll(); })();
+    // marketplace
+    $("#mk-own-search").addEventListener('input', renderOwnForSale);
+    $("#btn-list-sale").addEventListener('click', listForSale);
+    $("#btn-mk-reload").addEventListener('click', loadMarketplace);
+    $("#btn-my-reload").addEventListener('click', loadMyListings);
+    $("#mk-search").addEventListener('input', ()=>{ loadMarketplace(); });
+
+    startApp();
+  });
+
+  async function startApp(){
+    const ok = await loadMe();
+    if(!ok){ $('#auth').style.display=''; return; }
+    $('#auth').style.display='none';
+    setTabs('shop');
+    await Promise.all([loadInventory(), loadRecipes()]);
+  }
 </script>
 </body>
 </html>
