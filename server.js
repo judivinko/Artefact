@@ -853,24 +853,43 @@ app.get("/api/sales/live", (req, res) => {
   }
 });
 
-// Moji listingzi
+// MOJI LISTINZI
+// GET /api/sales/mine
 app.get("/api/sales/mine", (req, res) => {
   try {
     const uid = requireAuth(req);
     const rows = db.prepare(`
-      SELECT *
-      FROM auctions
-      WHERE seller_user_id=? AND status IN ('live','paid','canceled')
-      ORDER BY id DESC
+      SELECT a.*,
+             COALESCE(i.name, r.name)  AS name,
+             COALESCE(i.tier, r.tier)  AS tier
+      FROM auctions a
+      LEFT JOIN items   i ON a.type='item'   AND i.id=a.item_id
+      LEFT JOIN recipes r ON a.type='recipe' AND r.id=a.recipe_id
+      WHERE a.seller_user_id=? AND a.status IN ('live','paid','canceled')
+      ORDER BY a.id DESC
       LIMIT 500
     `).all(uid);
-    res.json({ ok: true, listings: rows.map(mapListing) });
+
+    res.json({ ok: true, listings: rows.map(a => ({
+      id: a.id,
+      kind: a.type,
+      item_id: a.item_id,
+      recipe_id: a.recipe_id,
+      qty: a.qty,
+      price_s: a.buy_now_price_s,
+      seller_user_id: a.seller_user_id,
+      status: a.status,
+      start_time: a.start_time,
+      end_time: a.end_time,
+      name: a.name,
+      tier: a.tier
+    }))});
   } catch (e) {
     res.status(401).json({ ok: false, error: String(e.message || e) });
   }
 });
-
-// Create listing (fixed price / buy-now)
+// CREATE LISTING (fixed price / buy-now)
+// body: { kind: 'item'|'recipe', id: number, qty: number, gold: number, silver: number }
 app.post("/api/sales/list", (req, res) => {
   try {
     const uid = requireAuth(req);
@@ -887,6 +906,7 @@ app.post("/api/sales/list", (req, res) => {
     if (price <= 0) throw new Error("Price must be > 0.");
 
     const out = db.transaction(() => {
+      // skini iz inventara
       if (kind === "item") {
         const row = db.prepare(`SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?`)
           .get(uid, targetId);
@@ -899,6 +919,7 @@ app.post("/api/sales/list", (req, res) => {
         db.prepare(`UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?`).run(q, uid, targetId);
       }
 
+      // kreiraj aukciju s fiksnom cijenom (start=buy_now)
       const ins = db.prepare(`
         INSERT INTO auctions
           (seller_user_id,type,item_id,recipe_id,qty,
@@ -917,6 +938,7 @@ app.post("/api/sales/list", (req, res) => {
         addMinutes(nowISO(), 7 * 24 * 60) // 7 days
       );
 
+      // escrow
       db.prepare(`
         INSERT INTO inventory_escrow(auction_id,owner_user_id,type,item_id,recipe_id,qty,created_at)
         VALUES (?,?,?,?,?,?,?)
@@ -1031,5 +1053,6 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
