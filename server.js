@@ -880,62 +880,56 @@ app.get("/api/sales/mine", (req, res) => {
   }
 });
 
-// CREATE LISTING (fixed price)
-// body: { kind: 'item'|'recipe', ref_id: number, qty: number, gold: number, silver: number }
+// -- create listing
 app.post("/api/sales/create", (req, res) => {
+  const tok = verifyTokenFromCookies(req);
+  if (!tok) return res.status(401).json({ ok: false, error: "Not logged in." });
+
   try {
-    const uid = requireAuth(req);
-    const { kind, ref_id, qty, gold, silver } = req.body || {};
-    const isItem = String(kind) === "item";
-    const id = parseInt(ref_id, 10);
-    const qn = Math.max(1, Math.trunc(Number(qty) || 1));
-    const price = toPriceS(gold, silver);
-    if (!id || price <= 0) throw new Error("Bad input.");
+    const { type, item_id, recipe_id, qty = 1, gold = 0, silver = 0 } = req.body || {};
+    const kind = type === "recipe" ? "recipe" : "item";
+    const refId = kind === "item" ? Number(item_id) : Number(recipe_id);
+    const q = Math.max(1, Number(qty) || 1);
+    const priceS = Math.max(0, (Number(gold) || 0) * 100 + (Number(silver) || 0));
+    if (!refId || priceS <= 0) return res.status(400).json({ ok: false, error: "Bad payload." });
 
-    const out = db.transaction(() => {
-      // 1) subtract from user's inventory
-      subInv(uid, isItem ? id : null, isItem ? null : id, qn);
+    // provjeri količinu kod korisnika
+    const inv = (kind === "item")
+      ? db.prepare("SELECT COALESCE(qty,0) AS qty FROM user_items WHERE user_id=? AND item_id=?").get(tok.uid, refId)
+      : db.prepare("SELECT COALESCE(qty,0) AS qty FROM user_recipes WHERE user_id=? AND recipe_id=?").get(tok.uid, refId);
+    if (!inv || inv.qty < q) return res.status(400).json({ ok: false, error: "Not enough quantity." });
 
-      // 2) create auction row as fixed price
-      const now = nowISO();
+    const runTx = db.transaction(() => {
+      // skini iz user inventara
+      if (kind === "item") {
+        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(q, tok.uid, refId);
+      } else {
+        db.prepare("UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?").run(q, tok.uid, refId);
+      }
+
+      // stavi u escrow
       db.prepare(`
-        INSERT INTO auctions
-          (seller_user_id, type, item_id, recipe_id, qty,
-           title, description, start_price_s, buy_now_price_s, fee_bps,
-           status, start_time, end_time, created_at)
-        VALUES
-          (?,?,?,?,?,
-           NULL,NULL, ?, ?, 100,
-           'live', ?, ?, ?)
-      `).run(
-        uid,
-        isItem ? "item" : "recipe",
-        isItem ? id : null,
-        isItem ? null : id,
-        qn,
-        price,               // start_price_s
-        price,               // buy_now_price_s
-        now,
-        addMinutes(now, 365 * 24 * 60), // far in the future
-        now
-      );
-
-      const auctionId = db.prepare(`SELECT last_insert_rowid() AS id`).get().id;
-
-      // 3) move the goods into escrow
-      db.prepare(`
-        INSERT INTO inventory_escrow(auction_id, owner_user_id, item_id, recipe_id, qty, created_at)
+        INSERT INTO inventory_escrow (seller_user_id, type, item_id, recipe_id, qty, created_at)
         VALUES (?,?,?,?,?,?)
-      `).run(auctionId, uid, isItem ? id : null, isItem ? null : id, qn, now);
+      `).run(tok.uid, kind, kind === "item" ? refId : null, kind === "recipe" ? refId : null, q, nowISO());
+      const escrowId = db.prepare("SELECT last_insert_rowid() AS id").get().id;
 
-      return { id: auctionId, price_s: price, qty: qn };
-    })();
+      // kreiraj prodaju (fixed price)
+      const saleId = db.prepare(`
+        INSERT INTO sales (seller_user_id, escrow_id, kind, ref_id, qty, price_s, status, created_at)
+        VALUES (?,?,?,?,?,?, 'live', ?)
+      `).run(tok.uid, escrowId, kind, refId, q, priceS, nowISO()).lastInsertRowid;
 
-    res.json({ ok: true, listing: out });
+      return saleId;
+    });
+
+    const saleId = runTx();
+    res.json({ ok: true, sale_id: saleId });
   } catch (e) {
-    res.status(400).json({ ok: false, error: String(e.message || e) });
+    res.status(500).json({ ok: false, error: String(e.message || e) });
   }
 });
+
 
 // CANCEL LISTING
 // body: { id }
@@ -1036,5 +1030,6 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
