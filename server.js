@@ -517,7 +517,6 @@ return res.json({
       buys_to_next: buysToNext
     }
   });
-});
 
 // =============== ADMIN minimal (UI admin.html oslanja se na ove rute)
 
@@ -1097,6 +1096,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
