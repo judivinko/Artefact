@@ -867,8 +867,20 @@ app.post("/api/sales/list", (req, res) => {
       (Math.max(0, parseInt(silver, 10) || 0) % 100);
     if (price <= 0) throw new Error("Price must be > 0.");
 
+    // listing fee = GOLD dio cijene, u silveru (npr. 8g => 8s)
+    const listingFeeS = Math.floor(price / 100); // gold component as silver
+
     const out = db.transaction(() => {
-      // skini iz inventara
+      // 1) provjera i naplata listing fee-a
+      if (listingFeeS > 0) {
+        const bal = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
+        if (!bal || bal.balance_silver < listingFeeS) throw new Error("Insufficient funds for listing fee.");
+        db.prepare(`UPDATE users SET balance_silver=balance_silver-? WHERE id=?`).run(listingFeeS, uid);
+        db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
+          .run(uid, -listingFeeS, "SALE_LIST_FEE", null, nowISO());
+      }
+
+      // 2) skini iz inventara u escrow
       if (kind === "item") {
         const row = db.prepare(`SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?`)
           .get(uid, targetId);
@@ -881,7 +893,7 @@ app.post("/api/sales/list", (req, res) => {
         db.prepare(`UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?`).run(q, uid, targetId);
       }
 
-      // kreiraj aukciju s fiksnom cijenom (start=buy_now)
+      // 3) kreiraj aukciju (fixed/buy-now)
       const ins = db.prepare(`
         INSERT INTO auctions
           (seller_user_id,type,item_id,recipe_id,qty,
@@ -900,7 +912,7 @@ app.post("/api/sales/list", (req, res) => {
         addMinutes(nowISO(), 7 * 24 * 60) // 7 days
       );
 
-      // escrow
+      // 4) escrow zapis
       db.prepare(`
         INSERT INTO inventory_escrow(auction_id,owner_user_id,type,item_id,recipe_id,qty,created_at)
         VALUES (?,?,?,?,?,?,?)
@@ -914,7 +926,7 @@ app.post("/api/sales/list", (req, res) => {
         nowISO()
       );
 
-      return { id: ins.lastInsertRowid, status: "live", price_s: price, qty: q };
+      return { id: ins.lastInsertRowid, status: "live", price_s: price, qty: q, listing_fee_s: listingFeeS };
     })();
 
     res.json({ ok: true, listing: out });
@@ -922,6 +934,7 @@ app.post("/api/sales/list", (req, res) => {
     res.status(400).json({ ok: false, error: String(e.message || e) });
   }
 });
+
 
 // Cancel listing
 app.post("/api/sales/cancel", (req, res) => {
@@ -1021,6 +1034,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
