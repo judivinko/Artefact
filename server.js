@@ -412,32 +412,37 @@ app.post("/api/register", async (req, res) => {
     if (!isPass(password)) return res.status(400).json({ ok:false, error: "Password too short" });
 
     const normEmail = String(email).toLowerCase();
+
+    // već postoji?
     const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
     if (ex) return res.status(409).json({ ok:false, error: "User exists" });
 
+    // kreiraj korisnika
     const pass_hash = await bcrypt.hash(password, 10);
     db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)")
       .run(normEmail, pass_hash, nowISO());
 
+    // učitaj svježe kreiranog
     const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
 
-    const token = signToken(u);
+    // postavi cookie token (isti režim kao login)
+    const token  = signToken(u);
     const isProd = process.env.NODE_ENV === "production";
-
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd,
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      secure:  isProd,               // true na Renderu (HTTPS)
+      path:    "/",                  // važno da clearCookie radi simetrično
+      maxAge:  7 * 24 * 60 * 60 * 1000
     });
 
     return res.json({ ok:true, user: { id: u.id, email: u.email } });
-    catch (e) {
+  } catch (e) {
     console.error("Register error:", e);
     return res.status(500).json({ ok:false, error:"Server error" });
   }
 });
+
 
 
 app.post("/api/login", async (req,res)=>{
@@ -1077,6 +1082,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
