@@ -633,7 +633,8 @@ app.post("/api/shop/buy-t1",(req,res)=>{
   }
 });
 
-// =============== RECIPES ===============
+// =============== RECIPES & CRAFTING (SERVER) ===============
+
 // List owned recipes (+qty)
 app.get("/api/recipes/list", (req, res) => {
   const tok = readToken(req);
@@ -678,9 +679,7 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
   }
 });
 
-// Craft – 10% fail -> SCRAP
-// Pravila: materijali se UVIJEK troše; recept se troši SAMO na uspjeh.
-// Na fail: recept ostaje (qty se ne smanjuje), ali se povise attempts + dobije se 1x SCRAP.
+// Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 app.post("/api/craft/do", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
@@ -691,66 +690,52 @@ app.post("/api/craft/do", (req, res) => {
 
   try{
     const result = db.transaction(() => {
-      // 1) Recept + vlasništvo
-      const r = db.prepare(`SELECT id, name, tier, output_item_id FROM recipes WHERE id=?`).get(rid);
+      const r = db.prepare(`
+        SELECT id, name, tier, output_item_id
+        FROM recipes WHERE id=?`).get(rid);
       if (!r) throw new Error("Recipe not found.");
 
+      // user must own the recipe (qty>0)
       const haveRec = db.prepare(`
-        SELECT qty, attempts
-        FROM user_recipes
-        WHERE user_id=? AND recipe_id=?`).get(tok.uid, r.id);
+        SELECT qty FROM user_recipes WHERE user_id=? AND recipe_id=?`).get(tok.uid, r.id);
       if (!haveRec || haveRec.qty <= 0) throw new Error("You don't own this recipe.");
 
-      // 2) Sastojci (moraju svi postojati u dovoljnoj količini)
+      // ingredients check
       const need = db.prepare(`
         SELECT ri.item_id, ri.qty, i.name
         FROM recipe_ingredients ri
         JOIN items i ON i.id = ri.item_id
-        WHERE ri.recipe_id = ?
-      `).all(r.id);
+        WHERE ri.recipe_id = ?`).all(r.id);
 
       for (const n of need) {
         const inv = db.prepare(`
-          SELECT qty FROM user_items WHERE user_id=? AND item_id=?`
-        ).get(tok.uid, n.item_id);
+          SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, n.item_id);
         if (!inv || inv.qty < n.qty) throw new Error("Missing ingredients");
       }
 
-      // 3) Troši sastojke UVIJEK
+      // consume materials ALWAYS
       for (const n of need) {
-        db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`)
-          .run(n.qty, tok.uid, n.item_id);
+        db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(n.qty, tok.uid, n.item_id);
       }
 
-      // 4) Roll za fail
       const fail = Math.random() < 0.10; // 10% fail
 
       if (!fail) {
-        // Uspjeh: troši i RECEPT (qty - 1), + doda izlazni item
-        db.prepare(`
-          UPDATE user_recipes
-          SET qty = qty - 1,
-              attempts = attempts + 1
-          WHERE user_id=? AND recipe_id=?`
-        ).run(tok.uid, r.id);
-
+        // SUCCESS → add output + CONSUME ONE RECIPE
         db.prepare(`
           INSERT INTO user_items(user_id,item_id,qty)
           VALUES (?,?,1)
           ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
         `).run(tok.uid, r.output_item_id);
 
+        db.prepare(`
+          UPDATE user_recipes SET qty=qty-1
+          WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
+
         const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
         return { result: "success", crafted: out };
-
       } else {
-        // Fail: recept NE trošimo, samo attempts++, i damo SCRAP
-        db.prepare(`
-          UPDATE user_recipes
-          SET attempts = attempts + 1
-          WHERE user_id=? AND recipe_id=?`
-        ).run(tok.uid, r.id);
-
+        // FAIL → add SCRAP, recipe stays
         const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
         if (scrap) {
           db.prepare(`
@@ -769,44 +754,9 @@ app.post("/api/craft/do", (req, res) => {
   }
 });
 
+// Special craft: 10 različitih T5 => ARTEFACT (bez faila) OSTAJE KAKO JE
+// =====================================================
 
-// Special craft: 10 različitih T5 => ARTEFACT (bez faila)
-app.post("/api/craft/artefact",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  try{
-    const result = db.transaction(()=>{
-      const t5 = db.prepare(`
-        SELECT i.id,i.code,i.name,COALESCE(ui.qty,0) qty
-        FROM items i
-        LEFT JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
-        WHERE i.tier=5 AND COALESCE(ui.qty,0)>0
-        ORDER BY i.code
-      `).all(uTok.uid);
-
-      if (!t5 || t5.length < 10) throw new Error("Need at least 10 distinct T5 items.");
-
-      const take = t5.slice(0,10);
-      for(const t of take){
-        db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=?").run(uTok.uid,t.id);
-      }
-
-      const art = db.prepare("SELECT id,code,name,tier FROM items WHERE code='ARTEFACT'").get();
-      if (!art) throw new Error("ARTEFACT item missing.");
-      db.prepare(`
-        INSERT INTO user_items(user_id,item_id,qty)
-        VALUES (?,?,1)
-        ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-      `).run(uTok.uid, art.id);
-
-      return { crafted: { code: art.code, name: art.name, tier: art.tier } };
-    })();
-
-    res.json({ok:true, ...result});
-  }catch(e){
-    res.status(400).json({ok:false,error:String(e.message||e)});
-  }
-});
 
 
 // =============== INVENTORY (shared) ===============
@@ -1071,6 +1021,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
