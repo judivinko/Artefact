@@ -426,14 +426,26 @@ app.post("/api/login", async (req,res)=>{
     if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
     const ok = await bcrypt.compare(password||"", u.pass_hash);
     if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
+
     const token = signToken(u);
+    const isProd = process.env.NODE_ENV === "production";
+
+    // Postavi cookie
     res.cookie(TOKEN_NAME, token, {
-  httpOnly: true,
-  sameSite: "lax",
-  secure: true,     // HTTPS on Render
-  path: "/",        // bitno za clearCookie
-  maxAge: 7*24*60*60*1000
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,     // true na Renderu (HTTPS)
+      path: "/",          // bitno za clearCookie
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dana
+    });
+
+    res.json({ok:true, user:{id:u.id,email:u.email}});
+  }catch(e){
+    console.error("Login error", e);
+    res.status(500).json({ok:false,error:"Login failed"});
+  }
 });
+
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
     res.json({ok:true});
@@ -1034,6 +1046,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
