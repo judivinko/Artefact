@@ -125,15 +125,21 @@
         </div>
       </div>
 
-      <!-- INVENTORY -->
-      <div id="tab-inv" class="card hidden">
-        <div class="label">Inventory</div>
-        <div id="inv-full" class="list">Loading…</div>
-      </div>
-    </section>
-  </main>
+      <!-- Inventory -->
+<div id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Materials</div>
+      <div id="inv-items" class="list">Loading…</div>
+    </div>
+    <div class="card">
+      <div class="label">Recipes</div>
+      <div id="inv-recipes" class="list">Loading…</div>
+    </div>
+  </div>
+</div>
 
-  <div id="toast" class="toast hidden"></div>
 
 <!-- SVE JS JE ODAVDE DO KRAJA DOKUMENTA -->
 <script>
@@ -437,26 +443,26 @@ async function loadMine(){
 $("#btn-mine")?.addEventListener("click", loadMine);
 </script>
 
-// Full Inventory tab
-async function loadInventoryFull(){
-  const box=$("#inv-full"); if(!box) return;
-  box.textContent="Loading…";
-  try{
-    const r = await api("/api/inventory");
-    const lines=[];
-    for(const it of (r.items||[])){
-      lines.push(`<div class="itemrow"><div>${it.name} <span class="badge">T${it.tier}</span></div><div class="muted">x${it.qty}</div></div>`);
-    }
-    for(const rc of (r.recipes||[])){
-      lines.push(`<div class="itemrow"><div class="muted">[Recipe]</div><div>${rc.name} <span class="badge">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div></div>`);
-    }
-    box.innerHTML = lines.join("") || "Empty.";
-  }catch(e){ box.textContent=e.message; }
-}
+<!-- Inventory -->
+<div id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Materials</div>
+      <div id="inv-items" class="list">Loading…</div>
+    </div>
+    <div class="card">
+      <div class="label">Recipes</div>
+      <div id="inv-recipes" class="list">Loading…</div>
+    </div>
+  </div>
+</div>
+
 
 // Init
 loadMe();
 </script>
 </body>
 </html>
+
 
