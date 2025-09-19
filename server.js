@@ -501,19 +501,48 @@ app.get("/api/logout", (req, res) => {
     path: "/"
   });
   return res.json({ ok:true });
-  ok:true,
+});
+
+// ======== SESSION (ME)
+app.get("/api/me", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false });
+
+  const u = db.prepare(`
+    SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at
+    FROM users WHERE id=?
+  `).get(tok.uid);
+
+  if (!u) {
+    res.clearCookie(TOKEN_NAME, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"),
+      path: "/"
+    });
+    return res.status(401).json({ ok:false });
+  }
+
+  const buysToNext = (u.next_recipe_at==null)
+    ? null
+    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
+
+  res.json({
+    ok:true,
     user:{
       id: u.id,
       email: u.email,
-      is_admin: !!u.is_admin,                 // [ADMIN: /api/me FIELD]
+      is_admin: !!u.is_admin,
       balance_silver: u.balance_silver,
       gold: Math.floor(u.balance_silver/100),
-      silver: (u.balance_silver%100),
+      silver: (u.balance_silver % 100),
       shop_buy_count: u.shop_buy_count,
       next_recipe_at: u.next_recipe_at,
       buys_to_next: buysToNext
     }
   });
+});
+
   
 // =============== ADMIN minimal (UI admin.html oslanja se na ove rute)
 
@@ -1097,6 +1126,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
