@@ -433,7 +433,7 @@ app.post("/api/register", async (req, res) => {
     });
 
     return res.json({ ok:true, user: { id: u.id, email: u.email } });
-  } catch (e) {
+    catch (e) {
     console.error("Register error:", e);
     return res.status(500).json({ ok:false, error:"Server error" });
   }
@@ -1077,6 +1077,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
