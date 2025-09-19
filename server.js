@@ -40,6 +40,19 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html"))); // admin.html se ne dira
 
+// Root i Admin HTML
+app.get("/", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "index.html"))
+);
+app.get("/admin", (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "admin.html"))
+);
+
+// SPA fallback za sve ne-API GET rute (npr. direktan refresh na /sales, /inv, …)
+app.get(/^\/(?!api\/).*/, (_req, res) =>
+  res.sendFile(path.join(__dirname, "public", "index.html"))
+);
+
 // ---------- DB
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
@@ -1081,6 +1094,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
