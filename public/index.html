@@ -242,7 +242,9 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
-// -------- CRAFTING (dedicated /api/recipes/* i /api/craft/*)
+<script>
+// -------- CRAFTING (CLIENT) ---------------------------------
+
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
@@ -253,19 +255,23 @@ async function loadRecipes(){
     box.innerHTML="";
     for (const rec of rows){
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML = `<div><b>${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
-                       <button class="btn muted">Open</button>`;
+      row.innerHTML = `
+        <div><b>R_${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
+        <button class="btn muted">Open</button>`;
       row.querySelector("button").addEventListener("click",()=>openRecipe(rec.id));
       box.appendChild(row);
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#btn-refresh-rec").addEventListener("click", loadRecipes);
+$("#btn-refresh-rec").addEventListener("click", async ()=>{
+  await loadRecipes();
+  await loadInventoryPanel(); // refresh da vrijedi za oboje
+});
 $("#filter-recipe").addEventListener("input", loadRecipes);
 
 function renderIngredients(details){
   const lines = [];
-  lines.push(`<div class="itemrow"><div><b>${details.recipe.name}</b> <span class="badge">T${details.recipe.tier}</span></div></div>`);
+  lines.push(`<div class="itemrow"><div><b>R_${details.recipe.name}</b> <span class="badge">T${details.recipe.tier}</span></div></div>`);
   lines.push(`<div class="itemrow"><div class="muted">Ingredients</div></div>`);
   for(const ing of (details.ingredients||[])){
     const ok = ing.have >= ing.qty;
@@ -279,7 +285,7 @@ function renderIngredients(details){
   lines.push(
     `<div class="itemrow">
        <button id="btn-craft" class="btn">Craft</button>
-       <span class="muted">10% fail → Scrap (server checks ingredients)</span>
+       <span class="muted">10% fail → Scrap (materials always consumed; recipe consumed only on success)</span>
      </div>`
   );
   return lines.join("");
@@ -296,7 +302,12 @@ async function openRecipe(recipeId){
         if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
         else if (r2.scrap) toast("Failed (got Scrap)");
         else toast("Done");
-        await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
+
+        // refresh svega relevantnog
+        await loadInventoryPanel();
+        await loadRecipes();
+        await loadInventoryFull();
+        await loadMe();
       }catch(e){ alert(e.message); }
     });
   }catch(e){ box.textContent=e.message; }
@@ -307,9 +318,12 @@ $("#btn-artefact").addEventListener("click", async ()=>{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
     const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
     alert("Crafted: "+ name);
-    await loadInventoryPanel(); loadInventoryFull();
+    await loadInventoryPanel(); await loadInventoryFull(); await loadMe();
   }catch(e){ alert(e.message); }
 });
+
+// -----------------------------------------------------------
+</script>
 
 // ===== Market =====
 async function loadMarket(){
@@ -544,6 +558,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
