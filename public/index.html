@@ -249,29 +249,6 @@ function renderBalance(){
   $("#balance").textContent = `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
 }
 
-  // ---------- App
-const app = express();
-const server = http.createServer(app);
-
-app.use(express.json());
-app.use(cookieParser());
-
-// ---------- Static (index u public/)
-const STATIC_DIR = path.join(__dirname, "public");
-
-// serviraj sve iz /public, ali bez auto-indexa
-app.use(express.static(STATIC_DIR, { index: false }));
-
-// /  -> public/index.html
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(STATIC_DIR, "index.html"));
-});
-
-// /admin -> public/admin.html  (ne diramo admin UI)
-app.get("/admin", (_req, res) => {
-  res.sendFile(path.join(STATIC_DIR, "admin.html"));
-});
-
 // SHOP
 $("#btn-buy-t1").addEventListener("click", async ()=>{
   try{
@@ -505,6 +482,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
