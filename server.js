@@ -405,18 +405,41 @@ try{
 }catch{}
 
 // =============== AUTH
-app.post("/api/register", async (req,res)=>{
-  try{
-    const {email, password} = req.body||{};
-    if (!isEmail(email)) return res.status(400).json({ok:false,error:"Invalid email"});
-    if (!isPass(password)) return res.status(400).json({ok:false,error:"Password too short"});
-    const ex = db.prepare("SELECT id FROM users WHERE email=?").get(email.toLowerCase());
-    if (ex) return res.status(409).json({ok:false,error:"User exists"});
-    const pass_hash = await bcrypt.hash(password,10);
-    db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)").run(email.toLowerCase(), pass_hash, nowISO());
-    res.json({ok:true,message:"Registered"});
-  }catch(e){ res.status(500).json({ok:false,error:"Server error"}); }
+app.post("/api/register", async (req, res) => {
+  try {
+    const { email, password } = (req.body || {});
+    if (!isEmail(email))   return res.status(400).json({ ok:false, error: "Invalid email" });
+    if (!isPass(password)) return res.status(400).json({ ok:false, error: "Password too short" });
+
+    const normEmail = String(email).toLowerCase();
+    const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
+    if (ex) return res.status(409).json({ ok:false, error: "User exists" });
+
+    const pass_hash = await bcrypt.hash(password, 10);
+    db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)")
+      .run(normEmail, pass_hash, nowISO());
+
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
+
+    // izdavanje tokena + cookie (isti kao login)
+    const token = signToken(u);
+    const isProd = process.env.NODE_ENV === "production";
+
+    res.cookie(TOKEN_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,      // true na Renderu (HTTPS)
+      path: "/",           // bitno da clearCookie radi simetrično
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.json({ ok:true, user: { id: u.id, email: u.email } });
+  } catch (e) {
+    console.error("Register error:", e);
+    return res.status(500).json({ ok:false, error: "Server error" });
+  }
 });
+
 
 app.post("/api/login", async (req,res)=>{
   try{
@@ -452,12 +475,21 @@ app.post("/api/login", async (req,res)=>{
   }catch(e){ res.status(500).json({ok:false,error:"Server error"}); }
 });
 
-app.get("/api/logout",(req,res)=>{
+app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
-  if (tok) db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
-  res.clearCookie(TOKEN_NAME,{ httpOnly:true, sameSite:"lax", secure:false });
-  res.json({ok:true});
+  if (tok) {
+    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
+  }
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie(TOKEN_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProd,
+    path: "/"
+  });
+  res.json({ ok: true });
 });
+
 
 app.get("/api/me",(req,res)=>{
   const tok = readToken(req);
@@ -1046,6 +1078,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
