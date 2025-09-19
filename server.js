@@ -418,110 +418,12 @@ try{
 }catch{}
 
 // =============== AUTH
-app.post("/api/register", async (req, res) => {
-  try {
-    const { email, password } = (req.body || {});
-    if (!isEmail(email))   return res.status(400).json({ ok:false, error: "Invalid email" });
-    if (!isPass(password)) return res.status(400).json({ ok:false, error: "Password too short" });
-
-    const normEmail = String(email).toLowerCase();
-    const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
-    if (ex) return res.status(409).json({ ok:false, error: "User exists" });
-
-    const pass_hash = await bcrypt.hash(password, 10);
-    db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)")
-      .run(normEmail, pass_hash, nowISO());
-
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
-
-    // auto-login nakon registracije
-    const token  = signToken(u);
-    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-    res.cookie(TOKEN_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure:  isProd,  // true na Renderu (HTTPS)
-      path:    "/",
-      maxAge:  7 * 24 * 60 * 60 * 1000
-    });
-
-    return res.json({ ok:true, user: { id: u.id, email: u.email } });
-  } catch (e) {
-    console.error("Register error:", e);
-    return res.status(500).json({ ok:false, error:"Server error" });
-  }
-});
-
-app.post("/api/login", async (req,res)=>{
-  try{
-    const {email,password} = (req.body||{});
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
-    if (!u) return res.status(404).json({ok:false,error:"User not found"});
-    if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
-
-    const ok = await bcrypt.compare(password||"", u.pass_hash);
-    if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
-
-    const token  = signToken(u);
-    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-
-    res.cookie(TOKEN_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,   // true na Renderu (HTTPS)
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-    return res.json({ok:true, user:{id:u.id,email:u.email}});
-  }catch(e){
-    console.error("Login error:", e);
-    return res.status(500).json({ok:false,error:"Login failed"});
-  }
-});
-
-// ======== SESSION (/api/logout, /api/me) — STAVI OVO IZMEĐU AUTH i SHOP ========
-app.get("/api/logout", (req, res) => {
-  const tok = readToken(req);
-  if (tok) {
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
-  }
-  const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-  res.clearCookie(TOKEN_NAME, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProd,
-    path: "/"
-  });
-  return res.json({ ok:true });
-});
-
-app.get("/api/me", (req, res) => {
-  const tok = readToken(req);
-  if (!tok) return res.status(401).json({ ok:false });
-
-  const u = db.prepare(`
-    SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at
-    FROM users WHERE id=?
-  `).get(tok.uid);
-
-  if (!u) {
-    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-    res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:isProd, path:"/" });
-    return res.status(401).json({ ok:false });
-  }
-
-  const buysToNext = (u.next_recipe_at==null)
-    ? null
-    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
-
-  return res.json({
+return res.json({
     ok:true,
     user:{
       id: u.id,
       email: u.email,
-      is_admin: !!u.is_admin,
+      is_admin: !!u.is_admin,                 // [ADMIN: /api/me FIELD]
       balance_silver: u.balance_silver,
       gold: Math.floor(u.balance_silver/100),
       silver: (u.balance_silver%100),
@@ -530,6 +432,97 @@ app.get("/api/me", (req, res) => {
       buys_to_next: buysToNext
     }
   });
+});
+
+// =============== ADMIN minimal (UI admin.html oslanja se na ove rute)
+
+// ping
+app.get("/api/admin/ping",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"}); // [ADMIN: GUARD]
+  res.json({ok:true});
+});
+
+// lista korisnika
+app.get("/api/admin/users",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"}); // [ADMIN: GUARD]
+  const rows = db.prepare(`
+    SELECT id,email,is_admin,is_disabled,balance_silver,
+           created_at,last_seen,shop_buy_count,next_recipe_at
+    FROM users
+  `).all();
+  const users = rows.map(u=>({
+    id:u.id,
+    email:u.email,
+    is_admin:!!u.is_admin,                   // [ADMIN: USERS FIELD]
+    is_disabled:!!u.is_disabled,             // [ADMIN: USERS FIELD]
+    gold:Math.floor(u.balance_silver/100),
+    silver:u.balance_silver%100,
+    created_at:u.created_at,
+    last_seen:u.last_seen,
+    shop_buy_count:u.shop_buy_count,
+    next_recipe_at:u.next_recipe_at
+  }));
+  res.json({ok:true,users});
+});
+
+// balans + ledger
+app.post("/api/admin/adjust-balance",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"}); // [ADMIN: GUARD]
+  const {email,gold=0,silver=0,delta_silver} = req.body||{};
+  if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const u = db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
+  if (!u) return res.status(404).json({ok:false,error:"User not found"});
+
+  let deltaS = (typeof delta_silver==="number")
+    ? Math.trunc(delta_silver)
+    : (Math.trunc(gold)*100 + Math.trunc(silver));
+
+  if (!Number.isFinite(deltaS) || deltaS===0)
+    return res.status(400).json({ok:false,error:"No change"});
+
+  const tx = db.transaction(()=>{
+    const after = u.balance_silver + deltaS;
+    if (after<0) throw new Error("Insufficient");
+    db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
+    db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
+      .run(u.id, deltaS, "ADMIN_ADJUST", String(email), nowISO());          // [ADMIN: LEDGER WRITE]
+  });
+  try{ tx(); }catch(e){ return res.status(400).json({ok:false,error:String(e.message||e)}); }
+
+  const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
+  res.json({ok:true,balance_silver:bal});
+});
+
+// inventar korisnika
+app.get("/api/admin/user/:id/inventory",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"}); // [ADMIN: GUARD]
+  const uid = parseInt(req.params.id,10);
+  const items = db.prepare(`
+    SELECT i.id,i.code,i.name,i.tier,ui.qty
+    FROM user_items ui
+    JOIN items i ON i.id=ui.item_id
+    WHERE ui.user_id=? AND ui.qty>0
+    ORDER BY i.tier,i.name
+  `).all(uid);
+  const recipes = db.prepare(`
+    SELECT r.id,r.code,r.name,r.tier,ur.qty
+    FROM user_recipes ur
+    JOIN recipes r ON r.id=ur.recipe_id
+    WHERE ur.user_id=? AND ur.qty>0
+    ORDER BY r.tier,r.name
+  `).all(uid);
+  res.json({ok:true,items,recipes});
+});
+
+// enable/disable
+app.post("/api/admin/disable-user",(req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"}); // [ADMIN: GUARD]
+  const { email, disabled } = req.body || {};
+  if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
+  const u = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
+  if (!u) return res.status(404).json({ok:false,error:"User not found"});
+  db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(disabled ? 1 : 0, u.id); // [ADMIN: USERS FLAG WRITE]
+  res.json({ ok:true });
 });
 
 // =============== SHOP (T1 only) ===============
@@ -1019,6 +1012,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
