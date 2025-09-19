@@ -312,6 +312,46 @@ $("#btn-artefact").addEventListener("click", async ()=>{
 });
 
 // ===== Market =====
+async function loadMarket(){
+  const box = $("#market"); if(!box) return;
+  box.textContent = "Loading…";
+  try{
+    const q = ($("#market-q")?.value || "").trim();
+    const url = "/api/sales/live" + (q ? ("?q=" + encodeURIComponent(q)) : "");
+    const r = await api(url);
+    const rows = r.listings || [];
+    if (!rows.length){ box.textContent = "No listings."; return; }
+
+    box.innerHTML = "";
+    for (const s of rows){
+      const g  = Math.floor((s.price_s||0)/100);
+      const ss = (s.price_s||0)%100;
+      const nameLabel = s.kind === "recipe"
+        ? `[Recipe] ${s.name} <span class="badge">T${s.tier}</span>`
+        : `${s.name} <span class="badge">T${s.tier}</span>`;
+
+      const row = document.createElement("div");
+      row.className = "itemrow";
+      row.innerHTML = `
+        <div>${nameLabel} <span class="muted">x${s.qty}</span></div>
+        <div class="row">
+          <span class="badge">${g}g ${ss}s</span>
+          <button class="btn">Buy</button>
+        </div>
+      `;
+      row.querySelector("button").addEventListener("click", async ()=>{
+        try{
+          await api("/api/sales/buy",{ method:"POST", body: JSON.stringify({ id: s.id }) });
+          toast("Purchased.");
+          loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
+        }catch(e){ alert(e.message); }
+      });
+      box.appendChild(row);
+    }
+  }catch(e){
+    box.textContent = e.message;
+  }
+}
 
 // Inventory panel (Create Sale)
 async function loadMine(){
@@ -463,5 +503,6 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
