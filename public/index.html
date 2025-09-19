@@ -173,24 +173,40 @@ $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
 $("#btn-register").addEventListener("click", async ()=>{
   $("#reg-msg").textContent="…";
   try{
-    await api("/api/register",{method:"POST",body:JSON.stringify({email:$("#reg-email").value, password:$("#reg-pass").value})});
+    await api("/api/register",{method:"POST",body:JSON.stringify({
+      email:$("#reg-email").value,
+      password:$("#reg-pass").value
+    })});
     $("#reg-msg").textContent="OK — now log in.";
-  }catch(e){ $("#reg-msg").textContent=e.message; }
+  }catch(e){
+    $("#reg-msg").textContent=e.message;
+  }
 });
+
 $("#btn-login").addEventListener("click", async ()=>{
   $("#log-msg").textContent="…";
   try{
-    await api("/api/login",{method:"POST",body:JSON.stringify({email:$("#log-email").value, password:$("#log-pass").value})});
+    await api("/api/login",{method:"POST",body:JSON.stringify({
+      email:$("#log-email").value,
+      password:$("#log-pass").value
+    })});
     $("#log-msg").textContent="OK";
     await loadMe();
     setTab("shop");
-  }catch(e){ $("#log-msg").textContent=e.message; }
+  }catch(e){
+    $("#log-msg").textContent=e.message;
+  }
 });
+
 $("#btn-logout").addEventListener("click", async ()=>{
   try{ await api("/api/logout"); }catch{}
-  WHO=null; $("#who").textContent="Not logged in"; $("#balance").textContent="0g 0s";
-  $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden");
+  WHO=null;
+  $("#who").textContent="Not logged in";
+  $("#balance").textContent="0g 0s";
+  $("#auth").classList.remove("hidden");
+  $("#app").classList.add("hidden");
 });
+
 
 // loadMe + balance render
 async function loadMe(){
@@ -466,6 +482,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
