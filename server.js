@@ -428,7 +428,14 @@ app.post("/api/login", async (req,res)=>{
     const ok = await bcrypt.compare(password||"", u.pass_hash);
     if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
     const token = signToken(u);
-    res.cookie(TOKEN_NAME, token, { httpOnly:true, sameSite:"lax", secure:false, maxAge:7*24*60*60*1000 });
+    res.cookie(TOKEN_NAME, token, {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: true,     // HTTPS on Render
+  path: "/",        // bitno za clearCookie
+  maxAge: 7*24*60*60*1000
+});
+
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
     res.json({ok:true});
   }catch(e){ res.status(500).json({ok:false,error:"Server error"}); }
@@ -1065,6 +1072,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
