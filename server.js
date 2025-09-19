@@ -501,10 +501,7 @@ app.get("/api/logout", (req, res) => {
     path: "/"
   });
   return res.json({ ok:true });
-});
-
-return res.json({
-    ok:true,
+  ok:true,
     user:{
       id: u.id,
       email: u.email,
@@ -517,7 +514,7 @@ return res.json({
       buys_to_next: buysToNext
     }
   });
-
+  
 // =============== ADMIN minimal (UI admin.html oslanja se na ove rute)
 
 // ping
@@ -1100,6 +1097,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
