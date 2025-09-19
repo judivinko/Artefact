@@ -427,24 +427,41 @@ $("#btn-mine")?.addEventListener("click", loadMine);
 
 // Full Inventory tab
 async function loadInventoryFull(){
-  const box=$("#inv-full"); if(!box) return;
-  box.textContent="Loading…";
+  const box = $("#inv-full"); if(!box) return;
+  box.textContent = "Loading…";
   try{
     const r = await api("/api/inventory");
-    const lines=[];
-    for(const it of (r.items||[])){
-      lines.push(`<div class="itemrow"><div>${it.name} <span class="badge">T${it.tier}</span></div><div class="muted">x${it.qty}</div></div>`);
+    const lines = [];
+
+    for (const it of (r.items||[])){
+      lines.push(
+        `<div class="itemrow">
+           <div>${it.name} <span class="badge">T${it.tier}</span></div>
+           <div class="muted">x${it.qty}</div>
+         </div>`
+      );
     }
-    for(const rc of (r.recipes||[])){
-      lines.push(`<div class="itemrow"><div class="muted">[Recipe]</div><div>${rc.name} <span class="badge">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div></div>`);
+
+    for (const rc of (r.recipes||[])){
+      lines.push(
+        `<div class="itemrow">
+           <div>[Recipe] ${rc.name} <span class="badge">T${rc.tier}</span></div>
+           <div class="muted">x${rc.qty}</div>
+         </div>`
+      );
     }
+
     box.innerHTML = lines.join("") || "Empty.";
-  }catch(e){ box.textContent=e.message; }
+  }catch(e){
+    box.textContent = e.message;
+  }
 }
+
 
 // Init
 loadMe();
 </script>
 </body>
 </html>
+
 
