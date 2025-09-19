@@ -417,7 +417,9 @@ try{
   if (u) db.prepare("UPDATE users SET is_admin=1 WHERE id=?").run(u.id);
 }catch{}
 
-// =============== AUTH
+// =============== AUTH + SESSION (REPLACE WHOLE BLOCK) ===============
+
+// Register -> kreira usera i odmah logira (postavlja cookie)
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = (req.body || {});
@@ -426,199 +428,85 @@ app.post("/api/register", async (req, res) => {
 
     const normEmail = String(email).toLowerCase();
 
-    // već postoji?
+    // postoji?
     const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
     if (ex) return res.status(409).json({ ok:false, error: "User exists" });
 
-    // kreiraj korisnika
+    // kreiraj
     const pass_hash = await bcrypt.hash(password, 10);
     db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)")
       .run(normEmail, pass_hash, nowISO());
 
-    // učitaj svježe kreiranog
+    // svježi user
     const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
 
-    // postavi cookie token (isti režim kao login)
+    // token + cookie
     const token  = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
+    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure:  isProd,               // true na Renderu (HTTPS)
-      path:    "/",                  // važno da clearCookie radi simetrično
+      secure:  isProd,   // true na Renderu (HTTPS)
+      path:    "/",
       maxAge:  7 * 24 * 60 * 60 * 1000
     });
 
     return res.json({ ok:true, user: { id: u.id, email: u.email } });
-  // Global error handler (zadnji middleware)
-app.use((err, req, res, next) => {
-  // (po želji) log: console.error(err);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ ok:false, error:"Server error" });
+  } catch (e) {
+    console.error("Register error:", e);
+    return res.status(500).json({ ok:false, error:"Server error" });
+  }
 });
 
+// Login -> provjera i postavljanje cookie-ja
 app.post("/api/login", async (req,res)=>{
   try{
-    const {email,password} = req.body||{};
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
-    if (!u) return res.status(404).json({ok:false,error:"User not found"});
-    if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
-    const ok = await bcrypt.compare(password||"", u.pass_hash);
-    if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
+    const { email, password } = (req.body || {});
+    const normEmail = String(email || "").toLowerCase();
 
-    const token = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
+    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
+    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
 
-    // Postavi cookie
+    const ok = await bcrypt.compare(password || "", u.pass_hash);
+    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
+
+    const token  = signToken(u);
+    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd,     // true na Renderu (HTTPS)
-      path: "/",          // bitno za clearCookie
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dana
+      secure:  isProd,
+      path:    "/",
+      maxAge:  7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({ok:true, user:{id:u.id,email:u.email}});
+    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
+
+    return res.json({ ok:true, user:{ id:u.id, email:u.email } });
   }catch(e){
-    console.error("Login error", e);
-    res.status(500).json({ok:false,error:"Login failed"});
+    console.error("Login error:", e);
+    return res.status(500).json({ ok:false, error:"Server error" });
   }
 });
 
-
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-    res.json({ok:true});
-  }catch(e){ res.status(500).json({ok:false,error:"Server error"}); }
-});
-
+// Logout -> obriši cookie
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
   if (tok) {
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
   }
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
   res.clearCookie(TOKEN_NAME, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProd,
-    path: "/"
+    secure:  isProd,
+    path:    "/"
   });
-  res.json({ ok: true });
-});
-
-
-app.get("/api/me",(req,res)=>{
-  const tok = readToken(req);
-  if (!tok) return res.status(401).json({ok:false});
-  const u = db.prepare("SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at FROM users WHERE id=?").get(tok.uid);
-  if (!u) { res.clearCookie(TOKEN_NAME); return res.status(401).json({ok:false}); }
-  const g = Math.floor(u.balance_silver/100), s=u.balance_silver%100;
-  const buysToNext = (u.next_recipe_at==null)?null:Math.max(0, u.next_recipe_at - (u.shop_buy_count||0));
-  res.json({ok:true,user:{
-    id:u.id,email:u.email,is_admin:!!u.is_admin,
-    balance_silver:u.balance_silver,gold:g,silver:s,
-    shop_buy_count:u.shop_buy_count,next_recipe_at:u.next_recipe_at,buys_to_next:buysToNext
-  }});
-});
-
-// =============== ADMIN minimal (UI admin.html oslanja se na ove rute)
-app.get("/api/admin/ping",(req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  res.json({ok:true});
-});
-
-app.get("/api/admin/users",(req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const rows = db.prepare(`
-    SELECT id,email,is_admin,is_disabled,balance_silver,
-           created_at,last_seen,shop_buy_count,next_recipe_at
-    FROM users
-  `).all();
-  const users = rows.map(u=>({
-    id:u.id,
-    email:u.email,
-    is_admin:!!u.is_admin,
-    is_disabled:!!u.is_disabled,
-    gold:Math.floor(u.balance_silver/100),
-    silver:u.balance_silver%100,
-    created_at:u.created_at,
-    last_seen:u.last_seen,
-    shop_buy_count:u.shop_buy_count,
-    next_recipe_at:u.next_recipe_at
-  }));
-  res.json({ok:true,users});
-});
-
-app.post("/api/admin/adjust-balance",(req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const {email,gold=0,silver=0,delta_silver} = req.body||{};
-  if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
-  const u = db.prepare("SELECT id,balance_silver FROM users WHERE lower(email)=lower(?)").get(email);
-  if (!u) return res.status(404).json({ok:false,error:"User not found"});
-
-  let deltaS = (typeof delta_silver==="number")
-    ? Math.trunc(delta_silver)
-    : (Math.trunc(gold)*100 + Math.trunc(silver));
-
-  if (!Number.isFinite(deltaS) || deltaS===0)
-    return res.status(400).json({ok:false,error:"No change"});
-
-  const tx = db.transaction(()=>{
-    const after = u.balance_silver + deltaS;
-    if (after<0) throw new Error("Insufficient");
-    db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
-    db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-  .run(u.id, deltaS, "ADMIN_ADJUST", String(email), nowISO());
-
-  });
-  try{ tx(); }catch(e){ return res.status(400).json({ok:false,error:String(e.message||e)}); }
-
-  const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
-  res.json({ok:true,balance_silver:bal});
-});
-
-app.get("/api/admin/user/:id/inventory",(req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const uid = parseInt(req.params.id,10);
-  const items = db.prepare(`
-    SELECT i.id,i.code,i.name,i.tier,ui.qty
-    FROM user_items ui
-    JOIN items i ON i.id=ui.item_id
-    WHERE ui.user_id=? AND ui.qty>0
-    ORDER BY i.tier,i.name
-  `).all(uid);
-  const recipes = db.prepare(`
-    SELECT r.id,r.code,r.name,r.tier,ur.qty
-    FROM user_recipes ur
-    JOIN recipes r ON r.id=ur.recipe_id
-    WHERE ur.user_id=? AND ur.qty>0
-    ORDER BY r.tier,r.name
-  `).all(uid);
-  res.json({ok:true,items,recipes});
-});
-
-app.post("/api/admin/disable-user",(req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-  const { email, disabled } = req.body || {};
-  if (!isEmail(email)) return res.status(400).json({ok:false,error:"Bad email"});
-  const u = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
-  if (!u) return res.status(404).json({ok:false,error:"User not found"});
-  db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(disabled ? 1 : 0, u.id);
-  res.json({ ok:true });
-});
-// ======== SESSION (/api/logout, /api/me) — STAVI OVO IZMEĐU AUTH i SHOP ========
-
-// logout: obriši cookie i zabilježi last_seen
-app.get("/api/logout", (req, res) => {
-  const tok = readToken(req);
-  if (tok) {
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
-  }
-  res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:(process.env.NODE_ENV==="production"||process.env.RENDER==="true"), path:"/" });
   return res.json({ ok:true });
 });
 
-// me: vrati info o useru + balans i recipe timer
+// Me -> info o useru (koristi ga frontend za header/balance)
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -629,7 +517,8 @@ app.get("/api/me", (req, res) => {
   `).get(tok.uid);
 
   if (!u) {
-    res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:(process.env.NODE_ENV==="production"||process.env.RENDER==="true"), path:"/" });
+    const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
+    res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:isProd, path:"/" });
     return res.status(401).json({ ok:false });
   }
 
@@ -652,6 +541,7 @@ app.get("/api/me", (req, res) => {
     }
   });
 });
+
 
 // =============== SHOP (T1 only) ===============
 const SHOP_T1_COST_S = 100;
@@ -1140,6 +1030,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
