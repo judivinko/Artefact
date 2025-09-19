@@ -437,13 +437,12 @@ app.post("/api/register", async (req, res) => {
     });
 
     return res.json({ ok:true, user: { id: u.id, email: u.email } });
-  } catch (e) {
-    console.error("Register error:", e);
-    return res.status(500).json({ ok:false, error:"Server error" });
-  }
+  // Global error handler (zadnji middleware)
+app.use((err, req, res, next) => {
+  // (po želji) log: console.error(err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ ok:false, error:"Server error" });
 });
-
-
 
 app.post("/api/login", async (req,res)=>{
   try{
@@ -1082,6 +1081,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
