@@ -27,25 +27,27 @@
 
   <main class="container">
     <!-- Auth -->
-    <section id="auth" class="card">
-      <div class="label">Login / Register</div>
-      <div class="grid">
-        <div class="card">
-          <div class="label">Register</div>
-          <input id="reg-email" class="input" placeholder="email@example.com" />
-          <input id="reg-pass" class="input" type="password" placeholder="password (min 6)" style="margin-top:8px"/>
-          <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-          <div id="reg-msg" class="muted" style="margin-top:6px"></div>
-        </div>
-        <div class="card">
-          <div class="label">Login</div>
-          <input id="log-email" class="input" placeholder="email@example.com" />
-          <input id="log-pass" class="input" type="password" placeholder="password" style="margin-top:8px"/>
-          <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-          <div id="log-msg" class="muted" style="margin-top:6px"></div>
-        </div>
-      </div>
-    </section>
+<section id="auth" class="card">
+  <div class="label">Login / Register</div>
+  <div class="grid">
+    <form id="form-register" class="card" novalidate>
+      <div class="label">Register</div>
+      <input id="reg-email" class="input" type="email" autocomplete="username" placeholder="email@example.com" required />
+      <input id="reg-pass"  class="input" type="password" autocomplete="new-password" placeholder="password (min 6)" style="margin-top:8px" required minlength="6"/>
+      <button id="btn-register" class="btn" type="submit" style="margin-top:8px">Register</button>
+      <div id="reg-msg" class="muted" style="margin-top:6px;height:18px"></div>
+    </form>
+
+    <form id="form-login" class="card" novalidate>
+      <div class="label">Login</div>
+      <input id="log-email" class="input" type="email" autocomplete="username" placeholder="email@example.com" required />
+      <input id="log-pass"  class="input" type="password" autocomplete="current-password" placeholder="password" style="margin-top:8px" required />
+      <button id="btn-login" class="btn secondary" type="submit" style="margin-top:8px">Log in</button>
+      <div id="log-msg" class="muted" style="margin-top:6px;height:18px"></div>
+    </form>
+  </div>
+</section>
+
 
     <!-- App -->
     <section id="app" class="hidden">
@@ -464,5 +466,6 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
