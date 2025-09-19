@@ -417,9 +417,7 @@ try{
   if (u) db.prepare("UPDATE users SET is_admin=1 WHERE id=?").run(u.id);
 }catch{}
 
-// =============== AUTH + SESSION (REPLACE WHOLE BLOCK) ===============
-
-// Register -> kreira usera i odmah logira (postavlja cookie)
+// =============== AUTH
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = (req.body || {});
@@ -427,26 +425,22 @@ app.post("/api/register", async (req, res) => {
     if (!isPass(password)) return res.status(400).json({ ok:false, error: "Password too short" });
 
     const normEmail = String(email).toLowerCase();
-
-    // postoji?
     const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
     if (ex) return res.status(409).json({ ok:false, error: "User exists" });
 
-    // kreiraj
     const pass_hash = await bcrypt.hash(password, 10);
     db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)")
       .run(normEmail, pass_hash, nowISO());
 
-    // svježi user
     const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
 
-    // token + cookie
+    // auto-login nakon registracije
     const token  = signToken(u);
     const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure:  isProd,   // true na Renderu (HTTPS)
+      secure:  isProd,  // true na Renderu (HTTPS)
       path:    "/",
       maxAge:  7 * 24 * 60 * 60 * 1000
     });
@@ -458,39 +452,36 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// Login -> provjera i postavljanje cookie-ja
 app.post("/api/login", async (req,res)=>{
   try{
-    const { email, password } = (req.body || {});
-    const normEmail = String(email || "").toLowerCase();
+    const {email,password} = (req.body||{});
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
+    if (!u) return res.status(404).json({ok:false,error:"User not found"});
+    if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
 
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
-    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
-    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
-
-    const ok = await bcrypt.compare(password || "", u.pass_hash);
-    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
+    const ok = await bcrypt.compare(password||"", u.pass_hash);
+    if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
 
     const token  = signToken(u);
     const isProd = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
+
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure:  isProd,
-      path:    "/",
-      maxAge:  7 * 24 * 60 * 60 * 1000
+      secure: isProd,   // true na Renderu (HTTPS)
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-
-    return res.json({ ok:true, user:{ id:u.id, email:u.email } });
+    return res.json({ok:true, user:{id:u.id,email:u.email}});
   }catch(e){
     console.error("Login error:", e);
-    return res.status(500).json({ ok:false, error:"Server error" });
+    return res.status(500).json({ok:false,error:"Login failed"});
   }
 });
 
-// Logout -> obriši cookie
+// ======== SESSION (/api/logout, /api/me) — STAVI OVO IZMEĐU AUTH i SHOP ========
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
   if (tok) {
@@ -500,13 +491,12 @@ app.get("/api/logout", (req, res) => {
   res.clearCookie(TOKEN_NAME, {
     httpOnly: true,
     sameSite: "lax",
-    secure:  isProd,
-    path:    "/"
+    secure: isProd,
+    path: "/"
   });
   return res.json({ ok:true });
 });
 
-// Me -> info o useru (koristi ga frontend za header/balance)
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -541,7 +531,6 @@ app.get("/api/me", (req, res) => {
     }
   });
 });
-
 
 // =============== SHOP (T1 only) ===============
 const SHOP_T1_COST_S = 100;
@@ -1030,6 +1019,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
