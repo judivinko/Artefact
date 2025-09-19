@@ -19,7 +19,7 @@
   <header class="header">
     <div class="brand">ARTEFACT</div>
     <div class="row">
-      <span id="who" class="badge">–</span>
+      <span id="who" class="badge">Not logged in</span>
       <span id="balance" class="badge">0g 0s</span>
       <button id="btn-logout" class="btn muted hidden">Log out</button>
     </div>
@@ -52,7 +52,7 @@
       <div class="tabbar row">
         <div class="chip active" data-tab="shop">Shop</div>
         <div class="chip" data-tab="craft">Crafting</div>
-        <div class="chip" data-tab="market">Market</div>
+        <div class="chip" data-tab="sales">Sales</div>
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
@@ -68,7 +68,7 @@
         </div>
       </div>
 
-      <!-- Crafting -->
+      <!-- CRAFTING -->
       <div id="tab-craft" class="card hidden">
         <div class="row">
           <div class="label">Crafting</div>
@@ -92,9 +92,9 @@
         </div>
       </div>
 
-      <!-- Market (Create Sale + Marketplace + Mine) -->
-      <div id="tab-market" class="card hidden">
-        <div class="label">Market</div>
+      <!-- SALES -->
+      <div id="tab-sales" class="card hidden">
+        <div class="label">Sales (Marketplace)</div>
         <div class="grid">
           <div class="card">
             <div class="label">Create Sale</div>
@@ -125,7 +125,7 @@
         </div>
       </div>
 
-      <!-- Inventory -->
+      <!-- INVENTORY -->
       <div id="tab-inv" class="card hidden">
         <div class="label">Inventory</div>
         <div id="inv-full" class="list">Loading…</div>
@@ -135,6 +135,7 @@
 
   <div id="toast" class="toast hidden"></div>
 
+<!-- SVE JS JE ODAVDE DO KRAJA DOKUMENTA -->
 <script>
 const $  = s=>document.querySelector(s);
 const $$ = s=>Array.from(document.querySelectorAll(s));
@@ -147,16 +148,16 @@ const api = async (p,opts={})=>{
   return data;
 };
 
-let WHO=null; let SEL_INV=null; // { kind, id, name }
+let WHO=null; let SEL_INV=null;
 let INVENTORY_CACHE = { items: [], recipes: [] };
 
 // Tabs
 function setTab(tab){
   $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
-  $("#tab-shop").classList.toggle("hidden",   tab!=="shop");
-  $("#tab-craft").classList.toggle("hidden",  tab!=="craft");
-  $("#tab-market").classList.toggle("hidden", tab!=="market");
-  $("#tab-inv").classList.toggle("hidden",    tab!=="inv");
+  $("#tab-shop").classList.toggle("hidden", tab!=="shop");
+  $("#tab-craft").classList.toggle("hidden", tab!=="craft");
+  $("#tab-sales").classList.toggle("hidden", tab!=="sales");
+  $("#tab-inv").classList.toggle("hidden", tab!=="inv");
 }
 $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
 
@@ -242,9 +243,7 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
   }catch(e){ alert(e.message); }
 });
 
-<script>
-// -------- CRAFTING (CLIENT) ---------------------------------
-
+// -------- CRAFTING
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
@@ -255,23 +254,22 @@ async function loadRecipes(){
     box.innerHTML="";
     for (const rec of rows){
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML = `
-        <div><b>R_${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
-        <button class="btn muted">Open</button>`;
+      row.innerHTML = `<div><b>${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
+                       <button class="btn muted">Open</button>`;
       row.querySelector("button").addEventListener("click",()=>openRecipe(rec.id));
       box.appendChild(row);
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#btn-refresh-rec").addEventListener("click", async ()=>{
-  await loadRecipes();
-  await loadInventoryPanel(); // refresh da vrijedi za oboje
+document.getElementById("btn-refresh-rec").addEventListener("click", ()=>{
+  loadRecipes();            // osvježi listu recepata
+  loadInventoryPanel();     // i panel inventara za prodaju
 });
-$("#filter-recipe").addEventListener("input", loadRecipes);
+document.getElementById("filter-recipe").addEventListener("input", loadRecipes);
 
 function renderIngredients(details){
   const lines = [];
-  lines.push(`<div class="itemrow"><div><b>R_${details.recipe.name}</b> <span class="badge">T${details.recipe.tier}</span></div></div>`);
+  lines.push(`<div class="itemrow"><div><b>${details.recipe.name}</b> <span class="badge">T${details.recipe.tier}</span></div></div>`);
   lines.push(`<div class="itemrow"><div class="muted">Ingredients</div></div>`);
   for(const ing of (details.ingredients||[])){
     const ok = ing.have >= ing.qty;
@@ -285,7 +283,7 @@ function renderIngredients(details){
   lines.push(
     `<div class="itemrow">
        <button id="btn-craft" class="btn">Craft</button>
-       <span class="muted">10% fail → Scrap (materials always consumed; recipe consumed only on success)</span>
+       <span class="muted">10% fail → Scrap (server checks ingredients)</span>
      </div>`
   );
   return lines.join("");
@@ -302,12 +300,7 @@ async function openRecipe(recipeId){
         if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
         else if (r2.scrap) toast("Failed (got Scrap)");
         else toast("Done");
-
-        // refresh svega relevantnog
-        await loadInventoryPanel();
-        await loadRecipes();
-        await loadInventoryFull();
-        await loadMe();
+        await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
       }catch(e){ alert(e.message); }
     });
   }catch(e){ box.textContent=e.message; }
@@ -318,140 +311,40 @@ $("#btn-artefact").addEventListener("click", async ()=>{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
     const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
     alert("Crafted: "+ name);
-    await loadInventoryPanel(); await loadInventoryFull(); await loadMe();
+    await loadInventoryPanel(); loadInventoryFull();
   }catch(e){ alert(e.message); }
 });
 
-// -----------------------------------------------------------
-</script>
-
-// ===== Market =====
-async function loadMarket(){
-  const box = $("#market"); if(!box) return;
-  box.textContent = "Loading…";
+// Inventory panel (Sales create)
+async function loadInventoryPanel(){
+  const box=$("#inv-list"); if(!box) return;
+  box.textContent="Loading…";
   try{
-    const q = ($("#market-q")?.value || "").trim();
-    const url = "/api/sales/live" + (q ? ("?q=" + encodeURIComponent(q)) : "");
-    const r = await api(url);
-    const rows = r.listings || [];
-    if (!rows.length){ box.textContent = "No listings."; return; }
-
-    box.innerHTML = "";
-    for (const s of rows){
-      const g  = Math.floor((s.price_s||0)/100);
-      const ss = (s.price_s||0)%100;
-      const nameLabel = s.kind === "recipe"
-        ? `[Recipe] ${s.name} <span class="badge">T${s.tier}</span>`
-        : `${s.name} <span class="badge">T${s.tier}</span>`;
-
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.innerHTML = `
-        <div>${nameLabel} <span class="muted">x${s.qty}</span></div>
-        <div class="row">
-          <span class="badge">${g}g ${ss}s</span>
-          <button class="btn">Buy</button>
-        </div>
-      `;
-      row.querySelector("button").addEventListener("click", async ()=>{
-        try{
-          await api("/api/sales/buy",{ method:"POST", body: JSON.stringify({ id: s.id }) });
-          toast("Purchased.");
-          loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
-        }catch(e){ alert(e.message); }
-      });
-      box.appendChild(row);
-    }
-  }catch(e){
-    box.textContent = e.message;
-  }
-}
-//  mine
-  async function loadMine(){
-  const box = $("#mine"); if(!box) return;
-  box.textContent = "Loading…";
-  try{
-    const r = await api("/api/sales/mine");
-    const rows = r.listings || [];
-    if (!rows.length){ box.textContent = "No listings."; return; }
-
-    box.innerHTML = "";
-    for (const s of rows){
-      const g  = Math.floor((s.price_s||0)/100);
-      const ss = (s.price_s||0)%100;
-      const nameLabel = s.kind === "recipe"
-        ? `[Recipe] ${s.name} <span class="badge">T${s.tier}</span>`
-        : `${s.name} <span class="badge">T${s.tier}</span>`;
-
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.innerHTML = `
-        <div>${nameLabel} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
-        <div class="row">
-          <span class="badge">${g}g ${ss}s</span>
-          ${s.status==='live' ? '<button class="btn danger">Cancel</button>' : ''}
-        </div>
-      `;
-
-      if (s.status === 'live'){
-        row.querySelector("button").addEventListener("click", async ()=>{
-          try{
-            await api("/api/sales/cancel",{ method:"POST", body: JSON.stringify({ id: s.id }) });
-            loadMarket(); loadMine(); loadInventoryPanel();
-          }catch(e){ alert(e.message); }
+    const r = await api("/api/inventory");
+    INVENTORY_CACHE = r;
+    const q = $("#inv-search").value?.trim().toLowerCase() || "";
+    const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+    const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+    box.innerHTML="";
+    const add = (arr,kind)=>{
+      for(const it of arr){
+        const row=document.createElement("div"); row.className="itemrow";
+        row.innerHTML=`<div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div><button class="btn muted">Pick</button>`;
+        row.querySelector("button").addEventListener("click", ()=>{
+          SEL_INV = { kind, id: it.id, name: it.name };
+          $("#list-msg").textContent = "Selected: "+it.name;
         });
+        box.appendChild(row);
       }
-      box.appendChild(row);
-    }
-  }catch(e){
-    box.textContent = e.message;
-  }
+    };
+    add(items,"item");
+    add(recipes,"recipe");
+    if (!box.children.length) box.textContent="Empty.";
+  }catch(e){ box.textContent=e.message; }
 }
+document.getElementById("inv-search")?.addEventListener("input", loadInventoryPanel);
 
-// Inventory panel (Create Sale)
-async function loadMine(){
-  const box = $("#mine"); if(!box) return;
-  box.textContent = "Loading…";
-  try{
-    const r = await api("/api/sales/mine");
-    const rows = r.listings || [];
-    if (!rows.length){ box.textContent = "No listings."; return; }
-
-    box.innerHTML = "";
-    for (const s of rows){
-      const g  = Math.floor((s.price_s||0)/100);
-      const ss = (s.price_s||0)%100;
-      const nameLabel = s.kind === "recipe"
-        ? `[Recipe] ${s.name} <span class="badge">T${s.tier}</span>`
-        : `${s.name} <span class="badge">T${s.tier}</span>`;
-
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.innerHTML = `
-        <div>${nameLabel} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
-        <div class="row">
-          <span class="badge">${g}g ${ss}s</span>
-          ${s.status==='live' ? '<button class="btn danger">Cancel</button>' : ''}
-        </div>
-      `;
-
-      if (s.status === 'live'){
-        row.querySelector("button").addEventListener("click", async ()=>{
-          try{
-            await api("/api/sales/cancel",{ method:"POST", body: JSON.stringify({ id: s.id }) });
-            loadMarket(); loadMine(); loadInventoryPanel();
-          }catch(e){ alert(e.message); }
-        });
-      }
-      box.appendChild(row);
-    }
-  }catch(e){
-    box.textContent = e.message;
-  }
-}
-
-
-// Marketplace
+// Market & Mine
 async function loadMarket(){
   const box=$("#market"); if(!box) return;
   box.textContent="Loading…";
@@ -464,11 +357,9 @@ async function loadMarket(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = s.name
-        ? `${s.name} <span class="badge">T${s.tier}</span>`
-        : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
+      const nameLabel = s.kind==="recipe" ? `[Recipe] ${s.name}` : `${s.name}`;
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
+      row.innerHTML=`<div>${nameLabel} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        <button class="btn">Buy</button>
@@ -484,9 +375,8 @@ async function loadMarket(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#market-q")?.addEventListener("input", loadMarket);
+document.getElementById("market-q")?.addEventListener("input", loadMarket);
 
-// My listings
 async function loadMine(){
   const box=$("#mine"); if(!box) return;
   box.textContent="Loading…";
@@ -497,11 +387,9 @@ async function loadMine(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = s.name
-        ? `${s.name} <span class="badge">T${s.tier}</span>`
-        : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
+      const nameLabel = s.kind==="recipe" ? `[Recipe] ${s.name}` : `${s.name}`;
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
+      row.innerHTML=`<div>${nameLabel} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
@@ -518,48 +406,27 @@ async function loadMine(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-$("#btn-mine")?.addEventListener("click", loadMine);
+document.getElementById("btn-mine")?.addEventListener("click", loadMine);
 
 // Full Inventory tab
 async function loadInventoryFull(){
-  const box = $("#inv-full"); if(!box) return;
-  box.textContent = "Loading…";
+  const box=$("#inv-full"); if(!box) return;
+  box.textContent="Loading…";
   try{
     const r = await api("/api/inventory");
-    const lines = [];
-
-    for (const it of (r.items||[])){
-      lines.push(
-        `<div class="itemrow">
-           <div>${it.name} <span class="badge">T${it.tier}</span></div>
-           <div class="muted">x${it.qty}</div>
-         </div>`
-      );
+    const lines=[];
+    for(const it of (r.items||[])){
+      lines.push(`<div class="itemrow"><div>${it.name} <span class="badge">T${it.tier}</span></div><div class="muted">x${it.qty}</div></div>`);
     }
-
-    for (const rc of (r.recipes||[])){
-      lines.push(
-        `<div class="itemrow">
-           <div>[Recipe] ${rc.name} <span class="badge">T${rc.tier}</span></div>
-           <div class="muted">x${rc.qty}</div>
-         </div>`
-      );
+    for(const rc of (r.recipes||[])){
+      lines.push(`<div class="itemrow"><div class="muted">[Recipe]</div><div>${rc.name} <span class="badge">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div></div>`);
     }
-
     box.innerHTML = lines.join("") || "Empty.";
-  }catch(e){
-    box.textContent = e.message;
-  }
+  }catch(e){ box.textContent=e.message; }
 }
-
 
 // Init
 loadMe();
 </script>
 </body>
 </html>
-
-
-
-
-
