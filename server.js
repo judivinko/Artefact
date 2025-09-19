@@ -30,12 +30,11 @@ fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
 // ---------- App
 const app = express();
-app.set("trust proxy", 1);
-const app = express();
 const server = http.createServer(app);
+
 app.use(express.json());
 app.use(cookieParser());
-
+app.set("trust proxy", 1);
 // Static
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
@@ -1072,6 +1071,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
