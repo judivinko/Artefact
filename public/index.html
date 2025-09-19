@@ -1,53 +1,73 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ARTEFACT</title>
-<link rel="stylesheet" href="/app.css" />
-<style>
-  .hidden{display:none}
-  .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
-  .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
-  .itemrow:last-child{border-bottom:0}
-  .list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
-  .chip{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#0d1b2a;cursor:pointer}
-  .chip.active{background:#0e3a2f}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ARTEFACT</title>
+  <link rel="stylesheet" href="/app.css" />
+  <style>
+    /* sitni dodaci samo za ovaj file */
+    .hidden{display:none}
+    .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
+    .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
+    .itemrow:last-child{border-bottom:0}
+    .list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+    .chip{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#0d1b2a;cursor:pointer}
+    .chip.active{background:#0e3a2f}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .right{margin-left:auto}
+    .toast{position:fixed;bottom:16px;right:16px;background:#0d1b2a;border:1px solid #233047;border-radius:8px;padding:10px 12px}
+    .btn{cursor:pointer}
+    .btn.muted{opacity:.9}
+    .btn.secondary{background:#0d2a3a}
+    .btn.danger{background:#3a0d14}
+    .input{background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb}
+    .card{background:#0b1220;border:1px solid #233047;border-radius:12px;padding:12px;margin-top:12px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .tabbar{margin:6px 0 4px}
+    .header{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #233047}
+    .brand{font-weight:700}
+    .container{max-width:980px;margin:0 auto;padding:12px}
+    .label{font-weight:600}
+    .muted{opacity:.8}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  </style>
 </head>
 <body>
+
+  <!-- Header (tko je logiran, balans, logout) -->
   <header class="header">
     <div class="brand">ARTEFACT</div>
     <div class="row">
-      <span id="who" class="badge">Not logged in</span>
+      <span id="who" class="badge">–</span>
       <span id="balance" class="badge">0g 0s</span>
       <button id="btn-logout" class="btn muted hidden">Log out</button>
     </div>
   </header>
 
+  <!-- Glavni sadržaj -->
   <main class="container">
+
     <!-- Auth -->
-<section id="auth" class="card">
-  <div class="label">Login / Register</div>
-  <div class="grid">
-    <form id="form-register" class="card" novalidate>
-      <div class="label">Register</div>
-      <input id="reg-email" class="input" type="email" autocomplete="username" placeholder="email@example.com" required />
-      <input id="reg-pass"  class="input" type="password" autocomplete="new-password" placeholder="password (min 6)" style="margin-top:8px" required minlength="6"/>
-      <button id="btn-register" class="btn" type="submit" style="margin-top:8px">Register</button>
-      <div id="reg-msg" class="muted" style="margin-top:6px;height:18px"></div>
-    </form>
-
-    <form id="form-login" class="card" novalidate>
-      <div class="label">Login</div>
-      <input id="log-email" class="input" type="email" autocomplete="username" placeholder="email@example.com" required />
-      <input id="log-pass"  class="input" type="password" autocomplete="current-password" placeholder="password" style="margin-top:8px" required />
-      <button id="btn-login" class="btn secondary" type="submit" style="margin-top:8px">Log in</button>
-      <div id="log-msg" class="muted" style="margin-top:6px;height:18px"></div>
-    </form>
-  </div>
-</section>
-
+    <section id="auth" class="card">
+      <div class="label">Login / Register</div>
+      <div class="grid">
+        <div class="card">
+          <div class="label">Register</div>
+          <input id="reg-email" class="input" placeholder="email@example.com" />
+          <input id="reg-pass" class="input" type="password" placeholder="password (min 6)" style="margin-top:8px"/>
+          <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
+          <div id="reg-msg" class="muted" style="margin-top:6px"></div>
+        </div>
+        <div class="card">
+          <div class="label">Login</div>
+          <input id="log-email" class="input" placeholder="email@example.com" />
+          <input id="log-pass" class="input" type="password" placeholder="password" style="margin-top:8px"/>
+          <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
+          <div id="log-msg" class="muted" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </section>
 
     <!-- App -->
     <section id="app" class="hidden">
@@ -70,7 +90,7 @@
         </div>
       </div>
 
-      <!-- CRAFTING -->
+      <!-- Crafting -->
       <div id="tab-craft" class="card hidden">
         <div class="row">
           <div class="label">Crafting</div>
@@ -94,7 +114,7 @@
         </div>
       </div>
 
-      <!-- SALES -->
+      <!-- Sales -->
       <div id="tab-sales" class="card hidden">
         <div class="label">Sales (Marketplace)</div>
         <div class="grid">
@@ -128,23 +148,18 @@
       </div>
 
       <!-- Inventory -->
-<div id="tab-inv" class="card hidden">
-  <div class="label">Inventory</div>
-  <div class="grid">
-    <div class="card">
-      <div class="label">Materials</div>
-      <div id="inv-items" class="list">Loading…</div>
-    </div>
-    <div class="card">
-      <div class="label">Recipes</div>
-      <div id="inv-recipes" class="list">Loading…</div>
-    </div>
-  </div>
-</div>
+      <div id="tab-inv" class="card hidden">
+        <div class="label">Inventory</div>
+        <div id="inv-full" class="list">Loading…</div>
+      </div>
+    </section>
+  </main>
 
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
 
-<!-- SVE JS JE ODAVDE DO KRAJA DOKUMENTA -->
 <script>
+// ===== Helpers (toast, $, api) =====
 const $  = s=>document.querySelector(s);
 const $$ = s=>Array.from(document.querySelectorAll(s));
 function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
@@ -156,10 +171,13 @@ const api = async (p,opts={})=>{
   return data;
 };
 
-let WHO=null; let SEL_INV=null;
-let INVENTORY_CACHE = { items: [], recipes: [] };
+// ===== Global state =====
+let WHO=null;                     // user objekt iz /api/me
+let SEL_INV=null;                 // odabran item/recipe za listing {kind,id,name}
+let INVENTORY_CACHE={items:[],recipes:[]};
+window.CURRENT_RECIPE_ID=null;    // da “Details” ostane otvoren nakon refresh-a
 
-// Tabs
+// ===== Tabs =====
 function setTab(tab){
   $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
   $("#tab-shop").classList.toggle("hidden", tab!=="shop");
@@ -169,64 +187,67 @@ function setTab(tab){
 }
 $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
 
-// Auth
+// ===== Auth: Register =====
 $("#btn-register").addEventListener("click", async ()=>{
-  $("#reg-msg").textContent = "…";
+  $("#reg-msg").textContent="…";
   try{
-    const body = {
-      email: $("#reg-email").value.trim(),
-      password: $("#reg-pass").value
-    };
-    const r = await fetch("/api/register", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await r.json().catch(()=>null);
-    if (!r.ok) throw new Error((data && data.error) || `HTTP ${r.status}`);
-    $("#reg-msg").textContent = "OK — logged in.";
-    await loadMe();
-    setTab("shop");
-  }catch(e){
-    $("#reg-msg").textContent = e.message || "Error";
-  }
+    const email=$("#reg-email").value.trim(), pass=$("#reg-pass").value;
+    const r = await api("/api/register",{method:"POST",body:JSON.stringify({email, password:pass})});
+    $("#reg-msg").textContent="OK — now log in.";
+  }catch(e){ $("#reg-msg").textContent=e.message; }
 });
 
+// ===== Auth: Login =====
 $("#btn-login").addEventListener("click", async ()=>{
-  $("#log-msg").textContent = "…";
+  $("#log-msg").textContent="…";
   try{
-    const body = {
-      email: $("#log-email").value.trim(),
-      password: $("#log-pass").value
-    };
-    const r = await fetch("/api/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify(body)
-    });
-    const data = await r.json().catch(()=>null);
-    if (!r.ok) throw new Error((data && data.error) || `HTTP ${r.status}`);
-    $("#log-msg").textContent = "OK";
+    const email=$("#log-email").value.trim(), pass=$("#log-pass").value;
+    await api("/api/login",{method:"POST",body:JSON.stringify({email, password:pass})});
+    $("#log-msg").textContent="OK";
     await loadMe();
     setTab("shop");
-  }catch(e){
-    $("#log-msg").textContent = e.message || "Error";
-  }
+  }catch(e){ $("#log-msg").textContent=e.message; }
 });
 
+// ===== Auth: Logout =====
 $("#btn-logout").addEventListener("click", async ()=>{
-  try{ await fetch("/api/logout",{ credentials:"include" }); }catch{}
-  WHO=null;
-  $("#who").textContent="Not logged in";
-  $("#balance").textContent="0g 0s";
-  $("#auth").classList.remove("hidden");
-  $("#app").classList.add("hidden");
+  try{ await api("/api/logout"); }catch{}
+  WHO=null; $("#who").textContent="Not logged in"; $("#balance").textContent="0g 0s";
+  $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden");
 });
 
+// ===== /api/me + render balance =====
+async function loadMe(){
+  try{
+    const r = await api("/api/me");
+    WHO = r.user;
+    $("#auth").classList.add("hidden");
+    $("#app").classList.remove("hidden");
+    $("#who").textContent = WHO.email;
+    $("#btn-logout").classList.remove("hidden");
+    renderBalance();
+    $("#buysToNext").textContent = (typeof WHO.buys_to_next==="number")
+      ? ("Buys to next recipe: "+WHO.buys_to_next)
+      : "Buys to next recipe: —";
 
-// SHOP
+    await loadInventoryPanel();
+    loadRecipes();
+    loadMarket();
+    loadMine();
+    loadInventoryFull();
+  }catch{
+    $("#auth").classList.remove("hidden");
+    $("#app").classList.add("hidden");
+    $("#who").textContent = "Not logged in";
+    $("#btn-logout").classList.add("hidden");
+  }
+}
+function renderBalance(){
+  if(!WHO) return;
+  $("#balance").textContent = `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
+}
+
+// ===== SHOP: Buy T1 =====
 $("#btn-buy-t1").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
@@ -239,12 +260,14 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
     } else {
       $("#shop-msg").textContent = "OK";
     }
-    await loadMe(); // refresh buys_to_next
-    await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
+    await loadMe();                    // refresh buys_to_next
+    await loadInventoryPanel();
+    loadRecipes();
+    loadInventoryFull();
   }catch(e){ alert(e.message); }
 });
 
-// -------- CRAFTING
+// ===== Crafting: popis recepata =====
 async function loadRecipes(){
   const box=$("#recipes"); box.textContent="Loading…";
   try{
@@ -262,12 +285,17 @@ async function loadRecipes(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-document.getElementById("btn-refresh-rec").addEventListener("click", ()=>{
-  loadRecipes();            // osvježi listu recepata
-  loadInventoryPanel();     // i panel inventara za prodaju
+$("#btn-refresh-rec").addEventListener("click", async ()=>{
+  try{
+    await loadRecipes();
+    await loadInventoryPanel();
+    await loadInventoryFull();
+    if (window.CURRENT_RECIPE_ID) await openRecipe(window.CURRENT_RECIPE_ID);
+  }catch(e){ alert(e.message||"Refresh failed"); }
 });
-document.getElementById("filter-recipe").addEventListener("input", loadRecipes);
+$("#filter-recipe").addEventListener("input", loadRecipes);
 
+// ===== Crafting: detalji recepta + Craft =====
 function renderIngredients(details){
   const lines = [];
   lines.push(`<div class="itemrow"><div><b>${details.recipe.name}</b> <span class="badge">T${details.recipe.tier}</span></div></div>`);
@@ -289,34 +317,36 @@ function renderIngredients(details){
   );
   return lines.join("");
 }
-
 async function openRecipe(recipeId){
   const box=$("#rec-details"); box.textContent="Loading…";
   try{
     const details = await api(`/api/recipes/ingredients/${recipeId}`);
     box.innerHTML = renderIngredients(details);
+    window.CURRENT_RECIPE_ID = details.recipe.id;
     $("#btn-craft").addEventListener("click", async ()=>{
       try{
         const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
         if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
         else if (r2.scrap) toast("Failed (got Scrap)");
         else toast("Done");
-        await loadInventoryPanel(); loadRecipes(); loadInventoryFull();
+        await loadInventoryPanel(); await loadRecipes(); await loadInventoryFull();
+        await openRecipe(details.recipe.id); // update “have/qty”
       }catch(e){ alert(e.message); }
     });
   }catch(e){ box.textContent=e.message; }
 }
 
+// ===== Crafting: ARTEFACT =====
 $("#btn-artefact").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
     const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
     alert("Crafted: "+ name);
-    await loadInventoryPanel(); loadInventoryFull();
+    await loadInventoryPanel(); await loadInventoryFull(); await loadRecipes();
   }catch(e){ alert(e.message); }
 });
 
-// Inventory panel (Sales create)
+// ===== Sales: inventar panel za kreiranje listinga =====
 async function loadInventoryPanel(){
   const box=$("#inv-list"); if(!box) return;
   box.textContent="Loading…";
@@ -343,36 +373,24 @@ async function loadInventoryPanel(){
     if (!box.children.length) box.textContent="Empty.";
   }catch(e){ box.textContent=e.message; }
 }
-document.getElementById("inv-search")?.addEventListener("input", loadInventoryPanel);
+$("#inv-search")?.addEventListener("input", loadInventoryPanel);
 
-<script>
-// ==== Create sale (sa porukom o listing feeu) ====
+// ===== Sales: kreiraj listing =====
 $("#btn-list").addEventListener("click", async ()=>{
   try{
     if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
-    const gold  = parseInt($("#price-g").value||"0",10)||0;
-    const silver= parseInt($("#price-s").value||"0",10)||0;
-    const qty   = parseInt($("#price-qty").value||"1",10)||1;
-
-    // obavijest korisniku o listing fee-u (gold dio u silveru)
-    const feeS = Math.floor(gold); // 1g ⇒ 1s fee
-    if (feeS > 0) {
-      const ok = confirm(`Listing fee: ${feeS}s will be charged for this listing. Continue?`);
-      if (!ok) return;
-    }
-
+    const gold=parseInt($("#price-g").value||"0",10)||0;
+    const silver=parseInt($("#price-s").value||"0",10)||0;
+    const qty=parseInt($("#price-qty").value||"1",10)||1;
     const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
-    const r = await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
-    $("#list-msg").textContent = `Listed (fee ${r.listing.listing_fee_s||0}s).`;
-
-    // reset selection + UI
+    await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
+    $("#list-msg").textContent="Listed.";
     SEL_INV=null;
-    $("#price-g").value=""; $("#price-s").value=""; $("#price-qty").value="";
     loadMarket(); loadMine(); loadInventoryPanel();
   }catch(e){ alert(e.message); }
 });
 
-// ==== Market (live) ====
+// ===== Sales: Marketplace (live) =====
 async function loadMarket(){
   const box=$("#market"); if(!box) return;
   box.textContent="Loading…";
@@ -385,7 +403,8 @@ async function loadMarket(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = `${s.name|| (s.kind==='item'?'Item':'Recipe')}  <span class="badge">T${s.tier||'-'}</span>`;
+      const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
+                                       : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
       const row=document.createElement("div"); row.className="itemrow";
       row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
                      <div class="row">
@@ -405,7 +424,7 @@ async function loadMarket(){
 }
 $("#market-q")?.addEventListener("input", loadMarket);
 
-// ==== My listings ====
+// ===== Sales: My listings =====
 async function loadMine(){
   const box=$("#mine"); if(!box) return;
   box.textContent="Loading…";
@@ -416,7 +435,8 @@ async function loadMine(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = `${s.name|| (s.kind==='item'?'Item':'Recipe')}  <span class="badge">T${s.tier||'-'}</span>`;
+      const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
+                                       : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
       const row=document.createElement("div"); row.className="itemrow";
       row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
                      <div class="row">
@@ -436,34 +456,26 @@ async function loadMine(){
   }catch(e){ box.textContent=e.message; }
 }
 $("#btn-mine")?.addEventListener("click", loadMine);
-</script>
 
-<!-- Inventory -->
-<div id="tab-inv" class="card hidden">
-  <div class="label">Inventory</div>
-  <div class="grid">
-    <div class="card">
-      <div class="label">Materials</div>
-      <div id="inv-items" class="list">Loading…</div>
-    </div>
-    <div class="card">
-      <div class="label">Recipes</div>
-      <div id="inv-recipes" class="list">Loading…</div>
-    </div>
-  </div>
-</div>
+// ===== Inventory (puni prikaz) =====
+async function loadInventoryFull(){
+  const box=$("#inv-full"); if(!box) return;
+  box.textContent="Loading…";
+  try{
+    const r = await api("/api/inventory");
+    const lines=[];
+    for(const it of (r.items||[])){
+      lines.push(`<div class="itemrow"><div>${it.name} <span class="badge">T${it.tier}</span></div><div class="muted">x${it.qty}</div></div>`);
+    }
+    for(const rc of (r.recipes||[])){
+      lines.push(`<div class="itemrow"><div class="muted">[Recipe]</div><div>${rc.name} <span class="badge">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div></div>`);
+    }
+    box.innerHTML = lines.join("") || "Empty.";
+  }catch(e){ box.textContent=e.message; }
+}
 
-
-// Init
+// ===== Init =====
 loadMe();
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
