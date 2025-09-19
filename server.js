@@ -565,12 +565,16 @@ app.post("/api/admin/adjust-balance",(req,res)=>{
     return res.status(400).json({ok:false,error:"No change"});
 
   const tx = db.transaction(()=>{
-    const after = u.balance_silver + deltaS;
-    if (after<0) throw new Error("Insufficient");
-    db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after,u.id);
-    db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
-      .run(u.id, deltaS, "ADMIN_ADJUST", String(email), nowISO());          // [ADMIN: LEDGER WRITE]
-  });
+  const after = u.balance_silver + deltaS;
+  if (after < 0) throw new Error("Insufficient");
+
+  db.prepare("UPDATE users SET balance_silver=? WHERE id=?")
+    .run(after, u.id);
+
+  db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+    .run(u.id, deltaS, "ADMIN_ADJUST", String(email), nowISO()); // [ADMIN: LEDGER WRITE]
+});
+
   try{ tx(); }catch(e){ return res.status(400).json({ok:false,error:String(e.message||e)}); }
 
   const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
@@ -1096,6 +1100,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
