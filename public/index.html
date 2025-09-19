@@ -344,7 +344,34 @@ async function loadInventoryPanel(){
 }
 document.getElementById("inv-search")?.addEventListener("input", loadInventoryPanel);
 
-// Market & Mine
+<script>
+// ==== Create sale (sa porukom o listing feeu) ====
+$("#btn-list").addEventListener("click", async ()=>{
+  try{
+    if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
+    const gold  = parseInt($("#price-g").value||"0",10)||0;
+    const silver= parseInt($("#price-s").value||"0",10)||0;
+    const qty   = parseInt($("#price-qty").value||"1",10)||1;
+
+    // obavijest korisniku o listing fee-u (gold dio u silveru)
+    const feeS = Math.floor(gold); // 1g ⇒ 1s fee
+    if (feeS > 0) {
+      const ok = confirm(`Listing fee: ${feeS}s will be charged for this listing. Continue?`);
+      if (!ok) return;
+    }
+
+    const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
+    const r = await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
+    $("#list-msg").textContent = `Listed (fee ${r.listing.listing_fee_s||0}s).`;
+
+    // reset selection + UI
+    SEL_INV=null;
+    $("#price-g").value=""; $("#price-s").value=""; $("#price-qty").value="";
+    loadMarket(); loadMine(); loadInventoryPanel();
+  }catch(e){ alert(e.message); }
+});
+
+// ==== Market (live) ====
 async function loadMarket(){
   const box=$("#market"); if(!box) return;
   box.textContent="Loading…";
@@ -357,9 +384,9 @@ async function loadMarket(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const nameLabel = s.kind==="recipe" ? `[Recipe] ${s.name}` : `${s.name}`;
+      const label = `${s.name|| (s.kind==='item'?'Item':'Recipe')}  <span class="badge">T${s.tier||'-'}</span>`;
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${nameLabel} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span></div>
+      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        <button class="btn">Buy</button>
@@ -375,8 +402,9 @@ async function loadMarket(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-document.getElementById("market-q")?.addEventListener("input", loadMarket);
+$("#market-q")?.addEventListener("input", loadMarket);
 
+// ==== My listings ====
 async function loadMine(){
   const box=$("#mine"); if(!box) return;
   box.textContent="Loading…";
@@ -387,9 +415,9 @@ async function loadMine(){
     box.innerHTML="";
     for(const s of rows){
       const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const nameLabel = s.kind==="recipe" ? `[Recipe] ${s.name}` : `${s.name}`;
+      const label = `${s.name|| (s.kind==='item'?'Item':'Recipe')}  <span class="badge">T${s.tier||'-'}</span>`;
       const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${nameLabel} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
+      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
                      <div class="row">
                        <span class="badge">${g}g ${ss}s</span>
                        ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
@@ -406,7 +434,8 @@ async function loadMine(){
     }
   }catch(e){ box.textContent=e.message; }
 }
-document.getElementById("btn-mine")?.addEventListener("click", loadMine);
+$("#btn-mine")?.addEventListener("click", loadMine);
+</script>
 
 // Full Inventory tab
 async function loadInventoryFull(){
@@ -430,3 +459,4 @@ loadMe();
 </script>
 </body>
 </html>
+
