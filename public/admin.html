@@ -219,33 +219,54 @@
 
     // ---------- Controls
     async function changeGold(sign){
-      if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
-      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
-      if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
-      const gold = sign>0 ? amount : -amount;
-      try{
-        const r = await api("/api/admin/adjust-balance", {
-          method:"POST", body: JSON.stringify({ email: selected.email, gold })
-        });
-        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
-        await loadUsers();
-        // update selection reference
-        const found = users.find(x=>x.id===selected.id);
-        if (found) selected = found;
-        await loadInventory();
-      }catch(e){ msg("#ops-msg", e.message, false); }
-    }
-    async function setDisabled(flag){
-      if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
-      try{
-        await api("/api/admin/disable-user", { method:"POST", body: JSON.stringify({ email: selected.email, disabled: flag }) });
-        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
-        await loadUsers();
-        const found = users.find(x=>x.id===selected.id);
-        if (found) selected = found;
-        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
-      }catch(e){ msg("#ops-msg", e.message, false); }
-    }
+  if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
+  const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
+  if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
+  const gold = sign > 0 ? amount : -amount;
+  try{
+    const r = await api("/api/admin/adjust-balance", {
+      method:"POST",
+      body: JSON.stringify({ email: selected.email, gold })
+    });
+    msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
+    await loadUsers();
+    const found = users.find(x => x.id === selected.id);
+    if (found) selected = found;
+    await loadInventory();
+  }catch(e){
+    msg("#ops-msg", e.message, false);
+  }
+}
+
+async function setDisabled(flag){
+  if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
+  try{
+    await api("/api/admin/disable-user", {
+      method:"POST",
+      body: JSON.stringify({ email: selected.email, disabled: flag })
+    });
+    msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
+    await loadUsers();
+    const found = users.find(x => x.id === selected.id);
+    if (found) selected = found;
+    $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
+  }catch(e){
+    msg("#ops-msg", e.message, false);
+  }
+}
+
+async function setArtefactBonusGold(){
+  const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
+  try{
+    const r = await api("/api/admin/set-bonus-gold", {
+      method:"POST",
+      body: JSON.stringify({ code: "ARTEFACT", bonus_gold })
+    });
+    msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`);
+  }catch(e){
+    msg("#bonus-msg", e.message, false);
+  }
+}
 
     // ---------- Events
     $("#btn-key-set").addEventListener("click", async ()=>{
@@ -290,5 +311,6 @@
   </script>
 </body>
 </html>
+
 
 
