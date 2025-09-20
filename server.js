@@ -1253,6 +1253,6 @@ app.get("/api/health", (_req, res) => {
 // =============== START ===============
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
-}); // ⬅︎ ostavi ovu tačku-zarez
+});
 
-/* EOF */
+//---end
