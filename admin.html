@@ -311,8 +311,12 @@ async function openRecipe(recipeId){
 $("#btn-artefact").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-    const name  = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
-    const bonus = Number(r.bonus_gold || 0);
+
+    // podrži oba oblika odgovora: { ok, bonus_gold, crafted } ILI { ok, result:{ bonus_gold, crafted } }
+    const payload   = r.result ? r.result : r;
+    const crafted   = payload.crafted;
+    const name      = (crafted && crafted.name) ? crafted.name : "Artefact";
+    const bonus     = Number(payload.bonus_gold || 0);
 
     const bonusEl = document.querySelector("#artefact-bonus");
     if (bonusEl) bonusEl.textContent = bonus;
@@ -528,6 +532,7 @@ $("#btn-mine")?.addEventListener("click", loadMine);
   </script>
 </body>
 </html>
+
 
 
 
