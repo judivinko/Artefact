@@ -310,6 +310,15 @@ if (!hasCol("sales","price_s")) db.prepare(`ALTER TABLE sales ADD COLUMN price_s
 if (!hasCol("sales","status"))  db.prepare(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live'`).run();
 if (!hasCol("inventory_escrow","auction_id")) db.prepare(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER`).run();
 if (!hasCol("items","bonus_gold")) db.prepare(`ALTER TABLE items ADD COLUMN bonus_gold INTEGER NOT NULL DEFAULT 0`).run();
+//---MIGRATE: PREFIX "R " ZA SVE RECEPTE KOJI JE NEMAJU
+try {
+  db.prepare(`
+    UPDATE recipes
+    SET name = 'R ' || name
+    WHERE name NOT LIKE 'R %'
+  `).run();
+} catch {}
+
 
 // ---------- Seed helpers
 function ensureItem(code, name, tier, volatile=0){
@@ -1202,6 +1211,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
