@@ -777,35 +777,34 @@ for (const n of need) {
     .run(n.qty, tok.uid, n.item_id);
 }
 
-const fail = Math.random() < 0.10; // 10% fail
+const fail = Math.random() < 0.10;
 
-if (!fail) {
-  // SUCCESS → add output + CONSUME ONE RECIPE
-db.prepare(`
-  INSERT INTO user_items(user_id,item_id,qty)
-  VALUES (?,?,1)
-  ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-`).run(tok.uid, r.output_item_id);
+const result = db.transaction(() => {
+  if (!fail) {
+    db.prepare(`
+      INSERT INTO user_items(user_id,item_id,qty)
+      VALUES (?,?,1)
+      ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+    `).run(tok.uid, r.output_item_id);
 
-db.prepare(`
-  UPDATE user_recipes SET qty=qty-1
-  WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
+    db.prepare(`
+      UPDATE user_recipes SET qty=qty-1
+      WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
 
-const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
-return { result: "success", crafted: out };
-} else {
-// FAIL → add SCRAP, recipe stays
-const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
-if (scrap) {
-  db.prepare(`
-    INSERT INTO user_items(user_id,item_id,qty)
-    VALUES (?,?,1)
-    ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-  `).run(tok.uid, scrap.id);
-}
-return { result: "fail", scrap: true };
-} // ← zatvara else
-}); // ← zatvara db.transaction
+    const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
+    return { result: "success", crafted: out };
+  } else {
+    const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
+    if (scrap) {
+      db.prepare(`
+        INSERT INTO user_items(user_id,item_id,qty)
+        VALUES (?,?,1)
+        ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+      `).run(tok.uid, scrap.id);
+    }
+    return { result: "fail", scrap: true };
+  }
+});
 
 res.json({ ok:true, ...result });
 } catch(e){
@@ -820,8 +819,7 @@ res.json({ ok:true, ...result });
 }
 });
 
-
-}); // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
+// Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 
 app.post("/api/craft/do", (req, res) => {
   const tok = readToken(req);
@@ -1239,6 +1237,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
