@@ -807,7 +807,7 @@ const result = db.transaction(() => {
 });
 
 res.json({ ok:true, ...result });
-} catch(e){
+catch(e){
   if (e && e.code === "MISSING_MATS") {
     return res.status(400).json({
       ok:false,
@@ -820,6 +820,7 @@ res.json({ ok:true, ...result });
 });
 
 // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
+
 
 app.post("/api/craft/do", (req, res) => {
   const tok = readToken(req);
@@ -1237,6 +1238,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
