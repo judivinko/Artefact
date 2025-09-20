@@ -781,29 +781,29 @@ const fail = Math.random() < 0.10; // 10% fail
 
 if (!fail) {
   // SUCCESS → add output + CONSUME ONE RECIPE
+db.prepare(`
+  INSERT INTO user_items(user_id,item_id,qty)
+  VALUES (?,?,1)
+  ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+`).run(tok.uid, r.output_item_id);
+
+db.prepare(`
+  UPDATE user_recipes SET qty=qty-1
+  WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
+
+const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
+return { result: "success", crafted: out };
+} else {
+// FAIL → add SCRAP, recipe stays
+const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
+if (scrap) {
   db.prepare(`
     INSERT INTO user_items(user_id,item_id,qty)
     VALUES (?,?,1)
     ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-  `).run(tok.uid, r.output_item_id);
-
-  db.prepare(`
-    UPDATE user_recipes SET qty=qty-1
-    WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
-
-  const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
-  return { result: "success", crafted: out };
-} else {
-  // FAIL → add SCRAP, recipe stays
-  const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
-  if (scrap) {
-    db.prepare(`
-      INSERT INTO user_items(user_id,item_id,qty)
-      VALUES (?,?,1)
-      ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-    `).run(tok.uid, scrap.id);
-  }
-  return { result: "fail", scrap: true };
+  `).run(tok.uid, scrap.id);
+}
+return { result: "fail", scrap: true };
 }
 })(); 
 
@@ -812,8 +812,10 @@ res.json({ ok:true, ...result });
   if (e && e.code === "MISSING_MATS") {
     return res.status(400).json({ ok:false, error: "Not all required materials are available.", missing: e.missing });
   }
-  res.status(400).json({ ok:false, error: String(e.message || e) });
+  return res.status(400).json({ ok:false, error: String(e.message || e) });
 }
+}); 
+
 }); // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 
 app.post("/api/craft/do", (req, res) => {
@@ -1232,5 +1234,6 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
