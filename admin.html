@@ -234,7 +234,8 @@
       renderUsers(); // refresh highlight
       await loadInventory(u);
     }
-// -------- CRAFTING
+// ===== KRAFTING =====
+
 // dedicated /api/recipes/* i craft na /api/craft/do
 window.CURRENT_RECIPE_ID = null;
 
@@ -258,8 +259,8 @@ async function loadRecipes(){
 $("#btn-refresh-rec").addEventListener("click", async () => {
   try{
     await loadRecipes();
-    await loadInventoryPanel();
-    await loadInventoryFull();
+    await loadInventoryPanel?.();
+    await loadInventoryFull?.();
     if (window.CURRENT_RECIPE_ID) await openRecipe(window.CURRENT_RECIPE_ID);
   }catch(e){ alert(e.message||"Refresh failed"); }
 });
@@ -295,26 +296,49 @@ async function openRecipe(recipeId){
     window.CURRENT_RECIPE_ID = details.recipe.id; // za refresh “Details”
     $("#btn-craft").addEventListener("click", async ()=>{
       try{
-        const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
-        if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-        else if (r2.scrap) toast("Failed (got Scrap)");
-        else toast("Done");
-        // nakon crafta osvježi sve relevantno
-        await loadInventoryPanel(); await loadRecipes(); await loadInventoryFull();
-        await openRecipe(details.recipe.id); // da se “have/qty” ažuriraju u Details
+        const r2 = await api("/api/ccraft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
+        if (r2.crafted) toast?.(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+        else if (r2.scrap) toast?.("Failed (got Scrap)") || alert("Failed (got Scrap)");
+        else toast?.("Done");
+        await loadInventoryPanel?.(); await loadRecipes(); await loadInventoryFull?.();
+        await openRecipe(details.recipe.id); // ažuriraj “have/qty”
       }catch(e){ alert(e.message); }
     });
   }catch(e){ box.textContent=e.message; }
 }
 
+// ARTEFACT (10× T5 distinct) + bonus prikaz
 $("#btn-artefact").addEventListener("click", async ()=>{
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-    const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
+    const name  = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
+    const bonus = Number(r.bonus_gold || 0);
+
+    const bonusEl = document.querySelector("#artefact-bonus");
+    if (bonusEl) bonusEl.textContent = bonus;
+    const msgEl = document.querySelector("#artefact-msg");
+    if (msgEl) msgEl.textContent = `Crafted: ${name} (+${bonus} gold)`;
+
     alert("Crafted: "+ name);
-    await loadInventoryPanel(); await loadInventoryFull(); await loadRecipes();
-  }catch(e){ alert(e.message); }
+    await loadInventoryPanel?.(); await loadInventoryFull?.(); await loadRecipes();
+  }catch(e){
+    const msgEl = document.querySelector("#artefact-msg");
+    if (msgEl) msgEl.textContent = e.message;
+    else alert(e.message);
+  }
 });
+
+// učitaj bonus na load (ako postoji prikaz u DOM-u)
+async function loadArtefactBonus(){
+  try{
+    const res = await fetch("/api/items/artefact/bonus",{credentials:"include"});
+    const j = await res.json();
+    const g = (j.ok && Number.isFinite(j.bonus_gold)) ? j.bonus_gold : 0;
+    const bonusEl = document.querySelector("#artefact-bonus");
+    if (bonusEl) bonusEl.textContent = g;
+  }catch{}
+}
+loadArtefactBonus();
 
 // -------- SALES
 async function loadInventoryPanel(){
@@ -504,5 +528,6 @@ $("#btn-mine")?.addEventListener("click", loadMine);
   </script>
 </body>
 </html>
+
 
 
