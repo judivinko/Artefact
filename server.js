@@ -805,7 +805,7 @@ return { result: "success", crafted: out };
     }
     return { result: "fail", scrap: true };
   }
-})(); 
+});
 
 res.json({ ok:true, ...result });
 } catch(e){
@@ -1234,6 +1234,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
