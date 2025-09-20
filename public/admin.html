@@ -271,34 +271,44 @@ async function setArtefactBonusGold(){
 }
 
     // ---------- Events
-    $("#btn-key-set").addEventListener("click", async ()=>{
-      ADMIN_KEY = $("#admin-key").value.trim();
-      REMEMBER = $("#key-remember").checked;
-      LOCKED = $("#key-lock").checked;
-      savePrefs(); applyLock();
-      await checkAdmin();
-      await loadUsers();
-    });
-    $("#btn-key-clear").addEventListener("click", ()=>{
-      ADMIN_KEY = ""; savePrefs(); applyLock(); msg("#key-msg","Cleared.");
-    });
-    $("#key-lock").addEventListener("change", ()=>{
-      LOCKED = $("#key-lock").checked;
-      savePrefs(); applyLock();
-    });
-    $("#key-remember").addEventListener("change", ()=>{
-      REMEMBER = $("#key-remember").checked;
-      savePrefs();
-    });
+$("#btn-key-set").addEventListener("click", async ()=>{
+  ADMIN_KEY = $("#admin-key").value.trim();
+  REMEMBER = $("#key-remember").checked;
+  LOCKED = $("#key-lock").checked;
+  savePrefs(); 
+  applyLock();
+  await checkAdmin();
+  await loadUsers();
+});
 
-    $("#btn-refresh-users").addEventListener("click", loadUsers);
-    $("#btn-refresh-inv").addEventListener("click", loadInventory);
-    $("#search").addEventListener("input", renderUsers);
+$("#btn-key-clear").addEventListener("click", ()=>{
+  ADMIN_KEY = ""; 
+  savePrefs(); 
+  applyLock(); 
+  msg("#key-msg","Cleared.");
+});
 
-    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
-    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
-    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+$("#key-lock").addEventListener("change", ()=>{
+  LOCKED = $("#key-lock").checked;
+  savePrefs(); 
+  applyLock();
+});
+
+$("#key-remember").addEventListener("change", ()=>{
+  REMEMBER = $("#key-remember").checked;
+  savePrefs();
+});
+
+$("#btn-refresh-users").addEventListener("click", loadUsers);
+$("#btn-refresh-inv").addEventListener("click", loadInventory);
+$("#search").addEventListener("input", renderUsers);
+
+$("#btn-give").addEventListener("click", ()=> changeGold(+1));
+$("#btn-take").addEventListener("click", ()=> changeGold(-1));
+$("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+$("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+$("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+
 
     // ---------- Init
     loadPrefs();
@@ -313,6 +323,7 @@ async function setArtefactBonusGold(){
   </script>
 </body>
 </html>
+
 
 
 
