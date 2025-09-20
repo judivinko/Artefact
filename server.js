@@ -795,15 +795,15 @@ const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.ou
 return { result: "success", crafted: out };
 } else {
 // FAIL → add SCRAP, recipe stays
-const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
-if (scrap) {
-  db.prepare(`
-    INSERT INTO user_items(user_id,item_id,qty)
-    VALUES (?,?,1)
-    ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
-  `).run(tok.uid, scrap.id);
-}
-return { result: "fail", scrap: true };
+    const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
+    if (scrap) {
+      db.prepare(`
+        INSERT INTO user_items(user_id,item_id,qty)
+        VALUES (?,?,1)
+        ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+      `).run(tok.uid, scrap.id);
+    }
+    return { result: "fail", scrap: true };
   }
 })(); 
 
@@ -814,7 +814,7 @@ res.json({ ok:true, ...result });
   }
   return res.status(400).json({ ok:false, error: String(e.message || e) });
 }
-}); 
+});
 
 }); // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 
@@ -1234,6 +1234,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
