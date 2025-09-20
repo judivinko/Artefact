@@ -910,33 +910,23 @@ app.post("/api/craft/artefact", (req, res) => {
         LIMIT 10
       `).all(tok.uid);
 
-      if (t5.length < 10) {
-        throw { code: "MISSING_MATS" };
-      }
+      if (t5.length < 10) throw { code: "MISSING_MATS" };
 
       const decOne = db.prepare(`UPDATE user_items SET qty = qty - 1 WHERE user_id = ? AND item_id = ?`);
       const delZero = db.prepare(`DELETE FROM user_items WHERE user_id = ? AND item_id = ? AND qty <= 0`);
-      for (const row of t5) {
-        decOne.run(tok.uid, row.item_id);
-        delZero.run(tok.uid, row.item_id);
-      }
+      for (const row of t5) { decOne.run(tok.uid, row.item_id); delZero.run(tok.uid, row.item_id); }
 
       let art = db.prepare(`SELECT id, name, bonus_gold FROM items WHERE code='ARTEFACT'`).get();
       if (!art) art = db.prepare(`SELECT id, name, bonus_gold FROM items WHERE name='Artefact'`).get();
       if (!art) throw new Error("ARTEFACT item not found.");
 
       const have = db.prepare(`SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, art.id);
-      if (have) {
-        db.prepare(`UPDATE user_items SET qty = qty + 1 WHERE user_id=? AND item_id=?`).run(tok.uid, art.id);
-      } else {
-        db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`).run(tok.uid, art.id);
-      }
+      if (have) db.prepare(`UPDATE user_items SET qty = qty + 1 WHERE user_id=? AND item_id=?`).run(tok.uid, art.id);
+      else db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`).run(tok.uid, art.id);
 
       const bonusG = (art.bonus_gold | 0);
-      const bonusS = bonusG * 100; // balans je u silveru
-      if (bonusS > 0) {
-        db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`).run(bonusS, tok.uid);
-      }
+      const bonusS = bonusG * 100; // balance je u silveru
+      if (bonusS > 0) db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`).run(bonusS, tok.uid);
 
       return { crafted: art.name || "ARTEFACT", bonus_gold: bonusG };
     });
@@ -951,50 +941,6 @@ app.post("/api/craft/artefact", (req, res) => {
   }
 });
 
-app.get("/api/inventory",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  const items = db.prepare(`
-    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
-    FROM items i
-    JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
-    WHERE ui.qty>0
-    ORDER BY i.tier ASC, i.name ASC
-  `).all(uTok.uid);
-  const recipes = db.prepare(`
-    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
-    FROM recipes r
-    JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
-    WHERE ur.qty>0
-    ORDER BY r.tier ASC, r.name ASC
-  `).all(uTok.uid);
-
-  // --- DODANO: vraćamo i trenutan ARTEFACT bonus u istom response-u
-  const art = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
-  const artefactBonusGold = (art?.bonus_gold | 0);
-
-  res.json({ok:true, items, recipes, artefactBonusGold});
-});
-
-//---SET ARTEFACT BONUS
-app.post("/api/admin/set-bonus-gold", (req,res)=>{
-  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
-
-  const { code="ARTEFACT", bonus_gold=0 } = req.body || {};
-  const g = Math.max(0, parseInt(bonus_gold,10) || 0);
-
-  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
-  if (!row) return res.status(404).json({ok:false,error:"Item not found"});
-
-  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
-  return res.json({ ok:true, bonus_gold:g });
-});
-
-//---GET ARTEFACT BONUS  (ISPRAVLJENO: uklonjen zalutali tekst i zatvaranja)
-app.get("/api/items/artefact/bonus", (_req,res)=>{
-  const r = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
-  return res.json({ ok:true, bonus_gold: (r?.bonus_gold | 0) });
-});
 
 // ================= SALES (Marketplace) =================
 function mapListing(a) {
@@ -1250,6 +1196,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
