@@ -780,7 +780,7 @@ app.post("/api/craft/do", (req, res) => {
   const rid = parseInt(recipe_id, 10);
   if (!rid) return res.status(400).json({ ok:false, error: "Missing recipe_id" });
 
-  try{
+  try {
     const result = db.transaction(() => {
       const r = db.prepare(`
         SELECT id, name, tier, output_item_id
@@ -799,11 +799,35 @@ app.post("/api/craft/do", (req, res) => {
         JOIN items i ON i.id = ri.item_id
         WHERE ri.recipe_id = ?`).all(r.id);
 
+      let missing = [];
       for (const n of need) {
         const inv = db.prepare(`
           SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, n.item_id);
-        if (!inv || inv.qty < n.qty) throw new Error("Missing ingredients");
+        if (!inv || inv.qty < n.qty) {
+          missing.push(n.name); // spremamo ime itema
+        }
       }
+
+      if (missing.length > 0) {
+        // ovdje prekidamo transakciju
+        throw { code: "MISSING_MATS", missing };
+      }
+
+      // ... ostatak tvoje logike za trošenje materijala, šansu na fail itd.
+    })();
+
+    res.json({ ok:true, result });
+  } catch (err) {
+    if (err.code === "MISSING_MATS") {
+      return res.status(400).json({
+        ok: false,
+        error: "Not all required materials are available.",
+        missing: err.missing
+      });
+    }
+    res.status(400).json({ ok:false, error: err.message || "Crafting failed." });
+  }
+});
 
       // consume materials ALWAYS
       for (const n of need) {
@@ -1126,6 +1150,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
