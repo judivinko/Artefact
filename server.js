@@ -771,74 +771,51 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
   }
 });
 
-// Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
-app.post("/api/craft/do", (req, res) => {
-  const tok = readToken(req);
-  if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
+// consume materials ALWAYS
+for (const n of need) {
+  db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`)
+    .run(n.qty, tok.uid, n.item_id);
+}
 
-  const { recipe_id } = req.body || {};
-  const rid = parseInt(recipe_id, 10);
-  if (!rid) return res.status(400).json({ ok:false, error: "Missing recipe_id" });
+const fail = Math.random() < 0.10; // 10% fail
 
-  try {
-    const result = db.transaction(() => {
-      const r = db.prepare(`
-        SELECT id, name, tier, output_item_id
-        FROM recipes WHERE id=?`).get(rid);
-      if (!r) throw new Error("Recipe not found.");
+if (!fail) {
+  // SUCCESS → add output + CONSUME ONE RECIPE
+  db.prepare(`
+    INSERT INTO user_items(user_id,item_id,qty)
+    VALUES (?,?,1)
+    ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+  `).run(tok.uid, r.output_item_id);
 
-      // user must own the recipe (qty>0)
-      const haveRec = db.prepare(`
-        SELECT qty FROM user_recipes WHERE user_id=? AND recipe_id=?`).get(tok.uid, r.id);
-      if (!haveRec || haveRec.qty <= 0) throw new Error("You don't own this recipe.");
+  db.prepare(`
+    UPDATE user_recipes SET qty=qty-1
+    WHERE user_id=? AND recipe_id=?`).run(tok.uid, r.id);
 
-      // ingredients check
-      const need = db.prepare(`
-        SELECT ri.item_id, ri.qty, i.name
-        FROM recipe_ingredients ri
-        JOIN items i ON i.id = ri.item_id
-        WHERE ri.recipe_id = ?`).all(r.id);
-
-      let missing = [];
-      for (const n of need) {
-        const inv = db.prepare(`
-          SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, n.item_id);
-        if (!inv || inv.qty < n.qty) {
-          missing.push(n.name); // spremamo ime itema
-        }
-      }
-
-      if (missing.length > 0) {
-        // ovdje prekidamo transakciju
-        throw { code: "MISSING_MATS", missing };
-      }
-
-      // ... ostatak tvoje logike za trošenje materijala, šansu na fail itd.
-    })();
-
-    res.json({ ok:true, result });
-  } catch (err) {
-    if (err.code === "MISSING_MATS") {
-      return res.status(400).json({
-        ok: false,
-        error: "Not all required materials are available.",
-        missing: err.missing
-      });
-    }
-    res.status(400).json({ ok:false, error: err.message || "Crafting failed." });
+  const out = db.prepare(`SELECT code, name, tier FROM items WHERE id=?`).get(r.output_item_id);
+  return { result: "success", crafted: out };
+} else {
+  // FAIL → add SCRAP, recipe stays
+  const scrap = db.prepare(`SELECT id FROM items WHERE code='SCRAP'`).get();
+  if (scrap) {
+    db.prepare(`
+      INSERT INTO user_items(user_id,item_id,qty)
+      VALUES (?,?,1)
+      ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1
+    `).run(tok.uid, scrap.id);
   }
-});
+  return { result: "fail", scrap: true };
+}
+})(); 
 
-      // consume materials ALWAYS
-      for (const n of need) {
-        db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(n.qty, tok.uid, n.item_id);
-      }
+res.json({ ok:true, ...result });
+} catch(e){
+  if (e && e.code === "MISSING_MATS") {
+    return res.status(400).json({ ok:false, error: "Not all required materials are available.", missing: e.missing });
+  }
+  res.status(400).json({ ok:false, error: String(e.message || e) });
+}
+}); // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 
-      const fail = Math.random() < 0.10; // 10% fail
-
-      if (!fail) {
-      
-        // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 app.post("/api/craft/do", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
@@ -1254,4 +1231,6 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+        //---end
+
 
