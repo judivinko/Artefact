@@ -870,12 +870,63 @@ app.post("/api/craft/do", (req, res) => {
   }
 });
 
-// Special craft: 10 različitih T5 => ARTEFACT (bez faila) OSTAJE KAKO JE
-// =====================================================
+// Craft ARTEFACT — requires 10 distinct Tier 5 items (no fail)
+app.post("/api/craft/artefact", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
 
+  try {
+    const result = db.transaction(() => {
+      // 1) Nađi do 10 RAZLIČITIH T5 itema koje user posjeduje
+      const t5 = db.prepare(`
+        SELECT ui.item_id
+        FROM user_items ui
+        JOIN items i ON i.id = ui.item_id
+        WHERE ui.user_id = ? AND ui.qty > 0 AND i.tier = 5
+        GROUP BY ui.item_id
+        LIMIT 10
+      `).all(tok.uid);
 
+      if (t5.length < 10) {
+        // isti tekst kao i na običnom craftu (tražio si engleski)
+        throw { code: "MISSING_MATS" };
+      }
 
-// =============== INVENTORY (shared) ===============
+      // 2) Skini po 1 od svakog od izabranih 10 T5
+      const decOne = db.prepare(`UPDATE user_items SET qty = qty - 1 WHERE user_id = ? AND item_id = ?`);
+      const delZero = db.prepare(`DELETE FROM user_items WHERE user_id = ? AND item_id = ? AND qty <= 0`);
+      for (const row of t5) {
+        decOne.run(tok.uid, row.item_id);
+        delZero.run(tok.uid, row.item_id);
+      }
+
+      // 3) Dodaj ARTEFACT (pronađi ga po code ili po imenu)
+      let art = db.prepare(`SELECT id, name FROM items WHERE code='ARTEFACT'`).get();
+      if (!art) art = db.prepare(`SELECT id, name FROM items WHERE name='Artefact'`).get();
+      if (!art) throw new Error("ARTEFACT item not found.");
+
+      const have = db.prepare(`SELECT qty FROM user_items WHERE user_id=? AND item_id=?`)
+                    .get(tok.uid, art.id);
+      if (have) {
+        db.prepare(`UPDATE user_items SET qty = qty + 1 WHERE user_id=? AND item_id=?`)
+          .run(tok.uid, art.id);
+      } else {
+        db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`)
+          .run(tok.uid, art.id);
+      }
+
+      return { crafted: art.name || "ARTEFACT" };
+    })();
+
+    return res.json({ ok:true, result });
+  } catch (err) {
+    if (err && err.code === "MISSING_MATS") {
+      return res.status(400).json({ ok:false, error: "Not all required materials are available." });
+    }
+    return res.status(400).json({ ok:false, error: err.message || "Crafting failed." });
+  }
+});
+
 app.get("/api/inventory",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
@@ -1150,6 +1201,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
