@@ -837,6 +837,55 @@ app.post("/api/craft/do", (req, res) => {
       const fail = Math.random() < 0.10; // 10% fail
 
       if (!fail) {
+      
+        // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
+app.post("/api/craft/do", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
+
+  const { recipe_id } = req.body || {};
+  const rid = parseInt(recipe_id, 10);
+  if (!rid) return res.status(400).json({ ok:false, error: "Missing recipe_id" });
+
+  try{
+    const result = db.transaction(() => {
+      const r = db.prepare(`
+        SELECT id, name, tier, output_item_id
+        FROM recipes WHERE id=?`).get(rid);
+      if (!r) throw new Error("Recipe not found.");
+
+      // user must own the recipe (qty>0)
+      const haveRec = db.prepare(`
+        SELECT qty FROM user_recipes WHERE user_id=? AND recipe_id=?`).get(tok.uid, r.id);
+      if (!haveRec || haveRec.qty <= 0) throw new Error("You don't own this recipe.");
+
+      // ingredients check
+      const need = db.prepare(`
+        SELECT ri.item_id, ri.qty, i.name
+        FROM recipe_ingredients ri
+        JOIN items i ON i.id = ri.item_id
+        WHERE ri.recipe_id = ?`).all(r.id);
+
+      let missing = [];
+      for (const n of need) {
+        const inv = db.prepare(`
+          SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, n.item_id);
+        if (!inv || inv.qty < n.qty) {
+          missing.push(n.name);
+        }
+      }
+      if (missing.length > 0) {
+        throw { code: "MISSING_MATS", missing };
+      }
+
+      // consume materials ALWAYS
+      for (const n of need) {
+        db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`).run(n.qty, tok.uid, n.item_id);
+      }
+
+      const fail = Math.random() < 0.10; // 10% fail
+
+      if (!fail) {
         // SUCCESS → add output + CONSUME ONE RECIPE
         db.prepare(`
           INSERT INTO user_items(user_id,item_id,qty)
@@ -866,9 +915,13 @@ app.post("/api/craft/do", (req, res) => {
 
     res.json({ ok:true, ...result });
   } catch(e){
+    if (e && e.code === "MISSING_MATS") {
+      return res.status(400).json({ ok:false, error: "Not all required materials are available.", missing: e.missing });
+    }
     res.status(400).json({ ok:false, error: String(e.message || e) });
   }
 });
+
 
 // Craft ARTEFACT — requires 10 distinct Tier 5 items (no fail)
 app.post("/api/craft/artefact", (req, res) => {
@@ -1201,6 +1254,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
