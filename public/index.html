@@ -279,21 +279,32 @@ $("#btn-buy-t1").addEventListener("click", async ()=>{
 
 // ===== Crafting: popis recepata =====
 async function loadRecipes(){
-  const box=$("#recipes"); box.textContent="Loading…";
+  const box=$("#recipes"); 
+  box.textContent="Loading…";
   try{
     const list = await api("/api/recipes/list");
     const q = $("#filter-recipe").value.trim().toLowerCase();
     const rows = (list.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
-    if (!rows.length){ box.textContent="No recipes."; return; }
+    if (!rows.length){ 
+      box.textContent="No recipes."; 
+      return; 
+    }
     box.innerHTML="";
     for (const rec of rows){
-      const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML = `<div><b>${rec.name}</b> <span class="badge">T${rec.tier}</span> <span class="muted">x${rec.qty}</span></div>
-                       <button class="btn muted">Open</button>`;
+      const row=document.createElement("div"); 
+      row.className="itemrow";
+      row.innerHTML = `
+        <div><b>${rec.name}</b> 
+          <span class="badge">T${rec.tier}</span> 
+          <span class="muted">x${rec.qty}</span>
+        </div>
+        <button class="btn muted">Open</button>`;
       row.querySelector("button").addEventListener("click",()=>openRecipe(rec.id));
       box.appendChild(row);
     }
-  }catch(e){ box.textContent=e.message; }
+  }catch(e){ 
+    box.textContent=e.message; 
+  }
 }
 $("#btn-refresh-rec").addEventListener("click", async ()=>{
   try{
@@ -301,7 +312,9 @@ $("#btn-refresh-rec").addEventListener("click", async ()=>{
     await loadInventoryPanel();
     await loadInventoryFull();
     if (window.CURRENT_RECIPE_ID) await openRecipe(window.CURRENT_RECIPE_ID);
-  }catch(e){ alert(e.message||"Refresh failed"); }
+  }catch(e){ 
+    alert(e.message||"Refresh failed"); 
+  }
 });
 $("#filter-recipe").addEventListener("input", loadRecipes);
 
@@ -328,7 +341,8 @@ function renderIngredients(details){
   return lines.join("");
 }
 async function openRecipe(recipeId){
-  const box=$("#rec-details"); box.textContent="Loading…";
+  const box=$("#rec-details"); 
+  box.textContent="Loading…";
   try{
     const details = await api(`/api/recipes/ingredients/${recipeId}`);
     box.innerHTML = renderIngredients(details);
@@ -339,11 +353,17 @@ async function openRecipe(recipeId){
         if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
         else if (r2.scrap) toast("Failed (got Scrap)");
         else toast("Done");
-        await loadInventoryPanel(); await loadRecipes(); await loadInventoryFull();
-        await openRecipe(details.recipe.id); // update “have/qty”
-      }catch(e){ alert(e.message); }
+        await loadInventoryPanel(); 
+        await loadRecipes(); 
+        await loadInventoryFull();
+        await openRecipe(details.recipe.id);
+      }catch(e){ 
+        alert(e.message); 
+      }
     });
-  }catch(e){ box.textContent=e.message; }
+  }catch(e){ 
+    box.textContent=e.message; 
+  }
 }
 
 // ===== Crafting: ARTEFACT =====
@@ -353,7 +373,6 @@ $("#btn-artefact").addEventListener("click", async ()=>{
     const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
     const bonus = r.bonus_gold || 0;
 
-    // prikaži u posebnom prozoru
     $("#artefact-bonus").textContent = bonus;
     $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
 
@@ -364,6 +383,7 @@ $("#btn-artefact").addEventListener("click", async ()=>{
     $("#artefact-msg").textContent = e.message;
   }
 });
+
 
 
 // ===== Sales: inventar panel za kreiranje listinga =====
@@ -499,6 +519,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
