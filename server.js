@@ -40,6 +40,20 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html"))); // admin.html se ne dira
 
+//---ARTEFACT BONUS GOLD (ADMIN)
+app.post("/api/admin/set-bonus-gold", (req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+
+  const { code="ARTEFACT", bonus_gold=0 } = req.body || {};
+  const g = Math.max(0, parseInt(bonus_gold,10) || 0);
+
+  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
+  if (!row) return res.status(404).json({ok:false,error:"Item not found"});
+
+  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
+  return res.json({ ok:true, bonus_gold:g });
+});
+
 // Root i Admin HTML
 app.get("/", (_req, res) =>
   res.sendFile(path.join(__dirname, "public", "index.html"))
@@ -1230,6 +1244,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
