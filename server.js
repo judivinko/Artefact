@@ -772,6 +772,7 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
 });
 
 // consume materials ALWAYS
+try {
 for (const n of need) {
   db.prepare(`UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?`)
     .run(n.qty, tok.uid, n.item_id);
@@ -817,7 +818,7 @@ res.json({ ok:true, ...result });
   }
   return res.status(400).json({ ok:false, error: String(e.message || e) });
 }
-});
+
 
 
 // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
@@ -1239,6 +1240,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
