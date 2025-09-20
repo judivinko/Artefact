@@ -369,28 +369,25 @@ async function openRecipe(recipeId){
 // ===== Crafting: ARTEFACT =====
 $("#btn-artefact").addEventListener("click", async ()=> {
   try {
-    const r = await api("/api/craft/artefact", { 
-      method:"POST", 
-      body: JSON.stringify({}) 
-    });
+    const r = await api("/api/craft/artefact", { method:"POST", body: JSON.stringify({}) });
 
-    // FIX: r.crafted je string → koristi ga direktno
+    // r.crafted je STRING (npr. "Artefact"), nije objekt → uzmi direktno
     const name  = r.crafted || "Artefact";
     const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
 
-    $("#artefact-bonus").textContent = bonus;
+    // prikaži bonus (pretpostavka: u HTML-u postoji <span id="artefact-bonus">0</span>)
+    const span = document.querySelector("#artefact-bonus");
+    if (span) span.textContent = bonus;
+
     $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
 
     await loadInventoryPanel();
     await loadInventoryFull();
     await loadRecipes();
   } catch(e) {
-    $("#artefact-msg").textContent = e.message;
+    $("#artefact-msg").textContent = e?.message || "Crafting failed.";
   }
 });
-
-
-
 
 // ===== Sales: inventar panel za kreiranje listinga =====
 async function loadInventoryPanel(){
@@ -525,6 +522,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
