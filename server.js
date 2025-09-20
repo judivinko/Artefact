@@ -362,9 +362,12 @@ const T2 = [
   ["T2_OBSIDIAN_KNIFE","Nor Obsidian Knife",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]],
   ["T2_IRON_ARMOR","Nor Iron Armor",["IRON","BRONZE","LEATHER","CLOTH","STONE"]]
 ];
-for (const [code,name,ings] of T2){ ensureItem(code,name,2,0); ensureRecipe("R_"+code,name,2,code,ings); }
+for (const [code,name,ings] of T2){
+  ensureItem(code,name,2,0);
+  ensureRecipe("R_"+code,name,2,code,ings);
+}
 
-// T3
+// T3 set
 const T3names = [
   ["T3_GATE_OF_MIGHT","Nor Gate of Might",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]],
   ["T3_GOBLET_OF_WISDOM","Nor Goblet of Wisdom",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]],
@@ -377,9 +380,12 @@ const T3names = [
   ["T3_KNIFE_OF_SHADOW","Nor Knife of Shadow",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]],
   ["T3_ARMOR_OF_GUARD","Nor Armor of Guard",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]]
 ];
-for(const [code,name,ings] of T3names){ ensureItem(code,name,3,0); ensureRecipe("R_"+code,name,3,code,ings); }
+for(const [code,name,ings] of T3names){
+  ensureItem(code,name,3,0);
+  ensureRecipe("R_"+code,name,3,code,ings);
+}
 
-// T4
+// T4 set
 const T4names = [
   ["T4_ENGINE_CORE","Nor Engine Core",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]],
   ["T4_CRYSTAL_LENS","Nor Crystal Lens",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]],
@@ -392,9 +398,12 @@ const T4names = [
   ["T4_VISION_CORE","Nor Vision Core",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]],
   ["T4_SHADOW_BLADE","Nor Shadow Blade",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]]
 ];
-for(const [code,name,ings] of T4names){ ensureItem(code,name,4,0); ensureRecipe("R_"+code,name,4,code,ings); }
+for(const [code,name,ings] of T4names){
+  ensureItem(code,name,4,0);
+  ensureRecipe("R_"+code,name,4,code,ings);
+}
 
-// T5
+// T5 set
 const T5names = [
   ["T5_ANCIENT_RELIC","Nor Ancient Relic",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]],
   ["T5_SUN_LENS","Nor Sun Lens",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]],
@@ -407,18 +416,11 @@ const T5names = [
   ["T5_EYE_OF_TRUTH","Nor Eye of Truth",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]],
   ["T5_NIGHTFALL_EDGE","Nor Nightfall Edge",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]]
 ];
-for(const [code,name,ings] of T5names){ ensureItem(code,name,5,0); ensureRecipe("R_"+code,name,5,code,ings); }
+for(const [code,name,ings] of T5names){
+  ensureItem(code,name,5,0);
+  ensureRecipe("R_"+code,name,5,code,ings);
+}
 
-// T6
-ensureItem("ARTEFACT","Artefact",6,0);
-
-// ---------- Initial admin flag
-try{
-  const u = db.prepare("SELECT id FROM users WHERE email=?").get(DEFAULT_ADMIN_EMAIL);
-  if (u) db.prepare("UPDATE users SET is_admin=1 WHERE id=?").run(u.id);
-}catch{}
-
-// =============== AUTH
 // =============== AUTH
 app.post("/api/register", async (req, res) => {
   try {
@@ -1205,6 +1207,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
