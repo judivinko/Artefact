@@ -894,51 +894,32 @@ app.post("/api/craft/do", (req, res) => {
 });
 
 
-//---ARTEFACT
-app.post("/api/craft/artefact", (req, res) => {
-  const tok = readToken(req);
-  if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
+// ARTEFACT: vraća i artefactBonusGold u /api/inventory
+app.get("/api/inventory",(req,res)=>{
+  const uTok = verifyTokenFromCookies(req);
+  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
 
-  try {
-    const run = db.transaction(() => {
-      const t5 = db.prepare(`
-        SELECT ui.item_id
-        FROM user_items ui
-        JOIN items i ON i.id = ui.item_id
-        WHERE ui.user_id = ? AND ui.qty > 0 AND i.tier = 5
-        GROUP BY ui.item_id
-        LIMIT 10
-      `).all(tok.uid);
+  const items = db.prepare(`
+    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
+    FROM items i
+    JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
+    WHERE ui.qty>0
+    ORDER BY i.tier ASC, i.name ASC
+  `).all(uTok.uid);
 
-      if (t5.length < 10) throw { code: "MISSING_MATS" };
+  const recipes = db.prepare(`
+    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
+    FROM recipes r
+    JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
+    WHERE ur.qty>0
+    ORDER BY r.tier ASC, r.name ASC
+  `).all(uTok.uid);
 
-      const decOne = db.prepare(`UPDATE user_items SET qty = qty - 1 WHERE user_id = ? AND item_id = ?`);
-      const delZero = db.prepare(`DELETE FROM user_items WHERE user_id = ? AND item_id = ? AND qty <= 0`);
-      for (const row of t5) { decOne.run(tok.uid, row.item_id); delZero.run(tok.uid, row.item_id); }
+  // bonus gold za artefact
+  const art = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
+  const artefactBonusGold = (art?.bonus_gold | 0);
 
-      let art = db.prepare(`SELECT id, name, bonus_gold FROM items WHERE code='ARTEFACT'`).get();
-      if (!art) art = db.prepare(`SELECT id, name, bonus_gold FROM items WHERE name='Artefact'`).get();
-      if (!art) throw new Error("ARTEFACT item not found.");
-
-      const have = db.prepare(`SELECT qty FROM user_items WHERE user_id=? AND item_id=?`).get(tok.uid, art.id);
-      if (have) db.prepare(`UPDATE user_items SET qty = qty + 1 WHERE user_id=? AND item_id=?`).run(tok.uid, art.id);
-      else db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`).run(tok.uid, art.id);
-
-      const bonusG = (art.bonus_gold | 0);
-      const bonusS = bonusG * 100; // balance je u silveru
-      if (bonusS > 0) db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`).run(bonusS, tok.uid);
-
-      return { crafted: art.name || "ARTEFACT", bonus_gold: bonusG };
-    });
-
-    const result = run();
-    return res.json({ ok:true, ...result });
-  } catch (err) {
-    if (err && err.code === "MISSING_MATS") {
-      return res.status(400).json({ ok:false, error: "Not all required materials are available." });
-    }
-    return res.status(400).json({ ok:false, error: err.message || "Crafting failed." });
-  }
+  res.json({ok:true, items, recipes, artefactBonusGold});
 });
 
 
@@ -1196,6 +1177,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
