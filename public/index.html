@@ -366,15 +366,40 @@ async function openRecipe(recipeId){
   }
 }
 
-// ===== Crafting: ARTEFACT =====
+// ARTEFACT: učitavanje bonusa + ispravljeno čitanje r.crafted
+
+// helper za učitavanje bonusa
+async function refreshArtefactBonus(){
+  try{
+    const r = await api("/api/items/artefact/bonus");
+    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+    const el = document.querySelector("#artefact-bonus");
+    if (el) el.textContent = bonus;
+  }catch(e){
+    console.warn("refreshArtefactBonus failed:", e);
+  }
+}
+
+// automatski refresh kad se tab prikaže
+(() => {
+  const craft = document.querySelector("#tab-craft");
+  if (!craft) return;
+  const obs = new MutationObserver(() => {
+    if (!craft.classList.contains("hidden")) refreshArtefactBonus();
+  });
+  obs.observe(craft, { attributes:true });
+})();
+
+// ARTEFACT: Crafting dugme
 $("#btn-artefact").addEventListener("click", async ()=> {
   try {
     const r = await api("/api/craft/artefact", { method:"POST", body: JSON.stringify({}) });
 
-    // FIX: r.crafted je string (ne objekt)
+    // r.crafted je string (npr. "Artefact")
     const name  = r.crafted || "Artefact";
     const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
 
+    // ažuriraj broj i poruku
     $("#artefact-bonus").textContent = bonus;
     $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
 
@@ -520,6 +545,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
