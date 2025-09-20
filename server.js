@@ -804,6 +804,7 @@ if (scrap) {
   `).run(tok.uid, scrap.id);
 }
 return { result: "fail", scrap: true };
+  }
 })(); 
 
 res.json({ ok:true, ...result });
@@ -1233,6 +1234,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
