@@ -818,6 +818,7 @@ res.json({ ok:true, ...result });
   }
   return res.status(400).json({ ok:false, error: String(e.message || e) });
 }
+});
 
 
 
@@ -1240,6 +1241,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
