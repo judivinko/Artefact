@@ -91,28 +91,37 @@
       </div>
 
       <!-- Crafting -->
-      <div id="tab-craft" class="card hidden">
+<div id="tab-craft" class="card hidden">
+  <div class="row">
+    <div class="label">Crafting</div>
+    <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
+  </div>
+
+  <!-- Artefact bonus output -->
+  <div style="margin-top:8px">
+    Bonus gold: <span id="artefact-bonus">0</span>
+  </div>
+  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+  <div id="artefact-error" class="danger" style="margin-top:4px"></div> <!-- poruke o greškama -->
+
+  <div class="grid">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Recipes you own</div>
         <div class="row">
-          <div class="label">Crafting</div>
-          <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
-        </div>
-        <div class="grid">
-          <div class="card">
-            <div class="row" style="justify-content:space-between">
-              <div class="label">Recipes you own</div>
-              <div class="row">
-                <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-                <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-              </div>
-            </div>
-            <div id="recipes" class="list">Loading…</div>
-          </div>
-          <div class="card">
-            <div class="label">Details</div>
-            <div id="rec-details" class="list">Select a recipe on the left.</div>
-          </div>
+          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
         </div>
       </div>
+      <div id="recipes" class="list">Loading…</div>
+    </div>
+    <div class="card">
+      <div class="label">Details</div>
+      <div id="rec-details" class="list">Select a recipe on the left.</div>
+    </div>
+  </div>
+</div>
+
 
       <!-- Sales -->
       <div id="tab-sales" class="card hidden">
@@ -489,4 +498,5 @@ loadMe();
 </script>
 </body>
 </html>
+
 
