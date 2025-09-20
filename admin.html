@@ -75,6 +75,14 @@
     <div class="label">Crafting</div>
     <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
   </div>
+
+  <!-- OVDJE UBACUJEMO BONUS PRIKAZ -->
+  <div style="margin-top:8px">
+    Bonus gold: <span id="artefact-bonus">0</span>
+  </div>
+  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+  <!-- KRAJ BONUS BLOKA -->
+
   <div class="grid">
     <div class="card">
       <div class="row" style="justify-content:space-between">
@@ -92,6 +100,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- Sales -->
 <div id="tab-sales" class="card hidden">
@@ -532,6 +541,7 @@ $("#btn-mine")?.addEventListener("click", loadMine);
   </script>
 </body>
 </html>
+
 
 
 
