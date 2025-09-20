@@ -906,7 +906,11 @@ app.post("/api/craft/artefact", (req, res) => {
         db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`)
           .run(tok.uid, art.id);
       }
-
+// Add bonus gold if defined
+if (art.bonus_gold && art.bonus_gold > 0) {
+  db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`)
+    .run(art.bonus_gold, tok.uid);
+}
       return { crafted: art.name || "ARTEFACT" };
     })();
 
@@ -1194,6 +1198,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
