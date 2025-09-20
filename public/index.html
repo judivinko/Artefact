@@ -367,11 +367,16 @@ async function openRecipe(recipeId){
 }
 
 // ===== Crafting: ARTEFACT =====
-$("#btn-artefact").addEventListener("click", async ()=>{
+$("#btn-artefact").addEventListener("click", async ()=> {
   try {
-    const r = await api("/api/craft/artefact",{ method:"POST", body: JSON.stringify({}) });
-    const name = (r.crafted && r.crafted.name) ? r.crafted.name : "Artefact";
-    const bonus = r.bonus_gold || 0;
+    const r = await api("/api/craft/artefact", { 
+      method:"POST", 
+      body: JSON.stringify({}) 
+    });
+
+    // FIX: r.crafted je string → koristi ga direktno
+    const name  = r.crafted || "Artefact";
+    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
 
     $("#artefact-bonus").textContent = bonus;
     $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
@@ -383,6 +388,7 @@ $("#btn-artefact").addEventListener("click", async ()=>{
     $("#artefact-msg").textContent = e.message;
   }
 });
+
 
 
 
@@ -519,6 +525,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
