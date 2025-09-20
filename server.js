@@ -956,6 +956,25 @@ app.get("/api/inventory",(req,res)=>{
   `).all(uTok.uid);
   res.json({ok:true, items, recipes});
 });
+//---SET ARTEFACT BONUS
+app.post("/api/admin/set-bonus-gold", (req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+
+  const { code="ARTEFACT", bonus_gold=0 } = req.body || {};
+  const g = Math.max(0, parseInt(bonus_gold,10) || 0);
+
+  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
+  if (!row) return res.status(404).json({ok:false,error:"Item not found"});
+
+  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
+  return res.json({ ok:true, bonus_gold:g });
+});
+
+//---GET ARTEFACT BONUS
+app.get("/api/items/artefact/bonus", (_req,res)=>{
+  const r = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
+  return res.json({ ok:true, bonus_gold: (r?.bonus_gold|0) });
+});
 
 // ================= SALES (Marketplace) =================
 function mapListing(a) {
@@ -1211,6 +1230,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
