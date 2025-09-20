@@ -954,7 +954,6 @@ app.post("/api/craft/artefact", (req, res) => {
 app.get("/api/inventory",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-
   const items = db.prepare(`
     SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
     FROM items i
@@ -962,7 +961,6 @@ app.get("/api/inventory",(req,res)=>{
     WHERE ui.qty>0
     ORDER BY i.tier ASC, i.name ASC
   `).all(uTok.uid);
-
   const recipes = db.prepare(`
     SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
     FROM recipes r
@@ -971,11 +969,31 @@ app.get("/api/inventory",(req,res)=>{
     ORDER BY r.tier ASC, r.name ASC
   `).all(uTok.uid);
 
-  // >>> DODANO: artefact bonus gold
+  // --- DODANO: vraćamo i trenutan ARTEFACT bonus u istom response-u
   const art = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
   const artefactBonusGold = (art?.bonus_gold | 0);
 
-  res.json({ ok:true, items, recipes, artefactBonusGold });
+  res.json({ok:true, items, recipes, artefactBonusGold});
+});
+
+//---SET ARTEFACT BONUS
+app.post("/api/admin/set-bonus-gold", (req,res)=>{
+  if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
+
+  const { code="ARTEFACT", bonus_gold=0 } = req.body || {};
+  const g = Math.max(0, parseInt(bonus_gold,10) || 0);
+
+  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
+  if (!row) return res.status(404).json({ok:false,error:"Item not found"});
+
+  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
+  return res.json({ ok:true, bonus_gold:g });
+});
+
+//---GET ARTEFACT BONUS  (ISPRAVLJENO: uklonjen zalutali tekst i zatvaranja)
+app.get("/api/items/artefact/bonus", (_req,res)=>{
+  const r = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
+  return res.json({ ok:true, bonus_gold: (r?.bonus_gold | 0) });
 });
 
 // ================= SALES (Marketplace) =================
@@ -1232,6 +1250,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
