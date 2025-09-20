@@ -772,8 +772,15 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
   }
 });
 
-
-
+// Artefact bonus (public GET)
+app.get("/api/items/artefact/bonus", (_req, res) => {
+  try {
+    const row = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
+    return res.json({ ok: true, bonus_gold: (row?.bonus_gold | 0) });
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: String(e.message || e) });
+  }
+});
 
 // Craft – materijali se UVIJEK troše; recept se troši SAMO kod uspjeha (10% fail -> Scrap)
 
@@ -1198,6 +1205,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
