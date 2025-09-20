@@ -909,11 +909,13 @@ app.post("/api/craft/artefact", (req, res) => {
         db.prepare(`INSERT INTO user_items (user_id, item_id, qty) VALUES (?, ?, 1)`).run(tok.uid, art.id);
       }
 
-      if (art.bonus_gold && art.bonus_gold > 0) {
-        db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`).run(art.bonus_gold, tok.uid);
+      const bonusG = (art.bonus_gold | 0);
+      const bonusS = bonusG * 100; // balans je u silveru
+      if (bonusS > 0) {
+        db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`).run(bonusS, tok.uid);
       }
 
-      return { crafted: art.name || "ARTEFACT", bonus_gold: art.bonus_gold || 0 };
+      return { crafted: art.name || "ARTEFACT", bonus_gold: bonusG };
     });
 
     const result = run();
@@ -925,7 +927,6 @@ app.post("/api/craft/artefact", (req, res) => {
     return res.status(400).json({ ok:false, error: err.message || "Crafting failed." });
   }
 });
-
 
 app.get("/api/inventory",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
@@ -946,7 +947,6 @@ app.get("/api/inventory",(req,res)=>{
   `).all(uTok.uid);
   res.json({ok:true, items, recipes});
 });
-
 
 // ================= SALES (Marketplace) =================
 function mapListing(a) {
@@ -1202,6 +1202,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
