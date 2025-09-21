@@ -30,8 +30,6 @@
     .label{font-weight:600}
     .muted{opacity:.8}
     @media (max-width:900px){ .grid{grid-template-columns:1fr} }
-    /* male ikonice uz tekst, bez natpisa ispod slike */
-    img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
   </style>
 </head>
 <body>
@@ -96,7 +94,7 @@
         <div class="row">
           <div class="label">Crafting</div>
           <button id="btn-artefact" class="btn right">
-            <img src="/atefakt.png" alt="" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
+            <img src="/atefakt.png" alt="" width="20" height="20" style="object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
                  onerror="this.onerror=null;this.style.display='none'">
             Craft ARTEFACT (10× distinct T5)
           </button>
@@ -182,13 +180,16 @@
     };
   </script>
 
-  <!-- Icon util (code/name + tier → /images/tX_slug.png; recept = recipe.png) -->
+  <!-- Icon util (base je korijen /public; recept = /recipe.png; fallback = /t1_bronze.png) -->
   <script>
-    const ICONS_BASE = "/images";
-    const RECIPE_ICON = `${ICONS_BASE}/recipe.png`;
-    const FALLBACK_ITEM_ICON = `${ICONS_BASE}/t1_bronze.png`;
-    const esc = s => String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-                              .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    const ICONS_BASE = "/";                 // slike su direktno u /public
+    const RECIPE_ICON = "/recipe.png";      // jedna ikona za sve recepte
+    const FALLBACK_ITEM_ICON = "/t1_bronze.png";
+
+    const esc = s => String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
     const toSlug = s => String(s||"")
       .normalize("NFKD")
       .replace(/['’]/g,"")
@@ -211,7 +212,7 @@
       const byCode = fileNameFromCodeTier(code, tier);
       const byName = fileNameFromNameTier(name, tier);
       const file = byCode || byName;
-      return file ? `${ICONS_BASE}/${file}` : FALLBACK_ITEM_ICON;
+      return file ? `${ICONS_BASE}${file}` : FALLBACK_ITEM_ICON;
     }
   </script>
 
@@ -299,7 +300,8 @@
       const icon = iconFor({code: obj.code, name: obj.name, tier: obj.tier});
       msg.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <img src="${esc(icon)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+               onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
         </div>`;
     }
@@ -310,7 +312,13 @@
         WHO.balance_silver = r.balance_silver;
         renderBalance();
         if (r.gotRecipe){
-          $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
+          // Recept koristi zajedničku ikonu po dizajnu
+          $("#shop-msg").innerHTML = `
+            <div class="row" style="gap:10px;align-items:center">
+              <img src="${RECIPE_ICON}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                   onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+              <div>Got recipe: ${esc(r.gotRecipe.name)} <span class="badge">T${r.gotRecipe.tier}</span></div>
+            </div>`;
         } else if (r.gotItem){
           renderShopGotItem(r.gotItem);
         } else {
@@ -330,7 +338,8 @@
       return `
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+            <img src="${RECIPE_ICON}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                 onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
             <div>
               <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
               <div class="muted">T${r.tier} · x${r.qty}</div>
@@ -357,11 +366,12 @@
     function renderIngredients(details){
       const parts = (details.ingredients||[]).map(ing=>{
         const ok = ing.have >= ing.qty;
-        const src = iconFor({name: ing.name, tier: ing.tier}); /* kod nije u payloadu, zato po imenu+tier */
+        const src = iconFor({name: ing.name, tier: ing.tier}); // iz imena + tier
         return `
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <img src="${esc(src)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                   onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
             </div>
             <div class="${ok?'':'muted'}">${ing.have}/${ing.qty}</div>
@@ -378,220 +388,256 @@
         </div>`;
     }
 
-    
-// … (tvoj kod iznad ostaje kako jest)
-
-async function openRecipe(recipeId){
-  const box=$("#rec-details"); box.textContent="Loading…";
-  try{
-    const details = await api(`/api/recipes/ingredients/${recipeId}`);
-    box.innerHTML = renderIngredients(details);
-    window.CURRENT_RECIPE_ID = details.recipe.id;
-
-    $("#btn-craft").addEventListener("click", async ()=>{
+    async function openRecipe(recipeId){
+      const box=$("#rec-details"); box.textContent="Loading…";
       try{
-        const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
-        if (r2.crafted) {
-          toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-        } else if (r2.scrap) {
-          toast("Failed (got Scrap)");
-        } else {
-          toast("Done");
-        }
+        const details = await api(`/api/recipes/ingredients/${recipeId}`);
+        box.innerHTML = renderIngredients(details);
+        window.CURRENT_RECIPE_ID = details.recipe.id;
+
+        $("#btn-craft").addEventListener("click", async ()=>{
+          try{
+            const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
+            if (r2.crafted) {
+              toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+            } else if (r2.scrap) {
+              toast("Failed (got Scrap)");
+            } else {
+              toast("Done");
+            }
+            await loadInventoryPanel();
+            await loadRecipes();
+            await loadInventoryFull();
+            await openRecipe(details.recipe.id);
+          }catch(e){
+            alert(e.message);
+          }
+        });
+      }catch(e){
+        box.textContent=e.message;
+      }
+    }
+
+    async function refreshArtefactBonus(){
+      try{
+        const r = await api("/api/items/artefact/bonus");
+        const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+        const el = document.querySelector("#artefact-bonus");
+        if (el) el.textContent = bonus;
+      }catch(e){
+        console.warn("refreshArtefactBonus failed:", e);
+      }
+    }
+
+    (() => {
+      const craft = document.querySelector("#tab-craft");
+      if (!craft) return;
+      const obs = new MutationObserver(() => {
+        if (!craft.classList.contains("hidden")) refreshArtefactBonus();
+      });
+      obs.observe(craft, { attributes:true });
+    })();
+
+    $("#btn-artefact").addEventListener("click", async ()=>{
+      try{
+        const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
+        const name  = r.crafted || "Artefact";
+        const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+        $("#artefact-bonus").textContent = bonus;
+        $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
         await loadInventoryPanel();
-        await loadRecipes();
         await loadInventoryFull();
-        await openRecipe(details.recipe.id);
+        await loadRecipes();
+      }catch(e){
+        $("#artefact-msg").textContent = e?.message || "Crafting failed.";
+      }
+    });
+  </script>
+
+  <!-- Market (inv panel + live + mine; dodane slike) -->
+  <script>
+    async function loadInventoryPanel(){
+      const box=$("#inv-list"); if(!box) return;
+      box.textContent="Loading…";
+      try{
+        const r = await api("/api/inventory");
+        INVENTORY_CACHE = r;
+        const q = $("#inv-search").value?.trim().toLowerCase() || "";
+        const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+        const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+        box.innerHTML="";
+        const add = (arr,kind)=>{
+          for(const it of arr){
+            const icon = (kind==="item")
+              ? iconFor({name: it.name, tier: it.tier})
+              : RECIPE_ICON;
+            const row=document.createElement("div");
+            row.className="itemrow";
+            row.innerHTML=`
+              <div class="row" style="gap:10px;align-items:center">
+                <img src="${esc(icon)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                     onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+                <div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
+              </div>
+              <button class="btn muted">Pick</button>`;
+            row.querySelector("button").addEventListener("click", ()=>{
+              SEL_INV = { kind, id: it.id, name: it.name };
+              $("#list-msg").textContent = "Selected: "+it.name;
+            });
+            box.appendChild(row);
+          }
+        };
+        add(items,"item");
+        add(recipes,"recipe");
+        if (!box.children.length) box.textContent="Empty.";
+      }catch(e){
+        box.textContent=e.message;
+      }
+    }
+    $("#inv-search")?.addEventListener("input", loadInventoryPanel);
+
+    async function loadMarket(){
+      const box=$("#market"); if(!box) return;
+      box.textContent="Loading…";
+      try{
+        const q=$("#market-q").value?.trim() || "";
+        const url = "/api/sales/live" + (q?("?q="+encodeURIComponent(q)):"");
+        const r = await api(url);
+        const rows = r.listings || [];
+        if(!rows.length){ box.textContent="No listings."; return; }
+        box.innerHTML="";
+        for(const s of rows){
+          const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
+          const icon = (s.kind==="item")
+            ? iconFor({name: s.name, tier: s.tier})
+            : RECIPE_ICON;
+          const row=document.createElement("div"); row.className="itemrow";
+          row.innerHTML=`
+            <div class="row" style="gap:10px;align-items:center">
+              <img src="${esc(icon)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                   onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <div>${s.name|| (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`)}
+                  <span class="badge">T${s.tier||"-"}</span>
+                  <span class="muted">x${s.qty}</span></div>
+            </div>
+            <div class="row">
+              <span class="badge">${g}g ${ss}s</span>
+              <button class="btn">Buy</button>
+            </div>`;
+          row.querySelector("button").addEventListener("click", async ()=>{
+            try{
+              await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
+              toast("Purchased.");
+              loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
+            }catch(e){ alert(e.message); }
+          });
+          box.appendChild(row);
+        }
+      }catch(e){
+        box.textContent=e.message;
+      }
+    }
+    $("#market-q")?.addEventListener("input", loadMarket);
+
+    async function loadMine(){
+      const box=$("#mine"); if(!box) return;
+      box.textContent="Loading…";
+      try{
+        const r = await api("/api/sales/mine");
+        const rows = r.listings || [];
+        if(!rows.length){ box.textContent="No listings."; return; }
+        box.innerHTML="";
+        for(const s of rows){
+          const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
+          const icon = (s.kind==="item")
+            ? iconFor({name: s.name, tier: s.tier})
+            : RECIPE_ICON;
+          const row=document.createElement("div"); row.className="itemrow";
+          row.innerHTML=`
+            <div class="row" style="gap:10px;align-items:center">
+              <img src="${esc(icon)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                   onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <div>${s.name|| (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`)}
+                  <span class="badge">T${s.tier||"-"}</span>
+                  <span class="muted">x${s.qty}</span>
+                  <span class="badge">${s.status}</span></div>
+            </div>
+            <div class="row">
+              <span class="badge">${g}g ${ss}s</span>
+              ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
+            </div>`;
+          if (s.status==='live'){
+            row.querySelector("button").addEventListener("click", async ()=>{
+              try{
+                await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
+                loadMarket(); loadMine(); loadInventoryPanel();
+              }catch(e){ alert(e.message); }
+            });
+          }
+          box.appendChild(row);
+        }
+      }catch(e){
+        box.textContent=e.message;
+      }
+    }
+    $("#btn-mine")?.addEventListener("click", loadMine);
+
+    $("#btn-list").addEventListener("click", async ()=>{
+      try{
+        if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
+        const gold=parseInt($("#price-g").value||"0",10)||0;
+        const silver=parseInt($("#price-s").value||"0",10)||0;
+        const qty=parseInt($("#price-qty").value||"1",10)||1;
+        const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
+        await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
+        $("#list-msg").textContent="Listed.";
+        SEL_INV=null;
+        loadMarket(); loadMine(); loadInventoryPanel();
       }catch(e){
         alert(e.message);
       }
     });
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
+  </script>
 
-/* artefact bonus — učitaj i prikaži broj bonusa */
-async function refreshArtefactBonus(){
-  try{
-    const r = await api("/api/items/artefact/bonus");
-    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-    const el = document.querySelector("#artefact-bonus");
-    if (el) el.textContent = bonus;
-  }catch(e){
-    console.warn("refreshArtefactBonus failed:", e);
-  }
-}
-
-/* kada se otvori Crafting tab, automatski osvježi bonus */
-(() => {
-  const craft = document.querySelector("#tab-craft");
-  if (!craft) return;
-  const obs = new MutationObserver(() => {
-    if (!craft.classList.contains("hidden")) refreshArtefactBonus();
-  });
-  obs.observe(craft, { attributes:true });
-})();
-
-/* gumb: craft ARTEFACT */
-$("#btn-artefact").addEventListener("click", async ()=>{
-  try{
-    const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-    const name  = r.crafted || "Artefact";
-    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-    $("#artefact-bonus").textContent = bonus;
-    $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
-    await loadInventoryPanel();
-    await loadInventoryFull();
-    await loadRecipes();
-  }catch(e){
-    $("#artefact-msg").textContent = e?.message || "Crafting failed.";
-  }
-});
-
-/* MARKET: inventar panel za kreiranje listinga */
-async function loadInventoryPanel(){
-  const box=$("#inv-list"); if(!box) return;
-  box.textContent="Loading…";
-  try{
-    const r = await api("/api/inventory");
-    INVENTORY_CACHE = r;
-    const q = $("#inv-search").value?.trim().toLowerCase() || "";
-    const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
-    const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
-    box.innerHTML="";
-    const add = (arr,kind)=>{
-      for(const it of arr){
-        const row=document.createElement("div"); row.className="itemrow";
-        row.innerHTML=`<div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
-                       <button class="btn muted">Pick</button>`;
-        row.querySelector("button").addEventListener("click", ()=>{
-          SEL_INV = { kind, id: it.id, name: it.name };
-          $("#list-msg").textContent = "Selected: "+it.name;
-        });
-        box.appendChild(row);
+  <!-- Inventory (puni prikaz) -->
+  <script>
+    async function loadInventoryFull(){
+      const box=$("#inv-full"); if(!box) return;
+      box.textContent="Loading…";
+      try{
+        const r = await api("/api/inventory");
+        const lines=[];
+        for(const it of (r.items||[])){
+          const icon = iconFor({name: it.name, tier: it.tier});
+          lines.push(`
+            <div class="itemrow">
+              <div class="row" style="gap:10px;align-items:center">
+                <img src="${esc(icon)}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                     onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+                <div>${it.name} <span class="badge">T${it.tier}</span></div>
+              </div>
+              <div class="muted">x${it.qty}</div>
+            </div>`);
+        }
+        for(const rc of (r.recipes||[])){
+          lines.push(`
+            <div class="itemrow">
+              <div class="row" style="gap:10px;align-items:center">
+                <img src="${RECIPE_ICON}" alt="" width="28" height="28" style="object-fit:contain;border-radius:6px"
+                     onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+                <div>${rc.name} <span class="badge">T${rc.tier}</span></div>
+              </div>
+              <div class="muted">x${rc.qty}</div>
+            </div>`);
+        }
+        box.innerHTML = lines.join("") || "Empty.";
+      }catch(e){
+        box.textContent=e.message;
       }
-    };
-    add(items,"item");
-    add(recipes,"recipe");
-    if (!box.children.length) box.textContent="Empty.";
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-$("#inv-search")?.addEventListener("input", loadInventoryPanel);
-
-/* MARKET: live ponude */
-async function loadMarket(){
-  const box=$("#market"); if(!box) return;
-  box.textContent="Loading…";
-  try{
-    const q=$("#market-q").value?.trim() || "";
-    const url = "/api/sales/live" + (q?("?q="+encodeURIComponent(q)):"");
-    const r = await api(url);
-    const rows = r.listings || [];
-    if(!rows.length){ box.textContent="No listings."; return; }
-    box.innerHTML="";
-    for(const s of rows){
-      const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
-                                       : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
-      const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span></div>
-                     <div class="row">
-                       <span class="badge">${g}g ${ss}s</span>
-                       <button class="btn">Buy</button>
-                     </div>`;
-      row.querySelector("button").addEventListener("click", async ()=>{
-        try{
-          await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
-          toast("Purchased.");
-          loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
-        }catch(e){ alert(e.message); }
-      });
-      box.appendChild(row);
     }
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-$("#market-q")?.addEventListener("input", loadMarket);
 
-/* MARKET: moji listingi */
-async function loadMine(){
-  const box=$("#mine"); if(!box) return;
-  box.textContent="Loading…";
-  try{
-    const r = await api("/api/sales/mine");
-    const rows = r.listings || [];
-    if(!rows.length){ box.textContent="No listings."; return; }
-    box.innerHTML="";
-    for(const s of rows){
-      const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
-      const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
-                                       : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
-      const row=document.createElement("div"); row.className="itemrow";
-      row.innerHTML=`<div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
-                     <div class="row">
-                       <span class="badge">${g}g ${ss}s</span>
-                       ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
-                     </div>`;
-      if (s.status==='live'){
-        row.querySelector("button").addEventListener("click", async ()=>{
-          try{
-            await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-            loadMarket(); loadMine(); loadInventoryPanel();
-          }catch(e){ alert(e.message); }
-        });
-      }
-      box.appendChild(row);
-    }
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-$("#btn-mine")?.addEventListener("click", loadMine);
-
-/* MARKET: napravi listing */
-$("#btn-list").addEventListener("click", async ()=>{
-  try{
-    if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
-    const gold=parseInt($("#price-g").value||"0",10)||0;
-    const silver=parseInt($("#price-s").value||"0",10)||0;
-    const qty=parseInt($("#price-qty").value||"1",10)||1;
-    const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
-    await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
-    $("#list-msg").textContent="Listed.";
-    SEL_INV=null;
-    loadMarket(); loadMine(); loadInventoryPanel();
-  }catch(e){
-    alert(e.message);
-  }
-});
-
-/* INVENTORY: puni prikaz */
-async function loadInventoryFull(){
-  const box=$("#inv-full"); if(!box) return;
-  box.textContent="Loading…";
-  try{
-    const r = await api("/api/inventory");
-    const lines=[];
-    for(const it of (r.items||[])){
-      lines.push(`<div class="itemrow"><div>${it.name} <span class="badge">T${it.tier}</span></div><div class="muted">x${it.qty}</div></div>`);
-    }
-    for(const rc of (r.recipes||[])){
-      lines.push(`<div class="itemrow"><div class="muted">[Recipe]</div><div>${rc.name} <span class="badge">T${rc.tier}</span></div><div class="muted">x${rc.qty}</div></div>`);
-    }
-    box.innerHTML = lines.join("") || "Empty.";
-  }catch(e){
-    box.textContent=e.message;
-  }
-}
-
-/* INIT */
-loadMe();
-
-// … (kraj)
-</script>
-
-
+    // INIT
+    loadMe();
+  </script>
+</body>
+</html>
