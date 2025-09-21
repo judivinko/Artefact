@@ -333,39 +333,91 @@
     });
   </script>
 
-  <!-- ===== SHOP ===== -->
-  <script>
-    function renderShopGotItem(obj){
-      const msg = $("#shop-msg");
-      if(!msg) return;
-      const icon = iconForByCode(obj.code, obj.tier);
-      msg.innerHTML = `
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
-        </div>`;
-    }
+  <!-- == SHOP (Buy T1) == -->
+<div id="tab-shop" class="card">
+  <div class="row" style="justify-content:space-between">
+    <div class="label">Buy T1 (100s)</div>
+    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
+  </div>
+  <div class="row">
+    <button id="btn-buy-t1" class="btn">Buy</button>
+    <div id="shop-msg" class="muted"></div>
+  </div>
+</div>
 
-    $("#btn-buy-t1").addEventListener("click", async ()=>{
-      try{
-        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-        WHO.balance_silver = r.balance_silver;
-        renderBalance();
-        if (r.gotRecipe){
-          $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
-        } else if (r.gotItem){
-          renderShopGotItem(r.gotItem);
-        } else {
-          $("#shop-msg").textContent = "OK";
-        }
-        // sigurni refresh
-        await loadMe();
-        await safeCall("loadInventoryPanel");
-        safeCall("loadRecipes");
-        safeCall("loadInventoryFull");
-      }catch(e){ alert(e.message); }
-    });
-  </script>
+<script>
+  // ---------- render: dobiveni ITEM (sa slikom)
+  function renderShopGotItem(obj){
+    const msg = document.querySelector("#shop-msg");
+    if(!msg) return;
+    const icon = iconForByCode(obj.code, obj.tier);
+    msg.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="icon" src="${esc(icon)}" alt=""
+             onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
+      </div>`;
+  }
+
+  // ---------- render: dobiveni RECEPT (sa slikom RECIPE_ICON)
+  function renderShopGotRecipe(rec){
+    const msg = document.querySelector("#shop-msg");
+    if(!msg) return;
+    msg.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="icon" src="${RECIPE_ICON}" alt=""
+             onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+        <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
+      </div>`;
+  }
+
+  // ---------- pomoćne osvježavajuće funkcije nakon kupnje
+  function updateBuysToNextFromWHO(){
+    const b = document.querySelector("#buysToNext");
+    if (!b) return;
+    const val = (typeof WHO?.buys_to_next === "number")
+      ? `Buys to next recipe: ${WHO.buys_to_next}`
+      : "Buys to next recipe: —";
+    b.textContent = val;
+  }
+
+  // ---------- klik: Buy T1
+  document.querySelector("#btn-buy-t1").addEventListener("click", async ()=>{
+    try{
+      const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+
+      // osvježi balance značku odmah
+      if (typeof WHO === "object" && WHO){
+        WHO.balance_silver = r.balance_silver|0;
+      }
+      if (typeof renderBalance === "function") renderBalance();
+
+      // prikaži rezultat sa slikom
+      if (r.gotRecipe){
+        renderShopGotRecipe(r.gotRecipe);
+      } else if (r.gotItem){
+        renderShopGotItem(r.gotItem);
+      } else {
+        document.querySelector("#shop-msg").textContent = "OK";
+      }
+
+      // povuci /api/me da dobijemo nov WHO (i buys_to_next)
+      await (typeof loadMe === "function" ? loadMe() : Promise.resolve());
+      updateBuysToNextFromWHO();
+
+      // lagani refresh ostalih panela (ako postoje)
+      await (typeof loadInventoryPanel === "function" ? loadInventoryPanel() : Promise.resolve());
+      if (typeof loadRecipes       === "function") loadRecipes();
+      if (typeof loadInventoryFull === "function") loadInventoryFull();
+    }catch(e){
+      alert(e.message);
+    }
+  });
+
+  // ako želiš da se broj kupnji do recepta inicijalno prikaže i na loadu:
+  document.addEventListener("DOMContentLoaded", updateBuysToNextFromWHO);
+</script>
+
 
   <!-- ===== CRAFTING ===== -->
   <script>
@@ -635,5 +687,6 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
