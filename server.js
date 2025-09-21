@@ -664,52 +664,7 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =============== AUTH • Login (POST /api/login)
-function signToken(u){
-  return jwt.sign({ uid: u.id, email: u.email }, JWT_SECRET, { expiresIn: "7d" });
-}
-
-app.post("/api/login", async (req, res) => {
-  try {
-    const { email, password } = req.body || {};
-    const e = String(email || "").toLowerCase().trim();
-    const p = String(password || "");
-
-    if (!e || !p) return res.status(400).json({ ok:false, error:"Email and password required" });
-
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get(e);
-    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
-    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
-
-    const ok = await bcrypt.compare(p, u.pass_hash);
-    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
-
-    const token  = signToken(u);
-    const isProd = (process.env.NODE_ENV === "production");
-
-    res.cookie(TOKEN_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,        // na HTTPS okruženju true
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-
-    return res.json({ ok:true, user:{ id:u.id, email:u.email } });
-  } catch (e) {
-    console.error("LOGIN ERROR:", e);
-    return res.status(500).json({ ok:false, error:"Login failed" });
-  }
-});
-Klijent (index.html): handler za login dugme
-Ako ga već imaš, zamijeni samo ovu funkciju da bude identična. Ostalo ne diram.
-
-html
-Kopiraj kod
-<script>
-  // ===== AUTH: LOGIN (client) =====
-  document.getElementById("btn-login")?.addEventListener("click", async ()=>{
+ document.getElementById("btn-login")?.addEventListener("click", async ()=>{
     const msg = document.getElementById("log-msg");
     msg.textContent = "…";
     try{
@@ -731,7 +686,6 @@ Kopiraj kod
       msg.textContent = e.message || "Login failed";
     }
   });
-
 // =============== SESSION • Logout (GET /api/logout)
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
@@ -1221,5 +1175,6 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
