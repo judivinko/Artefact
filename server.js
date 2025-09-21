@@ -635,57 +635,16 @@ app.post("/api/admin/disable-user",(req,res)=>{
 
 
 /// ================= AUTH (helpers + register/login/logout/me) — NO cookie-parser =================
-
-// ---------- Tiny helpers ----------
-const nowISO = () => new Date().toISOString();
-const isEmail = (x) => typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.trim());
-const isPass  = (x) => typeof x==="string" && x.length>=6;
-const signToken = (u) => jwt.sign({ uid:u.id, email:u.email }, JWT_SECRET, { expiresIn:"7d" });
-
-// ---------- Cookie helpers (ručno) ----------
-function getCookieJar(req){
-  const raw = req.headers?.cookie || "";
-  const parts = raw.split(";").map(s=>s.trim()).filter(Boolean);
-  const jar = {};
-  for(const p of parts){
-    const i = p.indexOf("=");
-    if(i<0) continue;
-    const k = decodeURIComponent(p.slice(0,i));
-    const v = decodeURIComponent(p.slice(i+1));
-    jar[k] = v;
-  }
-  return jar;
-}
-function setCookie(res, name, value, {maxAge, path="/", httpOnly=true, secure=IS_PROD, sameSite="lax"} = {}){
-  let v = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Path=${path}`;
-  if (httpOnly) v += "; HttpOnly";
-  if (secure)   v += "; Secure";
-  if (sameSite) v += `; SameSite=${sameSite}`;
-  if (typeof maxAge==="number") v += `; Max-Age=${Math.floor(maxAge/1000)}`;
-  const prev = res.getHeader("Set-Cookie");
-  if (prev) res.setHeader("Set-Cookie", [].concat(prev, v)); else res.setHeader("Set-Cookie", v);
-}
-function clearCookie(res, name, {path="/", secure=IS_PROD, sameSite="lax"} = {}){
-  setCookie(res, name, "", { path, secure, sameSite, maxAge:0 });
-}
-
-// ---------- JWT read (iz cookie-ja, bez cookie-parsera) ----------
-function readToken(req){
-  const jar = getCookieJar(req);
-  const t = jar[TOKEN_NAME];
-  if(!t) return null;
-  try{ return jwt.verify(t, JWT_SECRET); }catch{ return null; }
-}
-
-// ================== REGISTER ==================
+// =============== AUTH: Register ===============
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     const e = String(email||"").trim().toLowerCase();
     const p = String(password||"");
 
-    if (!isEmail(e)) return res.status(400).json({ ok:false, error:"Invalid email" });
-    if (!isPass(p))  return res.status(400).json({ ok:false, error:"Password too short (min 6)" });
+    if (!e || !p) return res.status(400).json({ ok:false, error:"Missing email or password" });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return res.status(400).json({ ok:false, error:"Invalid email" });
+    if (p.length < 6) return res.status(400).json({ ok:false, error:"Password too short (min 6)" });
 
     const exists = db.prepare("SELECT id FROM users WHERE lower(email)=?").get(e);
     if (exists) return res.status(409).json({ ok:false, error:"Email already registered" });
@@ -698,53 +657,54 @@ app.post("/api/register", async (req, res) => {
 
     return res.json({ ok:true });
   } catch (err) {
-    console.error("Register error:", err);
-    const msg = String(err).includes("UNIQUE") ? "Email already registered" : "Register failed";
-    return res.status(500).json({ ok:false, error: msg });
+    return res.status(500).json({ ok:false, error:"Register failed" });
   }
 });
 
-// ================== LOGIN ==================
+// =============== AUTH: Login ===============
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const e = String(email||"").trim().toLowerCase();
-
-    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(e);
-    if (!u)            return res.status(404).json({ ok:false, error:"User not found" });
+    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
+    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
     if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
 
     const ok = await bcrypt.compare(String(password||""), u.pass_hash);
-    if (!ok)           return res.status(401).json({ ok:false, error:"Wrong password" });
+    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
 
-    const token = signToken(u);
-    setCookie(res, TOKEN_NAME, token, {
+    const token  = signToken(u);
+    const isProd = (process.env.NODE_ENV==="production" || process.env.RENDER==="true");
+    res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
-      secure: IS_PROD,
-      sameSite: "lax",   // ako su ti domeni različiti -> promijeni u "none"
+      sameSite: "lax",
+      secure: isProd,
       path: "/",
-      maxAge: 7*24*60*60*1000
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
     return res.json({ ok:true, user:{ id:u.id, email:u.email } });
   } catch (e) {
-    console.error("Login error:", e);
     return res.status(500).json({ ok:false, error:"Login failed" });
   }
 });
 
-// ================== LOGOUT ==================
+// =============== AUTH: Logout ===============
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
   if (tok) {
     try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {}
   }
-  clearCookie(res, TOKEN_NAME, { path:"/", sameSite:"lax", secure:IS_PROD });
+  res.clearCookie(TOKEN_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: (process.env.NODE_ENV==="production" || process.env.RENDER==="true"),
+    path: "/"
+  });
   return res.json({ ok:true });
 });
 
-// ================== ME (session) ==================
+// =============== SESSION: Me ===============
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -755,14 +715,16 @@ app.get("/api/me", (req, res) => {
   `).get(tok.uid);
 
   if (!u) {
-    clearCookie(res, TOKEN_NAME, { path:"/", sameSite:"lax", secure:IS_PROD });
+    res.clearCookie(TOKEN_NAME, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: (process.env.NODE_ENV==="production" || process.env.RENDER==="true"),
+      path: "/"
+    });
     return res.status(401).json({ ok:false });
   }
 
-  const buys_to_next = (u.next_recipe_at==null)
-    ? null
-    : Math.max(0, (u.next_recipe_at||0) - (u.shop_buy_count||0));
-
+  const buysToNext = (u.next_recipe_at==null) ? null : Math.max(0, (u.next_recipe_at||0) - (u.shop_buy_count||0));
   return res.json({
     ok:true,
     user:{
@@ -774,7 +736,7 @@ app.get("/api/me", (req, res) => {
       silver: (u.balance_silver % 100),
       shop_buy_count: u.shop_buy_count,
       next_recipe_at: u.next_recipe_at,
-      buys_to_next: buys_to_next
+      buys_to_next: buysToNext
     }
   });
 });
@@ -1214,6 +1176,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
