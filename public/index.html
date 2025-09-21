@@ -218,64 +218,115 @@
     $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
   </script>
 
-  <!-- Auth (Register/Login/Logout + /api/me) -->
-  <script>
-    $("#btn-register").addEventListener("click", async ()=>{
-      $("#reg-msg").textContent="…";
-      try{
-        const email=$("#reg-email").value.trim(), pass=$("#reg-pass").value;
-        await api("/api/register",{method:"POST",body:JSON.stringify({email, password:pass})});
-        $("#reg-msg").textContent="OK — now log in.";
-      }catch(e){ $("#reg-msg").textContent=e.message; }
-    });
-
-    $("#btn-login").addEventListener("click", async ()=>{
-      $("#log-msg").textContent="…";
-      try{
-        const email=$("#log-email").value.trim(), pass=$("#log-pass").value;
-        await api("/api/login",{method:"POST",body:JSON.stringify({email, password:pass})});
-        $("#log-msg").textContent="OK";
-        await loadMe();
-        setTab("shop");
-      }catch(e){ $("#log-msg").textContent=e.message; }
-    });
-
-    $("#btn-logout").addEventListener("click", async ()=>{
-      try{ await api("/api/logout"); }catch{}
-      WHO=null; $("#who").textContent="Not logged in"; $("#balance").textContent="0g 0s";
-      $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden");
-    });
-
-    async function loadMe(){
-      try{
-        const r = await api("/api/me");
-        WHO = r.user;
-        $("#auth").classList.add("hidden");
-        $("#app").classList.remove("hidden");
-        $("#who").textContent = WHO.email;
-        $("#btn-logout").classList.remove("hidden");
-        renderBalance();
-        $("#buysToNext").textContent = (typeof WHO.buys_to_next==="number")
-          ? ("Buys to next recipe: "+WHO.buys_to_next)
-          : "Buys to next recipe: —";
-
-        await loadInventoryPanel();
-        loadRecipes();
-        loadMarket();
-        loadMine();
-        loadInventoryFull();
-      }catch{
-        $("#auth").classList.remove("hidden");
-        $("#app").classList.add("hidden");
-        $("#who").textContent = "Not logged in";
-        $("#btn-logout").classList.add("hidden");
-      }
+  <!-- =============== AUTH: Register =============== -->
+<script>
+const btnRegister = document.getElementById("btn-register");
+if (btnRegister) {
+  btnRegister.addEventListener("click", async ()=>{
+    const msg = document.getElementById("reg-msg");
+    msg.textContent = "…";
+    try {
+      const email = document.getElementById("reg-email").value.trim();
+      const pass  = document.getElementById("reg-pass").value;
+      const r = await fetch("/api/register", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const data = await r.json().catch(()=>null);
+      if (!r.ok) throw new Error((data && data.error) || ("HTTP "+r.status));
+      msg.textContent = "OK — now log in.";
+    } catch(e) {
+      msg.textContent = e.message || "Register failed";
     }
-    function renderBalance(){
-      if(!WHO) return;
-      $("#balance").textContent = `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
+  });
+}
+</script>
+
+<!-- =============== AUTH: Login =============== -->
+<script>
+const btnLogin = document.getElementById("btn-login");
+if (btnLogin) {
+  btnLogin.addEventListener("click", async ()=>{
+    const msg = document.getElementById("log-msg");
+    msg.textContent = "…";
+    try {
+      const email = document.getElementById("log-email").value.trim();
+      const pass  = document.getElementById("log-pass").value;
+      const r = await fetch("/api/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const data = await r.json().catch(()=>null);
+      if (!r.ok) throw new Error((data && data.error) || ("HTTP "+r.status));
+      msg.textContent = "OK";
+      await loadMe();
+      setTab("shop");
+    } catch(e) {
+      msg.textContent = e.message || "Login failed";
     }
-  </script>
+  });
+}
+</script>
+
+<!-- =============== AUTH: Logout =============== -->
+<script>
+const btnLogout = document.getElementById("btn-logout");
+if (btnLogout) {
+  btnLogout.addEventListener("click", async ()=>{
+    try { await fetch("/api/logout",{credentials:"include"}); } catch {}
+    WHO = null;
+    document.getElementById("who").textContent = "Not logged in";
+    document.getElementById("balance").textContent = "0g 0s";
+    document.getElementById("auth").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+    btnLogout.classList.add("hidden");
+  });
+}
+</script>
+
+<!-- =============== SESSION: Me =============== -->
+<script>
+async function loadMe(){
+  try {
+    const r = await fetch("/api/me",{credentials:"include"});
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error("Not logged in");
+    WHO = data.user;
+    document.getElementById("auth").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("who").textContent = WHO.email;
+    document.getElementById("btn-logout").classList.remove("hidden");
+    renderBalance();
+    document.getElementById("buysToNext").textContent =
+      (typeof WHO.buys_to_next==="number")
+      ? ("Buys to next recipe: "+WHO.buys_to_next)
+      : "Buys to next recipe: —";
+
+    await loadInventoryPanel();
+    loadRecipes();
+    loadMarket();
+    loadMine();
+    loadInventoryFull();
+  } catch {
+    WHO = null;
+    document.getElementById("auth").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("who").textContent = "Not logged in";
+    document.getElementById("btn-logout").classList.add("hidden");
+  }
+}
+
+function renderBalance(){
+  if (!WHO) return;
+  document.getElementById("balance").textContent =
+    `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
+}
+</script>
+
 
   <!-- SHOP (Buy T1) -->
   <script>
@@ -603,3 +654,4 @@
   </script>
 </body>
 </html>
+
