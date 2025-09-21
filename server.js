@@ -322,52 +322,89 @@ function ensureRecipeIcon(code, name, tier, result, parts){
   G.RECIPES[code] = { code, name, tier, result, parts, icon: ICONS.recipeIcon };
 }
 
-// Catalog: items — ispod: SCRAP + T1–T5 bez “Nor” u imenima
-ensureItemIcon("SCRAP","Scrap",1,1);
+// ---------- ITEMS ----------
+
+// SCRAP
+ensureItem("SCRAP","Scrap",1,1);
+
+// T1 materials (10)
 const T1 = [
-  ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
-  ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
-  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]
+  ["BRONZE","Bronze"],
+  ["IRON","Iron"],
+  ["SILVER","Silver"],
+  ["GOLD","Gold"],
+  ["WOOD","Wood"],
+  ["STONE","Stone"],
+  ["LEATHER","Leather"],
+  ["CLOTH","Cloth"],
+  ["CRYSTAL","Crystal"],
+  ["OBSIDIAN","Obsidian"]
 ];
-for (const [c,n] of T1) ensureItemIcon(c,n,1,0);
+for (const [c,n] of T1) ensureItem(c,n,1,0);
 
+// T2 items (10)
 const T2_ITEMS = [
-  ["T2_BRONZE_DOOR","Bronze Door"],["T2_SILVER_GOBLET","Silver Goblet"],
-  ["T2_GOLDEN_RING","Golden Ring"],["T2_WOODEN_CHEST","Wooden Chest"],
-  ["T2_STONE_PILLAR","Stone Pillar"],["T2_LEATHER_BAG","Leather Bag"],
-  ["T2_CLOTH_TENT","Cloth Tent"],["T2_CRYSTAL_ORB","Crystal Orb"],
-  ["T2_OBSIDIAN_KNIFE","Obsidian Knife"],["T2_IRON_ARMOR","Iron Armor"]
+  ["T2_BRONZE_DOOR","Bronze Door"],
+  ["T2_SILVER_GOBLET","Silver Goblet"],
+  ["T2_GOLDEN_RING","Golden Ring"],
+  ["T2_WOODEN_CHEST","Wooden Chest"],
+  ["T2_STONE_PILLAR","Stone Pillar"],
+  ["T2_LEATHER_BAG","Leather Bag"],
+  ["T2_CLOTH_TENT","Cloth Tent"],
+  ["T2_CRYSTAL_ORB","Crystal Orb"],
+  ["T2_OBSIDIAN_KNIFE","Obsidian Knife"],
+  ["T2_IRON_ARMOR","Iron Armor"]
 ];
-for (const [code,name] of T2_ITEMS) ensureItemIcon(code,name,2,0);
+for (const [code,name] of T2_ITEMS) ensureItem(code,name,2,0);
 
+// T3 items (10)
 const T3_ITEMS = [
-  ["T3_GATE_OF_MIGHT","Gate of Might"],["T3_GOBLET_OF_WISDOM","Goblet of Wisdom"],
-  ["T3_RING_OF_GLARE","Ring of Glare"],["T3_CHEST_OF_SECRETS","Chest of Secrets"],
-  ["T3_PILLAR_OF_STRENGTH","Pillar of Strength"],["T3_TRAVELERS_BAG","Traveler's Bag"],
-  ["T3_NOMAD_TENT","Nomad Tent"],["T3_ORB_OF_VISION","Orb of Vision"],
-  ["T3_KNIFE_OF_SHADOW","Knife of Shadow"],["T3_ARMOR_OF_GUARD","Armor of Guard"]
+  ["T3_GATE_OF_MIGHT","Gate of Might"],
+  ["T3_GOBLET_OF_WISDOM","Goblet of Wisdom"],
+  ["T3_RING_OF_GLARE","Ring of Glare"],
+  ["T3_CHEST_OF_SECRETS","Chest of Secrets"],
+  ["T3_PILLAR_OF_STRENGTH","Pillar of Strength"],
+  ["T3_TRAVELERS_BAG","Traveler's Bag"],
+  ["T3_NOMAD_TENT","Nomad Tent"],
+  ["T3_ORB_OF_VISION","Orb of Vision"],
+  ["T3_KNIFE_OF_SHADOW","Knife of Shadow"],
+  ["T3_ARMOR_OF_GUARD","Armor of Guard"]
 ];
-for (const [code,name] of T3_ITEMS) ensureItemIcon(code,name,3,0);
+for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
 
+// T4 items (10)
 const T4_ITEMS = [
-  ["T4_ENGINE_CORE","Engine Core"],["T4_CRYSTAL_LENS","Crystal Lens"],
-  ["T4_MIGHT_GATE","Reinforced Gate"],["T4_WISDOM_GOBLET","Enruned Goblet"],
-  ["T4_SECRET_CHEST","Sealed Chest"],["T4_STRENGTH_PILLAR","Monument Pillar"],
-  ["T4_TRAVELER_SATCHEL","Traveler Satchel"],["T4_NOMAD_DWELLING","Nomad Dwelling"],
-  ["T4_VISION_CORE","Vision Core"],["T4_SHADOW_BLADE","Shadow Blade"]
+  ["T4_ENGINE_CORE","Engine Core"],
+  ["T4_CRYSTAL_LENS","Crystal Lens"],
+  ["T4_MIGHT_GATE","Reinforced Gate"],
+  ["T4_WISDOM_GOBLET","Enruned Goblet"],
+  ["T4_SECRET_CHEST","Sealed Chest"],
+  ["T4_STRENGTH_PILLAR","Monument Pillar"],
+  ["T4_TRAVELER_SATCHEL","Traveler Satchel"],
+  ["T4_NOMAD_DWELLING","Nomad Dwelling"],
+  ["T4_VISION_CORE","Vision Core"],
+  ["T4_SHADOW_BLADE","Shadow Blade"]
 ];
-for (const [code,name] of T4_ITEMS) ensureItemIcon(code,name,4,0);
+for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
 
+// T5 items (10)
 const T5_ITEMS = [
-  ["T5_ANCIENT_RELIC","Ancient Relic"],["T5_SUN_LENS","Sun Lens"],
-  ["T5_GUARDIAN_GATE","Guardian Gate"],["T5_WISDOM_CHALICE","Wisdom Chalice"],
-  ["T5_VAULT","Royal Vault"],["T5_COLOSSAL_PILLAR","Colossal Pillar"],
-  ["T5_WAYFARER_BAG","Wayfarer Bag"],["T5_NOMAD_HALL","Nomad Hall"],
-  ["T5_EYE_OF_TRUTH","Eye of Truth"],["T5_NIGHTFALL_EDGE","Nightfall Edge"]
+  ["T5_ANCIENT_RELIC","Ancient Relic"],
+  ["T5_SUN_LENS","Sun Lens"],
+  ["T5_GUARDIAN_GATE","Guardian Gate"],
+  ["T5_WISDOM_CHALICE","Wisdom Chalice"],
+  ["T5_VAULT","Royal Vault"],
+  ["T5_COLOSSAL_PILLAR","Colossal Pillar"],
+  ["T5_WAYFARER_BAG","Wayfarer Bag"],
+  ["T5_NOMAD_HALL","Nomad Hall"],
+  ["T5_EYE_OF_TRUTH","Eye of Truth"],
+  ["T5_NIGHTFALL_EDGE","Nightfall Edge"]
 ];
-for (const [code,name] of T5_ITEMS) ensureItemIcon(code,name,5,0);
+for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// Catalog: recipes — ispod: T2–T5 recepti, imena s “R ” (bez “Nor”)
+// ---------- RECIPES (sve sa zajedničkom /images/recipe.png) ----------
+
+// T2 recipes
 const R_T2 = [
   ["R_T2_BRONZE_DOOR","R Bronze Door",2,"T2_BRONZE_DOOR",["BRONZE","IRON","WOOD","STONE"]],
   ["R_T2_SILVER_GOBLET","R Silver Goblet",2,"T2_SILVER_GOBLET",["SILVER","GOLD","CRYSTAL","CLOTH"]],
@@ -380,8 +417,9 @@ const R_T2 = [
   ["R_T2_OBSIDIAN_KNIFE","R Obsidian Knife",2,"T2_OBSIDIAN_KNIFE",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]],
   ["R_T2_IRON_ARMOR","R Iron Armor",2,"T2_IRON_ARMOR",["IRON","BRONZE","LEATHER","CLOTH","STONE"]]
 ];
-for (const [code,name,tier,result,parts] of R_T2) ensureRecipeIcon(code,name,tier,result,parts);
+for (const [code,name,tier,result,parts] of R_T2) ensureRecipe(code,name,tier,result,parts);
 
+// T3 recipes
 const R_T3 = [
   ["R_T3_GATE_OF_MIGHT","R Gate of Might",3,"T3_GATE_OF_MIGHT",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]],
   ["R_T3_GOBLET_OF_WISDOM","R Goblet of Wisdom",3,"T3_GOBLET_OF_WISDOM",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]],
@@ -394,8 +432,9 @@ const R_T3 = [
   ["R_T3_KNIFE_OF_SHADOW","R Knife of Shadow",3,"T3_KNIFE_OF_SHADOW",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]],
   ["R_T3_ARMOR_OF_GUARD","R Armor of Guard",3,"T3_ARMOR_OF_GUARD",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]]
 ];
-for (const [code,name,tier,result,parts] of R_T3) ensureRecipeIcon(code,name,tier,result,parts);
+for (const [code,name,tier,result,parts] of R_T3) ensureRecipe(code,name,tier,result,parts);
 
+// T4 recipes
 const R_T4 = [
   ["R_T4_ENGINE_CORE","R Engine Core",4,"T4_ENGINE_CORE",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]],
   ["R_T4_CRYSTAL_LENS","R Crystal Lens",4,"T4_CRYSTAL_LENS",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]],
@@ -408,8 +447,9 @@ const R_T4 = [
   ["R_T4_VISION_CORE","R Vision Core",4,"T4_VISION_CORE",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]],
   ["R_T4_SHADOW_BLADE","R Shadow Blade",4,"T4_SHADOW_BLADE",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]]
 ];
-for (const [code,name,tier,result,parts] of R_T4) ensureRecipeIcon(code,name,tier,result,parts);
+for (const [code,name,tier,result,parts] of R_T4) ensureRecipe(code,name,tier,result,parts);
 
+// T5 recipes
 const R_T5 = [
   ["R_T5_ANCIENT_RELIC","R Ancient Relic",5,"T5_ANCIENT_RELIC",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]],
   ["R_T5_SUN_LENS","R Sun Lens",5,"T5_SUN_LENS",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]],
@@ -422,7 +462,8 @@ const R_T5 = [
   ["R_T5_EYE_OF_TRUTH","R Eye of Truth",5,"T5_EYE_OF_TRUTH",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]],
   ["R_T5_NIGHTFALL_EDGE","R Nightfall Edge",5,"T5_NIGHTFALL_EDGE",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]]
 ];
-for (const [code,name,tier,result,parts] of R_T5) ensureRecipeIcon(code,name,tier,result,parts);
+for (const [code,name,tier,result,parts] of R_T5) ensureRecipe(code,name,tier,result,parts);
+
 
 // Auth: register — ispod: POST /api/register (kreira usera)
 app.post("/api/register", async (req,res)=>{
@@ -911,5 +952,6 @@ app.post("/api/sales/buy",(req,res)=>{
 // Health & start — ispod: GET /api/health i server.listen
 app.get("/api/health",(_req,res)=>res.json({ok:true,time:nowISO()}));
 server.listen(PORT, HOST, ()=>{ console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`); });
+
 
 
