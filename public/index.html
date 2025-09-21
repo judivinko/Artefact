@@ -290,29 +290,42 @@ if (btnLogout) {
 
 <!-- =============== SESSION: Me =============== -->
 <script>
+// ===== /api/me + render balance =====
 async function loadMe(){
-  try {
-    const r = await fetch("/api/me",{credentials:"include"});
-    const data = await r.json();
-    if (!r.ok || !data.ok) throw new Error("Not logged in");
-    WHO = data.user;
+  try{
+    console.log("loadMe: start");
+    const r = await api("/api/me");
+    console.log("loadMe: response =", r);
+
+    WHO = r.user;
+    console.log("WHO set =", WHO);
+
+    // prikaži app, sakrij auth
     document.getElementById("auth").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
+
     document.getElementById("who").textContent = WHO.email;
     document.getElementById("btn-logout").classList.remove("hidden");
+
     renderBalance();
-    document.getElementById("buysToNext").textContent =
+
+    // recipes counter
+    document.getElementById("buysToNext").textContent = 
       (typeof WHO.buys_to_next==="number")
-      ? ("Buys to next recipe: "+WHO.buys_to_next)
-      : "Buys to next recipe: —";
+        ? ("Buys to next recipe: "+WHO.buys_to_next)
+        : "Buys to next recipe: —";
 
     await loadInventoryPanel();
-    loadRecipes();
-    loadMarket();
-    loadMine();
-    loadInventoryFull();
-  } catch {
-    WHO = null;
+    await loadRecipes();
+    await loadMarket();
+    await loadMine();
+    await loadInventoryFull();
+
+    console.log("loadMe: finished OK");
+  }catch(e){
+    console.error("loadMe ERROR:", e);
+
+    // fallback: vrati login ekran
     document.getElementById("auth").classList.remove("hidden");
     document.getElementById("app").classList.add("hidden");
     document.getElementById("who").textContent = "Not logged in";
@@ -321,7 +334,7 @@ async function loadMe(){
 }
 
 function renderBalance(){
-  if (!WHO) return;
+  if(!WHO) return;
   document.getElementById("balance").textContent =
     `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
 }
@@ -654,4 +667,5 @@ function renderBalance(){
   </script>
 </body>
 </html>
+
 
