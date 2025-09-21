@@ -1,17 +1,12 @@
+<!-- Komentar: HTML dokument i head (ostavljeno, samo minimalni stilovi) -->
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- doctype + meta -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
-
-  <!-- global css link -->
   <link rel="stylesheet" href="/app.css" />
-
-  <!-- sitni dodaci samo za ovaj file -->
   <style>
-    /* utility */
     .hidden{display:none}
     .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
     .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
@@ -36,14 +31,13 @@
     .label{font-weight:600}
     .muted{opacity:.8}
     @media (max-width:900px){ .grid{grid-template-columns:1fr} }
-
-    /* icon size for list rows */
-    .icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; }
+    /* male ikonice uz tekst, bez dodatnih natpisa ispod slike */
+    img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
   </style>
 </head>
 <body>
 
-  <!-- Header (tko je logiran, balans, logout) -->
+  <!-- Komentar: Header (tko je logiran, balans, logout) -->
   <header class="header">
     <div class="brand">ARTEFACT</div>
     <div class="row">
@@ -53,10 +47,10 @@
     </div>
   </header>
 
-  <!-- Glavni sadržaj -->
+  <!-- Komentar: Glavni sadržaj (Auth + App tabovi) -->
   <main class="container">
 
-    <!-- Auth -->
+    <!-- Komentar: Auth (Register + Login) -->
     <section id="auth" class="card">
       <div class="label">Login / Register</div>
       <div class="grid">
@@ -77,7 +71,7 @@
       </div>
     </section>
 
-    <!-- App -->
+    <!-- Komentar: App tabovi (Shop, Crafting, Market, Inventory) -->
     <section id="app" class="hidden">
       <div class="tabbar row">
         <div class="chip active" data-tab="shop">Shop</div>
@@ -86,7 +80,7 @@
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
-      <!-- SHOP -->
+      <!-- Komentar: SHOP kartica -->
       <div id="tab-shop" class="card">
         <div class="row" style="justify-content:space-between">
           <div class="label">Buy T1 (100s)</div>
@@ -98,21 +92,18 @@
         </div>
       </div>
 
-      <!-- ! crafting -->
-      <!-- Crafting -->
+      <!-- Komentar: CRAFTING kartica (artefakt ikona ispred gumba) -->
       <div id="tab-craft" class="card hidden">
         <div class="row">
           <div class="label">Crafting</div>
-          <!-- Ikona ARTEFAKTA ispred gumba (atefakt.png u /public) -->
           <button id="btn-artefact" class="btn right">
-            <img src="/atefakt.png" alt="Artefact"
-                 style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
+            <img src="/atefakt.png" alt="" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
                  onerror="this.onerror=null;this.style.display='none'">
             Craft ARTEFACT (10× distinct T5)
           </button>
         </div>
 
-        <!-- Artefact bonus + poruka -->
+        <!-- Komentar: Artefact bonus i poruka (ne diramo sadržaj) -->
         <div style="margin-top:8px">
           Bonus gold: <span id="artefact-bonus">0</span>
         </div>
@@ -137,8 +128,7 @@
         </div>
       </div>
 
-      <!-- ! market -->
-      <!-- Market -->
+      <!-- Komentar: MARKET kartica (Create Sale, Live Market, My Listings) -->
       <div id="tab-market" class="card hidden">
         <div class="label">Marketplace</div>
         <div class="grid">
@@ -171,7 +161,7 @@
         </div>
       </div>
 
-      <!-- Inventory -->
+      <!-- Komentar: INVENTORY kartica -->
       <div id="tab-inv" class="card hidden">
         <div class="label">Inventory</div>
         <div id="inv-full" class="list">Loading…</div>
@@ -179,12 +169,11 @@
     </section>
   </main>
 
-  <!-- Toast -->
+  <!-- Komentar: Toast -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- Script: helpers, state, UI, API, icons, tabs, features -->
+  <!-- Komentar: Helpers ($,$$,toast,api) -->
   <script>
-    // ===== Helpers (toast, $, api) =====
     const $  = s=>document.querySelector(s);
     const $$ = s=>Array.from(document.querySelectorAll(s));
     function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
@@ -194,43 +183,27 @@
       if(!r.ok) throw new Error((data&&data.error)||("HTTP "+r.status));
       return data;
     };
+  </script>
 
-    // ===== Icon helpers (global) =====
-    const FALLBACK_ITEM_ICON   = "/images/t1_bronze.png";
-    const FALLBACK_RECIPE_ICON = "/images/recipe.png";
-    const ICON_RECIPE          = "/images/recipe.png";
-    function esc(s){ return String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;"); }
-    // G je univerzalni global (Items & Recipes init file ga puni)
-    const G = (typeof window !== "undefined") ? window : globalThis;
-    // Vrati {name, icon, tier} iz G.ITEMS ako imamo code; u suprotnom koristi fallbacke
-    function metaFrom(code, name, tier, kind){
-      if (code && G?.ITEMS?.[code]) {
-        const it = G.ITEMS[code];
-        return { name: name || it.name || code, tier: tier || it.tier || 1, icon: it.icon || FALLBACK_ITEM_ICON };
-      }
-      if (kind === "recipe") return { name, tier: tier||2, icon: ICON_RECIPE };
-      return { name, tier: tier||1, icon: FALLBACK_ITEM_ICON };
-    }
-
-    // ===== Global state =====
-    let WHO=null;                     // user objekt iz /api/me
-    let SEL_INV=null;                 // odabran item/recipe za listing {kind,id,name}
+  <!-- Komentar: Global state + Tabs -->
+  <script>
+    let WHO=null;
+    let SEL_INV=null;
     let INVENTORY_CACHE={items:[],recipes:[]};
-    window.CURRENT_RECIPE_ID=null;    // da “Details” ostane otvoren nakon refresh-a
+    window.CURRENT_RECIPE_ID=null;
 
-    // ===== Tabs =====
     function setTab(tab){
       $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
       $("#tab-shop").classList.toggle("hidden", tab!=="shop");
       $("#tab-craft").classList.toggle("hidden", tab!=="craft");
-      $("#tab-market").classList.toggle("hidden", tab!=="market");
+      $("#tab-market").classList.toggle("hidden", tab!=="market"); /* usklađeno ime taba */
       $("#tab-inv").classList.toggle("hidden", tab!=="inv");
     }
     $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
+  </script>
 
-    // ===== Auth: Register =====
+  <!-- Komentar: Auth (Register/Login/Logout) -->
+  <script>
     $("#btn-register").addEventListener("click", async ()=>{
       $("#reg-msg").textContent="…";
       try{
@@ -240,7 +213,6 @@
       }catch(e){ $("#reg-msg").textContent=e.message; }
     });
 
-    // ===== Auth: Login =====
     $("#btn-login").addEventListener("click", async ()=>{
       $("#log-msg").textContent="…";
       try{
@@ -252,14 +224,12 @@
       }catch(e){ $("#log-msg").textContent=e.message; }
     });
 
-    // ===== Auth: Logout =====
     $("#btn-logout").addEventListener("click", async ()=>{
       try{ await api("/api/logout"); }catch{}
       WHO=null; $("#who").textContent="Not logged in"; $("#balance").textContent="0g 0s";
       $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden");
     });
 
-    // ===== /api/me + render balance =====
     async function loadMe(){
       try{
         const r = await api("/api/me");
@@ -274,10 +244,10 @@
           : "Buys to next recipe: —";
 
         await loadInventoryPanel();
-        await loadRecipes();
-        await loadMarket();
-        await loadMine();
-        await loadInventoryFull();
+        loadRecipes();
+        loadMarket();
+        loadMine();
+        loadInventoryFull();
       }catch{
         $("#auth").classList.remove("hidden");
         $("#app").classList.add("hidden");
@@ -289,76 +259,62 @@
       if(!WHO) return;
       $("#balance").textContent = `${Math.floor(WHO.balance_silver/100)}g ${WHO.balance_silver%100}s`;
     }
+  </script>
 
-    // ===== SHOP: Buy T1 =====
+  <!-- Komentar: SHOP (Buy T1 preko POST /api/shop/buy-t1) -->
+  <script>
     $("#btn-buy-t1").addEventListener("click", async ()=>{
       try{
-        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})}); /* POST usklađeno */
         WHO.balance_silver = r.balance_silver;
         renderBalance();
-
-        // poruka s ikonicom (ne mijenjamo tekstualnu semantiku)
-        const msg = $("#shop-msg");
         if (r.gotRecipe){
-          const m = metaFrom(null, r.gotRecipe.name, r.gotRecipe.tier, "recipe");
-          msg.innerHTML = `
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                   onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
-              <div>Got recipe: ${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-            </div>`;
+          $("#shop-msg").textContent = `Got recipe: ${r.gotRecipe.name} (T${r.gotRecipe.tier})`;
         } else if (r.gotItem){
-          const m = metaFrom(r.gotItem.code, r.gotItem.name, r.gotItem.tier, "item");
-          msg.innerHTML = `
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                   onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>Got item: ${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-            </div>`;
+          $("#shop-msg").textContent = `Got item: ${r.gotItem.name} (T${r.gotItem.tier})`;
         } else {
           $("#shop-msg").textContent = "OK";
         }
-
-        await loadMe();                    // refresh buys_to_next
+        await loadMe();
         await loadInventoryPanel();
-        await loadRecipes();
-        await loadInventoryFull();
+        loadRecipes();
+        loadInventoryFull();
       }catch(e){ alert(e.message); }
     });
+  </script>
 
-    // ===== Crafting: popis recepata (slika + ime + T + qty) =====
+  <!-- Komentar: Crafting (lista recepata + detalji s ikonicama) -->
+  <script>
+    const FALLBACK_ITEM_ICON   = "/images/t1_bronze.png";
+    const FALLBACK_RECIPE_ICON = "/images/recipe.png";
+    const esc = s => String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+                              .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    function rowRecipe(r){
+      const icon = FALLBACK_RECIPE_ICON;
+      return `
+        <div class="itemrow">
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
+            <div>
+              <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+              <div class="muted">T${r.tier} · x${r.qty}</div>
+            </div>
+          </div>
+          <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+        </div>`;
+    }
     async function loadRecipes(){
-      const box=$("#recipes"); 
-      box.textContent="Loading…";
+      const box=$("#recipes"); box.textContent="Loading…";
       try{
         const list = await api("/api/recipes/list");
-        const q = ($("#filter-recipe").value||"").trim().toLowerCase();
+        const q = $("#filter-recipe").value.trim().toLowerCase();
         const rows = (list.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
-        if (!rows.length){ 
-          box.textContent="No recipes."; 
-          return; 
-        }
-        box.innerHTML="";
-        for (const rec of rows){
-          const m = metaFrom(null, rec.name, rec.tier, "recipe");
-          const row=document.createElement("div"); 
-          row.className="itemrow";
-          row.innerHTML = `
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(rec.name)}"
-                   onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
-              <div>
-                <div class="label" style="text-transform:none;color:var(--text)">${esc(rec.name)}</div>
-                <div class="muted">T${rec.tier} · x${rec.qty}</div>
-              </div>
-            </div>
-            <button class="btn muted">Open</button>`;
-          row.querySelector("button").addEventListener("click",()=>openRecipe(rec.id));
-          box.appendChild(row);
-        }
-      }catch(e){ 
-        box.textContent=e.message; 
-      }
+        if (!rows.length){ box.textContent="No recipes."; return; }
+        box.innerHTML = rows.map(rowRecipe).join("");
+        box.querySelectorAll("[data-open]").forEach(btn=>{
+          btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
+        });
+      }catch(e){ box.textContent=e.message; }
     }
     $("#btn-refresh-rec").addEventListener("click", async ()=>{
       try{
@@ -366,43 +322,34 @@
         await loadInventoryPanel();
         await loadInventoryFull();
         if (window.CURRENT_RECIPE_ID) await openRecipe(window.CURRENT_RECIPE_ID);
-      }catch(e){ 
-        alert(e.message||"Refresh failed"); 
-      }
+      }catch(e){ alert(e.message||"Refresh failed"); }
     });
     $("#filter-recipe").addEventListener("input", loadRecipes);
 
-    // ===== Crafting: detalji recepta + Craft =====
     function renderIngredients(details){
-      const lines = [];
-      lines.push(`
-        <div class="itemrow">
-          <div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div>
-        </div>`);
-      lines.push(`<div class="itemrow"><div class="muted">Ingredients</div></div>`);
-      for(const ing of (details.ingredients||[])){
+      const parts = (details.ingredients||[]).map(ing=>{
         const ok = ing.have >= ing.qty;
-        const m  = metaFrom(ing.code, ing.name, ing.tier, "item");
-        lines.push(`
+        return `
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(ing.name)}"
+              <img class="icon" src="${FALLBACK_ITEM_ICON}" alt=""
                    onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
             </div>
             <div class="${ok?'':'muted'}">${ing.have}/${ing.qty}</div>
-          </div>`);
-      }
-      lines.push(`
+          </div>`;
+      }).join("");
+      return `
+        <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
+        <div class="itemrow"><div class="muted">Ingredients</div></div>
+        ${parts}
         <div class="itemrow">
           <button id="btn-craft" class="btn">Craft</button>
           <span class="muted">10% fail → Scrap (server checks ingredients)</span>
-        </div>`);
-      return lines.join("");
+        </div>`;
     }
     async function openRecipe(recipeId){
-      const box=$("#rec-details"); 
-      box.textContent="Loading…";
+      const box=$("#rec-details"); box.textContent="Loading…";
       try{
         const details = await api(`/api/recipes/ingredients/${recipeId}`);
         box.innerHTML = renderIngredients(details);
@@ -413,29 +360,22 @@
             if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
             else if (r2.scrap) toast("Failed (got Scrap)");
             else toast("Done");
-            await loadInventoryPanel(); 
-            await loadRecipes(); 
+            await loadInventoryPanel();
+            await loadRecipes();
             await loadInventoryFull();
             await openRecipe(details.recipe.id);
-          }catch(e){ 
-            alert(e.message); 
-          }
+          }catch(e){ alert(e.message); }
         });
-      }catch(e){ 
-        box.textContent=e.message; 
-      }
+      }catch(e){ box.textContent=e.message; }
     }
 
-    // ARTEFACT: bonus refresh + craft gumb
     async function refreshArtefactBonus(){
       try{
         const r = await api("/api/items/artefact/bonus");
         const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
         const el = document.querySelector("#artefact-bonus");
         if (el) el.textContent = bonus;
-      }catch(e){
-        console.warn("refreshArtefactBonus failed:", e);
-      }
+      }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
     }
     (() => {
       const craft = document.querySelector("#tab-craft");
@@ -445,41 +385,54 @@
       });
       obs.observe(craft, { attributes:true });
     })();
-    $("#btn-artefact").addEventListener("click", async ()=> {
-      try {
-        const r = await api("/api/craft/artefact", { method:"POST", body: JSON.stringify({}) });
+    $("#btn-artefact").addEventListener("click", async ()=>{
+      try{
+        const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
         const name  = r.crafted || "Artefact";
         const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
         $("#artefact-bonus").textContent = bonus;
         $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
-        await loadInventoryPanel();
-        await loadInventoryFull();
-        await loadRecipes();
-      } catch(e) {
+        await loadInventoryPanel(); await loadInventoryFull(); await loadRecipes();
+      }catch(e){
         $("#artefact-msg").textContent = e?.message || "Crafting failed.";
       }
     });
+  </script>
 
-    // ===== Market: Create Sale (SAMO slika lijevo) =====
+  <!-- Komentar: Market (inventory panel, live market, my listings) -->
+  <script>
+    function rowWithIcon({code, name, rightHTML = "", sub = "", tier}){
+      return `
+        <div class="itemrow" data-code="${esc(code||name)}">
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="icon" src="${FALLBACK_ITEM_ICON}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>
+              <div class="label" style="text-transform:none;color:var(--text)">${esc(name)}</div>
+              <div class="muted">${esc(sub||code||name)}</div>
+            </div>
+          </div>
+          ${rightHTML || (tier ? `<span class="badge">T${tier}</span>` : "")}
+        </div>`;
+    }
+
     async function loadInventoryPanel(){
       const box=$("#inv-list"); if(!box) return;
       box.textContent="Loading…";
       try{
         const r = await api("/api/inventory");
         INVENTORY_CACHE = r;
-        const q = ($("#inv-search").value||"").trim().toLowerCase();
-        const items   = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+        const q = $("#inv-search").value?.trim().toLowerCase() || "";
+        const items = (r.items||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
         const recipes = (r.recipes||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
         box.innerHTML="";
         const add = (arr,kind)=>{
           for(const it of arr){
-            const m = metaFrom(it.code, it.name, it.tier, kind);
             const row=document.createElement("div"); row.className="itemrow";
-            row.innerHTML=`
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-              </div>
-              <button class="btn muted">Pick</button>`;
+            row.innerHTML=`<div class="row" style="gap:10px;align-items:center">
+                             <img class="icon" src="${FALLBACK_ITEM_ICON}" alt="">
+                             <div>${it.name} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
+                           </div>
+                           <button class="btn muted">Pick</button>`;
             row.querySelector("button").addEventListener("click", ()=>{
               SEL_INV = { kind, id: it.id, name: it.name };
               $("#list-msg").textContent = "Selected: "+it.name;
@@ -494,50 +447,34 @@
     }
     $("#inv-search")?.addEventListener("input", loadInventoryPanel);
 
-    // ===== Market: kreiraj listing =====
-    $("#btn-list").addEventListener("click", async ()=>{
-      try{
-        if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
-        const gold=parseInt($("#price-g").value||"0",10)||0;
-        const silver=parseInt($("#price-s").value||"0",10)||0;
-        const qty=parseInt($("#price-qty").value||"1",10)||1;
-        const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
-        await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
-        $("#list-msg").textContent="Listed.";
-        SEL_INV=null;
-        await loadMarket(); await loadMine(); await loadInventoryPanel();
-      }catch(e){ alert(e.message); }
-    });
-
-    // ===== Market: Marketplace (SAMO slika lijevo) =====
     async function loadMarket(){
       const box=$("#market"); if(!box) return;
       box.textContent="Loading…";
       try{
-        const q=($("#market-q").value||"").trim();
+        const q=$("#market-q").value?.trim() || "";
         const url = "/api/sales/live" + (q?("?q="+encodeURIComponent(q)):"");
         const r = await api(url);
         const rows = r.listings || [];
         if(!rows.length){ box.textContent="No listings."; return; }
         box.innerHTML="";
         for(const s of rows){
-          const m = metaFrom(s.code, s.name, s.tier, s.kind==="recipe"?"recipe":"item");
           const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
+          const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
+                                           : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
           const row=document.createElement("div"); row.className="itemrow";
-          row.innerHTML=`
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-            </div>
-            <div class="row">
-              <span class="badge">x${s.qty} · T${m.tier}</span>
-              <span class="badge">${g}g ${ss}s</span>
-              <button class="btn">Buy</button>
-            </div>`;
+          row.innerHTML=`<div class="row" style="gap:10px;align-items:center">
+                           <img class="icon" src="${FALLBACK_ITEM_ICON}" alt="">
+                           <div>${label} <span class="muted">x${s.qty}</span></div>
+                         </div>
+                         <div class="row">
+                           <span class="badge">${g}g ${ss}s</span>
+                           <button class="btn">Buy</button>
+                         </div>`;
           row.querySelector("button").addEventListener("click", async ()=>{
             try{
               await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
               toast("Purchased.");
-              await loadMarket(); await loadMine(); await loadInventoryPanel(); await loadInventoryFull(); await loadMe();
+              loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
             }catch(e){ alert(e.message); }
           });
           box.appendChild(row);
@@ -546,7 +483,6 @@
     }
     $("#market-q")?.addEventListener("input", loadMarket);
 
-    // ===== Market: My listings (SAMO slika lijevo) =====
     async function loadMine(){
       const box=$("#mine"); if(!box) return;
       box.textContent="Loading…";
@@ -556,24 +492,23 @@
         if(!rows.length){ box.textContent="No listings."; return; }
         box.innerHTML="";
         for(const s of rows){
-          const m = metaFrom(s.code, s.name, s.tier, s.kind==="recipe"?"recipe":"item");
           const g=Math.floor((s.price_s||0)/100), ss=(s.price_s||0)%100;
+          const label = (s.name && s.tier) ? `${s.name} <span class="badge">T${s.tier}</span>`
+                                           : (s.kind==="item" ? `Item #${s.item_id||"-"}` : `Recipe #${s.recipe_id||"-"}`);
           const row=document.createElement("div"); row.className="itemrow";
-          row.innerHTML=`
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-            </div>
-            <div class="row">
-              <span class="badge">x${s.qty} · T${m.tier}</span>
-              <span class="badge">${s.status}</span>
-              <span class="badge">${g}g ${ss}s</span>
-              ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
-            </div>`;
+          row.innerHTML=`<div class="row" style="gap:10px;align-items:center">
+                           <img class="icon" src="${FALLBACK_ITEM_ICON}" alt="">
+                           <div>${label} <span class="muted">x${s.qty}</span> <span class="badge">${s.status}</span></div>
+                         </div>
+                         <div class="row">
+                           <span class="badge">${g}g ${ss}s</span>
+                           ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
+                         </div>`;
           if (s.status==='live'){
             row.querySelector("button").addEventListener("click", async ()=>{
               try{
                 await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-                await loadMarket(); await loadMine(); await loadInventoryPanel();
+                loadMarket(); loadMine(); loadInventoryPanel();
               }catch(e){ alert(e.message); }
             });
           }
@@ -583,7 +518,23 @@
     }
     $("#btn-mine")?.addEventListener("click", loadMine);
 
-    // ===== Inventory (puni prikaz) — s ikonicama =====
+    $("#btn-list").addEventListener("click", async ()=>{
+      try{
+        if(!SEL_INV){ alert("Pick an item/recipe first."); return; }
+        const gold=parseInt($("#price-g").value||"0",10)||0;
+        const silver=parseInt($("#price-s").value||"0",10)||0;
+        const qty=parseInt($("#price-qty").value||"1",10)||1;
+        const body = { kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver };
+        await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)}); /* usklađeno ime rute */
+        $("#list-msg").textContent="Listed.";
+        SEL_INV=null;
+        loadMarket(); loadMine(); loadInventoryPanel();
+      }catch(e){ alert(e.message); }
+    });
+  </script>
+
+  <!-- Komentar: Inventory (full prikaz) + Init -->
+  <script>
     async function loadInventoryFull(){
       const box=$("#inv-full"); if(!box) return;
       box.textContent="Loading…";
@@ -591,34 +542,27 @@
         const r = await api("/api/inventory");
         const lines=[];
         for(const it of (r.items||[])){
-          const m = metaFrom(it.code, it.name, it.tier, "item");
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                     onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-                <div>${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-              </div>
-              <div class="muted">x${it.qty}</div>
-            </div>`);
+          lines.push(`<div class="itemrow">
+                        <div class="row" style="gap:10px;align-items:center">
+                          <img class="icon" src="${FALLBACK_ITEM_ICON}" alt="">
+                          <div>${it.name} <span class="badge">T${it.tier}</span></div>
+                        </div>
+                        <div class="muted">x${it.qty}</div>
+                      </div>`);
         }
         for(const rc of (r.recipes||[])){
-          const m = metaFrom(rc.code, rc.name, rc.tier, "recipe");
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                     onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
-                <div>${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-              </div>
-              <div class="muted">x${rc.qty}</div>
-            </div>`);
+          lines.push(`<div class="itemrow">
+                        <div class="row" style="gap:10px;align-items:center">
+                          <img class="icon" src="${FALLBACK_RECIPE_ICON}" alt="">
+                          <div class="muted">[Recipe]</div>
+                          <div>${rc.name} <span class="badge">T${rc.tier}</span></div>
+                        </div>
+                        <div class="muted">x${rc.qty}</div>
+                      </div>`);
         }
         box.innerHTML = lines.join("") || "Empty.";
       }catch(e){ box.textContent=e.message; }
     }
-
-    // ===== Init =====
     loadMe();
   </script>
 </body>
