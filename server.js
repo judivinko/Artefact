@@ -664,32 +664,73 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =============== AUTH • Login (POST /api/login)
-app.post("/api/login", async (req,res)=>{
-  try {
-    const {email,password} = req.body || {};
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
-    if (!u)               return res.status(404).json({ok:false,error:"User not found"});
-    if (u.is_disabled)    return res.status(403).json({ok:false,error:"Account disabled"});
+function signToken(u){
+  return jwt.sign({ uid: u.id, email: u.email }, JWT_SECRET, { expiresIn: "7d" });
+}
 
-    const ok = await bcrypt.compare(password||"", u.pass_hash);
-    if (!ok)              return res.status(401).json({ok:false,error:"Wrong password"});
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const e = String(email || "").toLowerCase().trim();
+    const p = String(password || "");
+
+    if (!e || !p) return res.status(400).json({ ok:false, error:"Email and password required" });
+
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get(e);
+    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
+    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
+
+    const ok = await bcrypt.compare(p, u.pass_hash);
+    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
 
     const token  = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
+    const isProd = (process.env.NODE_ENV === "production");
+
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isProd,
+      secure: isProd,        // na HTTPS okruženju true
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-    return res.json({ok:true, user:{id:u.id,email:u.email}});
-  } catch(e) {
-    return res.status(500).json({ok:false,error:"Login failed"});
+
+    return res.json({ ok:true, user:{ id:u.id, email:u.email } });
+  } catch (e) {
+    console.error("LOGIN ERROR:", e);
+    return res.status(500).json({ ok:false, error:"Login failed" });
   }
 });
+Klijent (index.html): handler za login dugme
+Ako ga već imaš, zamijeni samo ovu funkciju da bude identična. Ostalo ne diram.
+
+html
+Kopiraj kod
+<script>
+  // ===== AUTH: LOGIN (client) =====
+  document.getElementById("btn-login")?.addEventListener("click", async ()=>{
+    const msg = document.getElementById("log-msg");
+    msg.textContent = "…";
+    try{
+      const email = document.getElementById("log-email").value.trim();
+      const pass  = document.getElementById("log-pass").value;
+      const r = await fetch("/api/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass })
+      });
+      const data = await r.json().catch(()=>null);
+      if(!r.ok) throw new Error((data && data.error) || ("HTTP "+r.status));
+      msg.textContent = "OK";
+      // nakon uspješnog login-a učitaj /api/me i prikaži app
+      await loadMe();                 // <- ovo već imaš u svom kodu
+      setTab("shop");                 // <- i ovo već imaš
+    }catch(e){
+      msg.textContent = e.message || "Login failed";
+    }
+  });
 
 // =============== SESSION • Logout (GET /api/logout)
 app.get("/api/logout", (req, res) => {
@@ -1180,4 +1221,5 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
