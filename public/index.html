@@ -148,14 +148,20 @@
 </script>
 
 
-     <!-- Crafting -->
+    <!-- ! crafting -->
+<!-- Crafting -->
 <div id="tab-craft" class="card hidden">
   <div class="row">
     <div class="label">Crafting</div>
-    <button id="btn-artefact" class="btn right">Craft ARTEFACT (10× distinct T5)</button>
+    <!-- Ikona ARTEFAKTA ispred gumba (atefakt.png u /public) -->
+    <button id="btn-artefact" class="btn right">
+      <img src="/atefakt.png" alt="Artefact" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
+           onerror="this.onerror=null;this.style.display='none'">
+      Craft ARTEFACT (10× distinct T5)
+    </button>
   </div>
 
-  <!-- Artefact bonus + poruka -->
+  <!-- Artefact bonus + poruka (NE DIRAMO LOGIKU NI SADRŽAJ) -->
   <div style="margin-top:8px">
     Bonus gold: <span id="artefact-bonus">0</span>
   </div>
@@ -179,6 +185,128 @@
     </div>
   </div>
 </div>
+
+<script>
+  // --- CRAFTING: samo sličice ispred imena (bonus/poruke NE DIRAMO) ---
+  const G = (typeof window !== "undefined") ? window : global;
+  const FALLBACK_ITEM_ICON   = "/images/t1_bronze.png";
+  const FALLBACK_RECIPE_ICON = "/images/recipe.png";
+  const esc = s => String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+  // Kartica recepta u lijevom panelu — sličica + ime + tier
+  function recipeCard(r){
+    const icon = r.icon || FALLBACK_RECIPE_ICON;
+    return `
+      <div class="itemrow" data-recipe="${esc(r.code)}">
+        <div class="row" style="gap:10px;align-items:center">
+          <img src="${esc(icon)}" alt="${esc(r.name)}"
+               style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+               onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
+          <div>
+            <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+            <div class="muted">${esc(r.code)}</div>
+          </div>
+        </div>
+        <span class="badge">T${r.tier}</span>
+      </div>`;
+  }
+
+  // Lijevi panel: lista recepata
+  function renderRecipesList(){
+    const box = document.getElementById("recipes");
+    if (!box) return;
+    if (!G.RECIPES) { box.innerHTML = '<div class="muted" style="padding:8px">No recipes</div>'; return; }
+
+    const q = (document.getElementById("filter-recipe")?.value || "").toLowerCase().trim();
+
+    const list = Object.values(G.RECIPES)
+      .filter(r => !q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q))
+      .sort((a,b)=> a.tier - b.tier || a.name.localeCompare(b.name));
+
+    box.innerHTML = list.map(recipeCard).join("") || '<div class="muted" style="padding:8px">No results</div>';
+
+    // klik → detalji desno
+    box.querySelectorAll("[data-recipe]").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const code = el.getAttribute("data-recipe");
+        const r = G.RECIPES?.[code];
+        if (r) renderRecipeDetails(r);
+      });
+    });
+  }
+
+  // Desni panel “Details” — sličice uz Result i Parts
+  function renderRecipeDetails(r){
+    const box = document.getElementById("rec-details");
+    if (!box) return;
+
+    const resultItem = G.ITEMS?.[r.result] || {};
+    const resultName = resultItem.name || r.result;
+    const resultIcon = resultItem.icon || FALLBACK_ITEM_ICON;
+
+    const partsHTML = (r.parts || []).map(code=>{
+      const it  = G.ITEMS?.[code] || {};
+      const nm  = it.name || code;
+      const ic  = it.icon || FALLBACK_ITEM_ICON;
+      const tr  = it.tier || "";
+      return `
+        <div class="row" style="gap:10px;align-items:center">
+          <img src="${esc(ic)}" alt="${esc(nm)}"
+               style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+               onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>
+            <div>${esc(nm)} ${tr?`<span class="badge">T${tr}</span>`:""}</div>
+            <div class="muted">${esc(code)}</div>
+          </div>
+        </div>`;
+    }).join("");
+
+    const icon = r.icon || FALLBACK_RECIPE_ICON;
+
+    box.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center;margin-bottom:8px">
+        <img src="${esc(icon)}" alt="${esc(r.name)}"
+             style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+             onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
+        <div>
+          <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+          <div class="muted">${esc(r.code)} · Tier T${r.tier}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">Result</div>
+        <div class="row" style="gap:10px;align-items:center;margin-top:6px">
+          <img src="${esc(resultIcon)}" alt="${esc(resultName)}"
+               style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+               onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>
+            <div>${esc(resultName)}</div>
+            <div class="muted">${esc(r.result)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <div class="label">Parts</div>
+        <div style="margin-top:6px;display:grid;grid-template-columns:1fr;gap:6px">
+          ${partsHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  // Filter/refresh – samo render (tvoju backend logiku NE diramo)
+  document.getElementById("filter-recipe")?.addEventListener("input", renderRecipesList);
+  document.getElementById("btn-refresh-rec")?.addEventListener("click", renderRecipesList);
+
+  // Inicijalni render (pretpostavka: Items & Recipes je već učitan)
+  document.addEventListener("DOMContentLoaded", ()=>{
+    try { renderRecipesList(); } catch(e){ console.error(e); }
+  });
+</script>
 
 
 
@@ -722,6 +850,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
