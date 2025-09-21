@@ -244,75 +244,133 @@ function renderBalance(){
   $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
 }
 
-// PRVO: loadMe
-async function loadMe(){
-  try{
-    const r = await api("/api/me");
-    WHO = r.user;
+<!-- ============== AUTH (Frontend): api(), loadMe, register, login, logout ============== -->
+<script>
+  // ---------- API helper (obavezno credentials: 'include' za cookie token)
+  async function api(url, opts = {}) {
+    const init = {
+      method: opts.method || "GET",
+      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      credentials: "include"
+    };
+    if (opts.body) init.body = opts.body;
+    const r = await fetch(url, init);
+    let data = {};
+    try { data = await r.json(); } catch {}
+    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+    return data;
+  }
+
+  // ---------- Global + helpers
+  let WHO = null;
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  function renderBalance(){
+    const v = WHO?.balance_silver || 0;
+    const g = Math.floor(v/100), s = v % 100;
+    const el = $("#balance");
+    if (el) el.textContent = `${g}g ${s}s`;
+  }
+
+  function setLoggedInUI(){
     $("#auth")?.classList.add("hidden");
     $("#app")?.classList.remove("hidden");
-    $("#who") && ($("#who").textContent = WHO.email || "—");
     $("#btn-logout")?.classList.remove("hidden");
+    if ($("#who")) $("#who").textContent = WHO?.email || "—";
     renderBalance();
-    if (typeof setTab==="function") setTab("shop");
-
-    // tvoji loaderi ako postoje:
-    if (typeof loadInventoryPanel==="function") await loadInventoryPanel();
-    if (typeof loadRecipes==="function")        loadRecipes();
-    if (typeof loadMarket==="function")         loadMarket();
-    if (typeof loadMine==="function")           loadMine();
-    if (typeof loadInventoryFull==="function")  loadInventoryFull();
-
-    const btn = $("#buysToNext");
-    if(btn){
-      btn.textContent = (typeof WHO.buys_to_next==="number")
-        ? `Buys to next recipe: ${WHO.buys_to_next}`
-        : "Buys to next recipe: —";
-    }
-  }catch{
+  }
+  function setLoggedOutUI(){
     WHO = null;
     $("#auth")?.classList.remove("hidden");
     $("#app")?.classList.add("hidden");
-    $("#who") && ($("#who").textContent = "Not logged in");
     $("#btn-logout")?.classList.add("hidden");
+    if ($("#who")) $("#who").textContent = "Not logged in";
     renderBalance();
   }
-}
 
-// Register
-$("#btn-register")?.addEventListener("click", async ()=>{
-  const msg=$("#reg-msg"); msg && (msg.textContent="…");
-  try{
-    const email=$("#reg-email").value.trim(), pass=$("#reg-pass").value;
-    await api("/api/register",{method:"POST",body:JSON.stringify({email, password:pass})});
-    msg && (msg.textContent="OK — now log in.");
-  }catch(e){ msg && (msg.textContent=e.message); }
-});
+  // ---------- 1) loadMe (poziva se na start i nakon logina)
+  async function loadMe(){
+    try{
+      const r = await api("/api/me");
+      WHO = r.user || null;
+      setLoggedInUI();
 
-// Login
-$("#btn-login")?.addEventListener("click", async ()=>{
-  const msg=$("#log-msg"); msg && (msg.textContent="…");
-  try{
-    const email=$("#log-email").value.trim(), pass=$("#log-pass").value;
-    await api("/api/login",{method:"POST",body:JSON.stringify({email, password:pass})});
-    msg && (msg.textContent="OK");
-    await loadMe();
-  }catch(e){ msg && (msg.textContent=e.message); }
-});
+      // Buys to next
+      const b = $("#buysToNext");
+      if (b) {
+        b.textContent = (typeof WHO?.buys_to_next === "number")
+          ? `Buys to next recipe: ${WHO.buys_to_next}`
+          : "Buys to next recipe: —";
+      }
 
-// Logout
-$("#btn-logout")?.addEventListener("click", async ()=>{
-  try{ await api("/api/logout"); }catch{}
-  WHO = null;
-  $("#who") && ($("#who").textContent="Not logged in");
-  renderBalance();
-  $("#auth")?.classList.remove("hidden");
-  $("#app")?.classList.add("hidden");
-  $("#btn-logout")?.classList.add("hidden");
-});
+      // Tvoji loaderi (postoje u projektu; sigurnosne provjere):
+      if (typeof loadInventoryPanel === "function") await loadInventoryPanel();
+      if (typeof loadRecipes        === "function")        loadRecipes();
+      if (typeof loadMarket         === "function")         loadMarket();
+      if (typeof loadMine           === "function")           loadMine();
+      if (typeof loadInventoryFull  === "function")  loadInventoryFull();
 
-// auto-proba sesije
-document.addEventListener("DOMContentLoaded", loadMe);
+      if (typeof setTab === "function") setTab("shop");
+    }catch{
+      setLoggedOutUI();
+    }
+  }
+
+  // ---------- 2) Register
+  async function doRegister(){
+    const msg = $("#reg-msg");
+    try{
+      const email = $("#reg-email")?.value.trim();
+      const pass  = $("#reg-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      if (pass.length < 6) throw new Error("Password too short (min 6).");
+      msg && (msg.textContent = "…");
+      await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+      msg && (msg.textContent = "OK — now log in.");
+    }catch(e){
+      msg && (msg.textContent = e.message || "Register failed.");
+    }
+  }
+
+  // ---------- 3) Login
+  async function doLogin(){
+    const msg = $("#log-msg");
+    try{
+      const email = $("#log-email")?.value.trim();
+      const pass  = $("#log-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      msg && (msg.textContent = "…");
+      await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+      msg && (msg.textContent = "OK");
+      await loadMe();
+    }catch(e){
+      msg && (msg.textContent = e.message || "Login failed.");
+    }
+  }
+
+  // ---------- 4) Logout
+  async function doLogout(){
+    try { await api("/api/logout"); } catch {}
+    setLoggedOutUI();
+  }
+
+  // ---------- Events (klik + Enter)
+  document.addEventListener("DOMContentLoaded", () => {
+    // dugmad
+    $("#btn-register")?.addEventListener("click", doRegister);
+    $("#btn-login")?.addEventListener("click", doLogin);
+    $("#btn-logout")?.addEventListener("click", doLogout);
+
+    // Enter u inputima
+    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+    // auto-proba postojeće sesije
+    loadMe();
+  });
 </script>
 
 
@@ -643,6 +701,7 @@ document.addEventListener("DOMContentLoaded", loadMe);
   </script>
 </body>
 </html>
+
 
 
 
