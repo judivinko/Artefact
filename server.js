@@ -632,6 +632,120 @@ app.post("/api/admin/disable-user",(req,res)=>{
   db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(disabled ? 1 : 0, u.id);
   res.json({ ok:true });
 });
+// =============== AUTH • Register (POST /api/register)
+app.post("/api/register", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!isEmail(email))  return res.status(400).json({ ok:false, error:"Bad email" });
+    if (!isPass(password)) return res.status(400).json({ ok:false, error:"Password too short" });
+
+    const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
+    if (exists) return res.status(409).json({ ok:false, error:"Email taken" });
+
+    const hash = await bcrypt.hash(password, 10);
+    db.prepare(`
+      INSERT INTO users(email,pass_hash,created_at,is_admin,is_disabled,balance_silver,shop_buy_count,next_recipe_at)
+      VALUES (?,?,?,?,?,?,?,?)
+    `).run(
+      email.toLowerCase(),
+      hash,
+      nowISO(),
+      0,           // is_admin
+      0,           // is_disabled
+      0,           // balance_silver
+      0,           // shop_buy_count
+      null         // next_recipe_at
+    );
+
+    res.json({ ok:true });
+  } catch(e) {
+    res.status(500).json({ ok:false, error:"Register failed" });
+  }
+});
+
+// =============== AUTH • Login (POST /api/login)
+app.post("/api/login", async (req,res)=>{
+  try {
+    const {email,password} = req.body || {};
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
+    if (!u)               return res.status(404).json({ok:false,error:"User not found"});
+    if (u.is_disabled)    return res.status(403).json({ok:false,error:"Account disabled"});
+
+    const ok = await bcrypt.compare(password||"", u.pass_hash);
+    if (!ok)              return res.status(401).json({ok:false,error:"Wrong password"});
+
+    const token  = signToken(u);
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie(TOKEN_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
+    return res.json({ok:true, user:{id:u.id,email:u.email}});
+  } catch(e) {
+    return res.status(500).json({ok:false,error:"Login failed"});
+  }
+});
+
+// =============== SESSION • Logout (GET /api/logout)
+app.get("/api/logout", (req, res) => {
+  const tok = readToken(req);
+  if (tok) {
+    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
+  }
+  res.clearCookie(TOKEN_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"),
+    path: "/"
+  });
+  return res.json({ ok:true });
+});
+
+// =============== SESSION • Me (GET /api/me)
+app.get("/api/me", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false });
+
+  const u = db.prepare(`
+    SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at
+    FROM users WHERE id=?
+  `).get(tok.uid);
+
+  if (!u) {
+    res.clearCookie(TOKEN_NAME, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"),
+      path: "/"
+    });
+    return res.status(401).json({ ok:false });
+  }
+
+  const buysToNext = (u.next_recipe_at==null)
+    ? null
+    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
+
+  res.json({
+    ok:true,
+    user:{
+      id: u.id,
+      email: u.email,
+      is_admin: !!u.is_admin,
+      balance_silver: u.balance_silver,
+      gold: Math.floor(u.balance_silver/100),
+      silver: (u.balance_silver % 100),
+      shop_buy_count: u.shop_buy_count,
+      next_recipe_at: u.next_recipe_at,
+      buys_to_next: buysToNext
+    }
+  });
+});
+
 
 // =============== SHOP (T1 only)
 const SHOP_T1_COST_S = 100;
@@ -1066,3 +1180,4 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
