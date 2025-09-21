@@ -165,23 +165,21 @@
     </section>
   </main>
 
-  <!-- Toast -->
+  <!-- Toast + helpers ($,$$,api) -->
   <div id="toast" class="toast hidden"></div>
-
-  <!-- Helpers ($,$$,toast,api) -->
   <script>
-    const $  = s=>document.querySelector(s);
-    const $$ = s=>Array.from(document.querySelectorAll(s));
+    const $  = (s,root=document)=>root.querySelector(s);
+    const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
     function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
-    const api = async (p,opts={})=>{
+    async function api(p,opts={}){
       const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
       let data=null; try{data=await r.json()}catch{}
       if(!r.ok) throw new Error((data&&data.error)||("HTTP "+r.status));
       return data;
-    };
+    }
   </script>
 
-  <!-- Icon util (code+tier → /tX_slug.png; recept = /recipe.png) -->
+  <!-- Icon utils -->
   <script>
     const RECIPE_ICON = "/recipe.png";
     const FALLBACK_ITEM_ICON = "/t1_bronze.png";
@@ -218,146 +216,100 @@
     $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
   </script>
 
+  <!-- AUTH (Frontend): loadMe, register, login, logout -->
   <script>
-// helper za fetch s cookie-jem
-async function api(url, opts={}){
-  const o = {
-    method: opts.method || "GET",
-    headers: { "Content-Type":"application/json", ...(opts.headers||{}) },
-    credentials: "include"
-  };
-  if (opts.body) o.body = opts.body;
-  const r = await fetch(url, o);
-  const data = await r.json().catch(()=> ({}));
-  if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
-  return data;
-}
-
-// global + selektori
-let WHO = null;
-const $  = (s,root=document)=>root.querySelector(s);
-
-// prikaz balansa
-function renderBalance(){
-  const v = WHO?.balance_silver || 0;
-  const g = Math.floor(v/100), s = v%100;
-  $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
-}
-
-<!-- ============== AUTH (Frontend): api(), loadMe, register, login, logout ============== -->
-<script>
-  // Minimalni helper: fetch + cookies
-  async function api(url, opts={}){
-    const init = {
-      method: opts.method || "GET",
-      headers: { "Content-Type":"application/json" },
-      credentials: "include"
-    };
-    if (opts.body) init.body = opts.body;
-    const r = await fetch(url, init);
-    const data = await r.json().catch(()=> ({}));
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  }
-
-  let WHO = null;
-
-  async function loadMe(){
-    try{
-      const r = await api("/api/me");
-      WHO = r.user;
-      document.getElementById("auth")?.classList.add("hidden");
-      document.getElementById("app")?.classList.remove("hidden");
-      const who = document.getElementById("who"); if (who) who.textContent = WHO.email;
-      const bal = document.getElementById("balance");
-      if (bal){
-        const g = Math.floor((WHO.balance_silver||0)/100);
-        const s = (WHO.balance_silver||0)%100;
-        bal.textContent = `${g}g ${s}s`;
-      }
-      const btn = document.getElementById("buysToNext");
-      if (btn){
-        btn.textContent = (typeof WHO.buys_to_next==="number")
-          ? `Buys to next recipe: ${WHO.buys_to_next}`
-          : "Buys to next recipe: —";
-      }
-      // tvoji loaderi po potrebi:
-      if (typeof loadInventoryPanel === "function") await loadInventoryPanel();
-      if (typeof loadRecipes === "function") loadRecipes();
-      if (typeof loadMarket === "function") loadMarket();
-      if (typeof loadMine === "function") loadMine();
-      if (typeof loadInventoryFull === "function") loadInventoryFull();
-    }catch{
+    function renderBalance(){
+      const v = WHO?.balance_silver || 0;
+      const g = Math.floor(v/100), s = v%100;
+      $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
+    }
+    function setLoggedInUI(){
+      $("#auth")?.classList.add("hidden");
+      $("#app")?.classList.remove("hidden");
+      $("#btn-logout")?.classList.remove("hidden");
+      $("#who") && ($("#who").textContent = WHO?.email || "—");
+      renderBalance();
+    }
+    function setLoggedOutUI(){
       WHO = null;
-      document.getElementById("auth")?.classList.remove("hidden");
-      document.getElementById("app")?.classList.add("hidden");
-      const who = document.getElementById("who"); if (who) who.textContent = "Not logged in";
-      const bal = document.getElementById("balance"); if (bal) bal.textContent = "0g 0s";
+      $("#auth")?.classList.remove("hidden");
+      $("#app")?.classList.add("hidden");
+      $("#btn-logout")?.classList.add("hidden");
+      $("#who") && ($("#who").textContent = "Not logged in");
+      $("#balance") && ($("#balance").textContent = "0g 0s");
     }
-  }
 
-  // Register
-  document.getElementById("btn-register")?.addEventListener("click", async ()=>{
-    const msg = document.getElementById("reg-msg");
-    try{
-      const email = document.getElementById("reg-email").value.trim();
-      const pass  = document.getElementById("reg-pass").value;
-      msg && (msg.textContent = "…");
-      await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK — now log in.");
-    }catch(e){
-      msg && (msg.textContent = e.message);
+    async function loadMe(){
+      try{
+        const r = await api("/api/me");
+        WHO = r.user || null;
+        setLoggedInUI();
+
+        const b = $("#buysToNext");
+        if (b) {
+          b.textContent = (typeof WHO?.buys_to_next === "number")
+            ? `Buys to next recipe: ${WHO.buys_to_next}`
+            : "Buys to next recipe: —";
+        }
+
+        if (typeof loadInventoryPanel === "function") await loadInventoryPanel();
+        if (typeof loadRecipes        === "function")        loadRecipes();
+        if (typeof loadMarket         === "function")         loadMarket();
+        if (typeof loadMine           === "function")           loadMine();
+        if (typeof loadInventoryFull  === "function")  loadInventoryFull();
+
+        if (typeof setTab === "function") setTab("shop");
+      }catch{
+        setLoggedOutUI();
+      }
     }
-  });
 
-  // Login
-  document.getElementById("btn-login")?.addEventListener("click", async ()=>{
-    const msg = document.getElementById("log-msg");
-    try{
-      const email = document.getElementById("log-email").value.trim();
-      const pass  = document.getElementById("log-pass").value;
-      msg && (msg.textContent = "…");
-      await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK");
-      await loadMe();
-    }catch(e){
-      msg && (msg.textContent = e.message);
+    async function doRegister(){
+      const msg = $("#reg-msg");
+      try{
+        const email = $("#reg-email")?.value.trim();
+        const pass  = $("#reg-pass")?.value || "";
+        if (!email || !pass) throw new Error("Enter email & password.");
+        if (pass.length < 6) throw new Error("Password too short (min 6).");
+        msg && (msg.textContent = "…");
+        await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+        msg && (msg.textContent = "OK — now log in.");
+      }catch(e){
+        msg && (msg.textContent = e.message || "Register failed.");
+      }
     }
-  });
+    async function doLogin(){
+      const msg = $("#log-msg");
+      try{
+        const email = $("#log-email")?.value.trim();
+        const pass  = $("#log-pass")?.value || "";
+        if (!email || !pass) throw new Error("Enter email & password.");
+        msg && (msg.textContent = "…");
+        await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+        msg && (msg.textContent = "OK");
+        await loadMe();
+      }catch(e){
+        msg && (msg.textContent = e.message || "Login failed.");
+      }
+    }
+    async function doLogout(){
+      try { await api("/api/logout"); } catch {}
+      setLoggedOutUI();
+    }
 
-  // Logout
-  document.getElementById("btn-logout")?.addEventListener("click", async ()=>{
-    try{ await api("/api/logout"); }catch{}
-    WHO = null;
-    const who = document.getElementById("who"); if (who) who.textContent = "Not logged in";
-    const bal = document.getElementById("balance"); if (bal) bal.textContent = "0g 0s";
-    document.getElementById("auth")?.classList.remove("hidden");
-    document.getElementById("app")?.classList.add("hidden");
-  });
+    document.addEventListener("DOMContentLoaded", () => {
+      $("#btn-register")?.addEventListener("click", doRegister);
+      $("#btn-login")?.addEventListener("click", doLogin);
+      $("#btn-logout")?.addEventListener("click", doLogout);
 
-  // auto
-  document.addEventListener("DOMContentLoaded", loadMe);
-</script>
+      $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+      $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+      $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+      $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
-  // ---------- Events (klik + Enter)
-  document.addEventListener("DOMContentLoaded", () => {
-    // dugmad
-    $("#btn-register")?.addEventListener("click", doRegister);
-    $("#btn-login")?.addEventListener("click", doLogin);
-    $("#btn-logout")?.addEventListener("click", doLogout);
-
-    // Enter u inputima
-    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-    // auto-proba postojeće sesije
-    loadMe();
-  });
-</script>
-
-
+      loadMe();
+    });
+  </script>
 
   <!-- SHOP (Buy T1) -->
   <script>
@@ -392,7 +344,7 @@ function renderBalance(){
     });
   </script>
 
-  <!-- Crafting (lista + detalji s ikonama) -->
+  <!-- Crafting (lista + detalji) -->
   <script>
     function rowRecipe(r){
       return `
@@ -511,7 +463,7 @@ function renderBalance(){
     });
   </script>
 
-  <!-- Market (inventory for sale + live + mine) -->
+  <!-- Market -->
   <script>
     async function loadInventoryPanel(){
       const box=$("#inv-list"); if(!box) return;
@@ -680,14 +632,6 @@ function renderBalance(){
         box.textContent=e.message;
       }
     }
-
-    loadMe();
   </script>
 </body>
 </html>
-
-
-
-
-
-
