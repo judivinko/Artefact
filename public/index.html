@@ -165,141 +165,123 @@
     </section>
   </main>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Items & Recipes</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{
-      --fg: #eaeaea; --bg:#0b0b0b; --muted:#9aa0a6; --card:#121212; --border:#1e1e1e;
-    }
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,Segoe UI,Roboto,Arial;}
-    .wrap{max-width:1000px;margin:24px auto;padding:16px;}
-    h1,h2{margin:0 0 12px 0;font-weight:700}
-    .grid{
-      display:grid; gap:12px;
-      grid-template-columns: repeat(auto-fill,minmax(240px,1fr));
-    }
-    .card{
-      background:var(--card); border:1px solid var(--border); border-radius:12px;
-      padding:10px 10px 12px;
-    }
-    .row{
-      display:flex; align-items:center; gap:10px; padding:6px 6px; border-radius:10px;
-    }
-    .row:hover{ background:#161616; }
-    .icon{
-      width:32px; height:32px; object-fit:contain; flex:0 0 32px; border-radius:6px;
-      image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;
-    }
-    .name{font-weight:600}
-    .muted{color:var(--muted)}
-    .tag{font-size:12px;color:#bbb;background:#1a1a1a;border:1px solid #262626;border-radius:6px;padding:2px 6px}
-    .group{margin:18px 0}
-    .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <h1>Items & Recipes</h1>
-
-    <div class="group">
-      <div class="head"><h2>Items</h2><span class="muted">T1–T5</span></div>
-      <div id="itemsList" class="grid"></div>
-    </div>
-
-    <div class="group">
-      <div class="head"><h2>Recipes</h2><span class="muted">R_T2–R_T5</span></div>
-      <div id="recipesList" class="grid"></div>
-    </div>
-  </div>
-
-  <!-- UVEZI SVOJ JS FAJL gdje su ensureItem/ensureRecipe i podaci -->
-  <!-- <script src="/js/items_and_recipes.js"></script> -->
-
+  <!-- RENDER: prikaži ikonice i imena za recepte (i detalje) -->
   <script>
-    // Fallback ikone (ako nešto fali)
-    const ICONS_FALLBACK = {
-      item: "/images/t1_bronze.png",
-      recipe: "/images/recipe.png"
-    };
+    // Univerzalni global (radi i u browseru i u Node bundl scenariju)
+    const G = (typeof window !== "undefined") ? window : global;
 
-    // Helper za bezbjedno dohvaćanje globala (G iz prethodnog fajla)
-    const G = (typeof window!=="undefined" ? window : global);
+    // Fallback ikone (ako u objektu nedostaje icon)
+    const FALLBACK_ITEM_ICON   = "/images/t1_bronze.png";
+    const FALLBACK_RECIPE_ICON = "/images/recipe.png";
 
-    function byTierName(a,b){
-      if (a.tier !== b.tier) return a.tier - b.tier;
-      return String(a.name).localeCompare(b.name);
-    }
+    // Mali helper za HTML-escape (sigurnije za imena)
+    const esc = s => String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
 
-    function rowHTML(icon, title, subtitle, tag){
-      // onerror osigurava fallback ikone
-      const errAttr = `onerror="this.onerror=null;this.src='${ICONS_FALLBACK.item}'"`;
+    // Render jedne recept-karte (ikonica + IME recepta + tier)
+    function recipeCard(r){
+      const icon = r.icon || FALLBACK_RECIPE_ICON;
       return `
-        <div class="row">
-          <img class="icon" src="${icon}" alt="" ${errAttr}/>
-          <div>
-            <div class="name">${title}</div>
-            ${subtitle ? `<div class="muted">${subtitle}</div>` : ``}
+        <div class="itemrow" data-recipe="${esc(r.code)}">
+          <div class="row" style="gap:10px">
+            <img src="${esc(icon)}"
+                 alt="${esc(r.name)}"
+                 style="width:32px;height:32px;object-fit:contain;border-radius:6px"
+                 onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'"/>
+            <div>
+              <div class="label">${esc(r.name)}</div>
+              <div class="muted">${esc(r.code)}</div>
+            </div>
           </div>
-          ${tag ? `<div style="margin-left:auto" class="tag">${tag}</div>` : ``}
+          <span class="badge">T${r.tier}</span>
         </div>
       `;
     }
 
-    function renderItems(){
-      const container = document.getElementById("itemsList");
-      if (!G.ITEMS){ container.innerHTML = '<div class="muted">No items</div>'; return; }
-      const items = Object.values(G.ITEMS).sort(byTierName);
-      // Grupisanje po tier-u u kartice
-      const tiers = new Map();
-      for (const it of items){
-        if (!tiers.has(it.tier)) tiers.set(it.tier, []);
-        tiers.get(it.tier).push(it);
-      }
-      container.innerHTML = [...tiers.entries()].map(([tier, arr])=>{
-        const body = arr.map(it=>rowHTML(it.icon || ICONS_FALLBACK.item, it.name, it.code, `T${tier}`)).join("");
-        return `<div class="card">${body}</div>`;
-      }).join("");
+    // Popuni listu recepata (lijevi panel “Recipes you own”)
+    function renderRecipesList(){
+      const box = document.getElementById("recipes");
+      if (!G.RECIPES) { box.innerHTML = '<div class="muted" style="padding:8px">No recipes</div>'; return; }
+      const q = (document.getElementById("filter-recipe")?.value || "").toLowerCase().trim();
+
+      // sortiraj po TIER pa po IMENU (koristimo r.name — baš što tražiš)
+      const list = Object.values(G.RECIPES)
+        .filter(r => !q || r.name.toLowerCase().includes(q))
+        .sort((a,b)=> a.tier - b.tier || a.name.localeCompare(b.name));
+
+      box.innerHTML = list.map(recipeCard).join("") || '<div class="muted" style="padding:8px">No results</div>';
+
+      // klik na recept = detalji desno
+      box.querySelectorAll("[data-recipe]").forEach(el=>{
+        el.addEventListener("click", ()=>{
+          const code = el.getAttribute("data-recipe");
+          const r = G.RECIPES[code];
+          if (!r) return;
+          renderRecipeDetails(r);
+        });
+      });
     }
 
-    function renderRecipes(){
-      const container = document.getElementById("recipesList");
-      if (!G.RECIPES){ container.innerHTML = '<div class="muted">No recipes</div>'; return; }
-      const recs = Object.values(G.RECIPES).sort((a,b)=>byTierName(a,b));
-      container.innerHTML = recs.map(r=>{
-        // Fallback za recipe je uvijek /images/recipe.png
-        const icon = r.icon || ICONS_FALLBACK.recipe;
-        const errAttr = `onerror="this.onerror=null;this.src='${ICONS_FALLBACK.recipe}'"`;
+    // Desni panel “Details” — IME recepta, rezultat i dijelovi po IMENIMA
+    function renderRecipeDetails(r){
+      const box = document.getElementById("rec-details");
+      const resultName = G.ITEMS?.[r.result]?.name || r.result;
+      const partsHTML = (r.parts || []).map(p=>{
+        const nm = G.ITEMS?.[p]?.name || p;    // KORISTI IME ITEMA
+        const ic = G.ITEMS?.[p]?.icon || FALLBACK_ITEM_ICON;
         return `
-          <div class="card">
-            <div class="row">
-              <img class="icon" src="${icon}" alt="" ${errAttr}/>
-              <div>
-                <div class="name">${r.name}</div>
-                <div class="muted">${r.code}</div>
-              </div>
-              <div style="margin-left:auto" class="tag">T${r.tier}</div>
-            </div>
-            <div class="muted" style="padding:0 6px 6px 6px">
-              ➜ Result: <strong>${r.result}</strong><br/>
-              Parts: ${r.parts.join(", ")}
-            </div>
-          </div>
-        `;
+          <div class="row" style="gap:10px">
+            <img src="${esc(ic)}"
+                 alt="${esc(nm)}"
+                 style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'"/>
+            <div>${esc(nm)} <span class="muted">(${esc(p)})</span></div>
+          </div>`;
       }).join("");
+
+      const icon = r.icon || FALLBACK_RECIPE_ICON;
+
+      box.innerHTML = `
+        <div class="row" style="gap:10px;margin-bottom:8px">
+          <img src="${esc(icon)}"
+               alt="${esc(r.name)}"
+               style="width:40px;height:40px;object-fit:contain;border-radius:8px"
+               onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'"/>
+          <div>
+            <div class="label">${esc(r.name)}</div>
+            <div class="muted">${esc(r.code)} · Tier T${r.tier}</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="label">Result</div>
+          <div class="row" style="gap:10px;margin-top:6px">
+            <img src="${esc(G.ITEMS?.[r.result]?.icon || FALLBACK_ITEM_ICON)}"
+                 alt="${esc(resultName)}"
+                 style="width:28px;height:28px;object-fit:contain;border-radius:6px"
+                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'"/>
+            <div>${esc(resultName)} <span class="muted">(${esc(r.result)})</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:10px">
+          <div class="label">Parts</div>
+          <div style="margin-top:6px;display:grid;grid-template-columns:1fr;gap:6px">
+            ${partsHTML}
+          </div>
+        </div>
+      `;
     }
 
-    // Pokreni render kad je sve učitano
+    // Filter i refresh
+    document.getElementById("filter-recipe")?.addEventListener("input", renderRecipesList);
+    document.getElementById("btn-refresh-rec")?.addEventListener("click", renderRecipesList);
+
+    // Prvi render kad je DOM spreman (podaci iz tvog fajla već moraju biti učitani)
     document.addEventListener("DOMContentLoaded", ()=>{
-      try { renderItems(); } catch(e){ console.error(e); }
-      try { renderRecipes(); } catch(e){ console.error(e); }
+      try { renderRecipesList(); } catch(e){ console.error(e); }
     });
   </script>
-</body>
-</html>
+
 
 
   <!-- Toast -->
@@ -682,6 +664,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
