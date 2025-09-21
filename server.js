@@ -362,8 +362,8 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
 }
 
 // ============================================================
-// Items & Recipes  (final: ikone za SVE iteme i SVE recepte)
-// Folder sa slikama: public/images/*.png
+// Items & Recipes (final) — radi i u browseru i u Node okruženju
+// Slike u: public/images/*.png
 //  - t1_bronze.png ... t1_obsidian.png
 //  - t2_bronze_door.png ... t2_iron_armor.png
 //  - t3_gate_of_might.png ... t3_armor_of_guard.png
@@ -372,27 +372,30 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
 //  - recipe.png
 // ============================================================
 
-// --- Ikone: konfiguracija i helperi (PUBLIC/IMAGES) ---
+// Global koji radi i u browseru i u Node-u
+const G = (typeof window !== "undefined") ? window : global;
+
+// Ikone: konfiguracija
 const ICONS = {
-  itemsBase: "/images",               // sve ikone su u public/images
+  itemsBase: "/images",               // sve ikone itema u public/images
   recipeIcon: "/images/recipe.png",   // jedna ikona za sve recepte
   defaultItem: "/images/t1_bronze.png"
 };
 
-// Pretvori CODE u ime fajla koje već postoji u /public/images
+// Pretvori code + tier u postojeće ime fajla u /public/images
 function fileNameForItem(code, tier){
-  // T1 su npr. BRONZE, IRON, ...
-  if (tier === 1 && !code.startsWith("T1_")) {
+  // T1: npr. BRONZE, IRON, ...
+  if (tier === 1 && !/^T1_/.test(code)) {
     return `t1_${code.toLowerCase()}.png`;
   }
-  // T2+ dolaze kao T2_BRONZE_DOOR, T3_GATE_OF_MIGHT, ...
+  // T2–T5: npr. T2_BRONZE_DOOR, T3_GATE_OF_MIGHT, ...
   const m = code.match(/^T([2-5])_(.*)$/);
   if (m) {
     const t = m[1];                  // "2".."5"
     const rest = m[2].toLowerCase(); // "bronze_door"
     return `t${t}_${rest}.png`;      // npr. t2_bronze_door.png
   }
-  // fallback (npr. SCRAP, ili ako fali fajl)
+  // fallback (npr. SCRAP)
   return ICONS.defaultItem.split("/").pop();
 }
 
@@ -400,25 +403,26 @@ function iconPathForItem(code, tier){
   return `${ICONS.itemsBase}/${fileNameForItem(code, tier)}`;
 }
 
-// --- ensureItem / ensureRecipe s podrškom za ikone ---
+// ensure* — koristi univerzalni global G
 function ensureItem(code, name, tier, base, iconPath){
-  if (!window.ITEMS) window.ITEMS = {};
-  ITEMS[code] = {
+  if (!G.ITEMS) G.ITEMS = {};
+  G.ITEMS[code] = {
     code, name, tier, base,
     icon: iconPath || iconPathForItem(code, tier) || ICONS.defaultItem
   };
 }
+
 function ensureRecipe(code, name, tier, result, parts, iconPath){
-  if (!window.RECIPES) window.RECIPES = {};
-  RECIPES[code] = {
+  if (!G.RECIPES) G.RECIPES = {};
+  G.RECIPES[code] = {
     code, name, tier, result, parts,
-    icon: ICONS.recipeIcon
+    icon: ICONS.recipeIcon   // jedna zajednička ikona za recepte
   };
 }
 
 // ---------- ITEMS ----------
 
-// SCRAP (eksplicitno)
+// SCRAP
 ensureItem("SCRAP","Scrap",1,1);
 
 // T1 materials (10)
@@ -496,7 +500,7 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// ---------- RECIPES (sve sa zajedničkom ikonom) ----------
+// ---------- RECIPES (sve sa zajedničkom /images/recipe.png) ----------
 
 // T2 recipes
 const R_T2 = [
@@ -1254,6 +1258,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
