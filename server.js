@@ -361,18 +361,82 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
   return rid;
 }
 
-// ---------- Items & Recipes  (ARTEFACT: recipes bez petlji, imena s "R ") ----------
+// ============================================================
+// Items & Recipes  (final: ikone za SVE iteme i SVE recepte)
+// Folder sa slikama: public/images/*.png
+//  - t1_bronze.png ... t1_obsidian.png
+//  - t2_bronze_door.png ... t2_iron_armor.png
+//  - t3_gate_of_might.png ... t3_armor_of_guard.png
+//  - t4_engine_core.png ... t4_shadow_blade.png
+//  - t5_ancient_relic.png ... t5_nightfall_edge.png
+//  - recipe.png
+// ============================================================
+
+// --- Ikone: konfiguracija i helperi (PUBLIC/IMAGES) ---
+const ICONS = {
+  itemsBase: "/images",               // sve ikone su u public/images
+  recipeIcon: "/images/recipe.png",   // jedna ikona za sve recepte
+  defaultItem: "/images/t1_bronze.png"
+};
+
+// Pretvori CODE u ime fajla koje već postoji u /public/images
+function fileNameForItem(code, tier){
+  // T1 su npr. BRONZE, IRON, ...
+  if (tier === 1 && !code.startsWith("T1_")) {
+    return `t1_${code.toLowerCase()}.png`;
+  }
+  // T2+ dolaze kao T2_BRONZE_DOOR, T3_GATE_OF_MIGHT, ...
+  const m = code.match(/^T([2-5])_(.*)$/);
+  if (m) {
+    const t = m[1];                  // "2".."5"
+    const rest = m[2].toLowerCase(); // "bronze_door"
+    return `t${t}_${rest}.png`;      // npr. t2_bronze_door.png
+  }
+  // fallback (npr. SCRAP, ili ako fali fajl)
+  return ICONS.defaultItem.split("/").pop();
+}
+
+function iconPathForItem(code, tier){
+  return `${ICONS.itemsBase}/${fileNameForItem(code, tier)}`;
+}
+
+// --- ensureItem / ensureRecipe s podrškom za ikone ---
+function ensureItem(code, name, tier, base, iconPath){
+  if (!window.ITEMS) window.ITEMS = {};
+  ITEMS[code] = {
+    code, name, tier, base,
+    icon: iconPath || iconPathForItem(code, tier) || ICONS.defaultItem
+  };
+}
+function ensureRecipe(code, name, tier, result, parts, iconPath){
+  if (!window.RECIPES) window.RECIPES = {};
+  RECIPES[code] = {
+    code, name, tier, result, parts,
+    icon: ICONS.recipeIcon
+  };
+}
+
+// ---------- ITEMS ----------
+
+// SCRAP (eksplicitno)
 ensureItem("SCRAP","Scrap",1,1);
 
 // T1 materials (10)
 const T1 = [
-  ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
-  ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
-  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]
+  ["BRONZE","Bronze"],
+  ["IRON","Iron"],
+  ["SILVER","Silver"],
+  ["GOLD","Gold"],
+  ["WOOD","Wood"],
+  ["STONE","Stone"],
+  ["LEATHER","Leather"],
+  ["CLOTH","Cloth"],
+  ["CRYSTAL","Crystal"],
+  ["OBSIDIAN","Obsidian"]
 ];
 for (const [c,n] of T1) ensureItem(c,n,1,0);
 
-// T2 items (samo itemi)
+// T2 items (10)
 const T2_ITEMS = [
   ["T2_BRONZE_DOOR","Nor Bronze Door"],
   ["T2_SILVER_GOBLET","Nor Silver Goblet"],
@@ -387,7 +451,7 @@ const T2_ITEMS = [
 ];
 for (const [code,name] of T2_ITEMS) ensureItem(code,name,2,0);
 
-// T3 items (samo itemi)
+// T3 items (10)
 const T3_ITEMS = [
   ["T3_GATE_OF_MIGHT","Nor Gate of Might"],
   ["T3_GOBLET_OF_WISDOM","Nor Goblet of Wisdom"],
@@ -402,7 +466,7 @@ const T3_ITEMS = [
 ];
 for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
 
-// T4 items (samo itemi)
+// T4 items (10)
 const T4_ITEMS = [
   ["T4_ENGINE_CORE","Nor Engine Core"],
   ["T4_CRYSTAL_LENS","Nor Crystal Lens"],
@@ -417,7 +481,7 @@ const T4_ITEMS = [
 ];
 for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
 
-// T5 items (samo itemi)
+// T5 items (10)
 const T5_ITEMS = [
   ["T5_ANCIENT_RELIC","Nor Ancient Relic"],
   ["T5_SUN_LENS","Nor Sun Lens"],
@@ -432,53 +496,67 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// ===== Recepti T2 (bez petlji, imena s "R ")
-ensureRecipe("R_T2_BRONZE_DOOR","R Nor Bronze Door",2,"T2_BRONZE_DOOR",["BRONZE","IRON","WOOD","STONE"]);
-ensureRecipe("R_T2_SILVER_GOBLET","R Nor Silver Goblet",2,"T2_SILVER_GOBLET",["SILVER","GOLD","CRYSTAL","CLOTH"]);
-ensureRecipe("R_T2_GOLDEN_RING","R Nor Golden Ring",2,"T2_GOLDEN_RING",["GOLD","SILVER","CRYSTAL","LEATHER"]);
-ensureRecipe("R_T2_WOODEN_CHEST","R Nor Wooden Chest",2,"T2_WOODEN_CHEST",["WOOD","STONE","LEATHER","IRON","CLOTH"]);
-ensureRecipe("R_T2_STONE_PILLAR","R Nor Stone Pillar",2,"T2_STONE_PILLAR",["STONE","WOOD","IRON","CLOTH"]);
-ensureRecipe("R_T2_LEATHER_BAG","R Nor Leather Bag",2,"T2_LEATHER_BAG",["LEATHER","CLOTH","WOOD","SILVER"]);
-ensureRecipe("R_T2_CLOTH_TENT","R Nor Cloth Tent",2,"T2_CLOTH_TENT",["CLOTH","LEATHER","WOOD","STONE","IRON"]);
-ensureRecipe("R_T2_CRYSTAL_ORB","R Nor Crystal Orb",2,"T2_CRYSTAL_ORB",["CRYSTAL","GOLD","CLOTH","WOOD","LEATHER"]);
-ensureRecipe("R_T2_OBSIDIAN_KNIFE","R Nor Obsidian Knife",2,"T2_OBSIDIAN_KNIFE",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]);
-ensureRecipe("R_T2_IRON_ARMOR","R Nor Iron Armor",2,"T2_IRON_ARMOR",["IRON","BRONZE","LEATHER","CLOTH","STONE"]);
+// ---------- RECIPES (sve sa zajedničkom ikonom) ----------
 
-// ===== Recepti T3
-ensureRecipe("R_T3_GATE_OF_MIGHT","R Nor Gate of Might",3,"T3_GATE_OF_MIGHT",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]);
-ensureRecipe("R_T3_GOBLET_OF_WISDOM","R Nor Goblet of Wisdom",3,"T3_GOBLET_OF_WISDOM",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]);
-ensureRecipe("R_T3_RING_OF_GLARE","R Nor Ring of Glare",3,"T3_RING_OF_GLARE",["T2_GOLDEN_RING","T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_CRYSTAL_ORB"]);
-ensureRecipe("R_T3_CHEST_OF_SECRETS","R Nor Chest of Secrets",3,"T3_CHEST_OF_SECRETS",["T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]);
-ensureRecipe("R_T3_PILLAR_OF_STRENGTH","R Nor Pillar of Strength",3,"T3_PILLAR_OF_STRENGTH",["T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]);
-ensureRecipe("R_T3_TRAVELERS_BAG","R Nor Traveler's Bag",3,"T3_TRAVELERS_BAG",["T2_LEATHER_BAG","T2_CLOTH_TENT","T2_CRYSTAL_ORB"]);
-ensureRecipe("R_T3_NOMAD_TENT","R Nor Nomad Tent",3,"T3_NOMAD_TENT",["T2_CLOTH_TENT","T2_CRYSTAL_ORB","T2_IRON_ARMOR"]);
-ensureRecipe("R_T3_ORB_OF_VISION","R Nor Orb of Vision",3,"T3_ORB_OF_VISION",["T2_CRYSTAL_ORB","T2_OBSIDIAN_KNIFE","T2_BRONZE_DOOR"]);
-ensureRecipe("R_T3_KNIFE_OF_SHADOW","R Nor Knife of Shadow",3,"T3_KNIFE_OF_SHADOW",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]);
-ensureRecipe("R_T3_ARMOR_OF_GUARD","R Nor Armor of Guard",3,"T3_ARMOR_OF_GUARD",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]);
+// T2 recipes
+const R_T2 = [
+  ["R_T2_BRONZE_DOOR","R Nor Bronze Door",2,"T2_BRONZE_DOOR",["BRONZE","IRON","WOOD","STONE"]],
+  ["R_T2_SILVER_GOBLET","R Nor Silver Goblet",2,"T2_SILVER_GOBLET",["SILVER","GOLD","CRYSTAL","CLOTH"]],
+  ["R_T2_GOLDEN_RING","R Nor Golden Ring",2,"T2_GOLDEN_RING",["GOLD","SILVER","CRYSTAL","LEATHER"]],
+  ["R_T2_WOODEN_CHEST","R Nor Wooden Chest",2,"T2_WOODEN_CHEST",["WOOD","STONE","LEATHER","IRON","CLOTH"]],
+  ["R_T2_STONE_PILLAR","R Nor Stone Pillar",2,"T2_STONE_PILLAR",["STONE","WOOD","IRON","CLOTH"]],
+  ["R_T2_LEATHER_BAG","R Nor Leather Bag",2,"T2_LEATHER_BAG",["LEATHER","CLOTH","WOOD","SILVER"]],
+  ["R_T2_CLOTH_TENT","R Nor Cloth Tent",2,"T2_CLOTH_TENT",["CLOTH","LEATHER","WOOD","STONE","IRON"]],
+  ["R_T2_CRYSTAL_ORB","R Nor Crystal Orb",2,"T2_CRYSTAL_ORB",["CRYSTAL","GOLD","CLOTH","WOOD","LEATHER"]],
+  ["R_T2_OBSIDIAN_KNIFE","R Nor Obsidian Knife",2,"T2_OBSIDIAN_KNIFE",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]],
+  ["R_T2_IRON_ARMOR","R Nor Iron Armor",2,"T2_IRON_ARMOR",["IRON","BRONZE","LEATHER","CLOTH","STONE"]]
+];
+for (const [code,name,tier,result,parts] of R_T2) ensureRecipe(code,name,tier,result,parts);
 
-// ===== Recepti T4
-ensureRecipe("R_T4_ENGINE_CORE","R Nor Engine Core",4,"T4_ENGINE_CORE",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]);
-ensureRecipe("R_T4_CRYSTAL_LENS","R Nor Crystal Lens",4,"T4_CRYSTAL_LENS",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]);
-ensureRecipe("R_T4_MIGHT_GATE","R Nor Reinforced Gate",4,"T4_MIGHT_GATE",["T3_GATE_OF_MIGHT","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]);
-ensureRecipe("R_T4_WISDOM_GOBLET","R Nor Enruned Goblet",4,"T4_WISDOM_GOBLET",["T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE","T3_PILLAR_OF_STRENGTH"]);
-ensureRecipe("R_T4_SECRET_CHEST","R Nor Sealed Chest",4,"T4_SECRET_CHEST",["T3_CHEST_OF_SECRETS","T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG"]);
-ensureRecipe("R_T4_STRENGTH_PILLAR","R Nor Monument Pillar",4,"T4_STRENGTH_PILLAR",["T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG","T3_NOMAD_TENT"]);
-ensureRecipe("R_T4_TRAVELER_SATCHEL","R Nor Traveler Satchel",4,"T4_TRAVELER_SATCHEL",["T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_ORB_OF_VISION"]);
-ensureRecipe("R_T4_NOMAD_DWELLING","R Nor Nomad Dwelling",4,"T4_NOMAD_DWELLING",["T3_NOMAD_TENT","T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW"]);
-ensureRecipe("R_T4_VISION_CORE","R Nor Vision Core",4,"T4_VISION_CORE",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]);
-ensureRecipe("R_T4_SHADOW_BLADE","R Nor Shadow Blade",4,"T4_SHADOW_BLADE",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]);
+// T3 recipes
+const R_T3 = [
+  ["R_T3_GATE_OF_MIGHT","R Nor Gate of Might",3,"T3_GATE_OF_MIGHT",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]],
+  ["R_T3_GOBLET_OF_WISDOM","R Nor Goblet of Wisdom",3,"T3_GOBLET_OF_WISDOM",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]],
+  ["R_T3_RING_OF_GLARE","R Nor Ring of Glare",3,"T3_RING_OF_GLARE",["T2_GOLDEN_RING","T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_CRYSTAL_ORB"]],
+  ["R_T3_CHEST_OF_SECRETS","R Nor Chest of Secrets",3,"T3_CHEST_OF_SECRETS",["T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]],
+  ["R_T3_PILLAR_OF_STRENGTH","R Nor Pillar of Strength",3,"T3_PILLAR_OF_STRENGTH",["T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]],
+  ["R_T3_TRAVELERS_BAG","R Nor Traveler's Bag",3,"T3_TRAVELERS_BAG",["T2_LEATHER_BAG","T2_CLOTH_TENT","T2_CRYSTAL_ORB"]],
+  ["R_T3_NOMAD_TENT","R Nor Nomad Tent",3,"T3_NOMAD_TENT",["T2_CLOTH_TENT","T2_CRYSTAL_ORB","T2_IRON_ARMOR"]],
+  ["R_T3_ORB_OF_VISION","R Nor Orb of Vision",3,"T3_ORB_OF_VISION",["T2_CRYSTAL_ORB","T2_OBSIDIAN_KNIFE","T2_BRONZE_DOOR"]],
+  ["R_T3_KNIFE_OF_SHADOW","R Nor Knife of Shadow",3,"T3_KNIFE_OF_SHADOW",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]],
+  ["R_T3_ARMOR_OF_GUARD","R Nor Armor of Guard",3,"T3_ARMOR_OF_GUARD",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]]
+];
+for (const [code,name,tier,result,parts] of R_T3) ensureRecipe(code,name,tier,result,parts);
 
-// ===== Recepti T5
-ensureRecipe("R_T5_ANCIENT_RELIC","R Nor Ancient Relic",5,"T5_ANCIENT_RELIC",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]);
-ensureRecipe("R_T5_SUN_LENS","R Nor Sun Lens",5,"T5_SUN_LENS",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]);
-ensureRecipe("R_T5_GUARDIAN_GATE","R Nor Guardian Gate",5,"T5_GUARDIAN_GATE",["T4_MIGHT_GATE","T4_ENGINE_CORE","T4_TRAVELER_SATCHEL"]);
-ensureRecipe("R_T5_WISDOM_CHALICE","R Nor Wisdom Chalice",5,"T5_WISDOM_CHALICE",["T4_WISDOM_GOBLET","T4_CRYSTAL_LENS","T4_STRENGTH_PILLAR"]);
-ensureRecipe("R_T5_VAULT","R Nor Royal Vault",5,"T5_VAULT",["T4_SECRET_CHEST","T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL"]);
-ensureRecipe("R_T5_COLOSSAL_PILLAR","R Nor Colossal Pillar",5,"T5_COLOSSAL_PILLAR",["T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING"]);
-ensureRecipe("R_T5_WAYFARER_BAG","R Nor Wayfarer Bag",5,"T5_WAYFARER_BAG",["T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_VISION_CORE"]);
-ensureRecipe("R_T5_NOMAD_HALL","R Nor Nomad Hall",5,"T5_NOMAD_HALL",["T4_NOMAD_DWELLING","T4_VISION_CORE","T4_MIGHT_GATE"]);
-ensureRecipe("R_T5_EYE_OF_TRUTH","R Nor Eye of Truth",5,"T5_EYE_OF_TRUTH",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]);
-ensureRecipe("R_T5_NIGHTFALL_EDGE","R Nor Nightfall Edge",5,"T5_NIGHTFALL_EDGE",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]);
+// T4 recipes
+const R_T4 = [
+  ["R_T4_ENGINE_CORE","R Nor Engine Core",4,"T4_ENGINE_CORE",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]],
+  ["R_T4_CRYSTAL_LENS","R Nor Crystal Lens",4,"T4_CRYSTAL_LENS",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]],
+  ["R_T4_MIGHT_GATE","R Nor Reinforced Gate",4,"T4_MIGHT_GATE",["T3_GATE_OF_MIGHT","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]],
+  ["R_T4_WISDOM_GOBLET","R Nor Enruned Goblet",4,"T4_WISDOM_GOBLET",["T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE","T3_PILLAR_OF_STRENGTH"]],
+  ["R_T4_SECRET_CHEST","R Nor Sealed Chest",4,"T4_SECRET_CHEST",["T3_CHEST_OF_SECRETS","T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG"]],
+  ["R_T4_STRENGTH_PILLAR","R Nor Monument Pillar",4,"T4_STRENGTH_PILLAR",["T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG","T3_NOMAD_TENT"]],
+  ["R_T4_TRAVELER_SATCHEL","R Nor Traveler Satchel",4,"T4_TRAVELER_SATCHEL",["T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_ORB_OF_VISION"]],
+  ["R_T4_NOMAD_DWELLING","R Nor Nomad Dwelling",4,"T4_NOMAD_DWELLING",["T3_NOMAD_TENT","T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW"]],
+  ["R_T4_VISION_CORE","R Nor Vision Core",4,"T4_VISION_CORE",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]],
+  ["R_T4_SHADOW_BLADE","R Nor Shadow Blade",4,"T4_SHADOW_BLADE",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]]
+];
+for (const [code,name,tier,result,parts] of R_T4) ensureRecipe(code,name,tier,result,parts);
+
+// T5 recipes
+const R_T5 = [
+  ["R_T5_ANCIENT_RELIC","R Nor Ancient Relic",5,"T5_ANCIENT_RELIC",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]],
+  ["R_T5_SUN_LENS","R Nor Sun Lens",5,"T5_SUN_LENS",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]],
+  ["R_T5_GUARDIAN_GATE","R Nor Guardian Gate",5,"T5_GUARDIAN_GATE",["T4_MIGHT_GATE","T4_ENGINE_CORE","T4_TRAVELER_SATCHEL"]],
+  ["R_T5_WISDOM_CHALICE","R Nor Wisdom Chalice",5,"T5_WISDOM_CHALICE",["T4_WISDOM_GOBLET","T4_CRYSTAL_LENS","T4_STRENGTH_PILLAR"]],
+  ["R_T5_VAULT","R Nor Royal Vault",5,"T5_VAULT",["T4_SECRET_CHEST","T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL"]],
+  ["R_T5_COLOSSAL_PILLAR","R Nor Colossal Pillar",5,"T5_COLOSSAL_PILLAR",["T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING"]],
+  ["R_T5_WAYFARER_BAG","R Nor Wayfarer Bag",5,"T5_WAYFARER_BAG",["T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_VISION_CORE"]],
+  ["R_T5_NOMAD_HALL","R Nor Nomad Hall",5,"T5_NOMAD_HALL",["T4_NOMAD_DWELLING","T4_VISION_CORE","T4_MIGHT_GATE"]],
+  ["R_T5_EYE_OF_TRUTH","R Nor Eye of Truth",5,"T5_EYE_OF_TRUTH",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]],
+  ["R_T5_NIGHTFALL_EDGE","R Nor Nightfall Edge",5,"T5_NIGHTFALL_EDGE",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]]
+];
+for (const [code,name,tier,result,parts] of R_T5) ensureRecipe(code,name,tier,result,parts);
 
 
 // =============== AUTH (LOGIN)
@@ -1176,6 +1254,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
