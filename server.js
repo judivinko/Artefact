@@ -636,11 +636,6 @@ app.post("/api/admin/disable-user",(req,res)=>{
 
 /// ================= AUTH (helpers + register/login/logout/me) — NO cookie-parser =================
 
-// Konstante (možeš prilagoditi)
-
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
-const IS_PROD = (process.env.NODE_ENV==="production" || process.env.RENDER==="true");
-
 // ---------- Tiny helpers ----------
 const nowISO = () => new Date().toISOString();
 const isEmail = (x) => typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.trim());
@@ -1219,6 +1214,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
