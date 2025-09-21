@@ -311,7 +311,7 @@
     });
   </script>
 
-  <!-- SHOP (Buy T1) -->
+    <!-- SHOP (Buy T1) -->
   <script>
     function renderShopGotItem(obj){
       const msg = $("#shop-msg");
@@ -344,7 +344,7 @@
     });
   </script>
 
-  <!-- Crafting (lista + detalji) -->
+  <!-- Crafting (lista + detalji s ikonama) -->
   <script>
     function rowRecipe(r){
       return `
@@ -463,7 +463,7 @@
     });
   </script>
 
-  <!-- Market -->
+  <!-- Market (inventory for sale + live + mine) -->
   <script>
     async function loadInventoryPanel(){
       const box=$("#inv-list"); if(!box) return;
@@ -632,6 +632,6 @@
         box.textContent=e.message;
       }
     }
+
+    loadMe();
   </script>
-</body>
-</html>
