@@ -361,7 +361,7 @@ function ensureRecipe(code,name,tier,outCode,ingCodes){
   return rid;
 }
 
-// ---------- Items & Recipes
+// ---------- Items & Recipes  (ARTEFACT: recipes bez petlji, imena s "R ") ----------
 ensureItem("SCRAP","Scrap",1,1);
 
 // T1 materials (10)
@@ -370,117 +370,116 @@ const T1 = [
   ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
   ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]
 ];
-for(const [c,n] of T1) ensureItem(c,n,1,0);
+for (const [c,n] of T1) ensureItem(c,n,1,0);
 
-// T2 set
-const T2 = [
-  ["T2_BRONZE_DOOR","Nor Bronze Door",["BRONZE","IRON","WOOD","STONE"]],
-  ["T2_SILVER_GOBLET","Nor Silver Goblet",["SILVER","GOLD","CRYSTAL","CLOTH"]],
-  ["T2_GOLDEN_RING","Nor Golden Ring",["GOLD","SILVER","CRYSTAL","LEATHER"]],
-  ["T2_WOODEN_CHEST","Nor Wooden Chest",["WOOD","STONE","LEATHER","IRON","CLOTH"]],
-  ["T2_STONE_PILLAR","Nor Stone Pillar",["STONE","WOOD","IRON","CLOTH"]],
-  ["T2_LEATHER_BAG","Nor Leather Bag",["LEATHER","CLOTH","WOOD","SILVER"]],
-  ["T2_CLOTH_TENT","Nor Cloth Tent",["CLOTH","LEATHER","WOOD","STONE","IRON"]],
-  ["T2_CRYSTAL_ORB","Nor Crystal Orb",["CRYSTAL","GOLD","CLOTH","WOOD","LEATHER"]],
-  ["T2_OBSIDIAN_KNIFE","Nor Obsidian Knife",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]],
-  ["T2_IRON_ARMOR","Nor Iron Armor",["IRON","BRONZE","LEATHER","CLOTH","STONE"]]
+// T2 items (samo itemi)
+const T2_ITEMS = [
+  ["T2_BRONZE_DOOR","Nor Bronze Door"],
+  ["T2_SILVER_GOBLET","Nor Silver Goblet"],
+  ["T2_GOLDEN_RING","Nor Golden Ring"],
+  ["T2_WOODEN_CHEST","Nor Wooden Chest"],
+  ["T2_STONE_PILLAR","Nor Stone Pillar"],
+  ["T2_LEATHER_BAG","Nor Leather Bag"],
+  ["T2_CLOTH_TENT","Nor Cloth Tent"],
+  ["T2_CRYSTAL_ORB","Nor Crystal Orb"],
+  ["T2_OBSIDIAN_KNIFE","Nor Obsidian Knife"],
+  ["T2_IRON_ARMOR","Nor Iron Armor"]
 ];
-for (const [code,name,ings] of T2){
-  ensureItem(code,name,2,0);
-  ensureRecipe("R_"+code,name,2,code,ings);
-}
+for (const [code,name] of T2_ITEMS) ensureItem(code,name,2,0);
 
-// T3 set
-const T3names = [
-  ["T3_GATE_OF_MIGHT","Nor Gate of Might",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]],
-  ["T3_GOBLET_OF_WISDOM","Nor Goblet of Wisdom",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]],
-  ["T3_RING_OF_GLARE","Nor Ring of Glare",["T2_GOLDEN_RING","T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_CRYSTAL_ORB"]],
-  ["T3_CHEST_OF_SECRETS","Nor Chest of Secrets",["T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]],
-  ["T3_PILLAR_OF_STRENGTH","Nor Pillar of Strength",["T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]],
-  ["T3_TRAVELERS_BAG","Nor Traveler's Bag",["T2_LEATHER_BAG","T2_CLOTH_TENT","T2_CRYSTAL_ORB"]],
-  ["T3_NOMAD_TENT","Nor Nomad Tent",["T2_CLOTH_TENT","T2_CRYSTAL_ORB","T2_IRON_ARMOR"]],
-  ["T3_ORB_OF_VISION","Nor Orb of Vision",["T2_CRYSTAL_ORB","T2_OBSIDIAN_KNIFE","T2_BRONZE_DOOR"]],
-  ["T3_KNIFE_OF_SHADOW","Nor Knife of Shadow",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]],
-  ["T3_ARMOR_OF_GUARD","Nor Armor of Guard",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]]
+// T3 items (samo itemi)
+const T3_ITEMS = [
+  ["T3_GATE_OF_MIGHT","Nor Gate of Might"],
+  ["T3_GOBLET_OF_WISDOM","Nor Goblet of Wisdom"],
+  ["T3_RING_OF_GLARE","Nor Ring of Glare"],
+  ["T3_CHEST_OF_SECRETS","Nor Chest of Secrets"],
+  ["T3_PILLAR_OF_STRENGTH","Nor Pillar of Strength"],
+  ["T3_TRAVELERS_BAG","Nor Traveler's Bag"],
+  ["T3_NOMAD_TENT","Nor Nomad Tent"],
+  ["T3_ORB_OF_VISION","Nor Orb of Vision"],
+  ["T3_KNIFE_OF_SHADOW","Nor Knife of Shadow"],
+  ["T3_ARMOR_OF_GUARD","Nor Armor of Guard"]
 ];
-for(const [code,name,ings] of T3names){
-  ensureItem(code,name,3,0);
-  ensureRecipe("R_"+code,name,3,code,ings);
-}
+for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
 
-// T4 set
-const T4names = [
-  ["T4_ENGINE_CORE","Nor Engine Core",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]],
-  ["T4_CRYSTAL_LENS","Nor Crystal Lens",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]],
-  ["T4_MIGHT_GATE","Nor Reinforced Gate",["T3_GATE_OF_MIGHT","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]],
-  ["T4_WISDOM_GOBLET","Nor Enruned Goblet",["T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE","T3_PILLAR_OF_STRENGTH"]],
-  ["T4_SECRET_CHEST","Nor Sealed Chest",["T3_CHEST_OF_SECRETS","T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG"]],
-  ["T4_STRENGTH_PILLAR","Nor Monument Pillar",["T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG","T3_NOMAD_TENT"]],
-  ["T4_TRAVELER_SATCHEL","Nor Traveler Satchel",["T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_ORB_OF_VISION"]],
-  ["T4_NOMAD_DWELLING","Nor Nomad Dwelling",["T3_NOMAD_TENT","T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW"]],
-  ["T4_VISION_CORE","Nor Vision Core",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]],
-  ["T4_SHADOW_BLADE","Nor Shadow Blade",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]]
+// T4 items (samo itemi)
+const T4_ITEMS = [
+  ["T4_ENGINE_CORE","Nor Engine Core"],
+  ["T4_CRYSTAL_LENS","Nor Crystal Lens"],
+  ["T4_MIGHT_GATE","Nor Reinforced Gate"],
+  ["T4_WISDOM_GOBLET","Nor Enruned Goblet"],
+  ["T4_SECRET_CHEST","Nor Sealed Chest"],
+  ["T4_STRENGTH_PILLAR","Nor Monument Pillar"],
+  ["T4_TRAVELER_SATCHEL","Nor Traveler Satchel"],
+  ["T4_NOMAD_DWELLING","Nor Nomad Dwelling"],
+  ["T4_VISION_CORE","Nor Vision Core"],
+  ["T4_SHADOW_BLADE","Nor Shadow Blade"]
 ];
-for(const [code,name,ings] of T4names){
-  ensureItem(code,name,4,0);
-  ensureRecipe("R_"+code,name,4,code,ings);
-}
+for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
 
-// T5 set
-const T5names = [
-  ["T5_ANCIENT_RELIC","Nor Ancient Relic",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]],
-  ["T5_SUN_LENS","Nor Sun Lens",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]],
-  ["T5_GUARDIAN_GATE","Nor Guardian Gate",["T4_MIGHT_GATE","T4_ENGINE_CORE","T4_TRAVELER_SATCHEL"]],
-  ["T5_WISDOM_CHALICE","Nor Wisdom Chalice",["T4_WISDOM_GOBLET","T4_CRYSTAL_LENS","T4_STRENGTH_PILLAR"]],
-  ["T5_VAULT","Nor Royal Vault",["T4_SECRET_CHEST","T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL"]],
-  ["T5_COLOSSAL_PILLAR","Nor Colossal Pillar",["T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING"]],
-  ["T5_WAYFARER_BAG","Nor Wayfarer Bag",["T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_VISION_CORE"]],
-  ["T5_NOMAD_HALL","Nor Nomad Hall",["T4_NOMAD_DWELLING","T4_VISION_CORE","T4_MIGHT_GATE"]],
-  ["T5_EYE_OF_TRUTH","Nor Eye of Truth",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]],
-  ["T5_NIGHTFALL_EDGE","Nor Nightfall Edge",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]]
+// T5 items (samo itemi)
+const T5_ITEMS = [
+  ["T5_ANCIENT_RELIC","Nor Ancient Relic"],
+  ["T5_SUN_LENS","Nor Sun Lens"],
+  ["T5_GUARDIAN_GATE","Nor Guardian Gate"],
+  ["T5_WISDOM_CHALICE","Nor Wisdom Chalice"],
+  ["T5_VAULT","Nor Royal Vault"],
+  ["T5_COLOSSAL_PILLAR","Nor Colossal Pillar"],
+  ["T5_WAYFARER_BAG","Nor Wayfarer Bag"],
+  ["T5_NOMAD_HALL","Nor Nomad Hall"],
+  ["T5_EYE_OF_TRUTH","Nor Eye of Truth"],
+  ["T5_NIGHTFALL_EDGE","Nor Nightfall Edge"]
 ];
-for(const [code,name,ings] of T5names){
-  ensureItem(code,name,5,0);
-  ensureRecipe("R_"+code,name,5,code,ings);
-}
+for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// =============== AUTH
-app.post("/api/register", async (req, res) => {
-  try {
-    const { email, password } = (req.body || {});
-    if (!isEmail(email))   return res.status(400).json({ ok:false, error: "Invalid email" });
-    if (!isPass(password)) return res.status(400).json({ ok:false, error: "Password too short" });
+// ===== Recepti T2 (bez petlji, imena s "R ")
+ensureRecipe("R_T2_BRONZE_DOOR","R Nor Bronze Door",2,"T2_BRONZE_DOOR",["BRONZE","IRON","WOOD","STONE"]);
+ensureRecipe("R_T2_SILVER_GOBLET","R Nor Silver Goblet",2,"T2_SILVER_GOBLET",["SILVER","GOLD","CRYSTAL","CLOTH"]);
+ensureRecipe("R_T2_GOLDEN_RING","R Nor Golden Ring",2,"T2_GOLDEN_RING",["GOLD","SILVER","CRYSTAL","LEATHER"]);
+ensureRecipe("R_T2_WOODEN_CHEST","R Nor Wooden Chest",2,"T2_WOODEN_CHEST",["WOOD","STONE","LEATHER","IRON","CLOTH"]);
+ensureRecipe("R_T2_STONE_PILLAR","R Nor Stone Pillar",2,"T2_STONE_PILLAR",["STONE","WOOD","IRON","CLOTH"]);
+ensureRecipe("R_T2_LEATHER_BAG","R Nor Leather Bag",2,"T2_LEATHER_BAG",["LEATHER","CLOTH","WOOD","SILVER"]);
+ensureRecipe("R_T2_CLOTH_TENT","R Nor Cloth Tent",2,"T2_CLOTH_TENT",["CLOTH","LEATHER","WOOD","STONE","IRON"]);
+ensureRecipe("R_T2_CRYSTAL_ORB","R Nor Crystal Orb",2,"T2_CRYSTAL_ORB",["CRYSTAL","GOLD","CLOTH","WOOD","LEATHER"]);
+ensureRecipe("R_T2_OBSIDIAN_KNIFE","R Nor Obsidian Knife",2,"T2_OBSIDIAN_KNIFE",["OBSIDIAN","CRYSTAL","IRON","BRONZE"]);
+ensureRecipe("R_T2_IRON_ARMOR","R Nor Iron Armor",2,"T2_IRON_ARMOR",["IRON","BRONZE","LEATHER","CLOTH","STONE"]);
 
-    const normEmail = String(email).toLowerCase();
+// ===== Recepti T3
+ensureRecipe("R_T3_GATE_OF_MIGHT","R Nor Gate of Might",3,"T3_GATE_OF_MIGHT",["T2_BRONZE_DOOR","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_WOODEN_CHEST"]);
+ensureRecipe("R_T3_GOBLET_OF_WISDOM","R Nor Goblet of Wisdom",3,"T3_GOBLET_OF_WISDOM",["T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR","T2_LEATHER_BAG"]);
+ensureRecipe("R_T3_RING_OF_GLARE","R Nor Ring of Glare",3,"T3_RING_OF_GLARE",["T2_GOLDEN_RING","T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_CRYSTAL_ORB"]);
+ensureRecipe("R_T3_CHEST_OF_SECRETS","R Nor Chest of Secrets",3,"T3_CHEST_OF_SECRETS",["T2_WOODEN_CHEST","T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]);
+ensureRecipe("R_T3_PILLAR_OF_STRENGTH","R Nor Pillar of Strength",3,"T3_PILLAR_OF_STRENGTH",["T2_STONE_PILLAR","T2_LEATHER_BAG","T2_CLOTH_TENT"]);
+ensureRecipe("R_T3_TRAVELERS_BAG","R Nor Traveler's Bag",3,"T3_TRAVELERS_BAG",["T2_LEATHER_BAG","T2_CLOTH_TENT","T2_CRYSTAL_ORB"]);
+ensureRecipe("R_T3_NOMAD_TENT","R Nor Nomad Tent",3,"T3_NOMAD_TENT",["T2_CLOTH_TENT","T2_CRYSTAL_ORB","T2_IRON_ARMOR"]);
+ensureRecipe("R_T3_ORB_OF_VISION","R Nor Orb of Vision",3,"T3_ORB_OF_VISION",["T2_CRYSTAL_ORB","T2_OBSIDIAN_KNIFE","T2_BRONZE_DOOR"]);
+ensureRecipe("R_T3_KNIFE_OF_SHADOW","R Nor Knife of Shadow",3,"T3_KNIFE_OF_SHADOW",["T2_OBSIDIAN_KNIFE","T2_IRON_ARMOR","T2_WOODEN_CHEST"]);
+ensureRecipe("R_T3_ARMOR_OF_GUARD","R Nor Armor of Guard",3,"T3_ARMOR_OF_GUARD",["T2_IRON_ARMOR","T2_SILVER_GOBLET","T2_GOLDEN_RING"]);
 
-    // već postoji?
-    const ex = db.prepare("SELECT id FROM users WHERE email=?").get(normEmail);
-    if (ex) return res.status(409).json({ ok:false, error: "User exists" });
+// ===== Recepti T4
+ensureRecipe("R_T4_ENGINE_CORE","R Nor Engine Core",4,"T4_ENGINE_CORE",["T3_GATE_OF_MIGHT","T3_KNIFE_OF_SHADOW","T3_ARMOR_OF_GUARD"]);
+ensureRecipe("R_T4_CRYSTAL_LENS","R Nor Crystal Lens",4,"T4_CRYSTAL_LENS",["T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_GOBLET_OF_WISDOM"]);
+ensureRecipe("R_T4_MIGHT_GATE","R Nor Reinforced Gate",4,"T4_MIGHT_GATE",["T3_GATE_OF_MIGHT","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]);
+ensureRecipe("R_T4_WISDOM_GOBLET","R Nor Enruned Goblet",4,"T4_WISDOM_GOBLET",["T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE","T3_PILLAR_OF_STRENGTH"]);
+ensureRecipe("R_T4_SECRET_CHEST","R Nor Sealed Chest",4,"T4_SECRET_CHEST",["T3_CHEST_OF_SECRETS","T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG"]);
+ensureRecipe("R_T4_STRENGTH_PILLAR","R Nor Monument Pillar",4,"T4_STRENGTH_PILLAR",["T3_PILLAR_OF_STRENGTH","T3_TRAVELERS_BAG","T3_NOMAD_TENT"]);
+ensureRecipe("R_T4_TRAVELER_SATCHEL","R Nor Traveler Satchel",4,"T4_TRAVELER_SATCHEL",["T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_ORB_OF_VISION"]);
+ensureRecipe("R_T4_NOMAD_DWELLING","R Nor Nomad Dwelling",4,"T4_NOMAD_DWELLING",["T3_NOMAD_TENT","T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW"]);
+ensureRecipe("R_T4_VISION_CORE","R Nor Vision Core",4,"T4_VISION_CORE",["T3_ORB_OF_VISION","T3_KNIFE_OF_SHADOW","T3_GATE_OF_MIGHT"]);
+ensureRecipe("R_T4_SHADOW_BLADE","R Nor Shadow Blade",4,"T4_SHADOW_BLADE",["T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"]);
 
-    // kreiraj korisnika
-    const pass_hash = await bcrypt.hash(password, 10);
-    const ins = db.prepare("INSERT INTO users(email,pass_hash,created_at) VALUES (?,?,?)");
-    ins.run(normEmail, pass_hash, nowISO());
+// ===== Recepti T5
+ensureRecipe("R_T5_ANCIENT_RELIC","R Nor Ancient Relic",5,"T5_ANCIENT_RELIC",["T4_ENGINE_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET"]);
+ensureRecipe("R_T5_SUN_LENS","R Nor Sun Lens",5,"T5_SUN_LENS",["T4_CRYSTAL_LENS","T4_VISION_CORE","T4_MIGHT_GATE"]);
+ensureRecipe("R_T5_GUARDIAN_GATE","R Nor Guardian Gate",5,"T5_GUARDIAN_GATE",["T4_MIGHT_GATE","T4_ENGINE_CORE","T4_TRAVELER_SATCHEL"]);
+ensureRecipe("R_T5_WISDOM_CHALICE","R Nor Wisdom Chalice",5,"T5_WISDOM_CHALICE",["T4_WISDOM_GOBLET","T4_CRYSTAL_LENS","T4_STRENGTH_PILLAR"]);
+ensureRecipe("R_T5_VAULT","R Nor Royal Vault",5,"T5_VAULT",["T4_SECRET_CHEST","T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL"]);
+ensureRecipe("R_T5_COLOSSAL_PILLAR","R Nor Colossal Pillar",5,"T5_COLOSSAL_PILLAR",["T4_STRENGTH_PILLAR","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING"]);
+ensureRecipe("R_T5_WAYFARER_BAG","R Nor Wayfarer Bag",5,"T5_WAYFARER_BAG",["T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_VISION_CORE"]);
+ensureRecipe("R_T5_NOMAD_HALL","R Nor Nomad Hall",5,"T5_NOMAD_HALL",["T4_NOMAD_DWELLING","T4_VISION_CORE","T4_MIGHT_GATE"]);
+ensureRecipe("R_T5_EYE_OF_TRUTH","R Nor Eye of Truth",5,"T5_EYE_OF_TRUTH",["T4_VISION_CORE","T4_ENGINE_CORE","T4_WISDOM_GOBLET"]);
+ensureRecipe("R_T5_NIGHTFALL_EDGE","R Nor Nightfall Edge",5,"T5_NIGHTFALL_EDGE",["T4_SHADOW_BLADE","T4_MIGHT_GATE","T4_SECRET_CHEST"]);
 
-    // učitaj svježe kreiranog
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get(normEmail);
-
-    // postavi cookie token (isti režim kao login)
-    const token = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
-    res.cookie(TOKEN_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,        // true na Renderu (HTTPS)
-      path: "/",             // važno da clearCookie radi simetrično
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    return res.json({ ok:true, user: { id: u.id, email: u.email } });
-  } catch (e) {
-    return res.status(500).json({ ok:false, error:"Server error" });
-  }
-});
 
 // =============== AUTH (LOGIN)
 app.post("/api/login", async (req,res)=>{
@@ -1177,6 +1176,7 @@ server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
         //---end
+
 
 
 
