@@ -310,38 +310,223 @@
 
 
 
-      <!-- Sales -->
-      <div id="tab-sales" class="card hidden">
-        <div class="label">Sales (Marketplace)</div>
-        <div class="grid">
-          <div class="card">
-            <div class="label">Create Sale</div>
-            <input id="inv-search" class="input" placeholder="Search your inventory..." />
-            <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-            <div class="row" style="margin-top:8px">
-              <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-              <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-              <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-              <button id="btn-list" class="btn">List for sale</button>
-            </div>
-            <div id="list-msg" class="muted" style="margin-top:6px"></div>
-          </div>
+      <!-- ! market -->
+<!-- Market -->
+<div id="tab-market" class="card hidden">
+  <div class="label">Marketplace</div>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Create Sale</div>
+      <input id="inv-search" class="input" placeholder="Search your inventory..." />
+      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
+      <div class="row" style="margin-top:8px">
+        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
+        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+        <button id="btn-list" class="btn">List for sale</button>
+      </div>
+      <div id="list-msg" class="muted" style="margin-top:6px"></div>
+    </div>
 
-          <div class="card">
-            <div class="row" style="justify-content:space-between">
-              <div class="label">Marketplace</div>
-              <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
-            </div>
-            <div id="market" class="list">Loading…</div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Marketplace</div>
+        <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
+      </div>
+      <div id="market" class="list">Loading…</div>
 
-            <div class="row" style="justify-content:space-between;margin-top:12px">
-              <div class="label">My listings</div>
-              <button id="btn-mine" class="btn muted">Reload</button>
-            </div>
-            <div id="mine" class="list">Loading…</div>
+      <div class="row" style="justify-content:space-between;margin-top:12px">
+        <div class="label">My listings</div>
+        <button id="btn-mine" class="btn muted">Reload</button>
+      </div>
+      <div id="mine" class="list">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory -->
+<div id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div id="inv-full" class="list">Loading…</div>
+</div>
+
+<script>
+  // --- ! market skripta: ikone ispred imena ---
+  const G = (typeof window !== "undefined") ? window : global;
+  const FALLBACK_ITEM_ICON = "/images/t1_bronze.png";
+  const esc = s => String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+  function itemMeta(code){
+    const it = (G.ITEMS || {})[code] || {};
+    return {
+      name: it.name || code,
+      icon: it.icon || FALLBACK_ITEM_ICON,
+      tier: it.tier || 1
+    };
+  }
+
+  function rowWithIcon({code, name, icon, rightHTML = "", sub = "", tier}){
+    return `
+      <div class="itemrow" data-code="${esc(code)}">
+        <div class="row" style="gap:10px;align-items:center">
+          <img class="icon" src="${esc(icon)}" alt="${esc(name)}"
+               onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>
+            <div class="label" style="text-transform:none;color:var(--text)">${esc(name)}</div>
+            <div class="muted">${sub ? esc(sub) : esc(code)}</div>
           </div>
         </div>
-      </div>
+        ${rightHTML || (tier ? `<span class="badge">T${tier}</span>` : "")}
+      </div>`;
+  }
+
+  // ---------- CREATE SALE ----------
+  let _INV_CACHE = [];
+
+  async function loadInvForSale(){
+    const box = document.getElementById("inv-list");
+    if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const r = await api("/api/inventory"); // prilagodi rutu ako treba
+      _INV_CACHE = Array.isArray(r) ? r : (r?.items || []);
+      renderInvForSale();
+    }catch(e){
+      console.error(e);
+      box.innerHTML = '<div class="muted" style="padding:8px">Error loading.</div>';
+    }
+  }
+
+  function renderInvForSale(){
+    const box = document.getElementById("inv-list");
+    if(!box) return;
+    const q = (document.getElementById("inv-search")?.value || "").toLowerCase().trim();
+
+    const rows = (_INV_CACHE || [])
+      .map(it => ({ ...it, ...itemMeta(it.code) }))
+      .filter(it => !q || it.name.toLowerCase().includes(q) || it.code.toLowerCase().includes(q))
+      .sort((a,b)=> a.tier - b.tier || a.name.localeCompare(b.name))
+      .map(it => rowWithIcon({
+        code: it.code,
+        name: it.name,
+        icon: it.icon,
+        tier: it.tier,
+        sub: `${it.code} · x${it.qty ?? 1}`,
+        rightHTML: `<button class="btn" data-pick="${esc(it.code)}">Pick</button>`
+      }))
+      .join("");
+
+    box.innerHTML = rows || '<div class="muted" style="padding:8px">Empty</div>';
+
+    box.querySelectorAll("[data-pick]").forEach(btn=>{
+      btn.addEventListener("click", () => {
+        const code = btn.getAttribute("data-pick");
+        if (typeof pickForSale === "function") pickForSale(code);
+      });
+    });
+  }
+
+  document.getElementById("inv-search")?.addEventListener("input", renderInvForSale);
+
+  // ---------- MARKETPLACE ----------
+  async function loadMarket(){
+    const box = document.getElementById("market");
+    if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const r = await api("/api/market"); // prilagodi rutu
+      renderMarket(Array.isArray(r) ? r : (r?.offers || []));
+    }catch(e){
+      console.error(e);
+      box.innerHTML = '<div class="muted" style="padding:8px">Error loading.</div>';
+    }
+  }
+
+  function renderMarket(offers){
+    const box = document.getElementById("market");
+    if(!box) return;
+    const q = (document.getElementById("market-q")?.value || "").toLowerCase().trim();
+
+    const rows = (offers || [])
+      .map(o => ({ ...o, ...itemMeta(o.code) }))
+      .filter(o => !q || o.name.toLowerCase().includes(q) || o.code.toLowerCase().includes(q))
+      .sort((a,b)=> a.tier - b.tier || a.name.localeCompare(b.name))
+      .map(o => rowWithIcon({
+        code: o.code,
+        name: o.name,
+        icon: o.icon,
+        tier: o.tier,
+        sub: `${o.code} · x${o.qty ?? 1}`,
+        rightHTML: `
+          <div class="row" style="gap:10px;align-items:center">
+            <span class="badge">${esc(o.price)}s</span>
+            <button class="btn" data-buy="${esc(o.id ?? o.code)}">Buy</button>
+          </div>`
+      }))
+      .join("");
+
+    box.innerHTML = rows || '<div class="muted" style="padding:8px">No listings</div>';
+
+    box.querySelectorAll("[data-buy]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-buy");
+        if (typeof buyOffer === "function") buyOffer(id);
+      });
+    });
+  }
+
+  document.getElementById("market-q")?.addEventListener("input", loadMarket);
+
+  // ---------- MY LISTINGS ----------
+  async function loadMine(){
+    const box = document.getElementById("mine");
+    if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const r = await api("/api/market/mine"); // prilagodi rutu
+      const mine = Array.isArray(r) ? r : (r?.offers || []);
+      const rows = (mine || [])
+        .map(o => ({ ...o, ...itemMeta(o.code) }))
+        .sort((a,b)=> a.tier - b.tier || a.name.localeCompare(b.name))
+        .map(o => rowWithIcon({
+          code: o.code,
+          name: o.name,
+          icon: o.icon,
+          tier: o.tier,
+          sub: `${o.code} · x${o.qty ?? 1}`,
+          rightHTML: `
+            <div class="row" style="gap:10px;align-items:center">
+              <span class="badge">${esc(o.price)}s</span>
+              <button class="btn muted" data-cancel="${esc(o.id ?? o.code)}">Cancel</button>
+            </div>`
+        }))
+        .join("");
+
+      box.innerHTML = rows || '<div class="muted" style="padding:8px">No listings</div>';
+
+      box.querySelectorAll("[data-cancel]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const id = b.getAttribute("data-cancel");
+          if (typeof cancelOffer === "function") cancelOffer(id);
+        });
+      });
+    }catch(e){
+      console.error(e);
+      box.innerHTML = '<div class="muted" style="padding:8px">Error loading.</div>';
+    }
+  }
+
+  document.getElementById("btn-mine")?.addEventListener("click", loadMine);
+
+  // ---------- INIT ----------
+  document.addEventListener("DOMContentLoaded", ()=>{
+    loadInvForSale();
+    loadMarket();
+    loadMine();
+  });
+</script>
 
       <!-- Inventory -->
       <div id="tab-inv" class="card hidden">
@@ -850,6 +1035,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
