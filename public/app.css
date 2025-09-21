@@ -36,3 +36,8 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
 
 .toast{ position:fixed; right:12px; bottom:12px; background:#0b5bd1; color:#fff; padding:10px 12px; border-radius:10px; }
 .right{ margin-left:auto; }
+/* Ikonica ispred imena (Inventory/Sales/Market) */
+.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; }
+.itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
+.itemrow:last-child{ border-bottom:0; }
+
