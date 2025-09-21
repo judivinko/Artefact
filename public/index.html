@@ -246,114 +246,98 @@ function renderBalance(){
 
 <!-- ============== AUTH (Frontend): api(), loadMe, register, login, logout ============== -->
 <script>
-  // ---------- API helper (obavezno credentials: 'include' za cookie token)
-  async function api(url, opts = {}) {
+  // Minimalni helper: fetch + cookies
+  async function api(url, opts={}){
     const init = {
       method: opts.method || "GET",
-      headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+      headers: { "Content-Type":"application/json" },
       credentials: "include"
     };
     if (opts.body) init.body = opts.body;
     const r = await fetch(url, init);
-    let data = {};
-    try { data = await r.json(); } catch {}
-    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+    const data = await r.json().catch(()=> ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
     return data;
   }
 
-  // ---------- Global + helpers
   let WHO = null;
-  const $  = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v % 100;
-    const el = $("#balance");
-    if (el) el.textContent = `${g}g ${s}s`;
-  }
-
-  function setLoggedInUI(){
-    $("#auth")?.classList.add("hidden");
-    $("#app")?.classList.remove("hidden");
-    $("#btn-logout")?.classList.remove("hidden");
-    if ($("#who")) $("#who").textContent = WHO?.email || "—";
-    renderBalance();
-  }
-  function setLoggedOutUI(){
-    WHO = null;
-    $("#auth")?.classList.remove("hidden");
-    $("#app")?.classList.add("hidden");
-    $("#btn-logout")?.classList.add("hidden");
-    if ($("#who")) $("#who").textContent = "Not logged in";
-    renderBalance();
-  }
-
-  // ---------- 1) loadMe (poziva se na start i nakon logina)
   async function loadMe(){
     try{
       const r = await api("/api/me");
-      WHO = r.user || null;
-      setLoggedInUI();
-
-      // Buys to next
-      const b = $("#buysToNext");
-      if (b) {
-        b.textContent = (typeof WHO?.buys_to_next === "number")
+      WHO = r.user;
+      document.getElementById("auth")?.classList.add("hidden");
+      document.getElementById("app")?.classList.remove("hidden");
+      const who = document.getElementById("who"); if (who) who.textContent = WHO.email;
+      const bal = document.getElementById("balance");
+      if (bal){
+        const g = Math.floor((WHO.balance_silver||0)/100);
+        const s = (WHO.balance_silver||0)%100;
+        bal.textContent = `${g}g ${s}s`;
+      }
+      const btn = document.getElementById("buysToNext");
+      if (btn){
+        btn.textContent = (typeof WHO.buys_to_next==="number")
           ? `Buys to next recipe: ${WHO.buys_to_next}`
           : "Buys to next recipe: —";
       }
-
-      // Tvoji loaderi (postoje u projektu; sigurnosne provjere):
+      // tvoji loaderi po potrebi:
       if (typeof loadInventoryPanel === "function") await loadInventoryPanel();
-      if (typeof loadRecipes        === "function")        loadRecipes();
-      if (typeof loadMarket         === "function")         loadMarket();
-      if (typeof loadMine           === "function")           loadMine();
-      if (typeof loadInventoryFull  === "function")  loadInventoryFull();
-
-      if (typeof setTab === "function") setTab("shop");
+      if (typeof loadRecipes === "function") loadRecipes();
+      if (typeof loadMarket === "function") loadMarket();
+      if (typeof loadMine === "function") loadMine();
+      if (typeof loadInventoryFull === "function") loadInventoryFull();
     }catch{
-      setLoggedOutUI();
+      WHO = null;
+      document.getElementById("auth")?.classList.remove("hidden");
+      document.getElementById("app")?.classList.add("hidden");
+      const who = document.getElementById("who"); if (who) who.textContent = "Not logged in";
+      const bal = document.getElementById("balance"); if (bal) bal.textContent = "0g 0s";
     }
   }
 
-  // ---------- 2) Register
-  async function doRegister(){
-    const msg = $("#reg-msg");
+  // Register
+  document.getElementById("btn-register")?.addEventListener("click", async ()=>{
+    const msg = document.getElementById("reg-msg");
     try{
-      const email = $("#reg-email")?.value.trim();
-      const pass  = $("#reg-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      if (pass.length < 6) throw new Error("Password too short (min 6).");
+      const email = document.getElementById("reg-email").value.trim();
+      const pass  = document.getElementById("reg-pass").value;
       msg && (msg.textContent = "…");
       await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
       msg && (msg.textContent = "OK — now log in.");
     }catch(e){
-      msg && (msg.textContent = e.message || "Register failed.");
+      msg && (msg.textContent = e.message);
     }
-  }
+  });
 
-  // ---------- 3) Login
-  async function doLogin(){
-    const msg = $("#log-msg");
+  // Login
+  document.getElementById("btn-login")?.addEventListener("click", async ()=>{
+    const msg = document.getElementById("log-msg");
     try{
-      const email = $("#log-email")?.value.trim();
-      const pass  = $("#log-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
+      const email = document.getElementById("log-email").value.trim();
+      const pass  = document.getElementById("log-pass").value;
       msg && (msg.textContent = "…");
       await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
       msg && (msg.textContent = "OK");
       await loadMe();
     }catch(e){
-      msg && (msg.textContent = e.message || "Login failed.");
+      msg && (msg.textContent = e.message);
     }
-  }
+  });
 
-  // ---------- 4) Logout
-  async function doLogout(){
-    try { await api("/api/logout"); } catch {}
-    setLoggedOutUI();
-  }
+  // Logout
+  document.getElementById("btn-logout")?.addEventListener("click", async ()=>{
+    try{ await api("/api/logout"); }catch{}
+    WHO = null;
+    const who = document.getElementById("who"); if (who) who.textContent = "Not logged in";
+    const bal = document.getElementById("balance"); if (bal) bal.textContent = "0g 0s";
+    document.getElementById("auth")?.classList.remove("hidden");
+    document.getElementById("app")?.classList.add("hidden");
+  });
+
+  // auto
+  document.addEventListener("DOMContentLoaded", loadMe);
+</script>
 
   // ---------- Events (klik + Enter)
   document.addEventListener("DOMContentLoaded", () => {
@@ -701,6 +685,7 @@ function renderBalance(){
   </script>
 </body>
 </html>
+
 
 
 
