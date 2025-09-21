@@ -632,38 +632,33 @@ app.post("/api/admin/disable-user",(req,res)=>{
   db.prepare("UPDATE users SET is_disabled=? WHERE id=?").run(disabled ? 1 : 0, u.id);
   res.json({ ok:true });
 });
+
+
 // =============== AUTH • Register (POST /api/register)
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!isEmail(email))  return res.status(400).json({ ok:false, error:"Bad email" });
-    if (!isPass(password)) return res.status(400).json({ ok:false, error:"Password too short" });
+    const e = String(email || "").toLowerCase().trim();
+    const p = String(password || "");
 
-    const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
-    if (exists) return res.status(409).json({ ok:false, error:"Email taken" });
+    if (!e || !p) return res.status(400).json({ ok:false, error:"Email and password required" });
+    if (p.length < 6) return res.status(400).json({ ok:false, error:"Password too short" });
 
-    const hash = await bcrypt.hash(password, 10);
-    db.prepare(`
-      INSERT INTO users(email,pass_hash,created_at,is_admin,is_disabled,balance_silver,shop_buy_count,next_recipe_at)
-      VALUES (?,?,?,?,?,?,?,?)
-    `).run(
-      email.toLowerCase(),
-      hash,
-      nowISO(),
-      0,           // is_admin
-      0,           // is_disabled
-      0,           // balance_silver
-      0,           // shop_buy_count
-      null         // next_recipe_at
-    );
+    const exists = db.prepare("SELECT id FROM users WHERE email=?").get(e);
+    if (exists) return res.status(400).json({ ok:false, error:"Email already registered" });
 
-    res.json({ ok:true });
-  } catch(e) {
-    res.status(500).json({ ok:false, error:"Register failed" });
+    const hash = await bcrypt.hash(p, 10);
+    db.prepare("INSERT INTO users (email, pass_hash, created_at) VALUES (?,?,?)")
+      .run(e, hash, nowISO());
+
+    return res.json({ ok:true });
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    return res.status(500).json({ ok:false, error:"Register failed" });
   }
 });
 
-// =============== AUTH • Login (POST /api/login)
+ // =============== AUTH • Login (POST /api/login)
  document.getElementById("btn-login")?.addEventListener("click", async ()=>{
     const msg = document.getElementById("log-msg");
     msg.textContent = "…";
@@ -1175,6 +1170,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
