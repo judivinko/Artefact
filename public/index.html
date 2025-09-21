@@ -326,7 +326,7 @@
       }catch(e){ alert(e.message); }
     });
 
-    // ===== Crafting: popis recepata (sa ikonicama) =====
+    // ===== Crafting: popis recepata (slika + ime + T + qty) =====
     async function loadRecipes(){
       const box=$("#recipes"); 
       box.textContent="Loading…";
@@ -340,13 +340,12 @@
         }
         box.innerHTML="";
         for (const rec of rows){
-          // kartica sa ikonom recepta
           const m = metaFrom(null, rec.name, rec.tier, "recipe");
           const row=document.createElement("div"); 
           row.className="itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
+              <img class="icon" src="${esc(m.icon)}" alt="${esc(rec.name)}"
                    onerror="this.onerror=null;this.src='${FALLBACK_RECIPE_ICON}'">
               <div>
                 <div class="label" style="text-transform:none;color:var(--text)">${esc(rec.name)}</div>
@@ -373,7 +372,7 @@
     });
     $("#filter-recipe").addEventListener("input", loadRecipes);
 
-    // ===== Crafting: detalji recepta + Craft (s ikonicama u listi sastojaka) =====
+    // ===== Crafting: detalji recepta + Craft =====
     function renderIngredients(details){
       const lines = [];
       lines.push(`
@@ -387,7 +386,7 @@
         lines.push(`
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
+              <img class="icon" src="${esc(m.icon)}" alt="${esc(ing.name)}"
                    onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
             </div>
@@ -427,7 +426,7 @@
       }
     }
 
-    // ARTEFACT: učitavanje bonusa + ispravljeno čitanje r.crafted
+    // ARTEFACT: bonus refresh + craft gumb
     async function refreshArtefactBonus(){
       try{
         const r = await api("/api/items/artefact/bonus");
@@ -438,7 +437,6 @@
         console.warn("refreshArtefactBonus failed:", e);
       }
     }
-    // automatski refresh kad se tab prikaže
     (() => {
       const craft = document.querySelector("#tab-craft");
       if (!craft) return;
@@ -447,7 +445,6 @@
       });
       obs.observe(craft, { attributes:true });
     })();
-    // ARTEFACT: Crafting dugme (poruke/bonus NE diramo)
     $("#btn-artefact").addEventListener("click", async ()=> {
       try {
         const r = await api("/api/craft/artefact", { method:"POST", body: JSON.stringify({}) });
@@ -463,7 +460,7 @@
       }
     });
 
-    // ===== Market: inventar panel za kreiranje listinga (s ikonicama) =====
+    // ===== Market: Create Sale (SAMO slika lijevo) =====
     async function loadInventoryPanel(){
       const box=$("#inv-list"); if(!box) return;
       box.textContent="Loading…";
@@ -480,12 +477,7 @@
             const row=document.createElement("div"); row.className="itemrow";
             row.innerHTML=`
               <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                     onerror="this.onerror=null;this.src='${kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-                <div>
-                  <div class="label" style="text-transform:none;color:var(--text)">${esc(m.name)}</div>
-                  <div class="muted">x${it.qty} · T${m.tier}</div>
-                </div>
+                <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
               </div>
               <button class="btn muted">Pick</button>`;
             row.querySelector("button").addEventListener("click", ()=>{
@@ -517,7 +509,7 @@
       }catch(e){ alert(e.message); }
     });
 
-    // ===== Market: Marketplace (live) — s ikonicama =====
+    // ===== Market: Marketplace (SAMO slika lijevo) =====
     async function loadMarket(){
       const box=$("#market"); if(!box) return;
       box.textContent="Loading…";
@@ -534,14 +526,10 @@
           const row=document.createElement("div"); row.className="itemrow";
           row.innerHTML=`
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                   onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-              <div>
-                <div class="label" style="text-transform:none;color:var(--text)">${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-                <div class="muted">x${s.qty}</div>
-              </div>
+              <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
             </div>
             <div class="row">
+              <span class="badge">x${s.qty} · T${m.tier}</span>
               <span class="badge">${g}g ${ss}s</span>
               <button class="btn">Buy</button>
             </div>`;
@@ -558,7 +546,7 @@
     }
     $("#market-q")?.addEventListener("input", loadMarket);
 
-    // ===== Market: My listings — s ikonicama =====
+    // ===== Market: My listings (SAMO slika lijevo) =====
     async function loadMine(){
       const box=$("#mine"); if(!box) return;
       box.textContent="Loading…";
@@ -573,14 +561,11 @@
           const row=document.createElement("div"); row.className="itemrow";
           row.innerHTML=`
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
-                   onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
-              <div>
-                <div class="label" style="text-transform:none;color:var(--text)">${esc(m.name)} <span class="badge">T${m.tier}</span></div>
-                <div class="muted">x${s.qty} · <span class="badge">${s.status}</span></div>
-              </div>
+              <img class="icon" src="${esc(m.icon)}" alt="" onerror="this.onerror=null;this.src='${s.kind==='recipe'?FALLBACK_RECIPE_ICON:FALLBACK_ITEM_ICON}'">
             </div>
             <div class="row">
+              <span class="badge">x${s.qty} · T${m.tier}</span>
+              <span class="badge">${s.status}</span>
               <span class="badge">${g}g ${ss}s</span>
               ${s.status==='live'?'<button class="btn danger">Cancel</button>':''}
             </div>`;
