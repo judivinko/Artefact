@@ -634,58 +634,63 @@ app.post("/api/admin/disable-user",(req,res)=>{
 });
 
 
-// =============== AUTH • Register (POST /api/register)
+// =============== AUTH: Register ===============
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const e = String(email || "").toLowerCase().trim();
-    const p = String(password || "");
+    if (!isEmail(email)) return res.status(400).json({ ok:false, error:"Bad email" });
+    if (!isPass(password)) return res.status(400).json({ ok:false, error:"Password too short" });
 
-    if (!e || !p) return res.status(400).json({ ok:false, error:"Email and password required" });
-    if (p.length < 6) return res.status(400).json({ ok:false, error:"Password too short" });
+    const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(String(email).toLowerCase());
+    if (exists) return res.status(409).json({ ok:false, error:"Email already registered" });
 
-    const exists = db.prepare("SELECT id FROM users WHERE email=?").get(e);
-    if (exists) return res.status(400).json({ ok:false, error:"Email already registered" });
-
-    const hash = await bcrypt.hash(p, 10);
-    db.prepare("INSERT INTO users (email, pass_hash, created_at) VALUES (?,?,?)")
-      .run(e, hash, nowISO());
+    const pass_hash = await bcrypt.hash(String(password), 10);
+    db.prepare(`
+      INSERT INTO users(email, pass_hash, created_at, is_admin, is_disabled, balance_silver, shop_buy_count)
+      VALUES (?,?,?,?,?,?,?)
+    `).run(String(email).toLowerCase(), pass_hash, nowISO(), 0, 0, 0, 0);
 
     return res.json({ ok:true });
-  } catch (err) {
-    console.error("REGISTER ERROR:", err);
+  } catch (e) {
+    console.error("Register error:", e);
     return res.status(500).json({ ok:false, error:"Register failed" });
   }
 });
 
- // =============== AUTH • Login (POST /api/login)
- document.getElementById("btn-login")?.addEventListener("click", async ()=>{
-    const msg = document.getElementById("log-msg");
-    msg.textContent = "…";
-    try{
-      const email = document.getElementById("log-email").value.trim();
-      const pass  = document.getElementById("log-pass").value;
-      const r = await fetch("/api/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pass })
-      });
-      const data = await r.json().catch(()=>null);
-      if(!r.ok) throw new Error((data && data.error) || ("HTTP "+r.status));
-      msg.textContent = "OK";
-      // nakon uspješnog login-a učitaj /api/me i prikaži app
-      await loadMe();                 // <- ovo već imaš u svom kodu
-      setTab("shop");                 // <- i ovo već imaš
-    }catch(e){
-      msg.textContent = e.message || "Login failed";
-    }
-  });
-// =============== SESSION • Logout (GET /api/logout)
+// =============== AUTH: Login ===============
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
+    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
+    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
+
+    const ok = await bcrypt.compare(String(password||""), u.pass_hash);
+    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
+
+    const token  = signToken(u);
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie(TOKEN_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
+    return res.json({ ok:true, user:{ id:u.id, email:u.email } });
+  } catch (e) {
+    console.error("Login error:", e);
+    return res.status(500).json({ ok:false, error:"Login failed" });
+  }
+});
+
+// =============== AUTH: Logout ===============
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
   if (tok) {
-    db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
+    try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {}
   }
   res.clearCookie(TOKEN_NAME, {
     httpOnly: true,
@@ -696,7 +701,7 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
-// =============== SESSION • Me (GET /api/me)
+// =============== SESSION: Me ===============
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -716,11 +721,8 @@ app.get("/api/me", (req, res) => {
     return res.status(401).json({ ok:false });
   }
 
-  const buysToNext = (u.next_recipe_at==null)
-    ? null
-    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
-
-  res.json({
+  const buysToNext = (u.next_recipe_at==null) ? null : Math.max(0, (u.next_recipe_at||0) - (u.shop_buy_count||0));
+  return res.json({
     ok:true,
     user:{
       id: u.id,
@@ -735,6 +737,7 @@ app.get("/api/me", (req, res) => {
     }
   });
 });
+
 
 
 // =============== SHOP (T1 only)
@@ -1170,6 +1173,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
