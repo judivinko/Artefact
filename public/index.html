@@ -520,6 +520,82 @@
     </div>
   </div>
 </div>
+<script>
+/* ===== MARKET INVENTORY (Create Sale) =====
+   Oslanja se na: api, esc, iconForByCode, RECIPE_ICON, FALLBACK_ITEM_ICON,
+   globalne: window.SEL_INV (postoji u tvom indexu)  */
+
+async function loadInventoryPanel(){
+  const box = document.querySelector("#inv-list"); if(!box) return;
+  box.textContent = "Loading…";
+  try{
+    const r = await api("/api/inventory");          // { items:[..], recipes:[..] }
+    const q = (document.querySelector("#inv-search")?.value || "").trim().toLowerCase();
+
+    const items   = (r.items   || []).filter(x => !q || x.name.toLowerCase().includes(q));
+    const recipes = (r.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
+
+    box.innerHTML = "";
+
+    // helper za dodavanje redova (sa slikom)
+    const add = (arr, kind) => {
+      for (const it of arr){
+        const icon = (kind === "item") ? iconForByCode(it.code, it.tier) : RECIPE_ICON;
+        const row = document.createElement("div");
+        row.className = "itemrow";
+        row.innerHTML = `
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="icon" src="${esc(icon)}" alt=""
+                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
+          </div>
+          <button class="btn muted">Pick</button>`;
+        row.querySelector("button").addEventListener("click", () => {
+          window.SEL_INV = { kind, id: it.id, name: it.name };
+          const msg = document.querySelector("#list-msg");
+          if (msg) msg.textContent = "Selected: " + it.name;
+        });
+        box.appendChild(row);
+      }
+    };
+
+    add(items, "item");
+    add(recipes, "recipe");
+    if (!box.children.length) box.textContent = "Empty.";
+  }catch(e){
+    box.textContent = e?.message || "Failed.";
+  }
+}
+
+// live filter dok tipkaš
+document.querySelector("#inv-search")?.addEventListener("input", loadInventoryPanel);
+
+// submit liste (List for sale)
+document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
+  try{
+    if (!window.SEL_INV){ alert("Pick an item/recipe first."); return; }
+    const gold   = parseInt(document.querySelector("#price-g").value || "0", 10) || 0;
+    const silver = parseInt(document.querySelector("#price-s").value || "0", 10) || 0;
+    const qty    = Math.max(1, parseInt(document.querySelector("#price-qty").value || "1", 10) || 1);
+
+    await api("/api/sales/list", {
+      method: "POST",
+      body: JSON.stringify({ kind: SEL_INV.kind, id: SEL_INV.id, qty, gold, silver })
+    });
+
+    const msg = document.querySelector("#list-msg");
+    if (msg) msg.textContent = "Listed.";
+    window.SEL_INV = null;
+
+    // lagani refresh market pogleda
+    if (typeof loadMarket === "function") loadMarket();
+    if (typeof loadMine === "function")   loadMine();
+    loadInventoryPanel();
+  }catch(e){
+    alert(e.message);
+  }
+});
+</script>
 
 
   <!-- ===== INVENTORY (full) ===== -->
@@ -559,4 +635,5 @@
   </script>
 </body>
 </html>
+
 
