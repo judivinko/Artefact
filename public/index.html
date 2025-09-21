@@ -6,6 +6,7 @@
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
+    /* --- layout & stil --- */
     .hidden{display:none}
     .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
     .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
@@ -35,7 +36,7 @@
 </head>
 <body>
 
-  <!-- Header (login info, balance, logout) -->
+  <!-- ===== Header (who/balance/logout) ===== -->
   <header class="header">
     <div class="brand">ARTEFACT</div>
     <div class="row">
@@ -45,10 +46,10 @@
     </div>
   </header>
 
-  <!-- Glavni sadržaj -->
+  <!-- ===== Main ===== -->
   <main class="container">
 
-    <!-- Auth (Register + Login) -->
+    <!-- ===== Auth (Register + Login) ===== -->
     <section id="auth" class="card">
       <div class="label">Login / Register</div>
       <div class="grid">
@@ -69,7 +70,7 @@
       </div>
     </section>
 
-    <!-- App (Shop, Crafting, Market, Inventory) -->
+    <!-- ===== App (Shop, Crafting, Market, Inventory) ===== -->
     <section id="app" class="hidden">
       <div class="tabbar row">
         <div class="chip active" data-tab="shop">Shop</div>
@@ -78,7 +79,7 @@
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
-      <!-- SHOP -->
+      <!-- == SHOP == -->
       <div id="tab-shop" class="card">
         <div class="row" style="justify-content:space-between">
           <div class="label">Buy T1 (100s)</div>
@@ -90,7 +91,7 @@
         </div>
       </div>
 
-      <!-- Crafting -->
+      <!-- == CRAFTING == -->
       <div id="tab-craft" class="card hidden">
         <div class="row">
           <div class="label">Crafting</div>
@@ -100,9 +101,7 @@
             Craft ARTEFACT (10× distinct T5)
           </button>
         </div>
-        <div style="margin-top:8px">
-          Bonus gold: <span id="artefact-bonus">0</span>
-        </div>
+        <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
         <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
 
         <div class="grid">
@@ -124,7 +123,7 @@
         </div>
       </div>
 
-      <!-- Market -->
+      <!-- == MARKET == -->
       <div id="tab-market" class="card hidden">
         <div class="label">Marketplace</div>
         <div class="grid">
@@ -157,7 +156,7 @@
         </div>
       </div>
 
-      <!-- Inventory -->
+      <!-- == INVENTORY == -->
       <div id="tab-inv" class="card hidden">
         <div class="label">Inventory</div>
         <div id="inv-full" class="list">Loading…</div>
@@ -165,21 +164,32 @@
     </section>
   </main>
 
-  <!-- Toast + helpers ($,$$,api) -->
+  <!-- ===== Toast + helpers ($,$$,api, safeCall) ===== -->
   <div id="toast" class="toast hidden"></div>
   <script>
+    // dom helpers
     const $  = (s,root=document)=>root.querySelector(s);
     const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
     function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
+
+    // fetch helper (uvijek nosi cookie)
     async function api(p,opts={}){
       const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
       let data=null; try{data=await r.json()}catch{}
       if(!r.ok) throw new Error((data&&data.error)||("HTTP "+r.status));
       return data;
     }
+
+    // sigurno pozivanje (ako fn ne postoji, ne ruši UI)
+    async function safeCall(fnName, ...args){
+      const fn = window[fnName];
+      if (typeof fn === "function") {
+        try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
+      }
+    }
   </script>
 
-  <!-- Icon utils -->
+  <!-- ===== Ikone i utili ===== -->
   <script>
     const RECIPE_ICON = "/recipe.png";
     const FALLBACK_ITEM_ICON = "/t1_bronze.png";
@@ -199,12 +209,18 @@
     }
   </script>
 
-  <!-- Global state + Tabs -->
+  <!-- ===== Global state + Tabs ===== -->
   <script>
     let WHO=null;
     let SEL_INV=null;
     let INVENTORY_CACHE={items:[],recipes:[]};
     window.CURRENT_RECIPE_ID=null;
+
+    function renderBalance(){
+      const v = WHO?.balance_silver || 0;
+      const g = Math.floor(v/100), s = v%100;
+      $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
+    }
 
     function setTab(tab){
       $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
@@ -212,17 +228,22 @@
       $("#tab-craft").classList.toggle("hidden", tab!=="craft");
       $("#tab-market").classList.toggle("hidden", tab!=="market");
       $("#tab-inv").classList.toggle("hidden", tab!=="inv");
+
+      // auto refresh po tabovima (market/inventory)
+      if (tab === "market") {
+        safeCall("loadInventoryPanel");
+        safeCall("loadMarket");
+        safeCall("loadMine");
+      }
+      if (tab === "inv") {
+        safeCall("loadInventoryFull");
+      }
     }
     $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
   </script>
 
-  <!-- AUTH (Frontend): loadMe, register, login, logout -->
+  <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
   <script>
-    function renderBalance(){
-      const v = WHO?.balance_silver || 0;
-      const g = Math.floor(v/100), s = v%100;
-      $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
-    }
     function setLoggedInUI(){
       $("#auth")?.classList.add("hidden");
       $("#app")?.classList.remove("hidden");
@@ -252,13 +273,14 @@
             : "Buys to next recipe: —";
         }
 
-        if (typeof loadInventoryPanel === "function") await loadInventoryPanel();
-        if (typeof loadRecipes        === "function")        loadRecipes();
-        if (typeof loadMarket         === "function")         loadMarket();
-        if (typeof loadMine           === "function")           loadMine();
-        if (typeof loadInventoryFull  === "function")  loadInventoryFull();
+        // sigurni pozivi (ako fn ne postoji, preskoči)
+        await safeCall("loadInventoryPanel");
+        safeCall("loadRecipes");
+        safeCall("loadMarket");
+        safeCall("loadMine");
+        safeCall("loadInventoryFull");
 
-        if (typeof setTab === "function") setTab("shop");
+        setTab("shop");
       }catch{
         setLoggedOutUI();
       }
@@ -278,6 +300,7 @@
         msg && (msg.textContent = e.message || "Register failed.");
       }
     }
+
     async function doLogin(){
       const msg = $("#log-msg");
       try{
@@ -292,6 +315,7 @@
         msg && (msg.textContent = e.message || "Login failed.");
       }
     }
+
     async function doLogout(){
       try { await api("/api/logout"); } catch {}
       setLoggedOutUI();
@@ -301,17 +325,15 @@
       $("#btn-register")?.addEventListener("click", doRegister);
       $("#btn-login")?.addEventListener("click", doLogin);
       $("#btn-logout")?.addEventListener("click", doLogout);
-
       $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
       $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
       $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
       $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
       loadMe();
     });
   </script>
 
-    <!-- SHOP (Buy T1) -->
+  <!-- ===== SHOP ===== -->
   <script>
     function renderShopGotItem(obj){
       const msg = $("#shop-msg");
@@ -336,15 +358,16 @@
         } else {
           $("#shop-msg").textContent = "OK";
         }
+        // sigurni refresh
         await loadMe();
-        await loadInventoryPanel();
-        loadRecipes();
-        loadInventoryFull();
+        await safeCall("loadInventoryPanel");
+        safeCall("loadRecipes");
+        safeCall("loadInventoryFull");
       }catch(e){ alert(e.message); }
     });
   </script>
 
-  <!-- Crafting (lista + detalji s ikonama) -->
+  <!-- ===== CRAFTING ===== -->
   <script>
     function rowRecipe(r){
       return `
@@ -415,9 +438,9 @@
             } else {
               toast("Done");
             }
-            await loadInventoryPanel();
-            await loadRecipes();
-            await loadInventoryFull();
+            await safeCall("loadInventoryPanel");
+            await safeCall("loadRecipes");
+            await safeCall("loadInventoryFull");
             await openRecipe(details.recipe.id);
           }catch(e){
             alert(e.message);
@@ -454,16 +477,16 @@
         const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
         $("#artefact-bonus").textContent = bonus;
         $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
-        await loadInventoryPanel();
-        await loadInventoryFull();
-        await loadRecipes();
+        await safeCall("loadInventoryPanel");
+        await safeCall("loadInventoryFull");
+        await safeCall("loadRecipes");
       }catch(e){
         $("#artefact-msg").textContent = e?.message || "Crafting failed.";
       }
     });
   </script>
 
-  <!-- Market (inventory for sale + live + mine) -->
+  <!-- ===== MARKET ===== -->
   <script>
     async function loadInventoryPanel(){
       const box=$("#inv-list"); if(!box) return;
@@ -530,7 +553,11 @@
             try{
               await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
               toast("Purchased.");
-              loadMarket(); loadMine(); loadInventoryPanel(); loadInventoryFull(); loadMe();
+              safeCall("loadMarket");
+              safeCall("loadMine");
+              safeCall("loadInventoryPanel");
+              safeCall("loadInventoryFull");
+              loadMe();
             }catch(e){ alert(e.message); }
           });
           box.appendChild(row);
@@ -569,7 +596,9 @@
             row.querySelector("button").addEventListener("click", async ()=>{
               try{
                 await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-                loadMarket(); loadMine(); loadInventoryPanel();
+                safeCall("loadMarket");
+                safeCall("loadMine");
+                safeCall("loadInventoryPanel");
               }catch(e){ alert(e.message); }
             });
           }
@@ -591,14 +620,16 @@
         await api("/api/sales/list",{method:"POST",body:JSON.stringify(body)});
         $("#list-msg").textContent="Listed.";
         SEL_INV=null;
-        loadMarket(); loadMine(); loadInventoryPanel();
+        safeCall("loadMarket");
+        safeCall("loadMine");
+        safeCall("loadInventoryPanel");
       }catch(e){
         alert(e.message);
       }
     });
   </script>
 
-  <!-- Inventory (full list) -->
+  <!-- ===== INVENTORY (full) ===== -->
   <script>
     async function loadInventoryFull(){
       const box=$("#inv-full"); if(!box) return;
@@ -632,6 +663,6 @@
         box.textContent=e.message;
       }
     }
-
-    loadMe();
   </script>
+</body>
+</html>
