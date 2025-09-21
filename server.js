@@ -634,99 +634,98 @@ app.post("/api/admin/disable-user",(req,res)=>{
 });
 
 
-// === AUTH core (helpers + register/login/logout/me) ===
+// ======================= AUTH • full block (helpers + routes) =======================
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const Database = require("better-sqlite3");
-
-// init DB (koristi svoj DB_PATH ako već imaš)
-const path = require("path");
-const fs = require("fs");
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, "db.sqlite");
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-if (!fs.existsSync(DB_PATH)) fs.writeFileSync(DB_PATH, "");
-const db = new Database(DB_PATH);
-
-// express middlewares (ako već nisu gore)
-app.use(cookieParser());
-app.use(require("express").json());
 
 const TOKEN_NAME = "token";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
-const isProd = (process.env.NODE_ENV==="production" || process.env.RENDER==="true");
+const IS_PROD = (process.env.NODE_ENV === "production" || process.env.RENDER === "true");
+
+// ---- middlewares (jednom!)
+app.use(express.json());
+app.use(cookieParser());
+
+// ---- helperi
 const nowISO = () => new Date().toISOString();
+const isEmail = (x) => typeof x === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.trim());
+const isPass  = (x) => typeof x === "string" && x.length >= 6;
 
-function ensureUsersTable(){
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL,
-      pass_hash TEXT NOT NULL,
-      is_admin INTEGER DEFAULT 0,
-      is_disabled INTEGER DEFAULT 0,
-      balance_silver INTEGER DEFAULT 0,
-      shop_buy_count INTEGER DEFAULT 0,
-      next_recipe_at INTEGER,
-      last_seen TEXT
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(lower(email));
-  `);
+function signToken(u){
+  return jwt.sign({ uid: u.id, email: u.email }, JWT_SECRET, { expiresIn: "7d" });
 }
-ensureUsersTable();
-
-const signToken = (u) => jwt.sign({ uid:u.id, email:u.email }, JWT_SECRET, { expiresIn:"7d" });
-const readToken = (req) => {
-  const t = req.cookies?.[TOKEN_NAME];
+function readToken(req){
+  const t = req.cookies && req.cookies[TOKEN_NAME];
   if (!t) return null;
-  try { return jwt.verify(t, JWT_SECRET); } catch { return null; }
-};
+  try { return jwt.verify(t, JWT_SECRET); }
+  catch { return null; }
+}
 
-// =============== AUTH: Register ===============
+// ---- DB schema (unique email) – safe to run više puta
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    pass_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
+    is_disabled INTEGER NOT NULL DEFAULT 0,
+    balance_silver INTEGER NOT NULL DEFAULT 0,
+    last_seen TEXT,
+    shop_buy_count INTEGER NOT NULL DEFAULT 0,
+    next_recipe_at INTEGER
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(lower(email));
+`);
+
+// ================== REGISTER ==================
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const e = String(email||"").trim().toLowerCase();
-    const p = String(password||"");
-    if (!e || !p) return res.status(400).json({ ok:false, error:"Missing email or password" });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return res.status(400).json({ ok:false, error:"Invalid email" });
-    if (p.length < 6) return res.status(400).json({ ok:false, error:"Password too short (min 6)" });
+    const e = String(email || "").trim().toLowerCase();
+    const p = String(password || "");
+
+    if (!isEmail(e))  return res.status(400).json({ ok:false, error:"Invalid email" });
+    if (!isPass(p))   return res.status(400).json({ ok:false, error:"Password too short (min 6)" });
 
     const exists = db.prepare("SELECT id FROM users WHERE lower(email)=?").get(e);
     if (exists) return res.status(409).json({ ok:false, error:"Email already registered" });
 
     const pass_hash = await bcrypt.hash(p, 10);
-    const r = db.prepare(`
-      INSERT INTO users (email, pass_hash, is_admin, is_disabled, balance_silver, shop_buy_count, next_recipe_at, last_seen)
-      VALUES (?, ?, 0, 0, 0, 0, NULL, ?)
-    `).run(e, pass_hash, nowISO());
+    db.prepare(`
+      INSERT INTO users (email, pass_hash, created_at, is_admin, is_disabled, balance_silver, shop_buy_count, next_recipe_at, last_seen)
+      VALUES (?, ?, ?, 0, 0, 0, 0, NULL, ?)
+    `).run(e, pass_hash, nowISO(), nowISO());
 
-    return res.json({ ok:true, id:r.lastInsertRowid });
+    return res.json({ ok:true });
   } catch (err) {
-    const msg = String(err).includes("UNIQUE") ? "Email already registered" : "Register failed";
     console.error("Register error:", err);
+    const msg = String(err).includes("UNIQUE") ? "Email already registered" : "Register failed";
     return res.status(500).json({ ok:false, error: msg });
   }
 });
 
-// =============== AUTH: Login ===============
+// ================== LOGIN ==================
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
-    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
-    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
+    const e = String(email || "").trim().toLowerCase();
 
-    const ok = await bcrypt.compare(String(password||""), u.pass_hash);
-    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
+    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(e);
+    if (!u)                return res.status(404).json({ ok:false, error:"User not found" });
+    if (u.is_disabled)     return res.status(403).json({ ok:false, error:"Account disabled" });
 
-    const token  = signToken(u);
+    const ok = await bcrypt.compare(String(password || ""), u.pass_hash);
+    if (!ok)               return res.status(401).json({ ok:false, error:"Wrong password" });
+
+    const token = signToken(u);
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
-      sameSite: "lax",     // ako si cross-origin, promijeni u "none" + secure:true i dodaj CORS
-      secure: isProd,
+      sameSite: "lax",      // ako si cross-origin: "none" + secure:true i CORS (origin+credentials)
+      secure: IS_PROD,
       path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7*24*60*60*1000
     });
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
@@ -737,22 +736,15 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// =============== AUTH: Logout ===============
+// ================== LOGOUT ==================
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
-  if (tok) {
-    try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {}
-  }
-  res.clearCookie(TOKEN_NAME, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProd,
-    path: "/"
-  });
+  if (tok) { try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {} }
+  res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:IS_PROD, path:"/" });
   return res.json({ ok:true });
 });
 
-// =============== SESSION: Me ===============
+// ================== ME (session) ==================
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -763,16 +755,14 @@ app.get("/api/me", (req, res) => {
   `).get(tok.uid);
 
   if (!u) {
-    res.clearCookie(TOKEN_NAME, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,
-      path: "/"
-    });
+    res.clearCookie(TOKEN_NAME, { httpOnly:true, sameSite:"lax", secure:IS_PROD, path:"/" });
     return res.status(401).json({ ok:false });
   }
 
-  const buysToNext = (u.next_recipe_at==null) ? null : Math.max(0, (u.next_recipe_at||0) - (u.shop_buy_count||0));
+  const buys_to_next = (u.next_recipe_at==null)
+    ? null
+    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
+
   return res.json({
     ok:true,
     user:{
@@ -784,11 +774,10 @@ app.get("/api/me", (req, res) => {
       silver: (u.balance_silver % 100),
       shop_buy_count: u.shop_buy_count,
       next_recipe_at: u.next_recipe_at,
-      buys_to_next: buysToNext
+      buys_to_next: buys_to_next
     }
   });
 });
-
 
 
 // =============== SHOP (T1 only)
@@ -1224,6 +1213,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
