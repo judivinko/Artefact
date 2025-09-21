@@ -15,7 +15,7 @@ const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
 const TOKEN_NAME = "token";
 const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gmail.com").toLowerCase();
 
-const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db"));
+const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
 // App setup — ispod: Express app, server, middleware
@@ -911,4 +911,5 @@ app.post("/api/sales/buy",(req,res)=>{
 // Health & start — ispod: GET /api/health i server.listen
 app.get("/api/health",(_req,res)=>res.json({ok:true,time:nowISO()}));
 server.listen(PORT, HOST, ()=>{ console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`); });
+
 
