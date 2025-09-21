@@ -78,17 +78,75 @@
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
 
-      <!-- SHOP -->
-      <div id="tab-shop" class="card">
-        <div class="row" style="justify-content:space-between">
-          <div class="label">Buy T1 (100s)</div>
-          <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-        </div>
-        <div class="row">
-          <button id="btn-buy-t1" class="btn">Buy</button>
-          <div id="shop-msg" class="muted"></div>
-        </div>
-      </div>
+     <!-- SHOP -->
+<div id="tab-shop" class="card">
+  <div class="row" style="justify-content:space-between">
+    <div class="label">Buy T1 (100s)</div>
+    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
+  </div>
+  <div class="row">
+    <button id="btn-buy-t1" class="btn">Buy</button>
+    <div id="shop-msg" class="muted"></div>
+  </div>
+</div>
+
+<script>
+  // --- SHOP render s ikonicom ispred imena (minimalna integracija) ---
+  const FALLBACK_ITEM_ICON = "/images/t1_bronze.png";
+  const G = (typeof window !== "undefined") ? window : global;
+  const esc = s => String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+  function itemMeta(code){
+    const it = (G.ITEMS || {})[code] || {};
+    return {
+      name: it.name || code,
+      icon: it.icon || FALLBACK_ITEM_ICON,
+      tier: it.tier || 1
+    };
+  }
+
+  function renderShopGotItem(code){
+    const msg = document.getElementById("shop-msg");
+    if(!msg) return;
+    const m = itemMeta(code);
+    msg.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="icon" src="${esc(m.icon)}" alt="${esc(m.name)}"
+             onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>Got item: ${esc(m.name)} <span class="badge">T${m.tier}</span></div>
+      </div>`;
+  }
+
+  // Handler kupnje — koristi tvoju postojeću /api logiku; ništa drugo ne mijenjamo
+  document.getElementById("btn-buy-t1")?.addEventListener("click", async ()=>{
+    const btn = document.getElementById("btn-buy-t1");
+    const msg = document.getElementById("shop-msg");
+    try{
+      btn.disabled = true;
+      msg.textContent = "Processing…";
+
+      // Ako ti je druga ruta, promijeni samo ovu liniju:
+      const r = await api("/api/shop/buy-t1");
+
+      const code = r?.item?.code || r?.code || r?.item;
+      if (code) renderShopGotItem(code);
+      else msg.textContent = "Bought.";
+
+      if (typeof r?.buysToNext !== "undefined") {
+        const span = document.getElementById("buysToNext");
+        if (span) span.textContent = `Buys to next recipe: ${r.buysToNext}`;
+      }
+    }catch(e){
+      console.error(e);
+      msg.textContent = "Error.";
+    }finally{
+      btn.disabled = false;
+    }
+  });
+</script>
+
 
      <!-- Crafting -->
 <div id="tab-craft" class="card hidden">
@@ -664,6 +722,7 @@ loadMe();
 </script>
 </body>
 </html>
+
 
 
 
