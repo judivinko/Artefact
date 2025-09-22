@@ -22,27 +22,57 @@ const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gm
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
-// ---------- Auto-delete slika koje počinju sa "0" (pri startu)
-try {
-  const imagesDir = path.join(__dirname, "public", "images");
-  if (fs.existsSync(imagesDir)) {
-    const files = fs.readdirSync(imagesDir);
-    let count = 0;
-    for (const file of files) {
-      if (file.startsWith("0")) {
-        try {
-          fs.unlinkSync(path.join(imagesDir, file));
-          count++;
-        } catch (err) {
-          console.error("Greška pri brisanju:", file, err);
+// ---------- Auto-cleanup slika koje počinju sa "0" (pri startu; rekurzivno + logs)
+function deleteFilesStartingWith0(rootDir) {
+  try {
+    if (!fs.existsSync(rootDir)) return { checked: 0, deleted: 0, found: [] };
+    const stack = [rootDir];
+    let deleted = 0, checked = 0;
+    const found = [];
+
+    while (stack.length) {
+      const dir = stack.pop();
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const ent of entries) {
+        const full = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+          stack.push(full);
+        } else {
+          checked++;
+          // briši fajlove koji POČINJU sa ASCII "0"
+          if (ent.name.startsWith("0")) {
+            found.push(full);
+            try { fs.unlinkSync(full); deleted++; }
+            catch (e) { console.error("[CLEANUP] Greška brisanja:", full, e); }
+          }
         }
       }
     }
-    if (count > 0) console.log(`[CLEANUP] Obrisano ${count} slika koje počinju s "0" iz /public/images`);
+    return { checked, deleted, found };
+  } catch (e) {
+    console.error("[CLEANUP] Greška skeniranja:", e);
+    return { checked: 0, deleted: 0, found: [] };
   }
-} catch (e) {
-  console.error("[CLEANUP] Greška:", e);
 }
+
+(() => {
+  const dirImages = path.join(__dirname, "public", "images");
+  const dirPublic = path.join(__dirname, "public");
+  // prvo images/, pa ako ne postoji ili ništa ne nađe, probaj i public/
+  const r1 = deleteFilesStartingWith0(dirImages);
+  let r = r1;
+  if (r1.deleted === 0 && r1.checked === 0) {
+    const r2 = deleteFilesStartingWith0(dirPublic);
+    r = { checked: r1.checked + r2.checked, deleted: r1.deleted + r2.deleted, found: [...r1.found, ...r2.found] };
+  }
+  console.log(`[CLEANUP] Pregledano: ${r.checked}, obrisano: ${r.deleted}`);
+  if (r.found.length) {
+    console.log("[CLEANUP] Obrisano:", r.found.map(p => p.replace(__dirname, "")).join(" | "));
+  } else {
+    console.log("[CLEANUP] Nije našao fajlove koji počinju sa \"0\" u /public(/images)");
+  }
+})();
+
 
 // ---------- App
 const app = express();
@@ -1198,6 +1228,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
