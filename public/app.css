@@ -41,3 +41,14 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
 .itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
 .itemrow:last-child{ border-bottom:0; }
 
+/* Slike predmeta (T1–T5, recepti, artefakti) */
+.item-img {
+  max-width: 512px;
+  max-height: 512px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  margin-top: 8px;
+  display: block;
+}
