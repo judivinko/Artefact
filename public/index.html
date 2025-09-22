@@ -160,27 +160,25 @@
   </ul>
 </section>
 
-    <!-- ===== Auth (Register + Login) ===== -->
-<section id="auth" class="card">
-  <div class="label">Login / Register</div>
-  <div class="grid">
-    <!-- === REGISTER === -->
-    <div class="card" id="card-register">
-      <div class="label">Register</div>
-      <input id="reg-email" class="input" placeholder="email@example.com" />
-      <input id="reg-pass" class="input" type="password" placeholder="password (min 6)" style="margin-top:8px"/>
-      <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-      <div id="reg-msg" class="muted" style="margin-top:6px"></div>
-    </div>
+    
+<!-- ===== Auth (Register + Login) ===== -->
+<section id="auth" class="card hidden" style="margin-top:12px">
+  <!-- REGISTER -->
+  <div id="card-register" style="display:none">
+    <div class="label">Register</div>
+    <input id="reg-email" class="input" placeholder="email" type="email" />
+    <input id="reg-pass" class="input" placeholder="password" type="password" />
+    <button id="btn-register" class="btn">Register</button>
+    <div id="reg-msg" class="muted"></div>
+  </div>
 
-    <!-- === LOGIN === -->
-    <div class="card" id="card-login">
-      <div class="label">Login</div>
-      <input id="log-email" class="input" placeholder="email@example.com" />
-      <input id="log-pass" class="input" type="password" placeholder="password" style="margin-top:8px"/>
-      <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-      <div id="log-msg" class="muted" style="margin-top:6px"></div>
-    </div>
+  <!-- LOGIN -->
+  <div id="card-login" style="display:none">
+    <div class="label">Log in</div>
+    <input id="log-email" class="input" placeholder="email" type="email" />
+    <input id="log-pass" class="input" placeholder="password" type="password" />
+    <button id="btn-login" class="btn">Log in</button>
+    <div id="log-msg" class="muted"></div>
   </div>
 </section>
 
@@ -944,6 +942,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
