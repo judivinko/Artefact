@@ -53,25 +53,61 @@
   <main class="container">
 
     <!-- ===== Auth (Register + Login) ===== -->
-    <section id="auth" class="card">
-      <div class="label">Login / Register</div>
-      <div class="grid">
-        <div class="card">
-          <div class="label">Register</div>
-          <input id="reg-email" class="input" placeholder="email@example.com" />
-          <input id="reg-pass" class="input" type="password" placeholder="password (min 6)" style="margin-top:8px"/>
-          <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-          <div id="reg-msg" class="muted" style="margin-top:6px"></div>
-        </div>
-        <div class="card">
-          <div class="label">Login</div>
-          <input id="log-email" class="input" placeholder="email@example.com" />
-          <input id="log-pass" class="input" type="password" placeholder="password" style="margin-top:8px"/>
-          <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-          <div id="log-msg" class="muted" style="margin-top:6px"></div>
-        </div>
-      </div>
-    </section>
+<section id="auth" class="card">
+  <div class="label">Login / Register</div>
+  <div class="grid">
+    <!-- === REGISTER === -->
+    <div class="card" id="card-register">
+      <div class="label">Register</div>
+      <input id="reg-email" class="input" placeholder="email@example.com" />
+      <input id="reg-pass" class="input" type="password" placeholder="password (min 6)" style="margin-top:8px"/>
+      <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
+      <div id="reg-msg" class="muted" style="margin-top:6px"></div>
+    </div>
+
+    <!-- === LOGIN === -->
+    <div class="card" id="card-login">
+      <div class="label">Login</div>
+      <input id="log-email" class="input" placeholder="email@example.com" />
+      <input id="log-pass" class="input" type="password" placeholder="password" style="margin-top:8px"/>
+      <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
+      <div id="log-msg" class="muted" style="margin-top:6px"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // ==== Toggle samo jednog bloka (Register / Login) po kliku na gumbe gore desno ====
+  (function(){
+    const auth    = document.getElementById('auth');
+    const regCard = document.getElementById('card-register');
+    const logCard = document.getElementById('card-login');
+    const btnReg  = document.getElementById('btn-open-register');
+    const btnLog  = document.getElementById('btn-open-login');
+
+    function showOnly(which){
+      if (!regCard || !logCard) return;
+      if (which === 'register'){
+        regCard.style.display = 'block';
+        logCard.style.display = 'none';
+        document.getElementById('reg-email')?.focus();
+      } else if (which === 'login'){
+        logCard.style.display = 'block';
+        regCard.style.display = 'none';
+        document.getElementById('log-email')?.focus();
+      }
+      auth?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Klikovi na gumbe u headeru
+    btnReg?.addEventListener('click', () => showOnly('register'));
+    btnLog?.addEventListener('click', () => showOnly('login'));
+
+    // Po defaultu ostavi oba vidljiva (kako si imao); ništa ne diramo dok ne klikneš gore
+    if (regCard) regCard.style.display = 'block';
+    if (logCard) logCard.style.display = 'block';
+  })();
+</script>
 
     <!-- ===== App (Shop, Crafting, Market, Inventory) ===== -->
     <section id="app" class="hidden">
@@ -709,6 +745,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
