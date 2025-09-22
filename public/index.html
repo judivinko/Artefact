@@ -98,12 +98,11 @@
 
 <!-- ===== Main ===== -->
 <main class="container">
-  <!-- ===== Intro / About the Game ===== -->
   <section id="about" class="card" style="margin-top:16px">
     <div class="label" style="line-height:1.2;margin-bottom:6px">O igri</div>
     <p class="muted" style="max-width:820px">
-      Skupljaš materijale, otključavaš recepte i craftaš sve jače predmete (T2 → T5).
-      Kad skupiš <b>10 različitih T5</b>, možeš sklopiti <b>ARTEFACT</b> koji ti daje bonus zlata.
+      You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
+When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
     </p>
   </section>
 
@@ -117,8 +116,8 @@
           <span class="badge">cijena: 1g</span>
         </div>
         <p class="muted">
-          U Shopu kupuješ <b>T1 materijale</b>, a povremeno dobivaš i <b>recepte</b>.
-          Materijali su sastojci za craft, a recepti otključavaju više tierove.
+          In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.
+Materials are ingredients for crafting, while recipes unlock higher tiers.
         </p>
         <img src="/t1_bronze.png"
              alt="Primjer T1 materijal"
@@ -128,14 +127,20 @@
              alt="Primjer recept"
              style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
              onerror="this.style.display='none'">
-      </div>
+      </div> <!-- /card (1) -->
+      <!-- Ovdje idu još kartice 2) Crafting, 3) Market, 4) Artefact -->
+    </div> <!-- /.grid -->
+  </section> <!-- /#how -->
+  <!-- Ako ovdje završava Main, dodaj i: -->
+  <!-- </main> -->
+
 
       <!-- 2) CRAFTING -->
       <div class="card">
         <div class="label">2) Crafting</div>
         <p class="muted">
-          Uz recept i potrebne materijale craftaš <b>T2, T3, T4</b> i na kraju <b>T5</b> predmete.
-          Craft ponekad može pasti u <i>fail</i> i dati <b>Scrap</b>, pa pažljivo kombiniraj.
+          With a recipe and the required materials, you can craft <b>T2, T3, T4</b> and, finally, <b>T5</b> items.
+Crafting can sometimes <i>fail</i> and yield <b>Scrap</b>, so combine carefully.
         </p>
         <!-- T2–T5 primjeri (koristi stvarne fajlove iz /public) -->
         <img src="/t2_golden_ring.png"
@@ -160,8 +165,8 @@
       <div class="card">
         <div class="label">3) Market</div>
         <p class="muted">
-          Višak materijala ili recepata možeš <b>prodati</b>, a što ti fali možeš <b>kupiti</b> od drugih.
-          Trgovinom ubrzavaš napredak do T5 setova.
+          You can <b>sell</b> surplus materials or recipes, and <b>buy</b> what you’re missing from others.
+Through trading, you speed up your progress toward T5 sets.
         </p>
         <!-- namjerno nema slike -->
       </div>
@@ -170,8 +175,8 @@
       <div class="card">
         <div class="label">4) Artefact</div>
         <p class="muted">
-          Kad imaš <b>10 različitih T5</b>, craftaš <b>ARTEFACT</b>.
-          On daje trajni <b>bonus gold</b> na tvoj račun — što je veći bonus, brže napreduješ.
+         When you have <b>10 different T5</b>, you can craft an <b>ARTEFACT</b>.
+It provides a permanent <b>gold bonus</b> to your account — the higher the bonus, the faster you progress.
         </p>
         <img src="/artefakt.png"
              alt="Artefact"
@@ -194,70 +199,6 @@
 </main>
 
 
-    
-<!-- ===== Auth (Register + Login) ===== -->
-<section id="auth" class="card hidden" style="margin-top:12px">
-  <!-- REGISTER -->
-  <div id="card-register" style="display:none">
-    <div class="label">Register</div>
-    <input id="reg-email" class="input" placeholder="email" type="email" />
-    <input id="reg-pass" class="input" placeholder="password" type="password" />
-    <button id="btn-register" class="btn">Register</button>
-    <div id="reg-msg" class="muted"></div>
-  </div>
-
-  <!-- LOGIN -->
-  <div id="card-login" style="display:none">
-    <div class="label">Log in</div>
-    <input id="log-email" class="input" placeholder="email" type="email" />
-    <input id="log-pass" class="input" placeholder="password" type="password" />
-    <button id="btn-login" class="btn">Log in</button>
-    <div id="log-msg" class="muted"></div>
-  </div>
-</section>
-
-<script>
-  // ==== Toggle samo jednog bloka (Register / Login) po kliku na gumbe gore desno ====
-  (function(){
-    const auth    = document.getElementById('auth');
-    const regCard = document.getElementById('card-register');
-    const logCard = document.getElementById('card-login');
-    const btnReg  = document.getElementById('btn-open-register');
-    const btnLog  = document.getElementById('btn-open-login');
-
-    function showOnly(which){
-      if (!regCard || !logCard) return;
-      if (which === 'register'){
-        regCard.style.display = 'block';
-        logCard.style.display = 'none';
-        document.getElementById('reg-email')?.focus();
-      } else if (which === 'login'){
-        logCard.style.display = 'block';
-        regCard.style.display = 'none';
-        document.getElementById('log-email')?.focus();
-      }
-      auth?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // Klikovi na gumbe u headeru
-    btnReg?.addEventListener('click', () => showOnly('register'));
-    btnLog?.addEventListener('click', () => showOnly('login'));
-
-    // Po defaultu ostavi oba vidljiva (kako si imao); ništa ne diramo dok ne klikneš gore
-    if (regCard) regCard.style.display = 'block';
-    if (logCard) logCard.style.display = 'block';
-  })();
-</script>
-
-    <!-- ===== App (Shop, Crafting, Market, Inventory) ===== -->
-    <section id="app" class="hidden">
-      <div class="tabbar row">
-        <div class="chip active" data-tab="shop">Shop</div>
-        <div class="chip" data-tab="craft">Crafting</div>
-        <div class="chip" data-tab="market">Market</div>
-        <div class="chip" data-tab="inv">Inventory</div>
-      </div>
-    
   
 <!-- == SHOP == -->
 <div id="tab-shop" class="card">
@@ -284,7 +225,7 @@
         <div class="row">
           <div class="label">Crafting</div>
           <button id="btn-artefact" class="btn right">
-            <img src="/atefakt.png" alt="" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
+            <img src="/atefakt.png" alt="Artefact" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
                  onerror="this.onerror=null;this.style.display='none'">
             Craft ARTEFACT (10× distinct T5)
           </button>
@@ -401,14 +342,10 @@
 <script>
   // --- global stanje ---
   let WHO = null;
-  let SEL_INV = null;
   let INVENTORY_CACHE = { items: [], recipes: [] };
   window.CURRENT_RECIPE_ID = null;
 
-  // Ako već imaš $ / $$ helper, ove 2 linije možeš obrisati
-  const $  = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-
+  
   // --- landing vs app ---
   function showLanding(){
     $("#about")?.classList.remove("hidden");
@@ -1072,6 +1009,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
