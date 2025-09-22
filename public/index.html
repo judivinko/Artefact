@@ -36,16 +36,31 @@
 </head>
 <body>
 
-<!-- ===== Header (login/register/logout) ===== -->
+<!-- ===== Header (who/balance/logout) ===== -->
 <header class="header">
   <div class="brand">ARTEFACT</div>
-  <div class="row" style="gap:8px">
-    <button id="btn-open-register" class="btn secondary">Register</button>
-    <button id="btn-open-login" class="btn">Log in</button>
+  <div class="row">
+    <span id="who" class="badge">–</span>
+    <span id="balance" class="badge">0g 0s</span>
     <button id="btn-logout" class="btn muted hidden">Log out</button>
   </div>
 </header>
 
+  <!-- ===== Header (auth controls / balance) ===== -->
+<header class="header">
+  <div class="brand">ARTEFACT</div>
+  <div class="row" style="gap:8px">
+    <!-- BALANCE (skriven dok nisi logiran) -->
+    <span id="balance" class="badge hidden">0g 0s</span>
+
+    <!-- NISI logiran -->
+    <button id="btn-open-register" class="btn secondary">Register</button>
+    <button id="btn-open-login" class="btn">Log in</button>
+
+    <!-- LOGIRAN -->
+    <button id="btn-logout" class="btn muted hidden">Log out</button>
+  </div>
+</header>
 
 
 
@@ -117,19 +132,26 @@
         <div class="chip" data-tab="market">Market</div>
         <div class="chip" data-tab="inv">Inventory</div>
       </div>
-
-      <!-- == SHOP == -->
-   
+    
+  
+<!-- == SHOP == -->
 <div id="tab-shop" class="card">
   <div class="row" style="justify-content:space-between">
     <div class="label">Buy T1 (100s)</div>
     <span id="buysToNext" class="muted">Buys to next recipe: —</span>
   </div>
+
+  <!-- Badge sa gold/silver (skriven kad nisi logiran) -->
+  <div style="margin:6px 0">
+    <span id="shop-balance" class="badge hidden">0g 0s</span>
+  </div>
+
   <div class="row">
     <button id="btn-buy-t1" class="btn">Buy</button>
     <div id="shop-msg" class="muted"></div>
   </div>
 </div>
+
 
 
       <!-- == CRAFTING == -->
@@ -251,138 +273,196 @@
   </script>
 
   <!-- ===== Global state + Tabs ===== -->
-  <script>
-    let WHO=null;
-    let SEL_INV=null;
-    let INVENTORY_CACHE={items:[],recipes:[]};
-    window.CURRENT_RECIPE_ID=null;
+<script>
+  let WHO = null;
+  let SEL_INV = null;
+  let INVENTORY_CACHE = { items: [], recipes: [] };
+  window.CURRENT_RECIPE_ID = null;
 
-    function renderBalance(){
-      const v = WHO?.balance_silver || 0;
-      const g = Math.floor(v/100), s = v%100;
-      $("#balance") && ($("#balance").textContent = `${g}g ${s}s`);
+  function renderBalance(){
+    const v = WHO?.balance_silver || 0;
+    const g = Math.floor(v / 100), s = v % 100;
+    const el = document.getElementById("balance") || $("#balance");
+    if (el) el.textContent = `${g}g ${s}s`;
+  }
+
+  function setTab(tab){
+    $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
+    $("#tab-shop")  .classList.toggle("hidden", tab !== "shop");
+    $("#tab-craft") .classList.toggle("hidden", tab !== "craft");
+    $("#tab-market").classList.toggle("hidden", tab !== "market");
+    $("#tab-inv")   .classList.toggle("hidden", tab !== "inv");
+
+    // auto refresh po tabovima (market/inventory)
+    if (tab === "market") {
+      safeCall("loadInventoryPanel");
+      safeCall("loadMarket");
+      safeCall("loadMine");
     }
-
-    function setTab(tab){
-      $$(".chip").forEach(c=>c.classList.toggle("active", c.dataset.tab===tab));
-      $("#tab-shop").classList.toggle("hidden", tab!=="shop");
-      $("#tab-craft").classList.toggle("hidden", tab!=="craft");
-      $("#tab-market").classList.toggle("hidden", tab!=="market");
-      $("#tab-inv").classList.toggle("hidden", tab!=="inv");
-
-      // auto refresh po tabovima (market/inventory)
-      if (tab === "market") {
-        safeCall("loadInventoryPanel");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-      }
-      if (tab === "inv") {
-        safeCall("loadInventoryFull");
-      }
+    if (tab === "inv") {
+      safeCall("loadInventoryFull");
     }
-    $$(".chip").forEach(c=>c.addEventListener("click",()=>setTab(c.dataset.tab)));
-  </script>
+  }
+
+  $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
+</script>
 
   <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
-  <script>
-    function setLoggedInUI(){
-      $("#auth")?.classList.add("hidden");
-      $("#app")?.classList.remove("hidden");
-      $("#btn-logout")?.classList.remove("hidden");
-      $("#who") && ($("#who").textContent = WHO?.email || "—");
-      renderBalance();
-    }
-    function setLoggedOutUI(){
-      WHO = null;
-      $("#auth")?.classList.remove("hidden");
-      $("#app")?.classList.add("hidden");
-      $("#btn-logout")?.classList.add("hidden");
-      $("#who") && ($("#who").textContent = "Not logged in");
-      $("#balance") && ($("#balance").textContent = "0g 0s");
-    }
+<script>
+  function setLoggedInUI(){
+    // sakrij Register / Log in
+    document.getElementById("btn-open-register")?.classList.add("hidden");
+    document.getElementById("btn-open-login")?.classList.add("hidden");
 
-    async function loadMe(){
-      try{
-        const r = await api("/api/me");
-        WHO = r.user || null;
-        setLoggedInUI();
+    // prikaži balance + Logout
+    document.getElementById("balance")?.classList.remove("hidden");
+    document.getElementById("btn-logout")?.classList.remove("hidden");
 
-        const b = $("#buysToNext");
-        if (b) {
-          b.textContent = (typeof WHO?.buys_to_next === "number")
-            ? `Buys to next recipe: ${WHO.buys_to_next}`
-            : "Buys to next recipe: —";
-        }
+    // upiši balans
+    renderBalance();
 
-        // sigurni pozivi (ako fn ne postoji, preskoči)
-        await safeCall("loadInventoryPanel");
-        safeCall("loadRecipes");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-        safeCall("loadInventoryFull");
+    // prikaži app, sakrij auth
+    $("#auth")?.classList.add("hidden");
+    $("#app") ?.classList.remove("hidden");
+  }
 
-        setTab("shop");
-      }catch{
-        setLoggedOutUI();
+  function setLoggedOutUI(){
+    WHO = null;
+
+    // prikaži Register / Log in
+    document.getElementById("btn-open-register")?.classList.remove("hidden");
+    document.getElementById("btn-open-login")?.classList.remove("hidden");
+
+    // sakrij balance + Logout
+    document.getElementById("balance")?.classList.add("hidden");
+    document.getElementById("btn-logout")?.classList.add("hidden");
+
+    // reset prikaza
+    document.getElementById("balance") && (document.getElementById("balance").textContent = "0g 0s");
+
+    // sakrij app, prikaži auth
+    $("#app") ?.classList.add("hidden");
+    $("#auth")?.classList.remove("hidden");
+  }
+
+  async function loadMe(){
+    try{
+      const r = await api("/api/me");
+      WHO = r.user || null;
+      setLoggedInUI();
+
+      const b = $("#buysToNext");
+      if (b) {
+        b.textContent = (typeof WHO?.buys_to_next === "number")
+          ? `Buys to next recipe: ${WHO.buys_to_next}`
+          : "Buys to next recipe: —";
       }
-    }
 
-    async function doRegister(){
-      const msg = $("#reg-msg");
-      try{
-        const email = $("#reg-email")?.value.trim();
-        const pass  = $("#reg-pass")?.value || "";
-        if (!email || !pass) throw new Error("Enter email & password.");
-        if (pass.length < 6) throw new Error("Password too short (min 6).");
-        msg && (msg.textContent = "…");
-        await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-        msg && (msg.textContent = "OK — now log in.");
-      }catch(e){
-        msg && (msg.textContent = e.message || "Register failed.");
-      }
-    }
+      // sigurni pozivi
+      await safeCall("loadInventoryPanel");
+      safeCall("loadRecipes");
+      safeCall("loadMarket");
+      safeCall("loadMine");
+      safeCall("loadInventoryFull");
 
-    async function doLogin(){
-      const msg = $("#log-msg");
-      try{
-        const email = $("#log-email")?.value.trim();
-        const pass  = $("#log-pass")?.value || "";
-        if (!email || !pass) throw new Error("Enter email & password.");
-        msg && (msg.textContent = "…");
-        await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-        msg && (msg.textContent = "OK");
-        await loadMe();
-      }catch(e){
-        msg && (msg.textContent = e.message || "Login failed.");
-      }
-    }
-
-    async function doLogout(){
-      try { await api("/api/logout"); } catch {}
+      setTab("shop");
+    }catch{
       setLoggedOutUI();
     }
+  }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      $("#btn-register")?.addEventListener("click", doRegister);
-      $("#btn-login")?.addEventListener("click", doLogin);
-      $("#btn-logout")?.addEventListener("click", doLogout);
-      $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-      $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-      $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-      $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-      loadMe();
+  async function doRegister(){
+    const msg = $("#reg-msg");
+    try{
+      const email = $("#reg-email")?.value.trim();
+      const pass  = $("#reg-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      if (pass.length < 6) throw new Error("Password too short (min 6).");
+      msg && (msg.textContent = "…");
+      await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+      msg && (msg.textContent = "OK — now log in.");
+    }catch(e){
+      msg && (msg.textContent = e.message || "Register failed.");
+    }
+  }
+
+  async function doLogin(){
+    const msg = $("#log-msg");
+    try{
+      const email = $("#log-email")?.value.trim();
+      const pass  = $("#log-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      msg && (msg.textContent = "…");
+      await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
+      msg && (msg.textContent = "OK");
+      await loadMe();
+    }catch(e){
+      msg && (msg.textContent = e.message || "Login failed.");
+    }
+  }
+
+  async function doLogout(){
+    try { await api("/api/logout"); } catch {}
+    setLoggedOutUI();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // gumbi u auth formama
+    $("#btn-register")?.addEventListener("click", doRegister);
+    $("#btn-login")   ?.addEventListener("click", doLogin);
+    $("#btn-logout")  ?.addEventListener("click", doLogout);
+
+    // enter tipke
+    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+    // gumbi gore desno → otvaraju odgovarajuću karticu (samo frontend toggle)
+    document.getElementById("btn-open-register")?.addEventListener("click", () => {
+      $("#card-register") && ( $("#card-register").style.display = "block" );
+      $("#card-login")    && ( $("#card-login").style.display    = "none"  );
+      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      $("#reg-email")?.focus();
     });
-  </script>
+    document.getElementById("btn-open-login")?.addEventListener("click", () => {
+      $("#card-login")    && ( $("#card-login").style.display    = "block" );
+      $("#card-register") && ( $("#card-register").style.display = "none"  );
+      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      $("#log-email")?.focus();
+    });
+
+    // inicijalni status
+    loadMe();
+  });
+</script>
+
 
   <!-- == SHOP (Buy T1) == -->
+<!-- == SHOP (Buy T1) == -->
 <script>
+// ---------- util: osvježi badge u Shop tabu
+function updateShopBalanceBadge(){
+  const el = document.getElementById("shop-balance");
+  if (!el) return;
+  const s = WHO?.balance_silver | 0;
+  const g = Math.floor(s/100), ss = s%100;
+  if (WHO) {
+    el.textContent = `${g}g ${ss}s`;
+    el.classList.remove("hidden");
+  } else {
+    el.textContent = "0g 0s";
+    el.classList.add("hidden");
+  }
+}
+
 // ---------- prikaz dobijenog ITEM-a (sa slikom)
 function renderShopGotItem(obj){
   const msg = document.querySelector("#shop-msg");
   if(!msg) return;
   const icon = iconForByCode(obj.code, obj.tier);
-  msg.innerHTML = `
-    <div class="row" style="gap:10px;align-items:center">
+  msg.innerHTML =
+    `<div class="row" style="gap:10px;align-items:center">
       <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
       <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
     </div>`;
@@ -392,8 +472,8 @@ function renderShopGotItem(obj){
 function renderShopGotRecipe(rec){
   const msg = document.querySelector("#shop-msg");
   if(!msg) return;
-  msg.innerHTML = `
-    <div class="row" style="gap:10px;align-items:center">
+  msg.innerHTML =
+    `<div class="row" style="gap:10px;align-items:center">
       <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
       <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
     </div>`;
@@ -407,34 +487,60 @@ function updateBuysToNextFromWHO(){
     : "Buys to next recipe: —";
 }
 
-// ---------- Buy T1 klik
-document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
+// ---------- lagani /me refresh BEZ mijenjanja UI stanja
+async function refreshMeLight(){
   try{
+    const r = await api("/api/me");
+    // samo update globalnog stanja + UI brojki, bez prebacivanja sekcija
+    if (r?.user) {
+      WHO = r.user;
+      renderBalance?.();
+      updateShopBalanceBadge();
+      updateBuysToNextFromWHO();
+    }
+  }catch{/* ignore */}
+}
+
+// ---------- Buy T1 klik (cijeli handler)
+document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
+  const btn = document.querySelector("#btn-buy-t1");
+  const prevTxt = btn?.textContent;
+  try{
+    if (btn){ btn.disabled = true; btn.textContent = "Buying…"; }
+
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
 
-    // odmah osvježi balans
-    if (WHO) WHO.balance_silver = r.balance_silver|0;
-    if (typeof renderBalance==="function") renderBalance();
+    // odmah osvježi balans u memoriji i UI
+    if (WHO) WHO.balance_silver = (r.balance_silver | 0);
+    renderBalance?.();
+    updateShopBalanceBadge();
 
     // prikaži dobitak
     if (r.gotRecipe)      renderShopGotRecipe(r.gotRecipe);
     else if (r.gotItem)   renderShopGotItem(r.gotItem);
     else                  (document.querySelector("#shop-msg").textContent = "OK");
 
-    // povuci /me (update buys_to_next)
-    await (typeof loadMe==="function" ? loadMe() : Promise.resolve());
-    updateBuysToNextFromWHO();
+    // lagani refresh /me za buys_to_next (bez flickera)
+    await refreshMeLight();
 
     // lagani refresh ostalih panela
     await (typeof loadInventoryPanel==="function" ? loadInventoryPanel() : Promise.resolve());
     if (typeof loadRecipes==="function")       loadRecipes();
     if (typeof loadInventoryFull==="function") loadInventoryFull();
-  }catch(e){ alert(e.message); }
+    if (typeof loadMarket==="function")        loadMarket();
+    if (typeof loadMine==="function")          loadMine();
+
+  }catch(e){
+    alert(e?.message || "Buy failed.");
+  }finally{
+    if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
+  }
 });
 
-// inicijalno ažuriranje oznake
-document.addEventListener("DOMContentLoaded", updateBuysToNextFromWHO);
+// inicijalno ažuriranje shop badge-a nakon load-a
+document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
+
 
 
 
@@ -745,6 +851,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
