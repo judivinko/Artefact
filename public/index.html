@@ -414,7 +414,7 @@
   $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
 </script>
 
-  <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
+ <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
 <script>
   function setLoggedInUI(){
     document.getElementById("btn-open-register")?.classList.add("hidden");
@@ -426,8 +426,8 @@
     renderBalance();
 
     // sakrij auth sekciju i pokaži app
-    $("#auth")?.classList.add("hidden");
-    $("#app") ?.classList.remove("hidden");
+    document.getElementById("auth")?.classList.add("hidden");
+    document.getElementById("app") ?.classList.remove("hidden");
   }
 
   function setLoggedOutUI(){
@@ -446,8 +446,8 @@
     if (bal) bal.textContent = "0g 0s";
 
     // sakrij app i auth (auth se otvara samo klikom na gumbe u headeru)
-    $("#app") ?.classList.add("hidden");
-    $("#auth")?.classList.add("hidden");
+    document.getElementById("app") ?.classList.add("hidden");
+    document.getElementById("auth")?.classList.add("hidden");
 
     // zatvori obje kartice unutar auth-a
     const cr = document.getElementById("card-register");
@@ -455,7 +455,7 @@
     if (cr) cr.style.display = "none";
     if (cl) cl.style.display = "none";
 
-    // opcionalno očisti poruke
+    // očisti poruke
     const rm = document.getElementById("reg-msg");
     const lm = document.getElementById("log-msg");
     if (rm) rm.textContent = "";
@@ -468,7 +468,7 @@
       WHO = r.user || null;
       setLoggedInUI();
 
-      const b = $("#buysToNext");
+      const b = document.getElementById("buysToNext");
       if (b) {
         b.textContent = (typeof WHO?.buys_to_next === "number")
           ? `Buys to next recipe: ${WHO.buys_to_next}`
@@ -488,10 +488,10 @@
   }
 
   async function doRegister(){
-    const msg = $("#reg-msg");
+    const msg = document.getElementById("reg-msg");
     try{
-      const email = $("#reg-email")?.value.trim();
-      const pass  = $("#reg-pass")?.value || "";
+      const email = document.getElementById("reg-email")?.value.trim();
+      const pass  = document.getElementById("reg-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
       if (pass.length < 6) throw new Error("Password too short (min 6).");
       if (msg) msg.textContent = "…";
@@ -502,17 +502,17 @@
       const cl = document.getElementById("card-login");
       if (cr) cr.style.display = "none";
       if (cl) cl.style.display = "block";
-      $("#log-email")?.focus();
+      document.getElementById("log-email")?.focus();
     }catch(e){
       if (msg) msg.textContent = e.message || "Register failed.";
     }
   }
 
   async function doLogin(){
-    const msg = $("#log-msg");
+    const msg = document.getElementById("log-msg");
     try{
-      const email = $("#log-email")?.value.trim();
-      const pass  = $("#log-pass")?.value || "";
+      const email = document.getElementById("log-email")?.value.trim();
+      const pass  = document.getElementById("log-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
       if (msg) msg.textContent = "…";
       await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
@@ -529,44 +529,50 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // gumbi u formama
-    $("#btn-register")?.addEventListener("click", doRegister);
-    $("#btn-login")   ?.addEventListener("click", doLogin);
-    $("#btn-logout")  ?.addEventListener("click", doLogout);
+    // 1) Pobrinimo se da je #auth odmah ispod headera
+    const header = document.querySelector("header.header");
+    const auth   = document.getElementById("auth");
+    if (header && auth && auth.previousElementSibling !== header) {
+      header.insertAdjacentElement("afterend", auth);
+    }
 
-    // enter tipke
-    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    // 2) gumbi u formama
+    document.getElementById("btn-register")?.addEventListener("click", doRegister);
+    document.getElementById("btn-login")   ?.addEventListener("click", doLogin);
+    document.getElementById("btn-logout")  ?.addEventListener("click", doLogout);
 
-    // HEADER gumbi → otvaraju auth sekciju i točnu karticu
+    // 3) enter tipke
+    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+    // 4) HEADER gumbi → otvaraju auth sekciju i točnu karticu
     document.getElementById("btn-open-register")?.addEventListener("click", () => {
-      const auth = document.getElementById("auth");
       const cr = document.getElementById("card-register");
       const cl = document.getElementById("card-login");
-      if (auth) auth.classList.remove("hidden");
+      auth?.classList.remove("hidden");
       if (cr) cr.style.display = "block";
       if (cl) cl.style.display = "none";
       auth?.scrollIntoView({behavior:"smooth", block:"start"});
-      $("#reg-email")?.focus();
+      document.getElementById("reg-email")?.focus();
     });
 
     document.getElementById("btn-open-login")?.addEventListener("click", () => {
-      const auth = document.getElementById("auth");
       const cr = document.getElementById("card-register");
       const cl = document.getElementById("card-login");
-      if (auth) auth.classList.remove("hidden");
+      auth?.classList.remove("hidden");
       if (cl) cl.style.display = "block";
       if (cr) cr.style.display = "none";
       auth?.scrollIntoView({behavior:"smooth", block:"start"});
-      $("#log-email")?.focus();
+      document.getElementById("log-email")?.focus();
     });
 
-    // inicijalno stanje
+    // 5) inicijalno stanje
     loadMe();
   });
 </script>
+
 
 
 <!-- == SHOP (Buy T1) == -->
@@ -981,6 +987,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
