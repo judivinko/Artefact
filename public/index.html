@@ -401,18 +401,15 @@
   <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
 <script>
   function setLoggedInUI(){
-    // sakrij Register / Log in
     document.getElementById("btn-open-register")?.classList.add("hidden");
     document.getElementById("btn-open-login")?.classList.add("hidden");
 
-    // prikaži balance + Logout
     document.getElementById("balance")?.classList.remove("hidden");
     document.getElementById("btn-logout")?.classList.remove("hidden");
 
-    // upiši balans
     renderBalance();
 
-    // prikaži app, sakrij auth
+    // sakrij auth sekciju i pokaži app
     $("#auth")?.classList.add("hidden");
     $("#app") ?.classList.remove("hidden");
   }
@@ -420,7 +417,7 @@
   function setLoggedOutUI(){
     WHO = null;
 
-    // prikaži Register / Log in
+    // prikaži Register / Log in u headeru
     document.getElementById("btn-open-register")?.classList.remove("hidden");
     document.getElementById("btn-open-login")?.classList.remove("hidden");
 
@@ -428,12 +425,25 @@
     document.getElementById("balance")?.classList.add("hidden");
     document.getElementById("btn-logout")?.classList.add("hidden");
 
-    // reset prikaza
-    document.getElementById("balance") && (document.getElementById("balance").textContent = "0g 0s");
+    // reset badge teksta
+    const bal = document.getElementById("balance");
+    if (bal) bal.textContent = "0g 0s";
 
-    // sakrij app, prikaži auth
+    // sakrij app i auth (auth se otvara samo klikom na gumbe u headeru)
     $("#app") ?.classList.add("hidden");
-    $("#auth")?.classList.remove("hidden");
+    $("#auth")?.classList.add("hidden");
+
+    // zatvori obje kartice unutar auth-a
+    const cr = document.getElementById("card-register");
+    const cl = document.getElementById("card-login");
+    if (cr) cr.style.display = "none";
+    if (cl) cl.style.display = "none";
+
+    // opcionalno očisti poruke
+    const rm = document.getElementById("reg-msg");
+    const lm = document.getElementById("log-msg");
+    if (rm) rm.textContent = "";
+    if (lm) lm.textContent = "";
   }
 
   async function loadMe(){
@@ -449,7 +459,6 @@
           : "Buys to next recipe: —";
       }
 
-      // sigurni pozivi
       await safeCall("loadInventoryPanel");
       safeCall("loadRecipes");
       safeCall("loadMarket");
@@ -469,11 +478,17 @@
       const pass  = $("#reg-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
       if (pass.length < 6) throw new Error("Password too short (min 6).");
-      msg && (msg.textContent = "…");
+      if (msg) msg.textContent = "…";
       await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK — now log in.");
+      if (msg) msg.textContent = "OK — now log in.";
+      // prebaci fokus na login
+      const cr = document.getElementById("card-register");
+      const cl = document.getElementById("card-login");
+      if (cr) cr.style.display = "none";
+      if (cl) cl.style.display = "block";
+      $("#log-email")?.focus();
     }catch(e){
-      msg && (msg.textContent = e.message || "Register failed.");
+      if (msg) msg.textContent = e.message || "Register failed.";
     }
   }
 
@@ -483,12 +498,12 @@
       const email = $("#log-email")?.value.trim();
       const pass  = $("#log-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
-      msg && (msg.textContent = "…");
+      if (msg) msg.textContent = "…";
       await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK");
+      if (msg) msg.textContent = "OK";
       await loadMe();
     }catch(e){
-      msg && (msg.textContent = e.message || "Login failed.");
+      if (msg) msg.textContent = e.message || "Login failed.";
     }
   }
 
@@ -498,7 +513,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // gumbi u auth formama
+    // gumbi u formama
     $("#btn-register")?.addEventListener("click", doRegister);
     $("#btn-login")   ?.addEventListener("click", doLogin);
     $("#btn-logout")  ?.addEventListener("click", doLogout);
@@ -509,27 +524,35 @@
     $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
     $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
-    // gumbi gore desno → otvaraju odgovarajuću karticu (samo frontend toggle)
+    // HEADER gumbi → otvaraju auth sekciju i točnu karticu
     document.getElementById("btn-open-register")?.addEventListener("click", () => {
-      $("#card-register") && ( $("#card-register").style.display = "block" );
-      $("#card-login")    && ( $("#card-login").style.display    = "none"  );
-      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      const auth = document.getElementById("auth");
+      const cr = document.getElementById("card-register");
+      const cl = document.getElementById("card-login");
+      if (auth) auth.classList.remove("hidden");
+      if (cr) cr.style.display = "block";
+      if (cl) cl.style.display = "none";
+      auth?.scrollIntoView({behavior:"smooth", block:"start"});
       $("#reg-email")?.focus();
     });
+
     document.getElementById("btn-open-login")?.addEventListener("click", () => {
-      $("#card-login")    && ( $("#card-login").style.display    = "block" );
-      $("#card-register") && ( $("#card-register").style.display = "none"  );
-      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      const auth = document.getElementById("auth");
+      const cr = document.getElementById("card-register");
+      const cl = document.getElementById("card-login");
+      if (auth) auth.classList.remove("hidden");
+      if (cl) cl.style.display = "block";
+      if (cr) cr.style.display = "none";
+      auth?.scrollIntoView({behavior:"smooth", block:"start"});
       $("#log-email")?.focus();
     });
 
-    // inicijalni status
+    // inicijalno stanje
     loadMe();
   });
 </script>
 
 
-  <!-- == SHOP (Buy T1) == -->
 <!-- == SHOP (Buy T1) == -->
 <script>
 // ---------- util: osvježi badge u Shop tabu
@@ -942,6 +965,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
