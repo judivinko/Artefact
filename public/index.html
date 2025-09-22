@@ -67,6 +67,79 @@
   <!-- ===== Main ===== -->
   <main class="container">
 
+
+<!--  (UBACI IZNAD: <!-- ===== Auth (Register + Login) ===== -->) -->
+
+<!-- ===== Intro / About the Game ===== -->
+<section id="about" class="card" style="margin-top:16px">
+  <div class="label" style="line-height:1.2;margin-bottom:6px">O igri</div>
+  <p class="muted" style="max-width:820px">
+    Skupljaš materijale, otključavaš recepte i craftaš sve jače predmete (T2 → T5).
+    Kad skupiš <b>10 različitih T5</b>, možeš sklopiti <b>ARTEFACT</b> koji ti daje bonus zlata.
+  </p>
+</section>
+
+<!-- ===== How it works: 4 koraka ===== -->
+<section id="how" class="card">
+  <div class="grid">
+    <!-- KORAK 1: SHOP -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="label">1) Shop</div>
+        <span class="badge">cijena: 1g</span>
+      </div>
+      <p class="muted">
+        U Shopu kupuješ <b>T1 materijale</b>, a povremeno dobivaš i <b>recepte</b>.
+        Materijali su sastojci za craft, a recepti otključavaju više tierove.
+      </p>
+      <!-- mjesta za slike – ubacit ćemo kasnije -->
+      <div class="img-slot">Slot: T1 materijal</div>
+      <div class="img-slot">Slot: Recept</div>
+    </div>
+
+    <!-- KORAK 2: CRAFTING -->
+    <div class="card">
+      <div class="label">2) Crafting</div>
+      <p class="muted">
+        Uz recept i potrebne materijale craftaš <b>T2, T3, T4</b> i na kraju <b>T5</b> predmete.
+        Craft ponekad može pasti u <i>fail</i> i dati <b>Scrap</b>, pa pažljivo kombiniraj.
+      </p>
+      <div class="img-slot">Slot: T2–T5 primjeri</div>
+    </div>
+
+    <!-- KORAK 3: MARKET -->
+    <div class="card">
+      <div class="label">3) Market</div>
+      <p class="muted">
+        Višak materijala ili recepata možeš <b>prodati</b>, a što ti fali možeš <b>kupiti</b> od drugih.
+        Trgovinom ubrzavaš napredak do T5 setova.
+      </p>
+      <div class="img-slot">Slot: Marketplace listing</div>
+    </div>
+
+    <!-- KORAK 4: ARTEFACT -->
+    <div class="card">
+      <div class="label">4) Artefact</div>
+      <p class="muted">
+        Kad imaš <b>10 različitih T5</b>, craftaš <b>ARTEFACT</b>.
+        On daje trajni <b>bonus gold</b> na tvoj račun — što je veći bonus, brže napreduješ.
+      </p>
+      <div class="img-slot">Slot: ARTEFACT</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Tips ===== -->
+<section id="tips" class="card">
+  <div class="label">Savjeti</div>
+  <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
+    <li>Kupuj pametno u Shopu — recepti padaju povremeno, pa čuvaj gold za ključne trenutke.</li>
+    <li>Craftaj po prioritetu recepata koje imaš i materijala koje možeš lako nadoknaditi.</li>
+    <li>Market je najbolji način da popuniš rupe u setu i prodaš ono što ti ne treba.</li>
+    <li>Ciljaj da skupiš 10 <i>različitih</i> T5 — duplikati ne vrijede za ARTEFACT.</li>
+  </ul>
+</section>
+
     <!-- ===== Auth (Register + Login) ===== -->
 <section id="auth" class="card">
   <div class="label">Login / Register</div>
@@ -851,6 +924,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
