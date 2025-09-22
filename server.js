@@ -189,6 +189,76 @@ db.transaction(() => {
     if (!hasColumn("inventory_escrow", "auction_id")) db.exec(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER;`);
   }
 })();
+// --- Admin: dry-run pregled (ne briše, samo vraća koje bi obrisao)
+app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+
+  function scan(rootDir) {
+    const hit = [];
+    try {
+      if (!fs.existsSync(rootDir)) return hit;
+      const stack = [rootDir];
+      while (stack.length) {
+        const dir = stack.pop();
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const ent of entries) {
+          const full = path.join(dir, ent.name);
+          if (ent.isDirectory()) stack.push(full);
+          else if (ent.name.startsWith("0")) hit.push(full.replace(__dirname, ""));
+        }
+      }
+    } catch (e) {}
+    return hit;
+  }
+
+  const a = scan(path.join(__dirname, "public", "images"));
+  const b = scan(path.join(__dirname, "public"));
+  // ukloni duplikate
+  const set = Array.from(new Set([...a, ...b]));
+  res.json({ ok:true, matches: set });
+});
+
+// --- Admin: ručni cleanup (briše)
+app.post("/api/admin/cleanup-images", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+
+  const dirs = [
+    path.join(__dirname, "public", "images"),
+    path.join(__dirname, "public")
+  ];
+  let deleted = 0, checked = 0, found = [];
+
+  for (const rootDir of dirs) {
+    try {
+      if (!fs.existsSync(rootDir)) continue;
+      const stack = [rootDir];
+      while (stack.length) {
+        const dir = stack.pop();
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const ent of entries) {
+          const full = path.join(dir, ent.name);
+          if (ent.isDirectory()) {
+            stack.push(full);
+          } else {
+            checked++;
+            if (ent.name.startsWith("0")) {
+              found.push(full.replace(__dirname, ""));
+              try { fs.unlinkSync(full); deleted++; }
+              catch (e) { console.error("[CLEANUP] Greška:", full, e); }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[CLEANUP] Greška skeniranja:", e);
+    }
+  }
+
+  res.json({ ok:true, checked, deleted, found });
+});
+
+
+
 // ====== DB MIGRATIONS (SALES + ESCROW) END ======
 
 // ---------- Helpers
@@ -1228,6 +1298,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
