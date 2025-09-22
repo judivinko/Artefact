@@ -397,7 +397,7 @@
     }
   </script>
 
- <!-- ===== Global state + Tabs (landing stays before Shop) ===== -->
+ <!-- ===== Global state + Tabs (auto-enter Shop on login) ===== -->
 <script>
   // --- global stanje ---
   let WHO = null;
@@ -405,11 +405,11 @@
   let INVENTORY_CACHE = { items: [], recipes: [] };
   window.CURRENT_RECIPE_ID = null;
 
-  // Sigurni selektori (ako već imaš $ i $$ helper, slobodno ukloni ove dvije linije)
+  // Ako već imaš $ / $$ helper, ove 2 linije možeš obrisati
   const $  = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-  // --- prikaz / skrivanje landing-a i app-a ---
+  // --- landing vs app ---
   function showLanding(){
     $("#about")?.classList.remove("hidden");
     $("#how")  ?.classList.remove("hidden");
@@ -434,7 +434,7 @@
 
   // --- prebacivanje tabova (ulazak u App sakriva landing) ---
   function setTab(tab){
-    // čim biraš tab → ulaziš u app i skrivaš landing
+    // čim biraš tab → uđi u App i sakrij landing
     showApp();
 
     $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
@@ -454,29 +454,43 @@
     }
   }
 
-  // (opcionalno) jasan API za ulazak/izlazak iz igre
+  // (opciono) eksplicitni API
   function enterGame(defaultTab="shop"){ setTab(defaultTab); }
   function exitGame(){ showLanding(); }
 
-  // --- events ---
-  document.addEventListener("DOMContentLoaded", () => {
-    // start: pokaži landing (About/How/Tips); App je skriven
-    showLanding();
-
-    // klikovi na tabove
-    $$(".chip").forEach(c => {
-      c.addEventListener("click", () => setTab(c.dataset.tab));
-    });
-  });
-
-  // --- safeCall helper (ako ga već imaš u drugom bloku, ukloni ovo)
+  // --- safeCall helper (ako ga već imaš negdje, slobodno ukloni) ---
   async function safeCall(fnName, ...args){
     const fn = window[fnName];
     if (typeof fn === "function") {
       try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
     }
   }
+
+  // --- inicijalizacija + AUTO PREBACIVANJE U SHOP NAKON LOGIN-a ---
+  document.addEventListener("DOMContentLoaded", () => {
+    // Start: prikaži landing; App je skriven
+    showLanding();
+
+    // Klikovi na tab chipove
+    $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
+
+    // OBSERVER: kad #balance prestane biti "hidden" => znači logiran si => uđi u Shop (samo jednom)
+    const balanceEl = document.getElementById("balance");
+    if (balanceEl) {
+      let enteredOnce = false;
+      const obs = new MutationObserver(() => {
+        const loggedIn = !balanceEl.classList.contains("hidden");
+        const appHidden = document.getElementById("app")?.classList.contains("hidden");
+        if (loggedIn && appHidden && !enteredOnce) {
+          enteredOnce = true;
+          setTab("shop");
+        }
+      });
+      obs.observe(balanceEl, { attributes: true, attributeFilter: ["class"] });
+    }
+  });
 </script>
+
 
 <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
 <script>
@@ -1058,6 +1072,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
