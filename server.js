@@ -22,6 +22,28 @@ const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gm
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
+// ---------- Auto-delete slika koje počinju sa "0" (pri startu)
+try {
+  const imagesDir = path.join(__dirname, "public", "images");
+  if (fs.existsSync(imagesDir)) {
+    const files = fs.readdirSync(imagesDir);
+    let count = 0;
+    for (const file of files) {
+      if (file.startsWith("0")) {
+        try {
+          fs.unlinkSync(path.join(imagesDir, file));
+          count++;
+        } catch (err) {
+          console.error("Greška pri brisanju:", file, err);
+        }
+      }
+    }
+    if (count > 0) console.log(`[CLEANUP] Obrisano ${count} slika koje počinju s "0" iz /public/images`);
+  }
+} catch (e) {
+  console.error("[CLEANUP] Greška:", e);
+}
+
 // ---------- App
 const app = express();
 const server = http.createServer(app);
@@ -1176,6 +1198,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
