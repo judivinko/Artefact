@@ -174,100 +174,113 @@ When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that
   </section>
 </main>
 
-
+<!-- ===== App (Shop / Craft / Market / Inventory) ===== -->
+<section id="app" class="hidden">
+  <div class="tabbar row">
+    <div class="chip active" data-tab="shop">Shop</div>
+    <div class="chip" data-tab="craft">Crafting</div>
+    <div class="chip" data-tab="market">Market</div>
+    <div class="chip" data-tab="inv">Inventory</div>
+  </div>
   
 <!-- == SHOP == -->
-<div id="tab-shop" class="card">
-  <div class="row" style="justify-content:space-between">
-    <div class="label">Buy T1 (100s)</div>
-    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-  </div>
+  <div id="tab-shop" class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="label">Buy T1 (100s)</div>
+      <span id="buysToNext" class="muted">Buys to next recipe: —</span>
+    </div>
 
-  <!-- Badge sa gold/silver (skriven kad nisi logiran) -->
-  <div style="margin:6px 0">
-    <span id="shop-balance" class="badge hidden">0g 0s</span>
-  </div>
+    <!-- Badge sa gold/silver (skriven kad nisi logiran) -->
+    <div style="margin:6px 0">
+      <span id="shop-balance" class="badge hidden">0g 0s</span>
+    </div>
 
-  <div class="row">
-    <button id="btn-buy-t1" class="btn">Buy</button>
-    <div id="shop-msg" class="muted"></div>
+    <div class="row">
+      <button id="btn-buy-t1" class="btn">Buy</button>
+      <div id="shop-msg" class="muted"></div>
+    </div>
   </div>
-</div>
+</section>
 
 
 
       <!-- == CRAFTING == -->
-      <div id="tab-craft" class="card hidden">
+<div id="tab-craft" class="card hidden">
+  <div class="row">
+    <div class="label">Crafting</div>
+    <button id="btn-artefact" class="btn right">
+      <img src="/artefakt.png" alt="Artefact"
+           style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
+           onerror="this.onerror=null;this.style.display='none'">
+      Craft ARTEFACT (10× distinct T5)
+    </button>
+  </div>
+
+  <div style="margin-top:8px">
+    Bonus gold: <span id="artefact-bonus">0</span>
+  </div>
+  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Recipes you own</div>
         <div class="row">
-          <div class="label">Crafting</div>
-          <button id="btn-artefact" class="btn right">
-            <img src="/atefakt.png" alt="Artefact" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
-                 onerror="this.onerror=null;this.style.display='none'">
-            Craft ARTEFACT (10× distinct T5)
-          </button>
-        </div>
-        <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-        <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
-
-        <div class="grid">
-          <div class="card">
-            <div class="row" style="justify-content:space-between">
-              <div class="label">Recipes you own</div>
-              <div class="row">
-                <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-                <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-              </div>
-            </div>
-            <div id="recipes" class="list">Loading…</div>
-          </div>
-
-          <div class="card">
-            <div class="label">Details</div>
-            <div id="rec-details" class="list">Select a recipe on the left.</div>
-          </div>
+          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
         </div>
       </div>
+      <div id="recipes" class="list">Loading…</div>
+    </div>
 
-      <!-- == MARKET == -->
-      <div id="tab-market" class="card hidden">
+    <div class="card">
+      <div class="label">Details</div>
+      <div id="rec-details" class="list">Select a recipe on the left.</div>
+    </div>
+  </div>
+</div>
+
+
+     <!-- == MARKET == -->
+<div id="tab-market" class="card hidden">
+  <div class="label">Marketplace</div>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Create Sale</div>
+      <input id="inv-search" class="input" placeholder="Search your inventory..." />
+      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
+      <div class="row" style="margin-top:8px">
+        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
+        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+        <button id="btn-list" class="btn">List for sale</button>
+      </div>
+      <div id="list-msg" class="muted" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
         <div class="label">Marketplace</div>
-        <div class="grid">
-          <div class="card">
-            <div class="label">Create Sale</div>
-            <input id="inv-search" class="input" placeholder="Search your inventory..." />
-            <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-            <div class="row" style="margin-top:8px">
-              <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-              <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-              <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-              <button id="btn-list" class="btn">List for sale</button>
-            </div>
-            <div id="list-msg" class="muted" style="margin-top:6px"></div>
-          </div>
-
-          <div class="card">
-            <div class="row" style="justify-content:space-between">
-              <div class="label">Marketplace</div>
-              <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
-            </div>
-            <div id="market" class="list">Loading…</div>
-
-            <div class="row" style="justify-content:space-between;margin-top:12px">
-              <div class="label">My listings</div>
-              <button id="btn-mine" class="btn muted">Reload</button>
-            </div>
-            <div id="mine" class="list">Loading…</div>
-          </div>
-        </div>
+        <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
       </div>
+      <div id="market" class="list">Loading…</div>
+
+      <div class="row" style="justify-content:space-between;margin-top:12px">
+        <div class="label">My listings</div>
+        <button id="btn-mine" class="btn muted">Reload</button>
+      </div>
+      <div id="mine" class="list">Loading…</div>
+    </div>
+  </div>
+</div>
+
 
       <!-- == INVENTORY == -->
-      <div id="tab-inv" class="card hidden">
-        <div class="label">Inventory</div>
-        <div id="inv-full" class="list">Loading…</div>
-      </div>
-    </section>
-  </main>
+<div id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div id="inv-full" class="list">Loading…</div>
+</div>
+
 
   <!-- ===== Toast + helpers ($,$$,api, safeCall) ===== -->
   <div id="toast" class="toast hidden"></div>
@@ -985,6 +998,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
