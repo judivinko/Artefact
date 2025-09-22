@@ -36,21 +36,23 @@
 </head>
 <body>
 
- <!-- ===== Header (who/balance/login/register/logout) ===== -->
+<!-- ===== Header (who/balance/login/register/logout) ===== -->
 <header class="header">
+  <div class="row" style="gap:8px">
+    <!-- Lijevo: Register + Login -->
+    <button id="btn-open-register" class="btn secondary">Register</button>
+    <button id="btn-open-login" class="btn">Log in</button>
+  </div>
+
   <div class="brand">ARTEFACT</div>
+
   <div class="row">
     <span id="who" class="badge">–</span>
     <span id="balance" class="badge">0g 0s</span>
-
-    <!-- SAMO kad nisi logiran -->
-    <button id="btn-open-register" class="btn secondary">Register</button>
-    <button id="btn-open-login" class="btn">Log in</button>
-
-    <!-- SAMO kad jesi logiran -->
     <button id="btn-logout" class="btn muted hidden">Log out</button>
   </div>
 </header>
+
 
 
   <!-- ===== Main ===== -->
@@ -713,6 +715,7 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
 
 
 
