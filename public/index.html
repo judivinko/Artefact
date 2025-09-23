@@ -6,7 +6,7 @@
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
   <style>
-    /* --- layout & stil --- */
+    :root{ --line:#233047; --text:#e5e7eb }
     .hidden{display:none}
     .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
     .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
@@ -24,45 +24,33 @@
     .input{background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb}
     .card{background:#0b1220;border:1px solid #233047;border-radius:12px;padding:12px;margin-top:12px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+    .tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px}
+    .tile.ok{border-color:#165c32;background:#0e3a2f}
+    .tile.miss{opacity:.85}
     .tabbar{margin:6px 0 4px}
     .header{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #233047}
     .brand{font-weight:700}
     .container{max-width:980px;margin:0 auto;padding:12px}
     .label{font-weight:600}
     .muted{opacity:.8}
-    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .grid-4{grid-template-columns:repeat(2,1fr)} .grid-5{grid-template-columns:repeat(3,1fr)} }
     img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
+    .header.no-border{ border-bottom:0!important }
 
-    /* === HOME PAGE FIX: header, tekst, slotovi za slike === */
-    .header.no-border { border-bottom: 0 !important; }
+    #about p, #how p, #tips li { font-size:16px; line-height:1.6 }
+    #how .label, #tips .label { font-size:20px }
 
-    #about p,
-    #how p,
-    #tips li { font-size:16px; line-height:1.6; }
-
-    #how .label,
-    #tips .label { font-size:20px; }
-
-    /* Globalni limit za sve <img> (osim ikona) */
-    img { max-width:512px; max-height:512px; width:auto; height:auto; }
-
-    /* Posebna klasa za item previewe */
-    .item-img{
-      display:block;width:100%;max-width:512px;max-height:512px;
-      object-fit:contain;border-radius:10px;margin-top:8px;
-    }
-
-    .img-slot{
-      margin-top:10px;width:100%;min-height:96px;border:1px dashed #233047;
-      border-radius:10px;display:flex;align-items:center;justify-content:center;
-      font-size:12px;opacity:.85;
-    }
+    img{ max-width:512px; max-height:512px; width:auto; height:auto }
+    .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
+    .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
     .img-slot:hover{ opacity:1 }
   </style>
 </head>
 <body>
 
-<!-- ===== Header (auth controls / balance) ===== -->
+<!-- ===== Header ===== -->
 <header class="header no-border">
   <div class="brand">ARTEFACT</div>
   <div class="row" style="gap:8px">
@@ -73,7 +61,7 @@
   </div>
 </header>
 
-<!-- ===== Auth (Register + Login) ===== -->
+<!-- ===== Auth ===== -->
 <section id="auth" class="card hidden" style="margin-top:12px">
   <div id="card-register" style="display:none">
     <div class="label">Register</div>
@@ -92,7 +80,7 @@
   </div>
 </section>
 
-<!-- ===== Main ===== -->
+<!-- ===== Landing ===== -->
 <main class="container">
   <section id="about" class="card" style="margin-top:16px">
     <div class="label" style="line-height:1.2;margin-bottom:6px">O igri</div>
@@ -104,61 +92,54 @@
 
   <section id="how" class="card">
     <div class="grid">
-      <!-- 1) SHOP -->
       <div class="card">
         <div class="row" style="justify-content:space-between;align-items:center">
           <div class="label">1) Shop</div>
-          <span class="badge">cijena: 1g</span>
+          <span class="badge">cijena: <span id="shop-price-badge">100s</span></span>
         </div>
         <p class="muted">
           In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
           Materials are ingredients for crafting, while recipes unlock higher tiers.
         </p>
-        <img src="/t1_bronze.png" alt="T1 example"
-             style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="imgFallback(this)">
-        <img src="/recipe.png" alt="Recipe example"
-             style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="imgFallback(this)">
+        <img src="/t1_bronze.png" alt="T1 example" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+        <img src="/recipe.png" alt="Recipe example" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
       </div>
 
-      <!-- 2) CRAFTING -->
       <div class="card">
         <div class="label">2) Crafting</div>
         <p class="muted">
           With a recipe and the required materials, you can craft <b>T2, T3, T4</b> and, finally, <b>T5</b> items.<br>
-          Crafting can sometimes <i>fail</i> and yield <b>Scrap</b>, so combine carefully.
+          Crafting can sometimes <i>fail</i> and yield <b>Scrap</b> — <span id="craft-fail-note" class="badge">10% fail</span>
         </p>
-        <img src="/t2_golden_ring.png" alt="T2"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
-        <img src="/t3_gate_of_might.png" alt="T3" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
-        <img src="/t4_engine_core.png"  alt="T4"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
-        <img src="/t5_ancient_relic.png" alt="T5"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
+        <img src="/t2_golden_ring.png" alt="T2"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+        <img src="/t3_gate_of_might.png" alt="T3" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+        <img src="/t4_engine_core.png"  alt="T4"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+        <img src="/t5_ancient_relic.png" alt="T5"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
       </div>
 
-      <!-- 3) MARKET -->
       <div class="card">
         <div class="label">3) Market</div>
         <p class="muted">
           You can <b>sell</b> surplus materials or recipes, and <b>buy</b> what you’re missing from others.<br>
           Through trading, you speed up your progress toward T5 sets.
+          <br><span id="market-fee-note" class="badge">Fee: 1%</span>
+          <span id="market-min-note" class="badge hidden">Min: 90s</span>
         </p>
       </div>
 
-      <!-- 4) ARTEFACT -->
       <div class="card">
         <div class="label">4) Artefact</div>
         <p class="muted">
           When you have <b>10 different T5</b>, you can craft an <b>ARTEFACT</b>.<br>
-          It provides a permanent <b>gold bonus</b> to your account — the higher the bonus, the faster you progress.
+          It provides a permanent <b>gold bonus</b> — and unlocks the <b>Bonus</b> section.
         </p>
         <img src="/artefakt.png" alt="Artefact"
              style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="imgFallback(this)">
+             onerror="this.style.display='none'">
       </div>
     </div>
   </section>
 
-  <!-- ===== Tips ===== -->
   <section id="tips" class="card">
     <div class="label">Savjeti</div>
     <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
@@ -170,19 +151,20 @@
   </section>
 </main>
 
-<!-- ===== App (Shop / Craft / Market / Inventory) ===== -->
+<!-- ===== App (tabs) ===== -->
 <section id="app" class="hidden">
   <div class="tabbar row">
     <div class="chip active" data-tab="shop">Shop</div>
     <div class="chip" data-tab="craft">Crafting</div>
     <div class="chip" data-tab="market">Market</div>
     <div class="chip" data-tab="inv">Inventory</div>
+    <div class="chip" data-tab="bonus">Bonus</div>
   </div>
 
-  <!-- == SHOP == -->
+  <!-- SHOP -->
   <div id="tab-shop" class="card">
     <div class="row" style="justify-content:space-between">
-      <div class="label">Buy T1 (100s)</div>
+      <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
       <span id="buysToNext" class="muted">Buys to next recipe: —</span>
     </div>
     <div style="margin:6px 0">
@@ -194,14 +176,15 @@
     </div>
   </div>
 
-  <!-- == CRAFTING == -->
+  <!-- CRAFTING -->
   <div id="tab-craft" class="card hidden">
     <div class="row">
       <div class="label">Crafting</div>
+      <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
       <button id="btn-artefact" class="btn right">
         <img src="/artefakt.png" alt="Artefact"
              style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
-             onerror="imgFallback(this)">
+             onerror="this.onerror=null;this.style.display='none'">
         Craft ARTEFACT (10× distinct T5)
       </button>
     </div>
@@ -227,7 +210,7 @@
     </div>
   </div>
 
-  <!-- == MARKET == -->
+  <!-- MARKET -->
   <div id="tab-market" class="card hidden">
     <div class="label">Marketplace</div>
     <div class="grid">
@@ -240,6 +223,10 @@
           <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
           <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
           <button id="btn-list" class="btn">List for sale</button>
+        </div>
+        <div class="row muted" style="margin-top:6px">
+          <span id="market-fee-inline" class="badge">Fee: 1%</span>
+          <span id="market-min-inline" class="badge hidden">Min: 90s</span>
         </div>
         <div id="list-msg" class="muted" style="margin-top:6px"></div>
       </div>
@@ -260,36 +247,80 @@
     </div>
   </div>
 
-  <!-- == INVENTORY == -->
+  <!-- INVENTORY -->
   <div id="tab-inv" class="card hidden">
     <div class="label">Inventory</div>
     <div id="inv-full" class="list">Loading…</div>
   </div>
-</section> <!-- /#app -->
 
+  <!-- BONUS -->
+  <div id="tab-bonus" class="card hidden">
+    <div class="row" style="justify-content:space-between">
+      <div class="label">Bonus</div>
+      <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
+    </div>
 
-<!-- ===== Toast + helpers ($,$$,api, safeCall) ===== -->
+    <div id="bonus-grid" class="grid" style="margin-top:8px">
+      <!-- T2 -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="label">T2 Bonus</div>
+          <button id="btn-claim-t2" class="btn" disabled>Claim</button>
+        </div>
+        <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
+        <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
+      </div>
+
+      <!-- T3 -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="label">T3 Bonus</div>
+          <button id="btn-claim-t3" class="btn" disabled>Claim</button>
+        </div>
+        <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
+        <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
+      </div>
+
+      <!-- T4 -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="label">T4 Bonus</div>
+          <button id="btn-claim-t4" class="btn" disabled>Claim</button>
+        </div>
+        <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
+        <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
+      </div>
+
+      <!-- T5 -->
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="label">T5 Bonus</div>
+          <button id="btn-claim-t5" class="btn" disabled>Claim</button>
+        </div>
+        <div class="muted" style="margin:4px 0 6px">Min list 90s + Recipe drops T3+</div>
+        <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Toast -->
 <div id="toast" class="toast hidden"></div>
+
+<!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
 <script>
-  // dom helpers
   const $  = (s,root=document)=>root.querySelector(s);
   const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
   function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
-
-  // fetch helper (uvijek nosi cookie) + bogatiji error obj
   async function api(p,opts={}){
     const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
     let data=null; try{data=await r.json()}catch{}
     if(!r.ok){
       const err = new Error((data&&data.error)||("HTTP "+r.status));
-      err.status = r.status;
-      err.data = data;
-      throw err;
+      err.status = r.status; err.data = data; throw err;
     }
     return data;
   }
-
-  // sigurno pozivanje (ako fn ne postoji, ne ruši UI)
   async function safeCall(fnName, ...args){
     const fn = window[fnName];
     if (typeof fn === "function") {
@@ -298,15 +329,13 @@
   }
 </script>
 
-<!-- ===== Ikone i utili (univerzalni fallback za slike) ===== -->
+<!-- ===== Icons & mapping ===== -->
 <script>
-  const RECIPE_ICON = "/images/recipe.png";
-  const FALLBACK_ITEM_ICON = "/images/t1_bronze.png";
-
+  const RECIPE_ICON = "/recipe.png";
+  const FALLBACK_ITEM_ICON = "/t1_bronze.png";
   const esc = s => String(s)
     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
     .replaceAll('"',"&quot;").replaceAll("'","&#39;");
-
   function fileNameFromCodeTier(code, tier){
     if(!code) return null;
     const m = String(code).match(/^T([1-6])_(.*)$/);
@@ -314,80 +343,44 @@
     if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
     return null;
   }
-
-  // primarno /images/, fallback na / pa tek onda na FALLBACK
   function iconForByCode(code, tier){
     const file = fileNameFromCodeTier(code, tier);
-    if (!file) return FALLBACK_ITEM_ICON;
-    return `/images/${file}`;
+    return file ? `/${file}` : FALLBACK_ITEM_ICON;
   }
-
-  // Bidirekcijski fallback: pokušaj i /images/FILE i /FILE, pa tek onda FALLBACK
-  function imgFallback(el){
-    const tried = el.getAttribute("data-fb") || ""; // memo što smo probali
-    const src = el.getAttribute("src") || "";
-    const fname = src.split("/").pop() || "";
-
-    // ako je trenutno /images/FILE i nismo probali root → probaj /FILE
-    if (src.startsWith("/images/") && !tried.includes("root")) {
-      el.setAttribute("data-fb", tried ? tried + ",root" : "root");
-      el.onerror = imgFallback;
-      el.src = `/${fname}`;
-      return;
-    }
-
-    // ako je trenutno root /FILE i nismo probali /images → probaj /images/FILE
-    if (!src.startsWith("/images/") && !tried.includes("images")) {
-      el.setAttribute("data-fb", tried ? tried + ",images" : "images");
-      el.onerror = imgFallback;
-      el.src = `/images/${fname}`;
-      return;
-    }
-
-    // zadnji korak: fallback ikona
-    el.onerror = null;
-    el.src = FALLBACK_ITEM_ICON;
-  }
-
-  // Preusmjeri postojeće inline onerror handlere na imgFallback
-  document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll("img[onerror]").forEach(img => {
-      img.setAttribute("onerror", "imgFallback(this)");
-    });
-  });
 </script>
 
-<!-- ===== Global state + Tabs (auto-enter Shop on login) ===== -->
+<!-- ===== Global state + Tabs ===== -->
 <script>
-  // --- global stanje ---
   let WHO = null;
-  let INVENTORY_CACHE = { items: [], recipes: [] };
   window.CURRENT_RECIPE_ID = null;
 
-  // --- landing vs app ---
-  function showLanding(){
-    $("#about")?.classList.remove("hidden");
-    $("#how")?.classList.remove("hidden");
-    $("#tips")?.classList.remove("hidden");
-    $("#app")?.classList.add("hidden");
-  }
-  function showApp(){
-    $("#app")?.classList.remove("hidden");
-    $("#about")?.classList.add("hidden");
-    $("#how")?.classList.add("hidden");
-    $("#tips")?.classList.add("hidden");
-  }
+  function showLanding(){ $("#about")?.classList.remove("hidden"); $("#how")?.classList.remove("hidden"); $("#tips")?.classList.remove("hidden"); $("#app")?.classList.add("hidden"); }
+  function showApp(){ $("#app")?.classList.remove("hidden"); $("#about")?.classList.add("hidden"); $("#how")?.classList.add("hidden"); $("#tips")?.classList.add("hidden"); }
 
-  // --- saldo ---
   function renderBalance(){
     const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v / 100);
-    const s = v % 100;
-    const el = document.getElementById("balance");
-    if (el) el.textContent = `${g}g ${s}s`;
+    const g = Math.floor(v/100), s = v%100;
+    const el = $("#balance"); if (el) el.textContent = `${g}g ${s}s`;
   }
 
-  // --- prebacivanje tabova ---
+  function applyPerkIndicators(){
+    const price = WHO?.perks?.shop_price_s ?? 100;
+    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
+    $("#shop-price-inline") && ($("#shop-price-inline").textContent = price);
+
+    const noFail = !!WHO?.perks?.craft_no_fail;
+    const cf = $("#craft-fail-note"); if (cf) cf.textContent = noFail ? "No fail" : "10% fail";
+    const cfp = $("#craft-perk"); if (cfp) cfp.textContent = noFail ? "No fail" : "10% fail";
+
+    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
+    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
+    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+
+    const minNote = !!WHO?.perks?.min_list_price_s;
+    $("#market-min-note")?.classList.toggle("hidden", !minNote);
+    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+  }
+
   function setTab(tab){
     showApp();
     $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
@@ -395,133 +388,99 @@
     $("#tab-craft")?.classList.toggle("hidden", tab !== "craft");
     $("#tab-market")?.classList.toggle("hidden", tab !== "market");
     $("#tab-inv")?.classList.toggle("hidden", tab !== "inv");
-
-    if (tab === "market") {
-      safeCall("loadInventoryPanel");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-    }
-    if (tab === "inv") {
-      safeCall("loadInventoryFull");
-    }
+    $("#tab-bonus")?.classList.toggle("hidden", tab !== "bonus");
+    if (tab === "market") { safeCall("loadInventoryPanel"); safeCall("loadMarket"); safeCall("loadMine"); }
+    if (tab === "inv") { safeCall("loadInventoryFull"); }
+    if (tab === "bonus") { safeCall("loadBonus"); }
   }
-
   function enterGame(defaultTab="shop"){ setTab(defaultTab); }
   function exitGame(){ showLanding(); }
 
   document.addEventListener("DOMContentLoaded", () => {
     showLanding();
     $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
-
-    // OBSERVER: auto ulazak u Shop kada se pojavi balance
-    const balanceEl = document.getElementById("balance");
+    const balanceEl = $("#balance");
     if (balanceEl) {
       let enteredOnce = false;
       const obs = new MutationObserver(() => {
         const loggedIn = !balanceEl.classList.contains("hidden");
-        const appHidden = document.getElementById("app")?.classList.contains("hidden");
-        if (loggedIn && appHidden && !enteredOnce) {
-          enteredOnce = true;
-          setTab("shop");
-        }
+        const appHidden = $("#app")?.classList.contains("hidden");
+        if (loggedIn && appHidden && !enteredOnce) { enteredOnce = true; setTab("shop"); }
       });
       obs.observe(balanceEl, { attributes: true, attributeFilter: ["class"] });
     }
   });
 </script>
 
-<!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
+<!-- ===== Auth (Frontend) ===== -->
 <script>
   function setLoggedInUI(){
-    document.getElementById("btn-open-register")?.classList.add("hidden");
-    document.getElementById("btn-open-login")?.classList.add("hidden");
-    document.getElementById("balance")?.classList.remove("hidden");
-    document.getElementById("btn-logout")?.classList.remove("hidden");
-    if (typeof renderBalance === "function") renderBalance();
-    document.getElementById("auth")?.classList.add("hidden");
-    document.getElementById("app")?.classList.remove("hidden");
+    $("#btn-open-register")?.classList.add("hidden");
+    $("#btn-open-login")?.classList.add("hidden");
+    $("#balance")?.classList.remove("hidden");
+    $("#btn-logout")?.classList.remove("hidden");
+    renderBalance?.();
+    $("#auth")?.classList.add("hidden");
+    $("#app")?.classList.remove("hidden");
   }
-
   function setLoggedOutUI(){
-    if (typeof WHO !== "undefined") WHO = null;
-    document.getElementById("btn-open-register")?.classList.remove("hidden");
-    document.getElementById("btn-open-login")?.classList.remove("hidden");
-    document.getElementById("balance")?.classList.add("hidden");
-    document.getElementById("btn-logout")?.classList.add("hidden");
-    const bal = document.getElementById("balance");
-    if (bal) bal.textContent = "0g 0s";
-    document.getElementById("app")?.classList.add("hidden");
-    document.getElementById("auth")?.classList.add("hidden");
-    const cr = document.getElementById("card-register");
-    const cl = document.getElementById("card-login");
-    if (cr) cr.style.display = "none";
-    if (cl) cl.style.display = "none";
-    const rm = document.getElementById("reg-msg");
-    const lm = document.getElementById("log-msg");
-    if (rm) rm.textContent = "";
-    if (lm) lm.textContent = "";
+    WHO = null;
+    $("#btn-open-register")?.classList.remove("hidden");
+    $("#btn-open-login")?.classList.remove("hidden");
+    $("#balance")?.classList.add("hidden");
+    $("#btn-logout")?.classList.add("hidden");
+    const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
+    $("#app")?.classList.add("hidden");
+    $("#auth")?.classList.add("hidden");
+    $("#card-register") && ($("#card-register").style.display="none");
+    $("#card-login") && ($("#card-login").style.display="none");
+    $("#reg-msg") && ($("#reg-msg").textContent="");
+    $("#log-msg") && ($("#log-msg").textContent="");
   }
 
   async function loadMe(){
     try{
       const r = await api("/api/me");
       if (!r || !r.user) throw new Error("no session");
-      if (typeof WHO !== "undefined") WHO = r.user;
+      WHO = r.user;
       setLoggedInUI();
-
-      const b = document.getElementById("buysToNext");
-      if (b) {
-        b.textContent = (typeof WHO?.buys_to_next === "number")
-          ? `Buys to next recipe: ${WHO.buys_to_next}`
-          : "Buys to next recipe: —";
-      }
-
+      const b = $("#buysToNext");
+      if (b) b.textContent = (typeof WHO?.buys_to_next === "number") ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
+      applyPerkIndicators();
       await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-      safeCall("loadInventoryFull");
-
+      safeCall("loadRecipes"); safeCall("loadMarket"); safeCall("loadMine"); safeCall("loadInventoryFull"); safeCall("loadBonus");
       setTab("shop");
-      document.getElementById("app")?.scrollIntoView({behavior:"smooth", block:"start"});
-    }catch{
-      setLoggedOutUI();
-    }
+      $("#app")?.scrollIntoView({behavior:"smooth", block:"start"});
+    }catch{ setLoggedOutUI(); }
   }
 
   async function doRegister(){
-    const msg = document.getElementById("reg-msg");
+    const msg = $("#reg-msg");
     try{
-      const email = document.getElementById("reg-email")?.value.trim();
-      const pass  = document.getElementById("reg-pass")?.value || "";
+      const email = $("#reg-email")?.value.trim();
+      const pass  = $("#reg-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
       if (pass.length < 6) throw new Error("Password too short (min 6).");
-      if (msg) msg.textContent = "…";
+      msg && (msg.textContent = "…");
       await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      if (msg) msg.textContent = "OK — now log in.";
-      const cr = document.getElementById("card-register");
-      const cl = document.getElementById("card-login");
-      if (cr) cr.style.display = "none";
-      if (cl) cl.style.display = "block";
-      document.getElementById("log-email")?.focus();
-    }catch(e){
-      if (msg) msg.textContent = e?.message || "Register failed.";
-    }
+      msg && (msg.textContent = "OK — now log in.");
+      $("#card-register") && ($("#card-register").style.display="none");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#log-email")?.focus();
+    }catch(e){ msg && (msg.textContent = e?.message || "Register failed."); }
   }
 
   async function doLogin(){
-    const msg = document.getElementById("log-msg");
+    const msg = $("#log-msg");
     try{
-      const email = document.getElementById("log-email")?.value.trim();
-      const pass  = document.getElementById("log-pass")?.value || "";
+      const email = $("#log-email")?.value.trim();
+      const pass  = $("#log-pass")?.value || "";
       if (!email || !pass) throw new Error("Enter email & password.");
-      if (msg) msg.textContent = "…";
+      msg && (msg.textContent = "…");
       await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      if (msg) msg.textContent = "OK";
+      msg && (msg.textContent = "OK");
       await loadMe();
-    }catch(e){
-      if (msg) msg.textContent = e?.message || "Login failed.";
-    }
+    }catch(e){ msg && (msg.textContent = e?.message || "Login failed."); }
   }
 
   async function doLogout(){
@@ -530,145 +489,101 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // ubaci #auth odmah ispod headera
     const header = document.querySelector("header.header");
     const auth   = document.getElementById("auth");
     if (header && auth && auth.previousElementSibling !== header) {
       header.insertAdjacentElement("afterend", auth);
     }
+    $("#btn-register")?.addEventListener("click", doRegister);
+    $("#btn-login")?.addEventListener("click", doLogin);
+    $("#btn-logout")?.addEventListener("click", doLogout);
 
-    // gumbi u formama
-    document.getElementById("btn-register")?.addEventListener("click", doRegister);
-    document.getElementById("btn-login")?.addEventListener("click", doLogin);
-    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
-    // enter tipke
-    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-    // HEADER gumbi → otvaraju auth sekciju
-    document.getElementById("btn-open-register")?.addEventListener("click", () => {
-      const auth = document.getElementById("auth");
-      const cr = document.getElementById("card-register");
-      const cl = document.getElementById("card-login");
-      auth?.classList.remove("hidden");
-      if (cr) cr.style.display = "block";
-      if (cl) cl.style.display = "none";
-      auth?.scrollIntoView({behavior:"smooth", block:"start"});
-      document.getElementById("reg-email")?.focus();
+    $("#btn-open-register")?.addEventListener("click", () => {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-register") && ($("#card-register").style.display="block");
+      $("#card-login") && ($("#card-login").style.display="none");
+      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      $("#reg-email")?.focus();
     });
-
-    document.getElementById("btn-open-login")?.addEventListener("click", () => {
-      const auth = document.getElementById("auth");
-      const cr = document.getElementById("card-register");
-      const cl = document.getElementById("card-login");
-      auth?.classList.remove("hidden");
-      if (cl) cl.style.display = "block";
-      if (cr) cr.style.display = "none";
-      auth?.scrollIntoView({behavior:"smooth", block:"start"});
-      document.getElementById("log-email")?.focus();
+    $("#btn-open-login")?.addEventListener("click", () => {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#card-register") && ($("#card-register").style.display="none");
+      $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
+      $("#log-email")?.focus();
     });
 
     loadMe();
   });
 </script>
 
-<!-- == SHOP (Buy T1) == -->
+<!-- ===== Shop (Buy T1) ===== -->
 <script>
 function updateShopBalanceBadge(){
-  const el = document.getElementById("shop-balance");
-  if (!el) return;
-  const s = (WHO?.balance_silver ?? 0) | 0;
-  const g = Math.floor(s/100), ss = s%100;
-  if (WHO) {
-    el.textContent = `${g}g ${ss}s`;
-    el.classList.remove("hidden");
-  } else {
-    el.textContent = "0g 0s";
-    el.classList.add("hidden");
-  }
+  const el = $("#shop-balance"); if (!el) return;
+  const s = WHO?.balance_silver | 0; const g = Math.floor(s/100), ss = s%100;
+  if (WHO) { el.textContent = `${g}g ${ss}s`; el.classList.remove("hidden"); }
+  else { el.textContent = "0g 0s"; el.classList.add("hidden"); }
 }
-
 function renderShopGotItem(obj){
-  const msg = document.querySelector("#shop-msg");
-  if(!msg) return;
+  const msg = $("#shop-msg"); if(!msg) return;
   const icon = iconForByCode(obj.code, obj.tier);
   msg.innerHTML =
     `<div class="row" style="gap:10px;align-items:center">
-      <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
+      <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
       <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
     </div>`;
 }
-
 function renderShopGotRecipe(rec){
-  const msg = document.querySelector("#shop-msg");
-  if(!msg) return;
+  const msg = $("#shop-msg"); if(!msg) return;
   msg.innerHTML =
     `<div class="row" style="gap:10px;align-items:center">
-      <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
+      <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
       <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
     </div>`;
 }
-
 function updateBuysToNextFromWHO(){
-  const b = document.querySelector("#buysToNext");
-  if (!b) return;
-  b.textContent = (typeof WHO?.buys_to_next === "number")
-    ? `Buys to next recipe: ${WHO.buys_to_next}`
-    : "Buys to next recipe: —";
+  const b = $("#buysToNext"); if (!b) return;
+  b.textContent = (typeof WHO?.buys_to_next === "number") ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
 }
-
 async function refreshMeLight(){
   try{
     const r = await api("/api/me");
     if (r?.user) {
       WHO = r.user;
-      renderBalance?.();
-      updateShopBalanceBadge();
-      updateBuysToNextFromWHO();
+      renderBalance?.(); updateShopBalanceBadge(); updateBuysToNextFromWHO(); applyPerkIndicators();
     }
   }catch{}
 }
 
-document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
-  const btn = document.querySelector("#btn-buy-t1");
+$("#btn-buy-t1")?.addEventListener("click", async ()=>{
+  const btn = $("#btn-buy-t1");
   const prevTxt = btn?.textContent;
-  const msg = document.querySelector("#shop-msg");
-
+  const msg = $("#shop-msg");
   try{
-    if (msg) msg.textContent = "";
+    msg && (msg.textContent = "");
     if (btn){ btn.disabled = true; btn.textContent = "Buying…"; }
-
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-
     if (WHO) WHO.balance_silver = (r.balance_silver | 0);
-    renderBalance?.();
-    updateShopBalanceBadge();
-
-    if (r.gotRecipe)      renderShopGotRecipe(r.gotRecipe);
-    else if (r.gotItem)   renderShopGotItem(r.gotItem);
-    else if (msg)         msg.textContent = "OK";
-
+    renderBalance?.(); updateShopBalanceBadge();
+    if (r.gotRecipe) renderShopGotRecipe(r.gotRecipe);
+    else if (r.gotItem) renderShopGotItem(r.gotItem);
+    else msg && (msg.textContent = "OK");
     await refreshMeLight();
-
-    await (typeof loadInventoryPanel==="function" ? loadInventoryPanel() : Promise.resolve());
-    if (typeof loadRecipes==="function")       loadRecipes();
-    if (typeof loadInventoryFull==="function") loadInventoryFull();
-    if (typeof loadMarket==="function")        loadMarket();
-    if (typeof loadMine==="function")          loadMine();
-
+    await safeCall("loadInventoryPanel");
+    safeCall("loadRecipes"); safeCall("loadInventoryFull"); safeCall("loadMarket"); safeCall("loadMine");
   }catch(e){
-    if (e?.status === 401 || /not logged in/i.test(String(e?.message||""))) {
-      document.getElementById("auth")?.classList.remove("hidden");
-      const login = document.getElementById("card-login");
-      const reg   = document.getElementById("card-register");
-      if (login) login.style.display = "block";
-      if (reg)   reg.style.display   = "none";
+    if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#card-register") && ($("#card-register").style.display="none");
     }
-    if (msg) msg.textContent = e?.message || "Buy failed.";
-    else alert(e?.message || "Buy failed.");
+    msg ? (msg.textContent = e?.message || "Buy failed.") : alert(e?.message || "Buy failed.");
   }finally{
     if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
   }
@@ -677,157 +592,134 @@ document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
 document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
 
-<!-- ===== CRAFTING ===== -->
+<!-- ===== Crafting ===== -->
 <script>
-  function rowRecipe(r){
+function rowRecipe(r){
+  return `
+    <div class="itemrow">
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+        <div>
+          <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+          <div class="muted">T${r.tier} · x${r.qty}</div>
+        </div>
+      </div>
+      <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+    </div>`;
+}
+
+async function loadRecipes(){
+  const box = $("#recipes"); if (!box) return;
+  box.textContent = "Loading…";
+  try{
+    const list = await api("/api/recipes/list");
+    const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
+    const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
+    if (!rows.length){ box.textContent = "No recipes."; return; }
+    box.innerHTML = rows.map(rowRecipe).join("");
+    box.querySelectorAll("[data-open]").forEach(btn=>{
+      btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
+    });
+  }catch(e){ box.textContent = e?.message || "Failed to load recipes."; }
+}
+$("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
+$("#filter-recipe")?.addEventListener("input", loadRecipes);
+
+function renderIngredients(details){
+  const parts = (details.ingredients||[]).map(ing=>{
+    const ok  = (ing.have|0) >= (ing.qty|0);
+    const src = iconForByCode(ing.code, ing.tier);
     return `
       <div class="itemrow">
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
-          <div>
-            <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
-            <div class="muted">T${r.tier} · x${r.qty}</div>
-          </div>
+          <img class="icon" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
         </div>
-        <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+        <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
       </div>`;
-  }
+  }).join("");
 
-  async function loadRecipes(){
-    const box = $("#recipes"); if (!box) return;
-    box.textContent = "Loading…";
-    try{
-      const list = await api("/api/recipes/list");
-      const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-      const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
-      if (!rows.length){ box.textContent = "No recipes."; return; }
-      box.innerHTML = rows.map(rowRecipe).join("");
-      box.querySelectorAll("[data-open]").forEach(btn=>{
-        btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
-      });
-    }catch(e){
-      box.textContent = e?.message || "Failed to load recipes.";
-    }
-  }
+  const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
+  const craftNote = WHO?.perks?.craft_no_fail ? "No fail (server checks ingredients)" :
+                    (canCraft ? "10% fail → Scrap (server checks ingredients)" :
+                                "You are missing materials for this recipe.");
 
-  document.getElementById("btn-refresh-rec")?.addEventListener("click", loadRecipes);
-  document.getElementById("filter-recipe")?.addEventListener("input", loadRecipes);
+  return `
+    <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
+    <div class="itemrow"><div class="muted">Ingredients</div></div>
+    ${parts}
+    <div class="itemrow">
+      <button id="btn-craft" class="btn" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
+      <span class="muted" style="margin-left:8px">${craftNote}</span>
+    </div>`;
+}
 
-  function renderIngredients(details){
-    const parts = (details.ingredients||[]).map(ing=>{
-      const ok  = (ing.have|0) >= (ing.qty|0);
-      const src = iconForByCode(ing.code, ing.tier);
-      return `
-        <div class="itemrow">
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${esc(src)}" alt="" onerror="imgFallback(this)">
-            <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-          </div>
-          <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
-        </div>`;
-    }).join("");
+async function openRecipe(recipeId){
+  const box = $("#rec-details"); if (!box) return;
+  box.textContent = "Loading…";
+  try{
+    const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
+    box.innerHTML = renderIngredients(details);
+    window.CURRENT_RECIPE_ID = details.recipe.id;
 
-    const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
-    const craftNote = canCraft ? "10% fail → Scrap (server checks ingredients)"
-                               : "You are missing materials for this recipe.";
-
-    return `
-      <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
-      <div class="itemrow"><div class="muted">Ingredients</div></div>
-      ${parts}
-      <div class="itemrow">
-        <button id="btn-craft" class="btn" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
-        <span class="muted" style="margin-left:8px">${craftNote}</span>
-      </div>`;
-  }
-
-  async function openRecipe(recipeId){
-    const box = $("#rec-details"); if (!box) return;
-    box.textContent = "Loading…";
-    try{
-      const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
-      box.innerHTML = renderIngredients(details);
-      window.CURRENT_RECIPE_ID = details.recipe.id;
-
-      const btn = $("#btn-craft");
-      btn?.addEventListener("click", async ()=>{
-        if (btn.disabled) return;
-        const prev = btn.textContent; btn.disabled = true; btn.textContent = "Crafting…";
-        try{
-          const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
-          if (r2.crafted)      toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-          else if (r2.scrap)   toast("Failed (got Scrap)");
-          else                 toast("Done");
-          await safeCall("loadInventoryPanel");
-          await safeCall("loadRecipes");
-          await safeCall("loadInventoryFull");
-          await openRecipe(details.recipe.id);
-        }catch(e){
-          if (e?.data?.missing?.length) {
-            toast("You are missing: " + e.data.missing.join(", "));
-          } else {
-            toast(e?.message || "Crafting failed.");
-          }
-        }finally{
-          btn.disabled = false; btn.textContent = prev;
-        }
-      });
-    }catch(e){
-      box.textContent = e?.message || "Failed to load recipe.";
-    }
-  }
-
-  async function refreshArtefactBonus(){
-    try{
-      const r = await api("/api/items/artefact/bonus");
-      const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-      const el = document.querySelector("#artefact-bonus");
-      if (el) el.textContent = bonus;
-    }catch(e){
-      console.warn("refreshArtefactBonus failed:", e);
-    }
-  }
-  (() => {
-    const craft = document.querySelector("#tab-craft");
-    if (!craft) return;
-    const obs = new MutationObserver(() => {
-      if (!craft.classList.contains("hidden")) refreshArtefactBonus();
+    const btn = $("#btn-craft");
+    btn?.addEventListener("click", async ()=>{
+      if (btn.disabled) return;
+      const prev = btn.textContent; btn.disabled = true; btn.textContent = "Crafting…";
+      try{
+        const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
+        if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+        else if (r2.scrap) toast("Failed (got Scrap)");
+        else toast("Done");
+        await safeCall("loadInventoryPanel"); await safeCall("loadRecipes"); await safeCall("loadInventoryFull");
+        await openRecipe(details.recipe.id);
+      }catch(e){
+        if (e?.data?.missing?.length) toast("You are missing: " + e.data.missing.join(", "));
+        else toast(e?.message || "Crafting failed.");
+      }finally{ btn.disabled = false; btn.textContent = prev; }
     });
-    obs.observe(craft, { attributes:true });
-  })();
+  }catch(e){ box.textContent = e?.message || "Failed to load recipe."; }
+}
 
-  const arteBtn = $("#btn-artefact");
-  arteBtn?.addEventListener("click", async ()=>{
-    if (arteBtn.disabled) return;
-    const prev = arteBtn.textContent; arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
-    try{
-      const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-      const name  = r.crafted || "Artefact";
-      const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-      $("#artefact-bonus")?.textContent = bonus;
-      $("#artefact-msg")?.textContent = `Crafted: ${name} (+${bonus} gold)`;
-      await safeCall("loadInventoryPanel");
-      await safeCall("loadInventoryFull");
-      await safeCall("loadRecipes");
-    }catch(e){
-      $("#artefact-msg")?.textContent = e?.message || "Crafting failed.";
-    }finally{
-      arteBtn.disabled = false; arteBtn.textContent = prev;
-    }
-  });
+async function refreshArtefactBonus(){
+  try{
+    const r = await api("/api/items/artefact/bonus");
+    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
+  }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
+}
+(() => {
+  const craft = $("#tab-craft"); if (!craft) return;
+  const obs = new MutationObserver(() => { if (!craft.classList.contains("hidden")) refreshArtefactBonus(); });
+  obs.observe(craft, { attributes:true });
+})();
+
+const arteBtn = $("#btn-artefact");
+arteBtn?.addEventListener("click", async ()=>{
+  if (arteBtn.disabled) return;
+  const prev = arteBtn.textContent; arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
+  try{
+    const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
+    const name  = r.crafted || "Artefact";
+    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
+    $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
+    await safeCall("loadInventoryPanel"); await safeCall("loadInventoryFull"); await safeCall("loadRecipes"); await safeCall("loadBonus"); await refreshMeLight();
+  }catch(e){ $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed."); }
+  finally{ arteBtn.disabled = false; arteBtn.textContent = prev; }
+});
 </script>
 
-<!-- ===== MARKET (inventory panel, market, mine, list) ===== -->
+<!-- ===== Market & Inventory ===== -->
 <script>
 window.SEL_INV = null;
 
-/* ===== INVENTORY PANEL (Create Sale, lijevi stupac) ===== */
 async function loadInventoryPanel(){
-  const box = document.querySelector("#inv-list"); if(!box) return;
+  const box = $("#inv-list"); if(!box) return;
   box.textContent = "Loading…";
   try{
-    const r  = await api("/api/inventory"); // {items, recipes}
-    const q  = (document.querySelector("#inv-search")?.value || "").trim().toLowerCase();
+    const r  = await api("/api/inventory");
+    const q  = ($("#inv-search")?.value || "").trim().toLowerCase();
     const items   = (r.items||[]).filter(x => !q || x.name.toLowerCase().includes(q));
     const recipes = (r.recipes||[]).filter(x => !q || x.name.toLowerCase().includes(q));
 
@@ -839,13 +731,13 @@ async function loadInventoryPanel(){
         row.className = "itemrow";
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
+            <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
             <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
           </div>
           <button class="btn muted">Pick</button>`;
         row.querySelector("button").addEventListener("click", ()=>{
           window.SEL_INV = { kind, id: it.id, name: it.name };
-          const m = document.querySelector("#list-msg"); if (m) m.textContent = "Selected: "+it.name;
+          const m = $("#list-msg"); if (m) m.textContent = "Selected: "+it.name;
         });
         box.appendChild(row);
       }
@@ -853,33 +745,28 @@ async function loadInventoryPanel(){
     add(items,"item");
     add(recipes,"recipe");
     if (!box.children.length) box.textContent = "Empty.";
-  }catch(e){
-    box.textContent = e?.message || "Failed.";
-  }
+  }catch(e){ box.textContent = e?.message || "Failed."; }
 }
-document.querySelector("#inv-search")?.addEventListener("input", loadInventoryPanel);
+$("#inv-search")?.addEventListener("input", loadInventoryPanel);
 
-/* ===== MARKETPLACE (desno, gornji blok) ===== */
 async function loadMarket(){
-  const box = document.querySelector("#market"); if(!box) return;
+  const box = $("#market"); if(!box) return;
   box.textContent = "Loading…";
   try{
-    const q = document.querySelector("#market-q")?.value?.trim() || "";
+    const q = $("#market-q")?.value?.trim() || "";
     const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
     const rows = (r?.listings || []).filter(Boolean);
     if (!rows.length){ box.textContent="No listings."; return; }
-
     box.innerHTML = "";
     for (const s of rows){
-      const priceS = s?.price_s | 0;
-      const g  = Math.floor(priceS/100), ss = priceS%100;
+      const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
       const row = document.createElement("div");
       row.className = "itemrow";
       row.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="imgFallback(this)">
+          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
         </div>
         <div class="row">
@@ -894,41 +781,32 @@ async function loadMarket(){
           await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
           toast("Purchased.");
           loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull"); safeCall("loadMe");
-        }catch(e){
-          alert(e.message);
-        }finally{
-          btn.disabled = false; btn.textContent = prev;
-        }
+        }catch(e){ alert(e.message); }
+        finally{ btn.disabled = false; btn.textContent = prev; }
       });
       box.appendChild(row);
     }
-  }catch(e){
-    box.textContent = e?.message || "Failed.";
-  }
+  }catch(e){ box.textContent = e?.message || "Failed."; }
 }
-document.querySelector("#market-q")?.addEventListener("input", loadMarket);
+$("#market-q")?.addEventListener("input", loadMarket);
 
-/* ===== MOJI LISTINGS (desno, donji blok) ===== */
 async function loadMine(){
-  const box = document.querySelector("#mine"); if(!box) return;
+  const box = $("#mine"); if(!box) return;
   box.textContent = "Loading…";
   try{
     const r = await api("/api/sales/mine");
     const rows = (r?.listings || []).filter(Boolean);
     if (!rows.length){ box.textContent="No listings."; return; }
-
     box.innerHTML = "";
     for (const s of rows){
-      const priceS = s?.price_s | 0;
-      const g  = Math.floor(priceS/100), ss = priceS%100;
+      const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-
       const row = document.createElement("div");
       row.className = "itemrow";
       row.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="imgFallback(this)">
+          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span> <span class="badge">${esc(s?.status||"-")}</span></div>
         </div>
         <div class="row">
@@ -940,83 +818,144 @@ async function loadMine(){
         btn.addEventListener("click", async ()=>{
           if (btn.disabled) return;
           const prev = btn.textContent; btn.disabled = true; btn.textContent = "Cancel…";
-          try{
-            await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-            loadMarket(); loadMine(); loadInventoryPanel();
+          try{ await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
+               loadMarket(); loadMine(); loadInventoryPanel();
           }catch(e){ alert(e.message); }
           finally{ btn.disabled = false; btn.textContent = prev; }
         });
       }
       box.appendChild(row);
     }
-  }catch(e){
-    box.textContent = e?.message || "Failed.";
-  }
+  }catch(e){ box.textContent = e?.message || "Failed."; }
 }
-document.querySelector("#btn-mine")?.addEventListener("click", loadMine);
+$("#btn-mine")?.addEventListener("click", loadMine);
 
-/* ===== LIST FOR SALE (gumb ispod Create Sale) ===== */
-document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
+$("#btn-list")?.addEventListener("click", async ()=>{
   try{
-    const sel = window.SEL_INV;
-    if (!sel){ alert("Pick an item/recipe first."); return; }
-
-    const gold   = parseInt(document.querySelector("#price-g")?.value || "0", 10) || 0;
-    let   silver = parseInt(document.querySelector("#price-s")?.value || "0", 10) || 0;
-    const qty    = Math.max(1, parseInt(document.querySelector("#price-qty")?.value || "1", 10) || 1);
-    if (silver < 0) silver = 0;
-    if (silver > 99) silver = 99;
-
+    const sel = window.SEL_INV; if (!sel){ alert("Pick an item/recipe first."); return; }
+    const gold   = parseInt($("#price-g")?.value || "0", 10) || 0;
+    let   silver = parseInt($("#price-s")?.value || "0", 10) || 0;
+    const qty    = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
+    if (silver < 0) silver = 0; if (silver > 99) silver = 99;
     await api("/api/sales/list", {
       method: "POST",
       body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
     });
-
-    const msg = document.querySelector("#list-msg");
-    if (msg) msg.textContent = "Listed.";
+    const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
     window.SEL_INV = null;
-
     loadMarket(); loadMine(); loadInventoryPanel();
-  }catch(e){
-    alert(e?.message || "Listing failed.");
-  }
+  }catch(e){ alert(e?.message || "Listing failed."); }
 });
+
+async function loadInventoryFull(){
+  const box=$("#inv-full"); if(!box) return;
+  box.textContent="Loading…";
+  try{
+    const r = await api("/api/inventory");
+    const lines=[];
+    for(const it of (r.items||[])){
+      const icon = iconForByCode(it.code, it.tier);
+      lines.push(`
+        <div class="itemrow">
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
+          </div>
+          <div class="muted">x${it.qty}</div>
+        </div>`);
+    }
+    for(const rc of (r.recipes||[])){
+      lines.push(`
+        <div class="itemrow">
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+            <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
+          </div>
+          <div class="muted">x${rc.qty}</div>
+        </div>`);
+    }
+    box.innerHTML = lines.join("") || "Empty.";
+  }catch(e){ box.textContent = e?.message || "Failed."; }
+}
 </script>
 
-<!-- ===== INVENTORY (full) ===== -->
+<!-- ===== BONUS (frontend) ===== -->
 <script>
-  async function loadInventoryFull(){
-    const box=$("#inv-full"); if(!box) return;
-    box.textContent="Loading…";
-    try{
-      const r = await api("/api/inventory");
-      const lines=[];
-      for(const it of (r.items||[])){
-        const icon = iconForByCode(it.code, it.tier);
-        lines.push(`
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
-              <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
-            </div>
-            <div class="muted">x${it.qty}</div>
-          </div>`);
-      }
-      for(const rc of (r.recipes||[])){
-        lines.push(`
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
-              <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
-            </div>
-            <div class="muted">x${rc.qty}</div>
-          </div>`);
-      }
-      box.innerHTML = lines.join("") || "Empty.";
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
+function tile(name, code, ok, tier){
+  const ico = iconForByCode(code, tier);
+  return `
+    <div class="tile ${ok?'ok':'miss'}">
+      <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+      <div>${esc(name)}</div>
+    </div>`;
+}
+
+async function loadBonus(){
+  const lock = $("#bonus-lock");
+  const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+  const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+  Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+
+  try{
+    const r = await api("/api/bonus/status");
+    const hasArt = !!r?.has_artefact;
+    lock?.classList.toggle("hidden", hasArt);
+
+    // Ako nema artefakta — disable sve gumbe
+    if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+
+    // Za prikaz imena trebaju imena itema po kodu → izvučemo ih iz postojećih tablica.
+    // Napravimo mapu code->name za tier (povuci jednom iz /api/inventory + seed znamo na serveru).
+    // Ovdje, da ostanemo bez dodatnih poziva: ime prikazujemo iz code-a (estetski je ok).
+    function prettyNameFromCode(code){
+      // T2_BRONZE_DOOR -> Bronze Door
+      return String(code).replace(/^T\d_/, "").replaceAll("_"," ").toLowerCase()
+        .replace(/\b\w/g, c=>c.toUpperCase());
     }
+
+    for (const t of [2,3,4,5]){
+      const box = boxes[t]; if (!box) continue;
+      const info = r.tiers?.[t]; if (!info){ box.textContent="No data"; continue; }
+
+      const items = [];
+      // Owned
+      for (const c of (info.owned||[])){
+        items.push(tile(prettyNameFromCode(c), c, true, t));
+      }
+      // Missing
+      for (const c of (info.missing||[])){
+        items.push(tile(prettyNameFromCode(c), c, false, t));
+      }
+      box.innerHTML = items.join("") || "Empty.";
+      const btn = btns[t];
+      if (btn){
+        const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+        btn.disabled = !canClaim;
+        btn.textContent = info.claimed ? "Claimed" : "Claim";
+        if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+        btn.onclick = async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent; btn.disabled = true; btn.textContent = "Claiming…";
+          try{
+            await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+            toast(`T${t} bonus claimed.`);
+            await loadBonus(); await refreshMeLight();
+          }catch(e){ alert(e?.message || "Claim failed."); }
+          finally{ btn.textContent = prev; }
+        };
+      }
+    }
+  }catch(e){
+    // 401 → nije logiran
+    if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#card-register") && ($("#card-register").style.display="none");
+    }
+    Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
   }
+}
 </script>
+
 </body>
 </html>
