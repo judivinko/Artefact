@@ -38,46 +38,24 @@
 
     #about p,
     #how p,
-    #tips li {
-      font-size: 16px;
-      line-height: 1.6;
-    }
+    #tips li { font-size:16px; line-height:1.6; }
 
     #how .label,
-    #tips .label {
-      font-size: 20px;
-    }
+    #tips .label { font-size:20px; }
 
     /* Globalni limit za sve <img> (osim ikona) */
-    img {
-      max-width: 512px;
-      max-height: 512px;
-      width: auto;
-      height: auto;
-    }
+    img { max-width:512px; max-height:512px; width:auto; height:auto; }
 
     /* Posebna klasa za item previewe */
     .item-img{
-      display: block;
-      width: 100%;
-      max-width: 512px;
-      max-height: 512px;
-      object-fit: contain;
-      border-radius: 10px;
-      margin-top: 8px;
+      display:block;width:100%;max-width:512px;max-height:512px;
+      object-fit:contain;border-radius:10px;margin-top:8px;
     }
 
     .img-slot{
-      margin-top:10px;
-      width:100%;
-      min-height:96px;
-      border:1px dashed #233047;
-      border-radius:10px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      opacity:.85;
+      margin-top:10px;width:100%;min-height:96px;border:1px dashed #233047;
+      border-radius:10px;display:flex;align-items:center;justify-content:center;
+      font-size:12px;opacity:.85;
     }
     .img-slot:hover{ opacity:1 }
   </style>
@@ -138,10 +116,10 @@
         </p>
         <img src="/t1_bronze.png" alt="T1 example"
              style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="this.style.display='none'">
+             onerror="imgFallback(this)">
         <img src="/recipe.png" alt="Recipe example"
              style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="this.style.display='none'">
+             onerror="imgFallback(this)">
       </div>
 
       <!-- 2) CRAFTING -->
@@ -151,10 +129,10 @@
           With a recipe and the required materials, you can craft <b>T2, T3, T4</b> and, finally, <b>T5</b> items.<br>
           Crafting can sometimes <i>fail</i> and yield <b>Scrap</b>, so combine carefully.
         </p>
-        <img src="/t2_golden_ring.png" alt="T2"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-        <img src="/t3_gate_of_might.png" alt="T3" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-        <img src="/t4_engine_core.png"  alt="T4"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-        <img src="/t5_ancient_relic.png" alt="T5"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+        <img src="/t2_golden_ring.png" alt="T2"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
+        <img src="/t3_gate_of_might.png" alt="T3" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
+        <img src="/t4_engine_core.png"  alt="T4"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
+        <img src="/t5_ancient_relic.png" alt="T5"  style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="imgFallback(this)">
       </div>
 
       <!-- 3) MARKET -->
@@ -175,7 +153,7 @@
         </p>
         <img src="/artefakt.png" alt="Artefact"
              style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block"
-             onerror="this.style.display='none'">
+             onerror="imgFallback(this)">
       </div>
     </div>
   </section>
@@ -223,7 +201,7 @@
       <button id="btn-artefact" class="btn right">
         <img src="/artefakt.png" alt="Artefact"
              style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px"
-             onerror="this.onerror=null;this.style.display='none'">
+             onerror="imgFallback(this)">
         Craft ARTEFACT (10× distinct T5)
       </button>
     </div>
@@ -290,57 +268,96 @@
 </section> <!-- /#app -->
 
 
-  <!-- ===== Toast + helpers ($,$$,api, safeCall) ===== -->
-  <div id="toast" class="toast hidden"></div>
-  <script>
-    // dom helpers
-    const $  = (s,root=document)=>root.querySelector(s);
-    const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-    function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
+<!-- ===== Toast + helpers ($,$$,api, safeCall) ===== -->
+<div id="toast" class="toast hidden"></div>
+<script>
+  // dom helpers
+  const $  = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
+  function toast(t){ const box=$("#toast"); box.textContent=t; box.classList.remove("hidden"); setTimeout(()=>box.classList.add("hidden"),1800); }
 
-    // fetch helper (uvijek nosi cookie) + bogatiji error obj
-    async function api(p,opts={}){
-      const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
-      let data=null; try{data=await r.json()}catch{}
-      if(!r.ok){
-        const err = new Error((data&&data.error)||("HTTP "+r.status));
-        err.status = r.status;
-        err.data = data;
-        throw err;
-      }
-      return data;
+  // fetch helper (uvijek nosi cookie) + bogatiji error obj
+  async function api(p,opts={}){
+    const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
+    let data=null; try{data=await r.json()}catch{}
+    if(!r.ok){
+      const err = new Error((data&&data.error)||("HTTP "+r.status));
+      err.status = r.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  // sigurno pozivanje (ako fn ne postoji, ne ruši UI)
+  async function safeCall(fnName, ...args){
+    const fn = window[fnName];
+    if (typeof fn === "function") {
+      try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
+    }
+  }
+</script>
+
+<!-- ===== Ikone i utili (univerzalni fallback za slike) ===== -->
+<script>
+  const RECIPE_ICON = "/images/recipe.png";
+  const FALLBACK_ITEM_ICON = "/images/t1_bronze.png";
+
+  const esc = s => String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+  function fileNameFromCodeTier(code, tier){
+    if(!code) return null;
+    const m = String(code).match(/^T([1-6])_(.*)$/);
+    if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
+    if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
+    return null;
+  }
+
+  // primarno /images/, fallback na / pa tek onda na FALLBACK
+  function iconForByCode(code, tier){
+    const file = fileNameFromCodeTier(code, tier);
+    if (!file) return FALLBACK_ITEM_ICON;
+    return `/images/${file}`;
+  }
+
+  // Bidirekcijski fallback: pokušaj i /images/FILE i /FILE, pa tek onda FALLBACK
+  function imgFallback(el){
+    const tried = el.getAttribute("data-fb") || ""; // memo što smo probali
+    const src = el.getAttribute("src") || "";
+    const fname = src.split("/").pop() || "";
+
+    // ako je trenutno /images/FILE i nismo probali root → probaj /FILE
+    if (src.startsWith("/images/") && !tried.includes("root")) {
+      el.setAttribute("data-fb", tried ? tried + ",root" : "root");
+      el.onerror = imgFallback;
+      el.src = `/${fname}`;
+      return;
     }
 
-    // sigurno pozivanje (ako fn ne postoji, ne ruši UI)
-    async function safeCall(fnName, ...args){
-      const fn = window[fnName];
-      if (typeof fn === "function") {
-        try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
-      }
+    // ako je trenutno root /FILE i nismo probali /images → probaj /images/FILE
+    if (!src.startsWith("/images/") && !tried.includes("images")) {
+      el.setAttribute("data-fb", tried ? tried + ",images" : "images");
+      el.onerror = imgFallback;
+      el.src = `/images/${fname}`;
+      return;
     }
-  </script>
 
-  <!-- ===== Ikone i utili ===== -->
-  <script>
-    const RECIPE_ICON = "/recipe.png";
-    const FALLBACK_ITEM_ICON = "/t1_bronze.png";
-    const esc = s => String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
-    function fileNameFromCodeTier(code, tier){
-      if(!code) return null;
-      const m = String(code).match(/^T([1-6])_(.*)$/);
-      if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
-      if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
-      return null;
-    }
-    function iconForByCode(code, tier){
-      const file = fileNameFromCodeTier(code, tier);
-      return file ? `/${file}` : FALLBACK_ITEM_ICON;
-    }
-  </script>
+    // zadnji korak: fallback ikona
+    el.onerror = null;
+    el.src = FALLBACK_ITEM_ICON;
+  }
 
- <!-- ===== Global state + Tabs (auto-enter Shop on login) ===== -->
+  // Preusmjeri postojeće inline onerror handlere na imgFallback
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll("img[onerror]").forEach(img => {
+      img.setAttribute("onerror", "imgFallback(this)");
+    });
+  });
+</script>
+
+<!-- ===== Global state + Tabs (auto-enter Shop on login) ===== -->
 <script>
   // --- global stanje ---
   let WHO = null;
@@ -372,16 +389,13 @@
 
   // --- prebacivanje tabova ---
   function setTab(tab){
-    // čim biraš tab → uđi u App i sakrij landing
     showApp();
-
     $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
     $("#tab-shop")?.classList.toggle("hidden", tab !== "shop");
     $("#tab-craft")?.classList.toggle("hidden", tab !== "craft");
     $("#tab-market")?.classList.toggle("hidden", tab !== "market");
     $("#tab-inv")?.classList.toggle("hidden", tab !== "inv");
 
-    // auto-refresh po tabovima
     if (tab === "market") {
       safeCall("loadInventoryPanel");
       safeCall("loadMarket");
@@ -392,19 +406,14 @@
     }
   }
 
-  // (opciono) eksplicitni API
   function enterGame(defaultTab="shop"){ setTab(defaultTab); }
   function exitGame(){ showLanding(); }
 
-  // --- inicijalizacija + AUTO PREBACIVANJE U SHOP NAKON LOGIN-a ---
   document.addEventListener("DOMContentLoaded", () => {
-    // Start: prikaži landing; App je skriven
     showLanding();
-
-    // Klikovi na tab chipove
     $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
 
-    // OBSERVER: kad #balance prestane biti "hidden" => uđi u Shop (samo jednom)
+    // OBSERVER: auto ulazak u Shop kada se pojavi balance
     const balanceEl = document.getElementById("balance");
     if (balanceEl) {
       let enteredOnce = false;
@@ -421,46 +430,32 @@
   });
 </script>
 
-
 <!-- ===== AUTH (Frontend): loadMe, register, login, logout ===== -->
 <script>
   function setLoggedInUI(){
-    // sakrij Register / Log in; prikaži saldo + Logout
     document.getElementById("btn-open-register")?.classList.add("hidden");
     document.getElementById("btn-open-login")?.classList.add("hidden");
     document.getElementById("balance")?.classList.remove("hidden");
     document.getElementById("btn-logout")?.classList.remove("hidden");
-
     if (typeof renderBalance === "function") renderBalance();
-
-    // SAKRIJ AUTH i PRIKAŽI APP (Shop)
     document.getElementById("auth")?.classList.add("hidden");
     document.getElementById("app")?.classList.remove("hidden");
   }
 
   function setLoggedOutUI(){
     if (typeof WHO !== "undefined") WHO = null;
-
-    // prikaži Register / Log in; sakrij saldo + Logout
     document.getElementById("btn-open-register")?.classList.remove("hidden");
     document.getElementById("btn-open-login")?.classList.remove("hidden");
     document.getElementById("balance")?.classList.add("hidden");
     document.getElementById("btn-logout")?.classList.add("hidden");
-
     const bal = document.getElementById("balance");
     if (bal) bal.textContent = "0g 0s";
-
-    // na logoutu sakrij app i auth (home sekcije ostaju)
     document.getElementById("app")?.classList.add("hidden");
     document.getElementById("auth")?.classList.add("hidden");
-
-    // zatvori kartice u auth-u
     const cr = document.getElementById("card-register");
     const cl = document.getElementById("card-login");
     if (cr) cr.style.display = "none";
     if (cl) cl.style.display = "none";
-
-    // očisti poruke
     const rm = document.getElementById("reg-msg");
     const lm = document.getElementById("log-msg");
     if (rm) rm.textContent = "";
@@ -472,7 +467,6 @@
       const r = await api("/api/me");
       if (!r || !r.user) throw new Error("no session");
       if (typeof WHO !== "undefined") WHO = r.user;
-
       setLoggedInUI();
 
       const b = document.getElementById("buysToNext");
@@ -482,16 +476,13 @@
           : "Buys to next recipe: —";
       }
 
-      // učitaj panele u pozadini
       await safeCall("loadInventoryPanel");
       safeCall("loadRecipes");
       safeCall("loadMarket");
       safeCall("loadMine");
       safeCall("loadInventoryFull");
 
-      // ODMAH U SHOP
-      if (typeof setTab === "function") setTab("shop");
-      // opcionalno: skrolaj do app-a
+      setTab("shop");
       document.getElementById("app")?.scrollIntoView({behavior:"smooth", block:"start"});
     }catch{
       setLoggedOutUI();
@@ -508,8 +499,6 @@
       if (msg) msg.textContent = "…";
       await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
       if (msg) msg.textContent = "OK — now log in.";
-
-      // prebaci fokus na login
       const cr = document.getElementById("card-register");
       const cl = document.getElementById("card-login");
       if (cr) cr.style.display = "none";
@@ -541,7 +530,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    // pobrini se da je #auth odmah ispod headera (ako već nije)
+    // ubaci #auth odmah ispod headera
     const header = document.querySelector("header.header");
     const auth   = document.getElementById("auth");
     if (header && auth && auth.previousElementSibling !== header) {
@@ -582,20 +571,16 @@
       document.getElementById("log-email")?.focus();
     });
 
-    // inicijalno stanje
     loadMe();
   });
 </script>
 
-
-
 <!-- == SHOP (Buy T1) == -->
 <script>
-// ---------- util: osvježi badge u Shop tabu
 function updateShopBalanceBadge(){
   const el = document.getElementById("shop-balance");
   if (!el) return;
-  const s = WHO?.balance_silver | 0;
+  const s = (WHO?.balance_silver ?? 0) | 0;
   const g = Math.floor(s/100), ss = s%100;
   if (WHO) {
     el.textContent = `${g}g ${ss}s`;
@@ -606,25 +591,23 @@ function updateShopBalanceBadge(){
   }
 }
 
-// ---------- prikaz dobijenog ITEM-a (sa slikom)
 function renderShopGotItem(obj){
   const msg = document.querySelector("#shop-msg");
   if(!msg) return;
   const icon = iconForByCode(obj.code, obj.tier);
   msg.innerHTML =
     `<div class="row" style="gap:10px;align-items:center">
-      <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+      <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
       <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
     </div>`;
 }
 
-// ---------- prikaz dobijenog RECEPTA (uvijek RECIPE_ICON)
 function renderShopGotRecipe(rec){
   const msg = document.querySelector("#shop-msg");
   if(!msg) return;
   msg.innerHTML =
     `<div class="row" style="gap:10px;align-items:center">
-      <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+      <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
       <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
     </div>`;
 }
@@ -637,7 +620,6 @@ function updateBuysToNextFromWHO(){
     : "Buys to next recipe: —";
 }
 
-// ---------- lagani /me refresh BEZ mijenjanja UI stanja
 async function refreshMeLight(){
   try{
     const r = await api("/api/me");
@@ -647,35 +629,30 @@ async function refreshMeLight(){
       updateShopBalanceBadge();
       updateBuysToNextFromWHO();
     }
-  }catch{/* ignore */}
+  }catch{}
 }
 
-// ---------- Buy T1 klik
 document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
   const btn = document.querySelector("#btn-buy-t1");
   const prevTxt = btn?.textContent;
   const msg = document.querySelector("#shop-msg");
 
   try{
-    if (msg) msg.textContent = ""; // očisti staru poruku
+    if (msg) msg.textContent = "";
     if (btn){ btn.disabled = true; btn.textContent = "Buying…"; }
 
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
 
-    // odmah osvježi balans u memoriji i UI
     if (WHO) WHO.balance_silver = (r.balance_silver | 0);
     renderBalance?.();
     updateShopBalanceBadge();
 
-    // prikaži dobitak
     if (r.gotRecipe)      renderShopGotRecipe(r.gotRecipe);
     else if (r.gotItem)   renderShopGotItem(r.gotItem);
     else if (msg)         msg.textContent = "OK";
 
-    // lagani refresh /me za buys_to_next (bez flickera)
     await refreshMeLight();
 
-    // lagani refresh ostalih panela
     await (typeof loadInventoryPanel==="function" ? loadInventoryPanel() : Promise.resolve());
     if (typeof loadRecipes==="function")       loadRecipes();
     if (typeof loadInventoryFull==="function") loadInventoryFull();
@@ -683,33 +660,30 @@ document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
     if (typeof loadMine==="function")          loadMine();
 
   }catch(e){
-    // 401 → nije logiran: otvori auth karticu
-    const em = String(e?.message || "");
-    if (em.toLowerCase().includes("not logged in") || em.includes("401")) {
+    if (e?.status === 401 || /not logged in/i.test(String(e?.message||""))) {
       document.getElementById("auth")?.classList.remove("hidden");
-      document.getElementById("card-login") && (document.getElementById("card-login").style.display = "block");
-      document.getElementById("card-register") && (document.getElementById("card-register").style.display = "none");
+      const login = document.getElementById("card-login");
+      const reg   = document.getElementById("card-register");
+      if (login) login.style.display = "block";
+      if (reg)   reg.style.display   = "none";
     }
-    if (msg) msg.textContent = em || "Buy failed.";
-    else alert(em || "Buy failed.");
+    if (msg) msg.textContent = e?.message || "Buy failed.";
+    else alert(e?.message || "Buy failed.");
   }finally{
     if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
   }
 });
 
-// inicijalno ažuriranje shop badge-a nakon load-a
 document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
 
-
-
-  <!-- ===== CRAFTING ===== -->
+<!-- ===== CRAFTING ===== -->
 <script>
   function rowRecipe(r){
     return `
       <div class="itemrow">
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+          <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
           <div>
             <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
             <div class="muted">T${r.tier} · x${r.qty}</div>
@@ -736,7 +710,6 @@ document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
     }
   }
 
-  // filter & refresh interakcije
   document.getElementById("btn-refresh-rec")?.addEventListener("click", loadRecipes);
   document.getElementById("filter-recipe")?.addEventListener("input", loadRecipes);
 
@@ -747,7 +720,7 @@ document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
       return `
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <img class="icon" src="${esc(src)}" alt="" onerror="imgFallback(this)">
             <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
           </div>
           <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
@@ -790,7 +763,6 @@ document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
           await safeCall("loadInventoryFull");
           await openRecipe(details.recipe.id);
         }catch(e){
-          // Ljepša poruka + popis što fali
           if (e?.data?.missing?.length) {
             toast("You are missing: " + e.data.missing.join(", "));
           } else {
@@ -845,8 +817,8 @@ document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
   });
 </script>
 
+<!-- ===== MARKET (inventory panel, market, mine, list) ===== -->
 <script>
-// JEDNO mjesto istine
 window.SEL_INV = null;
 
 /* ===== INVENTORY PANEL (Create Sale, lijevi stupac) ===== */
@@ -867,7 +839,7 @@ async function loadInventoryPanel(){
         row.className = "itemrow";
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
             <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
           </div>
           <button class="btn muted">Pick</button>`;
@@ -907,7 +879,7 @@ async function loadMarket(){
       row.className = "itemrow";
       row.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <img class="icon" src="${esc(ico)}" alt="" onerror="imgFallback(this)">
           <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
         </div>
         <div class="row">
@@ -956,7 +928,7 @@ async function loadMine(){
       row.className = "itemrow";
       row.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <img class="icon" src="${esc(ico)}" alt="" onerror="imgFallback(this)">
           <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span> <span class="badge">${esc(s?.status||"-")}</span></div>
         </div>
         <div class="row">
@@ -1011,43 +983,40 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
 });
 </script>
 
-
-
-  <!-- ===== INVENTORY (full) ===== -->
-  <script>
-    async function loadInventoryFull(){
-      const box=$("#inv-full"); if(!box) return;
-      box.textContent="Loading…";
-      try{
-        const r = await api("/api/inventory");
-        const lines=[];
-        for(const it of (r.items||[])){
-          const icon = iconForByCode(it.code, it.tier);
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-                <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
-              </div>
-              <div class="muted">x${it.qty}</div>
-            </div>`);
-        }
-        for(const rc of (r.recipes||[])){
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-                <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
-              </div>
-              <div class="muted">x${rc.qty}</div>
-            </div>`);
-        }
-        box.innerHTML = lines.join("") || "Empty.";
-      }catch(e){
-        box.textContent = e?.message || "Failed.";
+<!-- ===== INVENTORY (full) ===== -->
+<script>
+  async function loadInventoryFull(){
+    const box=$("#inv-full"); if(!box) return;
+    box.textContent="Loading…";
+    try{
+      const r = await api("/api/inventory");
+      const lines=[];
+      for(const it of (r.items||[])){
+        const icon = iconForByCode(it.code, it.tier);
+        lines.push(`
+          <div class="itemrow">
+            <div class="row" style="gap:10px;align-items:center">
+              <img class="icon" src="${esc(icon)}" alt="" onerror="imgFallback(this)">
+              <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
+            </div>
+            <div class="muted">x${it.qty}</div>
+          </div>`);
       }
+      for(const rc of (r.recipes||[])){
+        lines.push(`
+          <div class="itemrow">
+            <div class="row" style="gap:10px;align-items:center">
+              <img class="icon" src="${RECIPE_ICON}" alt="" onerror="imgFallback(this)">
+              <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
+            </div>
+            <div class="muted">x${rc.qty}</div>
+          </div>`);
+      }
+      box.innerHTML = lines.join("") || "Empty.";
+    }catch(e){
+      box.textContent = e?.message || "Failed.";
     }
-  </script>
+  }
+</script>
 </body>
 </html>
-
