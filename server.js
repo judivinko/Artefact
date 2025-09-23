@@ -644,7 +644,7 @@ app.post("/api/admin/adjust-balance",(req,res)=>{
     const after = u.balance_silver + deltaS;
     if (after < 0) throw new Error("Insufficient");
     db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(after, u.id);
-    db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
+    db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
       .run(u.id, deltaS, "ADMIN_ADJUST", String(email), nowISO());
   });
   try{ tx(); }catch(e){ return res.status(400).json({ok:false,error:String(e.message||e)}); }
@@ -1226,4 +1226,5 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
