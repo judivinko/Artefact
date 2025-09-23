@@ -654,7 +654,10 @@ async function refreshMeLight(){
 document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
   const btn = document.querySelector("#btn-buy-t1");
   const prevTxt = btn?.textContent;
+  const msg = document.querySelector("#shop-msg");
+
   try{
+    if (msg) msg.textContent = ""; // očisti staru poruku
     if (btn){ btn.disabled = true; btn.textContent = "Buying…"; }
 
     const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
@@ -667,7 +670,7 @@ document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
     // prikaži dobitak
     if (r.gotRecipe)      renderShopGotRecipe(r.gotRecipe);
     else if (r.gotItem)   renderShopGotItem(r.gotItem);
-    else                  (document.querySelector("#shop-msg").textContent = "OK");
+    else if (msg)         msg.textContent = "OK";
 
     // lagani refresh /me za buys_to_next (bez flickera)
     await refreshMeLight();
@@ -680,7 +683,15 @@ document.querySelector("#btn-buy-t1")?.addEventListener("click", async ()=>{
     if (typeof loadMine==="function")          loadMine();
 
   }catch(e){
-    alert(e?.message || "Buy failed.");
+    // 401 → nije logiran: otvori auth karticu
+    const em = String(e?.message || "");
+    if (em.toLowerCase().includes("not logged in") || em.includes("401")) {
+      document.getElementById("auth")?.classList.remove("hidden");
+      document.getElementById("card-login") && (document.getElementById("card-login").style.display = "block");
+      document.getElementById("card-register") && (document.getElementById("card-register").style.display = "none");
+    }
+    if (msg) msg.textContent = em || "Buy failed.";
+    else alert(em || "Buy failed.");
   }finally{
     if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
   }
@@ -1039,3 +1050,4 @@ document.querySelector("#btn-list")?.addEventListener("click", async ()=>{
   </script>
 </body>
 </html>
+
