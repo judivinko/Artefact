@@ -1059,7 +1059,7 @@ app.get("/api/sales/mine", (req, res) => {
       FROM auctions a
       LEFT JOIN items   i ON a.type='item'   AND i.id=a.item_id
       LEFT JOIN recipes r ON a.type='recipe' AND r.id=a.recipe_id
-      WHERE a.seller_user_id=? AND a.status IN ('live','paid','canceled')
+      WHERE a.seller_user_id=? AND a.status='live'
       ORDER BY a.id DESC
       LIMIT 500
     `).all(uid);
@@ -1226,5 +1226,6 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
