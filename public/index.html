@@ -762,28 +762,42 @@ async function loadMarket(){
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
+      const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);          // <-- tvoje?
+      const tag  = mine ? "N" : "Y";                                      // N = tvoji, Y = tuđi
+
       const row = document.createElement("div");
       row.className = "itemrow";
       row.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
           <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
+          <div><span class="badge">${tag}</span> ${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
         </div>
         <div class="row">
           <span class="badge">${g}g ${ss}s</span>
-          <button class="btn">Buy</button>
+          ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
         </div>`;
+
       const btn = row.querySelector("button");
-      btn.addEventListener("click", async ()=>{
-        if (btn.disabled) return;
-        const prev = btn.textContent; btn.disabled = true; btn.textContent = "Buying…";
-        try{
-          await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
-          toast("Purchased.");
-          loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull"); safeCall("loadMe");
-        }catch(e){ alert(e.message); }
-        finally{ btn.disabled = false; btn.textContent = prev; }
-      });
+      if (!mine) {
+        btn.addEventListener("click", async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent; btn.disabled = true; btn.textContent = "Buying…";
+          try{
+            await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
+            toast("Purchased.");
+            // ostani na marketu, samo osvježi:
+            loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull"); safeCall("loadMe");
+          }catch(e){
+            alert(e?.message || e?.error || "Purchase failed.");          // poruka umjesto “bag”
+          }finally{
+            btn.disabled = false; btn.textContent = prev;
+          }
+        });
+      } else {
+        // zaštita da se vlastiti listing ne može ni pokušati kupiti
+        btn?.addEventListener?.("click", ()=> toast("To je tvoj oglas."));
+      }
+
       box.appendChild(row);
     }
   }catch(e){ box.textContent = e?.message || "Failed."; }
@@ -818,8 +832,9 @@ async function loadMine(){
         btn.addEventListener("click", async ()=>{
           if (btn.disabled) return;
           const prev = btn.textContent; btn.disabled = true; btn.textContent = "Cancel…";
-          try{ await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-               loadMarket(); loadMine(); loadInventoryPanel();
+          try{
+            await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
+            loadMarket(); loadMine(); loadInventoryPanel();
           }catch(e){ alert(e.message); }
           finally{ btn.disabled = false; btn.textContent = prev; }
         });
@@ -878,6 +893,7 @@ async function loadInventoryFull(){
   }catch(e){ box.textContent = e?.message || "Failed."; }
 }
 </script>
+
 
 <!-- ===== BONUS (frontend) ===== -->
 <script>
@@ -959,3 +975,4 @@ async function loadBonus(){
 
 </body>
 </html>
+
