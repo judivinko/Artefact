@@ -786,7 +786,8 @@ async function loadMarket(){
             await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
             toast("Purchased.");
             // ostani na marketu, samo osvježi:
-            loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull"); safeCall("loadMe");
+            loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull");
+            if (typeof renderBalance === "function") renderBalance();
           }catch(e){
             alert(e?.message || e?.error || "Purchase failed.");          // poruka umjesto “bag”
           }finally{
@@ -975,4 +976,5 @@ async function loadBonus(){
 
 </body>
 </html>
+
 
