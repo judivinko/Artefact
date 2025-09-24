@@ -350,7 +350,8 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
 }
 
 // ============================================================
-// Items & Recipes (seed)
+// ============================================================
+// Items & Recipes (seed)  — ONLY recipes touched below as agreed
 ensureItem("SCRAP","Scrap",1,1);
 const T1 = [
   ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
@@ -391,13 +392,69 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// ARTEFACT
+// ---------- helpers lokalni za seed recepata (NE diraju ostatak servera) ----------
+const takeRotated = (pool, count, offset) => {
+  if (!pool.length) return [];
+  const start = offset % pool.length;
+  const rotated = pool.slice(start).concat(pool.slice(0, start));
+  // bez duplikata u jednom receptu
+  const out = [];
+  for (const c of rotated) {
+    if (!out.includes(c)) out.push(c);
+    if (out.length >= count) break;
+  }
+  return out;
+};
+
+// kodovi za bazene
+const T1_CODES = T1.map(([c])=>c);
+const T2_CODES = T2_ITEMS.map(([c])=>c);
+const T3_CODES = T3_ITEMS.map(([c])=>c);
+const T4_CODES = T4_ITEMS.map(([c])=>c);
+
+// raspodjele po tieru (10 recepata)
+const P_T2 = [4,4,4, 5,5,5, 6,6, 7,7];
+const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
+const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
+const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
+
+// ---------- seed recepata (ensureRecipe) ----------
+// T2: koristi T1 kao sastojke
+T2_ITEMS.forEach(([outCode, outName], i) => {
+  const need = P_T2[i];
+  const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
+  ensureRecipe("R_"+outCode, outName, 2, outCode, ings);
+});
+
+// T3: koristi T2 kao sastojke
+T3_ITEMS.forEach(([outCode, outName], i) => {
+  const need = P_T3[i];
+  const ings = takeRotated(T2_CODES, Math.min(need, T2_CODES.length), i);
+  ensureRecipe("R_"+outCode, outName, 3, outCode, ings);
+});
+
+// T4: koristi T3 kao sastojke
+T4_ITEMS.forEach(([outCode, outName], i) => {
+  const need = P_T4[i];
+  const ings = takeRotated(T3_CODES, Math.min(need, T3_CODES.length), i);
+  ensureRecipe("R_"+outCode, outName, 4, outCode, ings);
+});
+
+// T5: koristi T4 kao sastojke
+T5_ITEMS.forEach(([outCode, outName], i) => {
+  const need = P_T5[i];
+  const ings = takeRotated(T4_CODES, Math.min(need, T4_CODES.length), i);
+  ensureRecipe("R_"+outCode, outName, 5, outCode, ings);
+});
+
+// ARTEFACT (nema recept)
 ensureItem("ARTEFACT","Artefact",6,0);
 
 // --- MIGRACIJA: prefiks "R " za recepte koji ga nemaju
 try {
   db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run();
 } catch {}
+
 
 // ---------- AUTH (jedna, čista implementacija)
 app.post("/api/register", async (req, res) => {
@@ -1226,6 +1283,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
