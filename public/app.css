@@ -108,8 +108,9 @@ img:not(.icon){
 }
 .img-slot:hover{ opacity:1; }
 
-#tab-craft .card .itemrow {
-  min-height: 15cm;   
+#tab-craft .list {
+  min-height: 500px;  
 }
+
 
 
