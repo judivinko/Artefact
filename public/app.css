@@ -108,6 +108,8 @@ img:not(.icon){
 }
 .img-slot:hover{ opacity:1; }
 
-#tab-craft, {
-  padding-bottom: 380px; 
+#tab-craft #recipes.list,
+#tab-craft #rec-details {
+  padding-bottom: 380px; /* ≈ +10 cm vizualno */
 }
+
