@@ -108,11 +108,8 @@ img:not(.icon){
 }
 .img-slot:hover{ opacity:1; }
 
-#tab-craft .grid > .card {
-  padding-bottom: 380px; 
-}
-#tab-craft #rec-details {
-  padding-bottom: 200px; 
+#tab-craft .card {
+  min-height: 600px; /* produžene kutije */
 }
 
 
