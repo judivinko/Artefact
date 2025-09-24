@@ -108,8 +108,6 @@ img:not(.icon){
 }
 .img-slot:hover{ opacity:1; }
 
-/* ===== Produžene margine za Crafting i Market (+10cm približno) ===== */
-#tab-craft,
-#tab-market {
+#tab-craft, {
   padding-bottom: 380px; 
 }
