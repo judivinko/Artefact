@@ -107,3 +107,31 @@ img:not(.icon){
   opacity:.85;
 }
 .img-slot:hover{ opacity:1; }
+/* --- Crafting i Market full height --- */
+#tab-craft,
+#tab-market {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;     /* cijela visina ekrana */
+  box-sizing: border-box;
+  padding-bottom: 0;
+}
+
+#tab-craft .card,
+#tab-market .card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+#recipes.list,
+#market,
+#mine {
+  flex: 1;
+  overflow-y: auto;   /* skrol samo unutar liste */
+  height: auto;
+  max-height: none;
+}
+
+
