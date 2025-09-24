@@ -583,12 +583,73 @@ $("#btn-buy-t1")?.addEventListener("click", async ()=>{
       $("#card-login") && ($("#card-login").style.display="block");
       $("#card-register") && ($("#card-register").style.display="none");
     }
-    msg ? (msg.textContent = e?.message || "Buy failed.") : alert(e?.message || "Buy failed.");
+    if (msg) msg.textContent = e?.message || "Buy failed.";
   }finally{
     if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
   }
 });
 
+/* === DODANA DUGMAD: Buy ×10 / ×50 (ispod glavnog Buy), jedan ispod drugog === */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn1 = $("#btn-buy-t1");
+  if (btn1){
+    // kontejner koji slaže dugmad u kolonu
+    let wrap = document.createElement("div");
+    wrap.style.display = "flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = "flex-start";
+    wrap.style.gap = "6px";
+
+    // premjesti postojeći Buy u kolonu
+    btn1.parentNode.insertBefore(wrap, btn1);
+    wrap.appendChild(btn1);
+
+    // ×10
+    if (!$("#btn-buy-t1x10")){
+      const b10 = document.createElement("button");
+      b10.id = "btn-buy-t1x10";
+      b10.className = "btn muted";
+      b10.textContent = "Buy ×10";
+      wrap.appendChild(b10);
+      b10.addEventListener("click", ()=> shopBuyTimes(10));
+    }
+    // ×50
+    if (!$("#btn-buy-t1x50")){
+      const b50 = document.createElement("button");
+      b50.id = "btn-buy-t1x50";
+      b50.className = "btn muted";
+      b50.textContent = "Buy ×50";
+      wrap.appendChild(b50);
+      b50.addEventListener("click", ()=> shopBuyTimes(50));
+    }
+    // shop-msg ostaje gdje je već bio
+  }
+  updateShopBalanceBadge();
+});
+
+// helper za bulk kupovinu (×10/×50)
+async function shopBuyTimes(times=1){
+  const msg = $("#shop-msg");
+  let ok=0, fail=0, lastErr=null;
+  msg && (msg.textContent = "");
+  try{
+    for(let i=0;i<times;i++){
+      try{
+        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+        if (WHO) WHO.balance_silver = (r.balance_silver | 0);
+        ok++;
+      }catch(e){
+        fail++; lastErr = e?.message || "Failed";
+        if (String(lastErr).toLowerCase().includes("insufficient")) break;
+      }
+    }
+    renderBalance?.(); updateShopBalanceBadge(); await refreshMeLight();
+    await safeCall("loadInventoryPanel"); safeCall("loadRecipes"); safeCall("loadInventoryFull"); safeCall("loadMarket"); safeCall("loadMine");
+    if (msg) msg.textContent = `Bought: ${ok}${fail?`, failed: ${fail}`:""}${lastErr?` (${lastErr})`:""}`;
+  }catch(e){
+    if (msg) msg.textContent = e?.message || "Buy failed.";
+  }
+}
 document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
 
@@ -762,8 +823,8 @@ async function loadMarket(){
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-      const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);          // <-- tvoje?
-      const tag  = mine ? "N" : "Y";                                      // N = tvoji, Y = tuđi
+      const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);
+      const tag  = mine ? "N" : "Y";
 
       const row = document.createElement("div");
       row.className = "itemrow";
@@ -785,17 +846,16 @@ async function loadMarket(){
           try{
             await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
             toast("Purchased.");
-            // ostani na marketu, samo osvježi:
             loadMarket(); loadMine(); loadInventoryPanel(); safeCall("loadInventoryFull");
             if (typeof renderBalance === "function") renderBalance();
           }catch(e){
-            alert(e?.message || e?.error || "Purchase failed.");          // poruka umjesto “bag”
+            const msg = e?.message || e?.error || "Purchase failed.";
+            toast(msg);
           }finally{
             btn.disabled = false; btn.textContent = prev;
           }
         });
       } else {
-        // zaštita da se vlastiti listing ne može ni pokušati kupiti
         btn?.addEventListener?.("click", ()=> toast("To je tvoj oglas."));
       }
 
@@ -836,8 +896,12 @@ async function loadMine(){
           try{
             await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
             loadMarket(); loadMine(); loadInventoryPanel();
-          }catch(e){ alert(e.message); }
-          finally{ btn.disabled = false; btn.textContent = prev; }
+          }catch(e){
+            const msg = e?.message || "Cancel failed.";
+            toast(msg);
+          }finally{
+            btn.disabled = false; btn.textContent = prev;
+          }
         });
       }
       box.appendChild(row);
@@ -848,7 +912,7 @@ $("#btn-mine")?.addEventListener("click", loadMine);
 
 $("#btn-list")?.addEventListener("click", async ()=>{
   try{
-    const sel = window.SEL_INV; if (!sel){ alert("Pick an item/recipe first."); return; }
+    const sel = window.SEL_INV; if (!sel){ toast("Pick an item/recipe first."); return; }
     const gold   = parseInt($("#price-g")?.value || "0", 10) || 0;
     let   silver = parseInt($("#price-s")?.value || "0", 10) || 0;
     const qty    = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
@@ -860,7 +924,10 @@ $("#btn-list")?.addEventListener("click", async ()=>{
     const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
     window.SEL_INV = null;
     loadMarket(); loadMine(); loadInventoryPanel();
-  }catch(e){ alert(e?.message || "Listing failed."); }
+  }catch(e){
+    const msg = e?.message || "Listing failed.";
+    ( $("#list-msg") ? ($("#list-msg").textContent = msg) : toast(msg) );
+  }
 });
 
 async function loadInventoryFull(){
@@ -976,5 +1043,6 @@ async function loadBonus(){
 
 </body>
 </html>
+
 
 
