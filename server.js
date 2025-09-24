@@ -378,9 +378,16 @@ for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
 
 // T4
 const T4_ITEMS = [
-  ["T4_CRYSTAL_LENS","Crystal Lens"],["T4_ENGINE_CORE","Engine Core"],["T4_MIGHT_GATE","Reinforced Gate"],["T4_NOMAD_DWELLING","Nomad Dwelling"],
-  ["T4_SECRET_CHEST","Sealed Chest"],["T4_SHADOW_BLADE","Shadow Blade"],["T4_STRENGTH_PILLAR","Monument Pillar"],["T4_TRAVELER_SATCHEL","Traveler Satchel"],
-  ["T4_VISION_CORE","Vision Core"],["T4_WISDOM_GOBLET","Enruned Goblet"]
+  ["T4_CRYSTAL_LENS","Crystal Lens"],
+  ["T4_ENGINE_CORE","Engine Core"],
+  ["T4_MIGHT_GATE","Might Gate"],
+  ["T4_NOMAD_DWELLING","Nomad Dwelling"],
+  ["T4_SECRET_CHEST","Secret Chest"],
+  ["T4_SHADOW_BLADE","Shadow Blade"],
+  ["T4_STRENGTH_PILLAR","Strength Pillar"],
+  ["T4_TRAVELER_SATCHEL","Traveler Satchel"],
+  ["T4_VISION_CORE","Vision Core"],
+  ["T4_WISDOM_GOBLET","Wisdom Goblet"]
 ];
 for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
 
@@ -1283,6 +1290,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
