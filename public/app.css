@@ -109,11 +109,10 @@ img:not(.icon){
 .img-slot:hover{ opacity:1; }
 
 #tab-craft .grid > .card {
-  padding-bottom: 380px; /* ≈ +10 cm */
+  padding-bottom: 380px; 
 }
-/* === Crafting: produži samo 2 kocke (lista + detalji) === */
-#tab-craft #recipes.list,
 #tab-craft #rec-details {
-  padding-bottom: 380px; /* ≈ +10 cm vizualno */
+  padding-bottom: 200px; 
 }
+
 
