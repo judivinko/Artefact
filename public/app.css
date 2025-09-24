@@ -111,5 +111,5 @@ img:not(.icon){
 /* ===== Produžene margine za Crafting i Market (+10cm približno) ===== */
 #tab-craft,
 #tab-market {
-  padding-bottom: 380px; /* ~10cm na tipičnoj gustoći piksela */
+  padding-bottom: 380px; 
 }
