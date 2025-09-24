@@ -108,8 +108,8 @@ img:not(.icon){
 }
 .img-slot:hover{ opacity:1; }
 
-#tab-craft .card {
-  min-height: 600px; /* produžene kutije */
+#tab-craft .card .itemrow {
+  min-height: 15cm;   
 }
 
 
