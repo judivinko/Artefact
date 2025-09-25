@@ -548,6 +548,63 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
+// ===== PAYPAL: potvrda uplate i automatsko dodavanje golda =====
+app.post("/api/paypal/confirm", async (req, res) => {
+  try{
+    const uid = requireAuth(req);
+
+    if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET){
+      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+    }
+
+    const { orderId } = req.body || {};
+    if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
+
+    // 1) Verifikacija narudžbe na PayPal-u
+    const token = await paypalToken();
+    const order = await paypalGetOrder(token, orderId);
+
+    if (order.status !== "COMPLETED"){
+      return res.status(400).json({ ok:false, error:"Payment not completed", status: order.status });
+    }
+
+    // 2) Iznos i valuta
+    const pu = order.purchase_units && order.purchase_units[0];
+    const currency = pu?.amount?.currency_code;
+    const paid = Number(pu?.amount?.value);
+
+    if (currency !== "USD" || !Number.isFinite(paid)){
+      return res.status(400).json({ ok:false, error:"Unsupported currency or invalid amount" });
+    }
+
+    if (paid < MIN_USD){
+      return res.status(400).json({ ok:false, error:`Minimum is $${MIN_USD}` });
+    }
+
+    // 3) Preračun: 1 USD = 100 gold; 1 gold = 100 silver
+    const addGold   = Math.floor(paid * USD_TO_GOLD);
+    const addSilver = addGold * 100;
+
+    // 4) DB transakcija: dodaj balans i upiši u ledger
+    const after = db.transaction(() => {
+      const cur = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
+      if (!cur) throw new Error("User not found");
+
+      const newBal = (cur.balance_silver | 0) + addSilver;
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(uid, addSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
+
+      return newBal;
+    })();
+
+    return res.json({ ok:true, balance_silver: after });
+  }catch(e){
+    console.error("[/api/paypal/confirm] error:", e);
+    return res.status(500).json({ ok:false, error:String(e.message || e) });
+  }
+});
+
 // ===== BONUS helpers =====
 function userHasArtefact(userId){
   const r = db.prepare(`
@@ -622,6 +679,7 @@ app.get("/api/me", (req, res) => {
     }
   });
 });
+
 
 //---ARTEFACT BONUS GOLD (ADMIN)
 app.post("/api/admin/set-bonus-gold", (req, res) => {
@@ -1325,6 +1383,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
