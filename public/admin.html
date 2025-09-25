@@ -24,6 +24,13 @@
     .tag.red{background:#3b1113;color:#fecaca}
     .tag.green{background:#0f2e1b;color:#bbf7d0}
     .tight{margin:0;padding:0}
+
+    /* Bonus codes table */
+    .codes-table{width:100%;border-collapse:collapse}
+    .codes-table th,.codes-table td{padding:8px 10px;border-bottom:1px solid #233047;text-align:left}
+    .codes-table th{color:#94a3b8;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.4px}
+    .codes-table input{background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e2e8f0;width:100%}
+    .codes-row-actions{display:flex;gap:8px;align-items:center}
   </style>
 </head>
 <body>
@@ -53,35 +60,59 @@
     </section>
 
     <section class="grid2">
-     <!-- LEFT: Controls -->
-<div class="card">
-  <div class="label">Controls</div>
+      <!-- LEFT: Controls -->
+      <div class="card">
+        <div class="label">Controls</div>
 
-  <div class="muted tight" id="sel-user-label">Selected user: —</div>
+        <div class="muted tight" id="sel-user-label">Selected user: —</div>
 
-  <div class="rowx" style="margin-top:8px">
-    <input id="gold-amount" type="number" min="-999999" step="1" placeholder="Gold amount (1g = 100s)" />
-    <button id="btn-give">+ Give</button>
-    <button id="btn-take" class="secondary">– Take</button>
-  </div>
+        <div class="rowx" style="margin-top:8px">
+          <input id="gold-amount" type="number" min="-999999" step="1" placeholder="Gold amount (1g = 100s)" />
+          <button id="btn-give">+ Give</button>
+          <button id="btn-take" class="secondary">– Take</button>
+        </div>
 
-  <div class="rowx" style="margin-top:8px">
-    <button id="btn-disable" class="danger">Disable account</button>
-    <button id="btn-enable" class="secondary">Enable account</button>
-  </div>
+        <div class="rowx" style="margin-top:8px">
+          <button id="btn-disable" class="danger">Disable account</button>
+          <button id="btn-enable" class="secondary">Enable account</button>
+        </div>
 
-  <div id="ops-msg" class="muted" style="margin-top:6px"></div>
+        <div id="ops-msg" class="muted" style="margin-top:6px"></div>
 
-  <hr style="border:none;border-top:1px solid #233047;margin:10px 0" />
+        <hr style="border:none;border-top:1px solid #233047;margin:10px 0" />
 
-  <div class="label">Artefact Bonus Gold</div>
-  <div class="rowx" style="margin-top:8px">
-    <input id="bonus-gold" type="number" min="0" step="1" placeholder="Bonus gold" />
-    <button id="btn-set-bonus">Set</button>
-  </div>
-  <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
-</div>
+        <div class="label">Artefact Bonus Gold</div>
+        <div class="rowx" style="margin-top:8px">
+          <input id="bonus-gold" type="number" min="0" step="1" placeholder="Bonus gold" />
+          <button id="btn-set-bonus">Set</button>
+        </div>
+        <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
 
+        <!-- NEW: Bonus Codes -->
+        <hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
+        <div class="label">Bonus Codes</div>
+        <div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Za svaki postavi postotak bonusa i prati koliko je ukupno uplaćeno preko tog koda.</div>
+        <div class="rowx" style="margin-top:8px;justify-content:space-between">
+          <button id="btn-codes-reload" class="secondary">Reload</button>
+          <button id="btn-codes-save-all" class="secondary">Save all</button>
+        </div>
+        <div style="overflow:auto;margin-top:8px">
+          <table class="codes-table" id="codes-table">
+            <thead>
+              <tr>
+                <th style="width:40%">Bonus code</th>
+                <th style="width:20%">Percent (%)</th>
+                <th style="width:25%">Total used (gold)</th>
+                <th style="width:15%">Action</th>
+              </tr>
+            </thead>
+            <tbody id="codes-tbody">
+              <!-- rows 0..4 rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="codes-msg" class="muted" style="margin-top:6px"></div>
+      </div>
 
       <!-- RIGHT: Users + Inventory -->
       <div class="card">
@@ -112,7 +143,11 @@
     let users = [];
     let selected = null;
 
-    function msg(el, text, ok=true){ const e=$(el); e.textContent=text; e.className = ok ? "muted success" : "muted danger"; }
+    function msg(el, text, ok=true){
+      const e=$(el);
+      e.textContent=text;
+      e.className = ok ? "muted success" : "muted danger";
+    }
     function setWho(text){ $("#who").textContent = text; }
 
     // ---------- Persist key / lock
@@ -221,94 +256,173 @@
 
     // ---------- Controls
     async function changeGold(sign){
-  if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
-  const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
-  if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
-  const gold = sign > 0 ? amount : -amount;
-  try{
-    const r = await api("/api/admin/adjust-balance", {
-      method:"POST",
-      body: JSON.stringify({ email: selected.email, gold })
-    });
-    msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
-    await loadUsers();
-    const found = users.find(x => x.id === selected.id);
-    if (found) selected = found;
-    await loadInventory();
-  }catch(e){
-    msg("#ops-msg", e.message, false);
-  }
-}
+      if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
+      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
+      if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
+      const gold = sign > 0 ? amount : -amount;
+      try{
+        const r = await api("/api/admin/adjust-balance", {
+          method:"POST",
+          body: JSON.stringify({ email: selected.email, gold })
+        });
+        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
+        await loadUsers();
+        const found = users.find(x => x.id === selected.id);
+        if (found) selected = found;
+        await loadInventory();
+      }catch(e){
+        msg("#ops-msg", e.message, false);
+      }
+    }
 
-async function setDisabled(flag){
-  if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
-  try{
-    await api("/api/admin/disable-user", {
-      method:"POST",
-      body: JSON.stringify({ email: selected.email, disabled: flag })
-    });
-    msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
-    await loadUsers();
-    const found = users.find(x => x.id === selected.id);
-    if (found) selected = found;
-    $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
-  }catch(e){
-    msg("#ops-msg", e.message, false);
-  }
-}
+    async function setDisabled(flag){
+      if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
+      try{
+        await api("/api/admin/disable-user", {
+          method:"POST",
+          body: JSON.stringify({ email: selected.email, disabled: flag })
+        });
+        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
+        await loadUsers();
+        const found = users.find(x => x.id === selected.id);
+        if (found) selected = found;
+        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
+      }catch(e){
+        msg("#ops-msg", e.message, false);
+      }
+    }
 
-async function setArtefactBonusGold(){
-  const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
-  try{
-    const r = await api("/api/admin/set-bonus-gold", {
-      method:"POST",
-      body: JSON.stringify({ code: "ARTEFACT", bonus_gold })
-    });
-    msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`);
-  }catch(e){
-    msg("#bonus-msg", e.message, false);
-  }
-}
+    async function setArtefactBonusGold(){
+      const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
+      try{
+        const r = await api("/api/admin/set-bonus-gold", {
+          method:"POST",
+          body: JSON.stringify({ code: "ARTEFACT", bonus_gold })
+        });
+        msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`);
+      }catch(e){
+        msg("#bonus-msg", e.message, false);
+      }
+    }
+
+    // ---------- BONUS CODES (5 redova)
+    function renderBonusRows(data){
+      const tbody = $("#codes-tbody");
+      tbody.innerHTML = "";
+      for (let i=0;i<5;i++){
+        const entry = data?.[i] || { code:"", percent:0, total_used:0 };
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${(entry.code||"")}">
+          </td>
+          <td>
+            <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent||0)}">
+          </td>
+          <td>
+            <input id="bonus-used-${i}" value="${Number(entry.total_used||0)}" disabled>
+          </td>
+          <td>
+            <div class="codes-row-actions">
+              <button class="secondary" data-save="${i}">Save</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll("[data-save]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const idx = parseInt(btn.getAttribute("data-save"),10);
+          await saveBonusRow(idx);
+        });
+      });
+    }
+
+    async function loadBonusCodes(){
+      try{
+        const r = await api("/api/admin/bonus-codes");
+        renderBonusRows(r?.codes || []);
+        msg("#codes-msg", "Loaded.", true);
+      }catch(e){
+        renderBonusRows([]);
+        msg("#codes-msg", e.message || "Failed to load.", false);
+      }
+    }
+
+    function sanitizeCode(raw){
+      const s = String(raw||"").trim().toUpperCase();
+      // dozvoli A-Z 0-9 _ - . max 32
+      return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+    }
+
+    async function saveBonusRow(i){
+      const codeEl = document.getElementById(`bonus-code-${i}`);
+      const pctEl  = document.getElementById(`bonus-percent-${i}`);
+      const usedEl = document.getElementById(`bonus-used-${i}`);
+      const code = sanitizeCode(codeEl?.value || "");
+      const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
+      try{
+        const r = await api("/api/admin/set-bonus-code", {
+          method:"POST",
+          body: JSON.stringify({ index:i, code, percent })
+        });
+        // očekuje: { ok:true, total_used: number }
+        if (usedEl && r && typeof r.total_used === "number") usedEl.value = r.total_used;
+        msg("#codes-msg", `Saved row ${i+1}.`, true);
+      }catch(e){
+        msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
+      }
+    }
+
+    async function saveAllBonusRows(){
+      for (let i=0;i<5;i++){
+        try{ await saveBonusRow(i); }catch{}
+      }
+    }
 
     // ---------- Events
-$("#btn-key-set").addEventListener("click", async ()=>{
-  ADMIN_KEY = $("#admin-key").value.trim();
-  REMEMBER = $("#key-remember").checked;
-  LOCKED = $("#key-lock").checked;
-  savePrefs(); 
-  applyLock();
-  await checkAdmin();
-  await loadUsers();
-});
+    $("#btn-key-set").addEventListener("click", async ()=>{
+      ADMIN_KEY = $("#admin-key").value.trim();
+      REMEMBER = $("#key-remember").checked;
+      LOCKED = $("#key-lock").checked;
+      savePrefs(); 
+      applyLock();
+      await checkAdmin();
+      await loadUsers();
+      await loadBonusCodes();
+    });
 
-$("#btn-key-clear").addEventListener("click", ()=>{
-  ADMIN_KEY = ""; 
-  savePrefs(); 
-  applyLock(); 
-  msg("#key-msg","Cleared.");
-});
+    $("#btn-key-clear").addEventListener("click", ()=>{
+      ADMIN_KEY = ""; 
+      savePrefs(); 
+      applyLock(); 
+      msg("#key-msg","Cleared.");
+    });
 
-$("#key-lock").addEventListener("change", ()=>{
-  LOCKED = $("#key-lock").checked;
-  savePrefs(); 
-  applyLock();
-});
+    $("#key-lock").addEventListener("change", ()=>{
+      LOCKED = $("#key-lock").checked;
+      savePrefs(); 
+      applyLock();
+    });
 
-$("#key-remember").addEventListener("change", ()=>{
-  REMEMBER = $("#key-remember").checked;
-  savePrefs();
-});
+    $("#key-remember").addEventListener("change", ()=>{
+      REMEMBER = $("#key-remember").checked;
+      savePrefs();
+    });
 
-$("#btn-refresh-users").addEventListener("click", loadUsers);
-$("#btn-refresh-inv").addEventListener("click", loadInventory);
-$("#search").addEventListener("input", renderUsers);
+    $("#btn-refresh-users").addEventListener("click", loadUsers);
+    $("#btn-refresh-inv").addEventListener("click", loadInventory);
+    $("#search").addEventListener("input", renderUsers);
 
-$("#btn-give").addEventListener("click", ()=> changeGold(+1));
-$("#btn-take").addEventListener("click", ()=> changeGold(-1));
-$("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-$("#btn-enable").addEventListener("click", ()=> setDisabled(false));
-$("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
+    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
+    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+    $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
 
+    // Bonus codes events
+    $("#btn-codes-reload").addEventListener("click", loadBonusCodes);
+    $("#btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
     // ---------- Init
     loadPrefs();
@@ -318,14 +432,14 @@ $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
         if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
         else setWho("Not logged in (key mode).");
       }catch{ setWho("Not logged in (key mode)."); }
-      if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); }
+      if (ADMIN_KEY){
+        await checkAdmin();
+        await loadUsers();
+        await loadBonusCodes();
+      } else {
+        renderBonusRows([]); // nacrtaj prazne redove dok se ne unese ključ
+      }
     })();
   </script>
 </body>
 </html>
-
-
-
-
-
-
