@@ -1,9 +1,9 @@
 /* ===========================
-   ARTEFACT • Global styles
+   ARTEFACT • Global styles (merged)
    =========================== */
 
-/* Minimal UI za admin/index – (admin.html se ne dira, ali koristi iste varijable) */
-:root {
+/* Theme vars */
+:root{
   --bg:#0f172a;
   --card:#111827;
   --muted:#94a3b8;
@@ -15,66 +15,80 @@
   --success:#22c55e;
 }
 
+/* Reset / base */
 *{ box-sizing:border-box; }
+html,body{ height:100%; }
 body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+a{ color:inherit; }
 
-/* Layout & komponentne osnove */
-.header{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); }
-.header.no-border { border-bottom:0 !important; }
-.brand{ font-weight:700; letter-spacing:.3px; }
-
+/* Layout */
 .container{ max-width:1100px; margin:16px auto; padding:0 12px; }
 .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0; }
+
+.header{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); }
+.header.no-border{ border-bottom:0 !important; }
+.brand{ font-weight:700; letter-spacing:.3px; }
 
 .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 .right{ margin-left:auto; }
 
 .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (max-width:900px){ .grid{ grid-template-columns:1fr; } }
+.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
 
+@media (max-width:900px){
+  .grid{ grid-template-columns:1fr; }
+  .grid-4{ grid-template-columns:repeat(2,1fr); }
+  .grid-5{ grid-template-columns:repeat(3,1fr); }
+}
+
+/* Utils */
 .hidden{ display:none; }
-.badge{ border:1px solid var(--line); padding:4px 8px; border-radius:999px; background:#071021; font-size:14px; } /* was 12px */
 .muted{ color:var(--muted); font-size:14px; }
-.label{ font-size:14px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; } /* was 12px */
+.label{ font-size:14px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
 
-.toast{ position:fixed; right:12px; bottom:12px; background:#0b5bd1; color:#fff; padding:10px 12px; border-radius:10px; }
+.toast{ position:fixed; bottom:12px; right:12px; background:#0b5bd1; color:#fff; padding:10px 12px; border-radius:10px; z-index:50; }
 
-/* Kontrole */
-input, select, button{ font:inherit; }
-input, select{ background:#0b1220; color:var(--text); border:1px solid #233047; border-radius:10px; padding:10px 12px; }
-button{ background:var(--accent); color:#0b1220; font-weight:700; border:0; padding:10px 14px; border-radius:10px; cursor:pointer; }
-button.secondary{ background:#0b5bd1; color:#fff; }
-button.muted{ background:#1f2937; color:var(--text); }
-button.danger{ background:var(--danger); color:#fff; }
-button:disabled{ opacity:.6; cursor:not-allowed; }
+/* Inputs & Buttons */
+input,select,button{ font:inherit; }
+.input, input, select{
+  background:#0b1220; color:var(--text);
+  border:1px solid #233047; border-radius:10px; padding:10px 12px;
+}
+button, .btn{
+  background:var(--accent); color:#0b1220; font-weight:700;
+  border:0; padding:10px 14px; border-radius:10px; cursor:pointer;
+}
+button.secondary, .btn.secondary{ background:#0b5bd1; color:#fff; }
+button.muted, .btn.muted{ background:#1f2937; color:var(--text); }
+button.danger, .btn.danger{ background:var(--danger); color:#fff; }
+button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-/* Liste / retci */
+/* Lists / rows */
+.badge{
+  border:1px solid var(--line);
+  padding:4px 8px;
+  border-radius:999px;
+  background:#071021;
+  font-size:14px; /* povećano s 12px */
+}
 .itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
 .itemrow:last-child{ border-bottom:0; }
 .list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
-/* Tabovi */
+/* Tabs */
 .tabbar{ margin:6px 0 4px; }
 .chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
 .chip.active{ background:#0e3a2f; }
 
-/* Ikonice */
+/* Icons & images */
 img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block; }
 
-/* ===== Home page tipografija ===== */
-#about p,
-#how p,
-#tips li {
-  font-size:16px;
-  line-height:1.6;
-}
-#how .label,
-#tips .label {
-  font-size:20px;
-}
+/* Home copy sizes */
+#about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
+#how .label, #tips .label{ font-size:20px; }
 
-/* ===== Slike (glavni zahtjev): max 512 × 512 ===== */
-/* Globalno ograničenje za SVE slike osim .icon */
+/* Global max image size (except .icon) */
 img:not(.icon){
   max-width:512px;
   max-height:512px;
@@ -82,60 +96,63 @@ img:not(.icon){
   height:auto;
 }
 
-/* Preporučena klasa za preview itema/recepata (ako je želiš koristiti na <img>) */
+/* Preview images */
 .item-img{
-  display:block;
-  width:100%;
-  max-width:512px;
-  max-height:512px;
-  object-fit:contain;
-  border-radius:10px;
-  margin-top:8px;
+  display:block; width:100%; max-width:512px; max-height:512px;
+  object-fit:contain; border-radius:10px; margin-top:8px;
 }
 
-/* Slotovi za slike (drop zone / placeholder) */
+/* Image drop/slot */
 .img-slot{
-  margin-top:10px;
-  width:100%;
-  min-height:96px;
-  border:1px dashed #233047;
-  border-radius:10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:14px; /* was 12px */
-  opacity:.85;
+  margin-top:10px; width:100%; min-height:96px;
+  border:1px dashed #233047; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; opacity:.85;
 }
 .img-slot:hover{ opacity:1; }
 
-#tab-craft .list {
-  min-height: 500px;  
-}
-/* === GOLD BADGE (samo #balance) — istaknutije + animacija nakon top-upa === */
+/* Craft tab tweaks */
+#tab-craft .list{ min-height:500px; }
+
+/* Header balance — more visible + pulse on top-up */
 #balance.badge{
   background: linear-gradient(180deg,#0e2a4a,#10335e);
-  border-color:#3b82f6;                  /* plavkasta ivica */
-  box-shadow: 0 0 0 1px #0b223d inset,   /* unutarnji rub */
-              0 0 12px rgba(59,130,246,.25);
-  font-weight: 700;
-  letter-spacing: .2px;
-  font-size: 14px;                       /* ostaje u tvom stilu */
-  padding: 6px 12px;                     /* malo šire da “diše” */
+  border-color:#3b82f6;
+  box-shadow:
+    0 0 0 1px #0b223d inset,
+    0 0 12px rgba(59,130,246,.25);
+  font-weight:700;
+  letter-spacing:.2px;
+  font-size:14px;
+  padding:6px 12px;
 }
-
-/* kratka pulse animacija kad se gold poveća (JS samo doda .pulse klasu) */
 @keyframes pulseGlow{
-  0%   { box-shadow: 0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform: scale(1); }
-  40%  { box-shadow: 0 0 0 1px #0b223d inset, 0 0 22px rgba(59,130,246,.55); transform: scale(1.05); }
-  100% { box-shadow: 0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform: scale(1); }
+  0%   { box-shadow:0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform:scale(1); }
+  40%  { box-shadow:0 0 0 1px #0b223d inset, 0 0 22px rgba(59,130,246,.55); transform:scale(1.05); }
+  100% { box-shadow:0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform:scale(1); }
 }
-#balance.pulse{ animation: pulseGlow 1.2s ease-out; }
+#balance.pulse{ animation:pulseGlow 1.2s ease-out; }
 
-/* (neobavezno) malo veća vidljivost na mobitelu */
-@media (max-width: 520px){
-  #balance.badge{ font-size: 15px; padding: 7px 12px; }
+@media (max-width:520px){
+  #balance.badge{ font-size:15px; padding:7px 12px; }
 }
 
+/* PayPal wrap (između Gold/Silver i Logout) */
+#paypal-wrap{
+  display:inline-flex; align-items:center;
+}
+#paypal-wrap .paypal-note{
+  margin-left:8px; font-size:12px; color:var(--muted);
+}
 
+/* Admin/shared bits using same variables (index i admin) */
+.table{ width:100%; border-collapse:collapse; }
+.table th, .table td{ padding:8px 10px; border-bottom:1px solid var(--line); text-align:left; }
+.table th{ color:var(--muted); font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px; }
 
+/* Small helpers used in UI */
+.small{ font-size:12px; color:var(--muted); }
+hr.sep{ border:0; border-top:1px solid var(--line); margin:12px 0; }
 
+/* Make images in header buttons tidy */
+.header img{ display:inline-block; vertical-align:middle; }
