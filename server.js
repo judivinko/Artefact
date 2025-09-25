@@ -21,6 +21,16 @@ const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gm
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
+/* ===== PAYPAL CONFIG (DODANO) ===== */
+const USD_TO_GOLD = 100;                             // 1 USD = 100 gold
+const MIN_USD = 10;                                  // minimalna uplata
+const PAYPAL_MODE = (process.env.PAYPAL_MODE || "sandbox").toLowerCase(); // "live" | "sandbox"
+const PAYPAL_BASE = PAYPAL_MODE === "live"
+  ? "https://api-m.paypal.com"
+  : "https://api-m.sandbox.paypal.com";
+const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
+const PAYPAL_SECRET    = process.env.PAYPAL_SECRET    || "";
+
 // ---------- Auto-cleanup slika koje počinju sa "0" (pri startu; rekurzivno + logs)
 function deleteFilesStartingWith0(rootDir) {
   try {
@@ -116,6 +126,31 @@ function isAdmin(req){
 }
 function addMinutes(iso, mins){
   const d = new Date(iso); d.setMinutes(d.getMinutes()+mins); return d.toISOString();
+}
+
+/* ===== PayPal helpers (DODANO) ===== */
+// Node 18+ ima globalni fetch; ako si na starijem Node-u, odkomentiraj sljedeće:
+// const fetch = require("node-fetch");
+async function paypalToken(){
+  const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + Buffer.from(PAYPAL_CLIENT_ID + ":" + PAYPAL_SECRET).toString("base64"),
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "grant_type=client_credentials"
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error("PayPal token fail: " + JSON.stringify(data));
+  return data.access_token;
+}
+async function paypalGetOrder(accessToken, orderId){
+  const res = await fetch(PAYPAL_BASE + "/v2/checkout/orders/" + encodeURIComponent(orderId), {
+    headers: { "Authorization": "Bearer " + accessToken }
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
+  return data;
 }
 
 // ====== DB MIGRATIONS (core) ======
@@ -349,8 +384,8 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
   return rid;
 }
 
-// ============================================================
-// ============================================================
+
+
 // Items & Recipes (seed)  — ONLY recipes touched below as agreed
 ensureItem("SCRAP","Scrap",1,1);
 const T1 = [
@@ -1290,6 +1325,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
