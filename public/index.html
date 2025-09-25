@@ -781,6 +781,7 @@ async function loadInventoryPanel(){
     const r  = await api("/api/inventory");
     const q  = ($("#inv-search")?.value || "").trim().toLowerCase();
     const items   = (r.items||[]).filter(x => !q || x.name.toLowerCase().includes(q));
+    const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
     const recipes = (r.recipes||[]).filter(x => !q || x.name.toLowerCase().includes(q));
 
     box.innerHTML = "";
@@ -816,6 +817,7 @@ async function loadMarket(){
     const q = $("#market-q")?.value?.trim() || "";
     const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
     const rows = (r?.listings || []).filter(Boolean);
+    const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
     if (!rows.length){ box.textContent="No listings."; return; }
     box.innerHTML = "";
     for (const s of rows){
@@ -1042,6 +1044,7 @@ async function loadBonus(){
 
 </body>
 </html>
+
 
 
 
