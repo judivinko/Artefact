@@ -803,7 +803,7 @@ async function loadInventoryPanel(){
         box.appendChild(row);
       }
     };
-    add(items,"item");
+    add(itemsFiltered,"item"); /* changed: use filtered items */
     add(recipes,"recipe");
     if (!box.children.length) box.textContent = "Empty.";
   }catch(e){ box.textContent = e?.message || "Failed."; }
@@ -818,9 +818,9 @@ async function loadMarket(){
     const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
     const rows = (r?.listings || []).filter(Boolean);
     const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-    if (!rows.length){ box.textContent="No listings."; return; }
+    if (!rowsFiltered.length){ box.textContent="No listings."; return; } /* changed: check filtered */
     box.innerHTML = "";
-    for (const s of rows){
+    for (const s of rowsFiltered){ /* changed: iterate filtered */
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
@@ -872,9 +872,10 @@ async function loadMine(){
   try{
     const r = await api("/api/sales/mine");
     const rows = (r?.listings || []).filter(Boolean);
-    if (!rows.length){ box.textContent="No listings."; return; }
+    const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6))); /* added: filter out artefact/T6+ */
+    if (!rowsFiltered.length){ box.textContent="No listings."; return; } /* changed: check filtered */
     box.innerHTML = "";
-    for (const s of rows){
+    for (const s of rowsFiltered){ /* changed: iterate filtered */
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
@@ -964,6 +965,7 @@ async function loadInventoryFull(){
 </script>
 
 
+
 <!-- ===== BONUS (frontend) ===== -->
 <script>
 function tile(name, code, ok, tier){
@@ -1044,6 +1046,7 @@ async function loadBonus(){
 
 </body>
 </html>
+
 
 
 
