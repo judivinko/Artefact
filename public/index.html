@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
+  <!-- PayPal SDK (zamijeni client-id) -->
+  <script src="https://www.paypal.com/sdk/js?client-id=REPLACE_WITH_YOUR_PAYPAL_CLIENT_ID&currency=USD"></script>
   <style>
     :root{ --line:#233047; --text:#e5e7eb }
     .hidden{display:none}
@@ -46,6 +48,15 @@
     .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
     .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
     .img-slot:hover{ opacity:1 }
+
+    /* Povećana vidljivost balansa */
+    #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
+    /* PayPal wrap da stoji uredno između balansa i logout-a */
+    #paypal-wrap { display:flex; align-items:center; gap:6px }
+    #paypal-button-container { transform:scale(.92); transform-origin:right center }
+    @media (max-width:520px){
+      #paypal-button-container { transform:scale(.86); }
+    }
   </style>
 </head>
 <body>
@@ -55,6 +66,12 @@
   <div class="brand">ARTEFACT</div>
   <div class="row" style="gap:8px">
     <span id="balance" class="badge hidden">0g 0s</span>
+
+    <!-- PayPal dugme (između Gold/Silver i Logout) -->
+    <div id="paypal-wrap" class="hidden">
+      <div id="paypal-button-container"></div>
+    </div>
+
     <button id="btn-open-register" class="btn secondary">Register</button>
     <button id="btn-open-login" class="btn">Log in</button>
     <button id="btn-logout" class="btn muted hidden">Log out</button>
@@ -395,6 +412,48 @@
   function enterGame(defaultTab="shop"){ setTab(defaultTab); }
   function exitGame(){ showLanding(); }
 
+  // === PayPal Buttons init (render u headeru između balansa i logout-a)
+  function initPayPalButtons(){
+    try{
+      const container = document.getElementById("paypal-button-container");
+      const wrap = document.getElementById("paypal-wrap");
+      if (!window.paypal || !container || !wrap) return;
+      if (container.dataset.rendered === "1") { wrap.classList.remove("hidden"); return; }
+
+      window.paypal.Buttons({
+        style: { layout: 'horizontal', height: 35 },
+        createOrder: function(data, actions){
+          let amt = window.localStorage.getItem("pp_last_amt") || "10";
+          amt = prompt("USD amount (min $10):", amt);
+          const v = parseFloat(amt || "0");
+          if (!Number.isFinite(v) || v < 10) { alert("Minimum is $10"); return; }
+          window.localStorage.setItem("pp_last_amt", String(v));
+          return actions.order.create({
+            purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
+          });
+        },
+        onApprove: async function(data, actions){
+          try{
+            await actions.order.capture();
+            const r = await api("/api/paypal/confirm",{
+              method:"POST",
+              body: JSON.stringify({ orderId: data.orderID })
+            });
+            if (WHO) WHO.balance_silver = (r.balance_silver|0);
+            renderBalance(); toast("Top-up successful.");
+            await refreshMeLight();
+          }catch(e){
+            alert(e?.message || "Payment confirm failed.");
+          }
+        },
+        onError: err => { console.error("PayPal error:", err); alert("PayPal error."); }
+      }).render("#paypal-button-container");
+
+      container.dataset.rendered = "1";
+      wrap.classList.remove("hidden");
+    }catch(e){ console.warn("initPayPalButtons failed:", e); }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     showLanding();
     $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
@@ -418,9 +477,11 @@
     $("#btn-open-login")?.classList.add("hidden");
     $("#balance")?.classList.remove("hidden");
     $("#btn-logout")?.classList.remove("hidden");
-    renderBalance?.();
     $("#auth")?.classList.add("hidden");
     $("#app")?.classList.remove("hidden");
+    renderBalance?.();
+    // prikaži PayPal dugme
+    initPayPalButtons();
   }
   function setLoggedOutUI(){
     WHO = null;
@@ -435,6 +496,8 @@
     $("#card-login") && ($("#card-login").style.display="none");
     $("#reg-msg") && ($("#reg-msg").textContent="");
     $("#log-msg") && ($("#log-msg").textContent="");
+    // sakrij PayPal dugme
+    $("#paypal-wrap")?.classList.add("hidden");
   }
 
   async function loadMe(){
@@ -588,22 +651,19 @@ $("#btn-buy-t1")?.addEventListener("click", async ()=>{
   }
 });
 
-/* === DODANA DUGMAD: Buy ×10 / ×50 (ispod glavnog Buy), jedan ispod drugog === */
+/* === DODANA DUGMAD: Buy ×10 / ×50 (ispod glavnog Buy), jedan ispod drugog — NE DIRAMO RASPORED === */
 document.addEventListener("DOMContentLoaded", ()=>{
   const btn1 = $("#btn-buy-t1");
   if (btn1){
-    // kontejner koji slaže dugmad u kolonu
     let wrap = document.createElement("div");
     wrap.style.display = "flex";
     wrap.style.flexDirection = "column";
     wrap.style.alignItems = "flex-start";
     wrap.style.gap = "6px";
 
-    // premjesti postojeći Buy u kolonu
     btn1.parentNode.insertBefore(wrap, btn1);
     wrap.appendChild(btn1);
 
-    // ×10
     if (!$("#btn-buy-t1x10")){
       const b10 = document.createElement("button");
       b10.id = "btn-buy-t1x10";
@@ -612,7 +672,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
       wrap.appendChild(b10);
       b10.addEventListener("click", ()=> shopBuyTimes(10));
     }
-    // ×50
     if (!$("#btn-buy-t1x50")){
       const b50 = document.createElement("button");
       b50.id = "btn-buy-t1x50";
@@ -621,12 +680,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
       wrap.appendChild(b50);
       b50.addEventListener("click", ()=> shopBuyTimes(50));
     }
-    // shop-msg ostaje gdje je već bio
   }
   updateShopBalanceBadge();
 });
 
-// helper za bulk kupovinu (×10/×50)
 async function shopBuyTimes(times=1){
   const msg = $("#shop-msg");
   let ok=0, fail=0, lastErr=null;
@@ -743,13 +800,19 @@ async function openRecipe(recipeId){
 
 async function refreshArtefactBonus(){
   try{
-    const r = await api("/api/items/artefact/bonus");
-    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
-  }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
+    // server vraća bonus u /api/inventory kao artefactBonusGold
+    const r = await api("/api/inventory");
+    const bonus = (typeof r?.artefactBonusGold === "number")
+      ? r.artefactBonusGold
+      : (parseInt(r?.artefactBonusGold,10) || 0);
+    const el = document.getElementById("artefact-bonus");
+    if (el) el.textContent = bonus;
+  }catch(e){
+    console.warn("refreshArtefactBonus failed:", e);
+  }
 }
 (() => {
-  const craft = $("#tab-craft"); if (!craft) return;
+  const craft = document.getElementById("tab-craft"); if (!craft) return;
   const obs = new MutationObserver(() => { if (!craft.classList.contains("hidden")) refreshArtefactBonus(); });
   obs.observe(craft, { attributes:true });
 })();
@@ -803,7 +866,7 @@ async function loadInventoryPanel(){
         box.appendChild(row);
       }
     };
-    add(itemsFiltered,"item"); /* changed: use filtered items */
+    add(itemsFiltered,"item");
     add(recipes,"recipe");
     if (!box.children.length) box.textContent = "Empty.";
   }catch(e){ box.textContent = e?.message || "Failed."; }
@@ -818,9 +881,9 @@ async function loadMarket(){
     const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
     const rows = (r?.listings || []).filter(Boolean);
     const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-    if (!rowsFiltered.length){ box.textContent="No listings."; return; } /* changed: check filtered */
+    if (!rowsFiltered.length){ box.textContent="No listings."; return; }
     box.innerHTML = "";
-    for (const s of rowsFiltered){ /* changed: iterate filtered */
+    for (const s of rowsFiltered){
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
@@ -872,10 +935,10 @@ async function loadMine(){
   try{
     const r = await api("/api/sales/mine");
     const rows = (r?.listings || []).filter(Boolean);
-    const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6))); /* added: filter out artefact/T6+ */
-    if (!rowsFiltered.length){ box.textContent="No listings."; return; } /* changed: check filtered */
+    const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
+    if (!rowsFiltered.length){ box.textContent="No listings."; return; }
     box.innerHTML = "";
-    for (const s of rowsFiltered){ /* changed: iterate filtered */
+    for (const s of rowsFiltered){
       const priceS = s?.price_s | 0; const g  = Math.floor(priceS/100), ss = priceS%100;
       const ico = (s && s.kind==="item") ? iconForByCode(s.code, s.tier) : RECIPE_ICON;
       const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
@@ -964,8 +1027,6 @@ async function loadInventoryFull(){
 }
 </script>
 
-
-
 <!-- ===== BONUS (frontend) ===== -->
 <script>
 function tile(name, code, ok, tier){
@@ -988,14 +1049,9 @@ async function loadBonus(){
     const hasArt = !!r?.has_artefact;
     lock?.classList.toggle("hidden", hasArt);
 
-    // Ako nema artefakta — disable sve gumbe
     if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
 
-    // Za prikaz imena trebaju imena itema po kodu → izvučemo ih iz postojećih tablica.
-    // Napravimo mapu code->name za tier (povuci jednom iz /api/inventory + seed znamo na serveru).
-    // Ovdje, da ostanemo bez dodatnih poziva: ime prikazujemo iz code-a (estetski je ok).
     function prettyNameFromCode(code){
-      // T2_BRONZE_DOOR -> Bronze Door
       return String(code).replace(/^T\d_/, "").replaceAll("_"," ").toLowerCase()
         .replace(/\b\w/g, c=>c.toUpperCase());
     }
@@ -1005,15 +1061,10 @@ async function loadBonus(){
       const info = r.tiers?.[t]; if (!info){ box.textContent="No data"; continue; }
 
       const items = [];
-      // Owned
-      for (const c of (info.owned||[])){
-        items.push(tile(prettyNameFromCode(c), c, true, t));
-      }
-      // Missing
-      for (const c of (info.missing||[])){
-        items.push(tile(prettyNameFromCode(c), c, false, t));
-      }
+      for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true, t));
+      for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
       box.innerHTML = items.join("") || "Empty.";
+
       const btn = btns[t];
       if (btn){
         const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
@@ -1033,7 +1084,6 @@ async function loadBonus(){
       }
     }
   }catch(e){
-    // 401 → nije logiran
     if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
       $("#auth")?.classList.remove("hidden");
       $("#card-login") && ($("#card-login").style.display="block");
@@ -1046,14 +1096,3 @@ async function loadBonus(){
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
