@@ -282,6 +282,19 @@ CREATE TABLE IF NOT EXISTS set_bonuses(
   FOREIGN KEY(user_id) REFERENCES users(id)
 );`);
 
+// ====== BONUS: tablica za PayPal uplate (idempotencija) ======
+ensure(`
+CREATE TABLE IF NOT EXISTS paypal_payments(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  paypal_order_id TEXT NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  currency TEXT NOT NULL,
+  amount REAL NOT NULL,
+  credited_silver INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);`);
+
 // Legacy / migrations for sales etc.
 db.transaction(() => {
   if (!tableExists("sales")) {
@@ -548,7 +561,9 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
-// ===== PAYPAL: potvrda uplate i automatsko dodavanje golda =====
+// ===== PAYPAL: potvrda uplate i automatsko dodavanje golda (idempotent) =====
+// Zahtijeva da već postoje: PAYPAL_CLIENT_ID, PAYPAL_SECRET, USD_TO_GOLD, MIN_USD,
+// i helperi paypalToken() i paypalGetOrder() (Korak 3 ćemo dodati ako još nije).
 app.post("/api/paypal/confirm", async (req, res) => {
   try{
     const uid = requireAuth(req);
@@ -560,12 +575,20 @@ app.post("/api/paypal/confirm", async (req, res) => {
     const { orderId } = req.body || {};
     if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
 
+    // 0) Ako je već procesirano — samo vrati balans (idempotencija)
+    const already = db.prepare(`
+      SELECT credited_silver FROM paypal_payments WHERE paypal_order_id=?
+    `).get(String(orderId));
+    if (already){
+      const bal = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid)?.balance_silver ?? 0;
+      return res.json({ ok:true, balance_silver: bal, note:"already processed" });
+    }
+
     // 1) Verifikacija narudžbe na PayPal-u
     const token = await paypalToken();
     const order = await paypalGetOrder(token, orderId);
-
-    if (order.status !== "COMPLETED"){
-      return res.status(400).json({ ok:false, error:"Payment not completed", status: order.status });
+    if (!order || order.status !== "COMPLETED"){
+      return res.status(400).json({ ok:false, error:"Payment not completed", status: order?.status || "UNKNOWN" });
     }
 
     // 2) Iznos i valuta
@@ -576,7 +599,6 @@ app.post("/api/paypal/confirm", async (req, res) => {
     if (currency !== "USD" || !Number.isFinite(paid)){
       return res.status(400).json({ ok:false, error:"Unsupported currency or invalid amount" });
     }
-
     if (paid < MIN_USD){
       return res.status(400).json({ ok:false, error:`Minimum is $${MIN_USD}` });
     }
@@ -585,14 +607,28 @@ app.post("/api/paypal/confirm", async (req, res) => {
     const addGold   = Math.floor(paid * USD_TO_GOLD);
     const addSilver = addGold * 100;
 
-    // 4) DB transakcija: dodaj balans i upiši u ledger
+    // 4) DB transakcija: evidentiraj uplatu (UNIQUE), podigni balans, upiši ledger
     const after = db.transaction(() => {
-      const cur = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-      if (!cur) throw new Error("User not found");
+      // dvostruka provjera (race-condition guard)
+      const dupe = db.prepare(`SELECT 1 FROM paypal_payments WHERE paypal_order_id=?`).get(String(orderId));
+      if (dupe) {
+        const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
+        return cur?.balance_silver ?? 0;
+      }
 
+      // evidentiraj PayPal uplatu
+      db.prepare(`
+        INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at)
+        VALUES (?,?,?,?,?,?)
+      `).run(String(orderId), uid, String(currency), paid, addSilver, nowISO());
+
+      // podigni balans
+      const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
+      if (!cur) throw new Error("User not found");
       const newBal = (cur.balance_silver | 0) + addSilver;
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
-      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+
+      db.prepare(`UPDATE users SET balance_silver=? WHERE id=?`).run(newBal, uid);
+      db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(uid, addSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
 
       return newBal;
@@ -604,6 +640,8 @@ app.post("/api/paypal/confirm", async (req, res) => {
     return res.status(500).json({ ok:false, error:String(e.message || e) });
   }
 });
+
+
 
 // ===== BONUS helpers =====
 function userHasArtefact(userId){
@@ -1383,6 +1421,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
