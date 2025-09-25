@@ -355,24 +355,26 @@
       return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
     }
 
-    async function saveBonusRow(i){
-      const codeEl = document.getElementById(`bonus-code-${i}`);
-      const pctEl  = document.getElementById(`bonus-percent-${i}`);
-      const usedEl = document.getElementById(`bonus-used-${i}`);
-      const code = sanitizeCode(codeEl?.value || "");
-      const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
-      try{
-        const r = await api("/api/admin/set-bonus-code", {
-          method:"POST",
-          body: JSON.stringify({ index:i, code, percent })
-        });
-        // očekuje: { ok:true, total_used: number }
-        if (usedEl && r && typeof r.total_used === "number") usedEl.value = r.total_used;
-        msg("#codes-msg", `Saved row ${i+1}.`, true);
-      }catch(e){
-        msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
-      }
+   async function saveBonusRow(i){
+  const codeEl = document.getElementById(`bonus-code-${i}`);
+  const pctEl  = document.getElementById(`bonus-percent-${i}`);
+  const usedEl = document.getElementById(`bonus-used-${i}`);
+  const code = sanitizeCode(codeEl?.value || "");
+  const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
+  try{
+    const r = await api("/api/admin/bonus-codes", {
+      method:"POST",
+      body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
+    });
+    // server vraća total_credited_silver (u silverima)
+    if (usedEl && r && typeof r.total_credited_silver === "number") {
+      usedEl.value = Math.floor(r.total_credited_silver/100); // prikaži u gold
     }
+    msg("#codes-msg", `Saved row ${i+1}.`, true);
+  }catch(e){
+    msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
+  }
+}
 
     async function saveAllBonusRows(){
       for (let i=0;i<5;i++){
@@ -443,3 +445,4 @@
   </script>
 </body>
 </html>
+
