@@ -1,5 +1,6 @@
 // ==============================================
-// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija + Bonus kodovi (5 slotova)
+// ARTEFACT • Full Server (Express + better-sqlite3)
+// + BONUS sekcija + PayPal + Bonus kodovi (5 slotova)
 // ==============================================
 
 const express = require("express");
@@ -11,6 +12,7 @@ const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+// ---------- Konfiguracija
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
@@ -31,7 +33,7 @@ const PAYPAL_BASE = PAYPAL_MODE === "live"
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
 const PAYPAL_SECRET    = process.env.PAYPAL_SECRET    || "";
 
-// ---------- Auto-cleanup slika koje počinju sa "0"
+// ---------- Auto-cleanup slika koje počinju sa "0" (pri startu; rekurzivno + logs)
 function deleteFilesStartingWith0(rootDir) {
   try {
     if (!fs.existsSync(rootDir)) return { checked: 0, deleted: 0, found: [] };
@@ -74,7 +76,7 @@ function deleteFilesStartingWith0(rootDir) {
   if (r.found.length) {
     console.log("[CLEANUP] Obrisano:", r.found.map(p => p.replace(__dirname, "")).join(" | "));
   } else {
-    console.log("[CLEANUP] Nije našao fajlove koji počinju sa \"0\" u /public(/images)");
+    console.log("[CLEANUP] Nije našao fajlove koji počinju sa " + JSON.stringify("0") + " u /public(/images)");
   }
 })();
 
@@ -95,7 +97,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "publ
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
-// ===== Helpers
+// ===== Helpers (generic) =====
 const nowISO = () => new Date().toISOString();
 function isEmail(x){ return typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
 function isPass(x){ return typeof x==="string" && x.length>=6; }
@@ -129,7 +131,7 @@ function addMinutes(iso, mins){
 }
 
 /* ===== PayPal helpers ===== */
-// const fetch = require("node-fetch"); // ako treba na starijem Nodeu
+// Node 18+ ima globalni fetch
 async function paypalToken(){
   const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
     method: "POST",
@@ -152,7 +154,7 @@ async function paypalGetOrder(accessToken, orderId){
   return data;
 }
 
-// ====== DB MIGRATIONS
+// ====== DB MIGRATIONS ======
 function ensure(sql){ db.exec(sql); }
 function tableExists(name) {
   try { return !!db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name); }
@@ -271,7 +273,7 @@ CREATE TABLE IF NOT EXISTS auctions(
   highest_bidder_user_id INTEGER
 );`);
 
-// set-bonusi
+// ====== BONUS: tablica za trajne set-bonuse ======
 ensure(`
 CREATE TABLE IF NOT EXISTS set_bonuses(
   user_id INTEGER NOT NULL,
@@ -281,7 +283,7 @@ CREATE TABLE IF NOT EXISTS set_bonuses(
   FOREIGN KEY(user_id) REFERENCES users(id)
 );`);
 
-// PayPal uplate + bonus info
+// ====== PayPal uplate ======
 ensure(`
 CREATE TABLE IF NOT EXISTS paypal_payments(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -303,24 +305,24 @@ if (!hasColumn("paypal_payments","bonus_extra_silver")) {
   db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_extra_silver INTEGER;`);
 }
 
-// BONUS KODOVI (5 slotova)
+// ====== BONUS CODES (5 slotova) ======
 ensure(`
 CREATE TABLE IF NOT EXISTS bonus_codes(
-  slot INTEGER PRIMARY KEY CHECK(slot BETWEEN 0 AND 4),
-  code TEXT NOT NULL DEFAULT '',
-  percent INTEGER NOT NULL DEFAULT 0,
-  total_used_silver INTEGER NOT NULL DEFAULT 0,
-  updated_at TEXT NOT NULL
+  id INTEGER PRIMARY KEY CHECK(id BETWEEN 1 AND 5),
+  code TEXT NOT NULL UNIQUE,
+  percent INTEGER NOT NULL DEFAULT 0 CHECK(percent BETWEEN 0 AND 100),
+  total_credited_silver INTEGER NOT NULL DEFAULT 0,
+  is_active INTEGER NOT NULL DEFAULT 1
 );`);
-db.transaction(() => {
-  for (let i=0;i<5;i++){
-    const row = db.prepare(`SELECT 1 FROM bonus_codes WHERE slot=?`).get(i);
-    if (!row) {
-      db.prepare(`INSERT INTO bonus_codes(slot,code,percent,total_used_silver,updated_at) VALUES (?,?,?,?,?)`)
-        .run(i, "", 0, 0, nowISO());
-    }
+for (let i = 1; i <= 5; i++) {
+  const row = db.prepare("SELECT 1 FROM bonus_codes WHERE id=?").get(i);
+  if (!row) {
+    db.prepare(`
+      INSERT INTO bonus_codes(id, code, percent, total_credited_silver, is_active)
+      VALUES (?,?,?,?,1)
+    `).run(i, `SLOT${i}`, 0, 0);
   }
-})();
+}
 
 // --- seed helpers ---
 function ensureItem(code, name, tier, volatile = 0) {
@@ -400,7 +402,7 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// seed recepata
+// ---------- helpers lokalni za seed recepata ----------
 const takeRotated = (pool, count, offset) => {
   if (!pool.length) return [];
   const start = offset % pool.length;
@@ -416,11 +418,13 @@ const T1_CODES = T1.map(([c])=>c);
 const T2_CODES = T2_ITEMS.map(([c])=>c);
 const T3_CODES = T3_ITEMS.map(([c])=>c);
 const T4_CODES = T4_ITEMS.map(([c])=>c);
+
 const P_T2 = [4,4,4, 5,5,5, 6,6, 7,7];
 const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
 const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
 const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
 
+// seed recepata
 T2_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T2[i];
   const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
@@ -495,7 +499,7 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
-// ===== PAYPAL: potvrda uplate + BONUS KOD
+// ===== PAYPAL: potvrda uplate + BONUS KOD =====
 app.post("/api/paypal/confirm", async (req, res) => {
   try{
     const uid = requireAuth(req);
@@ -507,6 +511,7 @@ app.post("/api/paypal/confirm", async (req, res) => {
     const { orderId, bonus_code } = req.body || {};
     if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
 
+    // Idempotent check
     const already = db.prepare(`
       SELECT credited_silver FROM paypal_payments WHERE paypal_order_id=?
     `).get(String(orderId));
@@ -515,12 +520,14 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.json({ ok:true, balance_silver: bal, note:"already processed" });
     }
 
+    // PayPal verifikacija
     const token = await paypalToken();
     const order = await paypalGetOrder(token, orderId);
     if (!order || order.status !== "COMPLETED"){
       return res.status(400).json({ ok:false, error:"Payment not completed", status: order?.status || "UNKNOWN" });
     }
 
+    // Iznos i valuta
     const pu = order.purchase_units && order.purchase_units[0];
     const currency = pu?.amount?.currency_code;
     const paid = Number(pu?.amount?.value);
@@ -532,26 +539,28 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.status(400).json({ ok:false, error:`Minimum is $${MIN_USD}` });
     }
 
+    // Base kredit
     const addGold   = Math.floor(paid * USD_TO_GOLD);
     const baseSilver = addGold * 100;
 
-    const sanitizeCode = (s)=> String(s||"").toUpperCase().replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
-    let usedCode = null;
-    let bonusPercent = 0;
-    let bonusExtraSilver = 0;
-
-    if (bonus_code && String(bonus_code).trim() !== "") {
-      const want = sanitizeCode(bonus_code);
-      const bc = db.prepare(`SELECT slot, code, percent FROM bonus_codes WHERE UPPER(code)=? AND percent>0`).get(want);
-      if (bc && bc.code) {
-        usedCode = bc.code;
-        bonusPercent = Math.max(0, Math.min(100, parseInt(bc.percent,10) || 0));
-        bonusExtraSilver = Math.floor(baseSilver * bonusPercent / 100);
+    // BONUS KOD (ako je aktivan)
+    let usedCode = null, usedPercent = 0, extraSilver = 0;
+    const codeStr = (bonus_code||"").trim();
+    if (codeStr) {
+      const row = db.prepare(`
+        SELECT id, code, percent, is_active FROM bonus_codes
+        WHERE is_active=1 AND lower(code)=lower(?)
+      `).get(codeStr);
+      if (row && row.percent > 0) {
+        usedCode = row.code;
+        usedPercent = Math.min(100, Math.max(0, row.percent|0));
+        extraSilver = Math.floor(baseSilver * usedPercent / 100);
       }
     }
 
-    const creditedSilver = baseSilver + bonusExtraSilver;
+    const totalSilver = baseSilver + extraSilver;
 
+    // Transakcija
     const after = db.transaction(() => {
       const dupe = db.prepare(`SELECT 1 FROM paypal_payments WHERE paypal_order_id=?`).get(String(orderId));
       if (dupe) {
@@ -562,32 +571,42 @@ app.post("/api/paypal/confirm", async (req, res) => {
       db.prepare(`
         INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at,bonus_code,bonus_percent,bonus_extra_silver)
         VALUES (?,?,?,?,?,?,?,?,?)
-      `).run(String(orderId), uid, String(currency), paid, creditedSilver, nowISO(), usedCode, bonusPercent, bonusExtraSilver);
+      `).run(String(orderId), uid, String(currency), paid, totalSilver, nowISO(), usedCode, usedPercent, extraSilver);
+
+      if (usedCode && usedPercent > 0) {
+        db.prepare(`
+          UPDATE bonus_codes
+             SET total_credited_silver = total_credited_silver + ?
+           WHERE lower(code)=lower(?)
+        `).run(totalSilver, usedCode);
+      }
 
       const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
       if (!cur) throw new Error("User not found");
-      const newBal = (cur.balance_silver | 0) + creditedSilver;
+      const newBal = (cur.balance_silver | 0) + totalSilver;
 
       db.prepare(`UPDATE users SET balance_silver=? WHERE id=?`).run(newBal, uid);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
-        .run(uid, creditedSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
-
-      if (usedCode) {
-        db.prepare(`UPDATE bonus_codes SET total_used_silver = total_used_silver + ?, updated_at=? WHERE UPPER(code)=?`)
-          .run(baseSilver, nowISO(), usedCode.toUpperCase());
-      }
+        .run(uid, totalSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
 
       return newBal;
     })();
 
-    return res.json({ ok:true, balance_silver: after, bonus_applied: !!usedCode, bonus_code: usedCode, bonus_percent: bonusPercent });
+    return res.json({
+      ok:true,
+      balance_silver: after,
+      bonus_applied: !!usedCode,
+      bonus_code: usedCode || null,
+      bonus_percent: usedPercent,
+      bonus_extra_silver: extraSilver
+    });
   }catch(e){
     console.error("[/api/paypal/confirm] error:", e);
     return res.status(500).json({ ok:false, error:String(e.message || e) });
   }
 });
 
-// ===== BONUS helpers
+// ===== BONUS helpers =====
 function userHasArtefact(userId){
   const r = db.prepare(`
     SELECT 1
@@ -622,7 +641,7 @@ function getPerks(userId){
   return perksFromClaimed(c);
 }
 
-// /api/me prošireno
+// Extend /api/me (perks, artefact)
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -661,139 +680,7 @@ app.get("/api/me", (req, res) => {
   });
 });
 
-// --- ARTEFACT BONUS GOLD (ADMIN) — single
-app.post("/api/admin/set-bonus-gold", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
-  const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
-  const g = Math.max(0, parseInt(bonus_gold, 10) || 0);
-  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
-  if (!row) return res.status(404).json({ ok: false, error: "Item not found" });
-  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
-  return res.json({ ok: true, bonus_gold: g });
-});
-
-// BONUS CODES (ADMIN)
-app.get("/api/admin/bonus-codes", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
-  try{
-    const rows = db.prepare(`SELECT slot, code, percent, total_used_silver, updated_at FROM bonus_codes ORDER BY slot ASC`).all();
-    const map = new Map(rows.map(r => [r.slot, r]));
-    const out = [];
-    for (let i=0;i<5;i++){
-      const r = map.get(i) || { slot:i, code:"", percent:0, total_used_silver:0, updated_at: nowISO() };
-      out.push({
-        slot: r.slot,
-        code: r.code || "",
-        percent: r.percent|0,
-        total_used_silver: r.total_used_silver|0,
-        total_used_gold: Math.floor((r.total_used_silver|0)/100),
-        updated_at: r.updated_at
-      });
-    }
-    res.json({ ok:true, codes: out });
-  }catch(e){
-    res.status(500).json({ ok:false, error:String(e.message||e) });
-  }
-});
-
-app.post("/api/admin/set-bonus-code", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
-  try{
-    const { index, code, percent } = req.body || {};
-    const slot = parseInt(index, 10);
-    if (!Number.isInteger(slot) || slot < 0 || slot > 4) {
-      return res.status(400).json({ ok:false, error:"Bad index (0..4)" });
-    }
-    const sanitizeCode = (s)=> String(s||"").toUpperCase().replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
-    const c = sanitizeCode(code);
-    const p = Math.max(0, Math.min(100, parseInt(percent,10) || 0));
-
-    db.prepare(`
-      INSERT INTO bonus_codes(slot,code,percent,total_used_silver,updated_at)
-      VALUES (?,?,?,?,?)
-      ON CONFLICT(slot) DO UPDATE SET code=excluded.code, percent=excluded.percent, updated_at=excluded.updated_at
-    `).run(slot, c, p, 0, nowISO());
-
-    const row = db.prepare(`SELECT slot,code,percent,total_used_silver,updated_at FROM bonus_codes WHERE slot=?`).get(slot);
-    res.json({
-      ok:true,
-      code: row.code, percent: row.percent|0,
-      total_used_silver: row.total_used_silver|0,
-      total_used_gold: Math.floor((row.total_used_silver|0)/100),
-      slot: row.slot, updated_at: row.updated_at
-    });
-  }catch(e){
-    res.status(500).json({ ok:false, error:String(e.message||e) });
-  }
-});
-
-// cleanup helpers (admin)
-app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
-
-  function scan(rootDir) {
-    const hit = [];
-    try {
-      if (!fs.existsSync(rootDir)) return hit;
-      const stack = [rootDir];
-      while (stack.length) {
-        const dir = stack.pop();
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const ent of entries) {
-          const full = path.join(dir, ent.name);
-          if (ent.isDirectory()) stack.push(full);
-          else if (ent.name.startsWith("0")) hit.push(full.replace(__dirname, ""));
-        }
-      }
-    } catch (e) {}
-    return hit;
-  }
-
-  const a = scan(path.join(__dirname, "public", "images"));
-  const b = scan(path.join(__dirname, "public"));
-  const set = Array.from(new Set([...a, ...b]));
-  res.json({ ok:true, matches: set });
-});
-
-app.post("/api/admin/cleanup-images", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
-
-  const dirs = [
-    path.join(__dirname, "public", "images"),
-    path.join(__dirname, "public")
-  ];
-  let deleted = 0, checked = 0, found = [];
-
-  for (const rootDir of dirs) {
-    try {
-      if (!fs.existsSync(rootDir)) continue;
-      const stack = [rootDir];
-      while (stack.length) {
-        const dir = stack.pop();
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const ent of entries) {
-          const full = path.join(dir, ent.name);
-          if (ent.isDirectory()) {
-            stack.push(full);
-          } else {
-            checked++;
-            if (ent.name.startsWith("0")) {
-              found.push(full.replace(__dirname, ""));
-              try { fs.unlinkSync(full); deleted++; }
-              catch (e) { console.error("[CLEANUP] Greška:", full, e); }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error("[CLEANUP] Greška skeniranja:", e);
-    }
-  }
-
-  res.json({ ok:true, checked, deleted, found });
-});
-
-// =============== ADMIN (ping, users, adjust, inventory, disable)
+// ===== ADMIN (ping, users, adjust, inventory, disable)
 app.get("/api/admin/ping",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   res.json({ok:true});
@@ -865,7 +752,56 @@ app.post("/api/admin/disable-user",(req,res)=>{
   res.json({ ok:true });
 });
 
-// ===== BONUS: status i claim
+// ===== ADMIN: Artefact bonus gold set (samo jedna ruta)
+app.post("/api/admin/set-bonus-gold", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
+  const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
+  const g = Math.max(0, parseInt(bonus_gold, 10) || 0);
+  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
+  if (!row) return res.status(404).json({ ok: false, error: "Item not found" });
+  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
+  return res.json({ ok: true, bonus_gold: g });
+});
+
+// ===== ADMIN: Bonus kodovi (5 slotova)
+app.get("/api/admin/bonus-codes", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  const rows = db.prepare(`
+    SELECT id, code, percent, total_credited_silver, is_active
+    FROM bonus_codes
+    ORDER BY id ASC
+  `).all();
+  res.json({ ok:true, slots: rows });
+});
+
+app.post("/api/admin/bonus-codes", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  const { slot, code, percent, is_active } = req.body || {};
+  const id = parseInt(slot, 10);
+  if (!(id >= 1 && id <= 5)) return res.status(400).json({ ok:false, error:"slot must be 1..5" });
+  const pct = Math.max(0, Math.min(100, parseInt(percent,10) || 0));
+  const c = String(code || "").trim();
+  if (!c) return res.status(400).json({ ok:false, error:"code required" });
+  const active = is_active ? 1 : 0;
+
+  try{
+    // osiguraj jedinstvenost koda (osim na trenutnom slotu)
+    const clash = db.prepare(`SELECT id FROM bonus_codes WHERE lower(code)=lower(?) AND id<>?`).get(c, id);
+    if (clash) return res.status(409).json({ ok:false, error:"Code already used on a different slot" });
+
+    db.prepare(`
+      UPDATE bonus_codes
+         SET code=?, percent=?, is_active=?
+       WHERE id=?
+    `).run(c, pct, active, id);
+    const row = db.prepare(`SELECT id, code, percent, total_credited_silver, is_active FROM bonus_codes WHERE id=?`).get(id);
+    res.json({ ok:true, slot: row });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e.message || e) });
+  }
+});
+
+// ===== BONUS: status i claim =====
 function itemCodesByTier(tier){
   const rows = db.prepare(`SELECT code FROM items WHERE tier=? ORDER BY code`).all(tier|0);
   return rows.map(r=>r.code);
@@ -970,9 +906,9 @@ app.post("/api/shop/buy-t1",(req,res)=>{
       const cost = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
 
       if(user.balance_silver < cost) throw new Error("Insufficient funds.");
-      db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
-        .run(user.id,-cost,"SHOP_BUY_T1",null,nowISO());
       db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(cost,user.id);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(user.id,-cost,"SHOP_BUY_T1",null,nowISO());
 
       let nextAt = user.next_recipe_at;
       if (nextAt == null){
@@ -1016,7 +952,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
   }
 });
 
-// =============== RECIPES & CRAFTING
+// =============== RECIPES & CRAFTING — respektira BONUS
 app.get("/api/recipes/list", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1139,7 +1075,7 @@ function addInv(userId, itemId, recipeId, qty) {
   }
 }
 
-// Craft ARTEFACT
+// Craft ARTEFACT (10× DISTINCT T5)
 app.post("/api/craft/artefact", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
@@ -1169,7 +1105,7 @@ app.post("/api/craft/artefact", (req, res) => {
   }
 });
 
-// =============== INVENTORY
+// =============== INVENTORY (full + artefact bonus)
 app.get("/api/inventory",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
@@ -1192,7 +1128,7 @@ app.get("/api/inventory",(req,res)=>{
   res.json({ok:true, items, recipes, artefactBonusGold});
 });
 
-// ================= SALES
+// ================= SALES (Marketplace) — respektira BONUS
 function mapListing(a) {
   return {
     id: a.id,
