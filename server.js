@@ -1,5 +1,5 @@
 // ==============================================
-// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija
+// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija + Bonus kodovi (5 slotova)
 // ==============================================
 
 const express = require("express");
@@ -21,7 +21,7 @@ const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gm
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
-/* ===== PAYPAL CONFIG (DODANO) ===== */
+/* ===== PAYPAL CONFIG ===== */
 const USD_TO_GOLD = 100;                             // 1 USD = 100 gold
 const MIN_USD = 10;                                  // minimalna uplata
 const PAYPAL_MODE = (process.env.PAYPAL_MODE || "sandbox").toLowerCase(); // "live" | "sandbox"
@@ -31,7 +31,7 @@ const PAYPAL_BASE = PAYPAL_MODE === "live"
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
 const PAYPAL_SECRET    = process.env.PAYPAL_SECRET    || "";
 
-// ---------- Auto-cleanup slika koje počinju sa "0" (pri startu; rekurzivno + logs)
+// ---------- Auto-cleanup slika koje počinju sa "0"
 function deleteFilesStartingWith0(rootDir) {
   try {
     if (!fs.existsSync(rootDir)) return { checked: 0, deleted: 0, found: [] };
@@ -95,7 +95,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "publ
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
-// ===== Helpers (generic) =====
+// ===== Helpers
 const nowISO = () => new Date().toISOString();
 function isEmail(x){ return typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
 function isPass(x){ return typeof x==="string" && x.length>=6; }
@@ -128,9 +128,8 @@ function addMinutes(iso, mins){
   const d = new Date(iso); d.setMinutes(d.getMinutes()+mins); return d.toISOString();
 }
 
-/* ===== PayPal helpers (DODANO) ===== */
-// Node 18+ ima globalni fetch; ako si na starijem Node-u, odkomentiraj sljedeće:
-// const fetch = require("node-fetch");
+/* ===== PayPal helpers ===== */
+// const fetch = require("node-fetch"); // ako treba na starijem Nodeu
 async function paypalToken(){
   const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
     method: "POST",
@@ -153,7 +152,7 @@ async function paypalGetOrder(accessToken, orderId){
   return data;
 }
 
-// ====== DB MIGRATIONS (core) ======
+// ====== DB MIGRATIONS
 function ensure(sql){ db.exec(sql); }
 function tableExists(name) {
   try { return !!db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name); }
@@ -272,7 +271,7 @@ CREATE TABLE IF NOT EXISTS auctions(
   highest_bidder_user_id INTEGER
 );`);
 
-// ====== BONUS: tablica za trajne set-bonuse ======
+// set-bonusi
 ensure(`
 CREATE TABLE IF NOT EXISTS set_bonuses(
   user_id INTEGER NOT NULL,
@@ -282,7 +281,7 @@ CREATE TABLE IF NOT EXISTS set_bonuses(
   FOREIGN KEY(user_id) REFERENCES users(id)
 );`);
 
-// ====== BONUS: tablica za PayPal uplate (idempotencija) ======
+// PayPal uplate + bonus info
 ensure(`
 CREATE TABLE IF NOT EXISTS paypal_payments(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -294,76 +293,32 @@ CREATE TABLE IF NOT EXISTS paypal_payments(
   created_at TEXT NOT NULL,
   FOREIGN KEY(user_id) REFERENCES users(id)
 );`);
+if (!hasColumn("paypal_payments","bonus_code")) {
+  db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_code TEXT;`);
+}
+if (!hasColumn("paypal_payments","bonus_percent")) {
+  db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_percent INTEGER;`);
+}
+if (!hasColumn("paypal_payments","bonus_extra_silver")) {
+  db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_extra_silver INTEGER;`);
+}
 
-// Legacy / migrations for sales etc.
+// BONUS KODOVI (5 slotova)
+ensure(`
+CREATE TABLE IF NOT EXISTS bonus_codes(
+  slot INTEGER PRIMARY KEY CHECK(slot BETWEEN 0 AND 4),
+  code TEXT NOT NULL DEFAULT '',
+  percent INTEGER NOT NULL DEFAULT 0,
+  total_used_silver INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);`);
 db.transaction(() => {
-  if (!tableExists("sales")) {
-    db.exec(`
-      CREATE TABLE sales(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        seller_user_id INTEGER NOT NULL,
-        type TEXT NOT NULL,
-        item_id INTEGER,
-        recipe_id INTEGER,
-        qty INTEGER NOT NULL DEFAULT 1,
-        price_s INTEGER NOT NULL DEFAULT 0,
-        title TEXT NOT NULL DEFAULT '',
-        status TEXT NOT NULL DEFAULT 'live',
-        created_at TEXT NOT NULL,
-        sold_at TEXT,
-        buyer_user_id INTEGER
-      );
-      CREATE INDEX IF NOT EXISTS idx_sales_live ON sales(status, created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_sales_seller ON sales(seller_user_id, status);
-    `);
-  } else {
-    if (!hasColumn("sales", "price_s"))       db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
-    if (!hasColumn("sales", "title"))         db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
-    if (!hasColumn("sales", "status"))        db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
-    if (!hasColumn("sales", "buyer_user_id")) db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
-    if (!hasColumn("sales", "sold_at"))       db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
-  }
-  if (!tableExists("auctions")) {
-    db.exec(`
-      CREATE TABLE auctions(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        seller_user_id INTEGER NOT NULL,
-        type TEXT NOT NULL,
-        item_id INTEGER,
-        recipe_id INTEGER,
-        qty INTEGER NOT NULL DEFAULT 1,
-        start_price_s INTEGER NOT NULL DEFAULT 0,
-        buy_now_price_s INTEGER,
-        fee_bps INTEGER NOT NULL DEFAULT 100,
-        status TEXT NOT NULL DEFAULT 'live',
-        start_time TEXT NOT NULL,
-        end_time TEXT NOT NULL,
-        winner_user_id INTEGER,
-        sold_price_s INTEGER,
-        highest_bid_s INTEGER,
-        highest_bidder_user_id INTEGER
-      );
-      CREATE INDEX IF NOT EXISTS idx_auctions_live ON auctions(status, start_time DESC);
-      CREATE INDEX IF NOT EXISTS idx_auctions_seller ON auctions(seller_user_id, status);
-    `);
-  }
-  if (!tableExists("inventory_escrow")) {
-    db.exec(`
-      CREATE TABLE inventory_escrow(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        auction_id INTEGER,
-        owner_user_id INTEGER NOT NULL,
-        type TEXT NOT NULL DEFAULT 'item',
-        item_id INTEGER,
-        recipe_id INTEGER,
-        qty INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_inventory_escrow_auction ON inventory_escrow(auction_id);
-    `);
-  } else {
-    if (!hasColumn("inventory_escrow", "type"))       db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
-    if (!hasColumn("inventory_escrow", "auction_id")) db.exec(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER;`);
+  for (let i=0;i<5;i++){
+    const row = db.prepare(`SELECT 1 FROM bonus_codes WHERE slot=?`).get(i);
+    if (!row) {
+      db.prepare(`INSERT INTO bonus_codes(slot,code,percent,total_used_silver,updated_at) VALUES (?,?,?,?,?)`)
+        .run(i, "", 0, 0, nowISO());
+    }
   }
 })();
 
@@ -397,9 +352,7 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
   return rid;
 }
 
-
-
-// Items & Recipes (seed)  — ONLY recipes touched below as agreed
+// Items & Recipes (seed)
 ensureItem("SCRAP","Scrap",1,1);
 const T1 = [
   ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
@@ -447,12 +400,11 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// ---------- helpers lokalni za seed recepata (NE diraju ostatak servera) ----------
+// seed recepata
 const takeRotated = (pool, count, offset) => {
   if (!pool.length) return [];
   const start = offset % pool.length;
   const rotated = pool.slice(start).concat(pool.slice(0, start));
-  // bez duplikata u jednom receptu
   const out = [];
   for (const c of rotated) {
     if (!out.includes(c)) out.push(c);
@@ -460,58 +412,40 @@ const takeRotated = (pool, count, offset) => {
   }
   return out;
 };
-
-// kodovi za bazene
 const T1_CODES = T1.map(([c])=>c);
 const T2_CODES = T2_ITEMS.map(([c])=>c);
 const T3_CODES = T3_ITEMS.map(([c])=>c);
 const T4_CODES = T4_ITEMS.map(([c])=>c);
-
-// raspodjele po tieru (10 recepata)
 const P_T2 = [4,4,4, 5,5,5, 6,6, 7,7];
 const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
 const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
 const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
 
-// ---------- seed recepata (ensureRecipe) ----------
-// T2: koristi T1 kao sastojke
 T2_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T2[i];
   const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 2, outCode, ings);
 });
-
-// T3: koristi T2 kao sastojke
 T3_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T3[i];
   const ings = takeRotated(T2_CODES, Math.min(need, T2_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 3, outCode, ings);
 });
-
-// T4: koristi T3 kao sastojke
 T4_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T4[i];
   const ings = takeRotated(T3_CODES, Math.min(need, T3_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 4, outCode, ings);
 });
-
-// T5: koristi T4 kao sastojke
 T5_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T5[i];
   const ings = takeRotated(T4_CODES, Math.min(need, T4_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 5, outCode, ings);
 });
 
-// ARTEFACT (nema recept)
 ensureItem("ARTEFACT","Artefact",6,0);
+try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
 
-// --- MIGRACIJA: prefiks "R " za recepte koji ga nemaju
-try {
-  db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run();
-} catch {}
-
-
-// ---------- AUTH (jedna, čista implementacija)
+// ---------- AUTH
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -561,9 +495,7 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
-// ===== PAYPAL: potvrda uplate i automatsko dodavanje golda (idempotent) =====
-// Zahtijeva da već postoje: PAYPAL_CLIENT_ID, PAYPAL_SECRET, USD_TO_GOLD, MIN_USD,
-// i helperi paypalToken() i paypalGetOrder() (Korak 3 ćemo dodati ako još nije).
+// ===== PAYPAL: potvrda uplate + BONUS KOD
 app.post("/api/paypal/confirm", async (req, res) => {
   try{
     const uid = requireAuth(req);
@@ -572,10 +504,9 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.status(500).json({ ok:false, error:"PayPal not configured" });
     }
 
-    const { orderId } = req.body || {};
+    const { orderId, bonus_code } = req.body || {};
     if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
 
-    // 0) Ako je već procesirano — samo vrati balans (idempotencija)
     const already = db.prepare(`
       SELECT credited_silver FROM paypal_payments WHERE paypal_order_id=?
     `).get(String(orderId));
@@ -584,14 +515,12 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.json({ ok:true, balance_silver: bal, note:"already processed" });
     }
 
-    // 1) Verifikacija narudžbe na PayPal-u
     const token = await paypalToken();
     const order = await paypalGetOrder(token, orderId);
     if (!order || order.status !== "COMPLETED"){
       return res.status(400).json({ ok:false, error:"Payment not completed", status: order?.status || "UNKNOWN" });
     }
 
-    // 2) Iznos i valuta
     const pu = order.purchase_units && order.purchase_units[0];
     const currency = pu?.amount?.currency_code;
     const paid = Number(pu?.amount?.value);
@@ -603,47 +532,62 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.status(400).json({ ok:false, error:`Minimum is $${MIN_USD}` });
     }
 
-    // 3) Preračun: 1 USD = 100 gold; 1 gold = 100 silver
     const addGold   = Math.floor(paid * USD_TO_GOLD);
-    const addSilver = addGold * 100;
+    const baseSilver = addGold * 100;
 
-    // 4) DB transakcija: evidentiraj uplatu (UNIQUE), podigni balans, upiši ledger
+    const sanitizeCode = (s)=> String(s||"").toUpperCase().replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+    let usedCode = null;
+    let bonusPercent = 0;
+    let bonusExtraSilver = 0;
+
+    if (bonus_code && String(bonus_code).trim() !== "") {
+      const want = sanitizeCode(bonus_code);
+      const bc = db.prepare(`SELECT slot, code, percent FROM bonus_codes WHERE UPPER(code)=? AND percent>0`).get(want);
+      if (bc && bc.code) {
+        usedCode = bc.code;
+        bonusPercent = Math.max(0, Math.min(100, parseInt(bc.percent,10) || 0));
+        bonusExtraSilver = Math.floor(baseSilver * bonusPercent / 100);
+      }
+    }
+
+    const creditedSilver = baseSilver + bonusExtraSilver;
+
     const after = db.transaction(() => {
-      // dvostruka provjera (race-condition guard)
       const dupe = db.prepare(`SELECT 1 FROM paypal_payments WHERE paypal_order_id=?`).get(String(orderId));
       if (dupe) {
         const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
         return cur?.balance_silver ?? 0;
       }
 
-      // evidentiraj PayPal uplatu
       db.prepare(`
-        INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at)
-        VALUES (?,?,?,?,?,?)
-      `).run(String(orderId), uid, String(currency), paid, addSilver, nowISO());
+        INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at,bonus_code,bonus_percent,bonus_extra_silver)
+        VALUES (?,?,?,?,?,?,?,?,?)
+      `).run(String(orderId), uid, String(currency), paid, creditedSilver, nowISO(), usedCode, bonusPercent, bonusExtraSilver);
 
-      // podigni balans
       const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid);
       if (!cur) throw new Error("User not found");
-      const newBal = (cur.balance_silver | 0) + addSilver;
+      const newBal = (cur.balance_silver | 0) + creditedSilver;
 
       db.prepare(`UPDATE users SET balance_silver=? WHERE id=?`).run(newBal, uid);
       db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
-        .run(uid, addSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
+        .run(uid, creditedSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
+
+      if (usedCode) {
+        db.prepare(`UPDATE bonus_codes SET total_used_silver = total_used_silver + ?, updated_at=? WHERE UPPER(code)=?`)
+          .run(baseSilver, nowISO(), usedCode.toUpperCase());
+      }
 
       return newBal;
     })();
 
-    return res.json({ ok:true, balance_silver: after });
+    return res.json({ ok:true, balance_silver: after, bonus_applied: !!usedCode, bonus_code: usedCode, bonus_percent: bonusPercent });
   }catch(e){
     console.error("[/api/paypal/confirm] error:", e);
     return res.status(500).json({ ok:false, error:String(e.message || e) });
   }
 });
 
-
-
-// ===== BONUS helpers =====
+// ===== BONUS helpers
 function userHasArtefact(userId){
   const r = db.prepare(`
     SELECT 1
@@ -660,13 +604,12 @@ function getClaimedTiers(userId){
   return { t2:set.has(2), t3:set.has(3), t4:set.has(4), t5:set.has(5) };
 }
 function perksFromClaimed(claimed){
-  // Default perks
   const p = {
-    shop_price_s: 100,           // 100s default
-    craft_no_fail: false,        // default fail allowed
-    auction_fee_bps: 100,        // 1% default
-    min_list_price_s: null,      // no floor by default
-    min_recipe_tier: 2           // T2+ by default
+    shop_price_s: 100,
+    craft_no_fail: false,
+    auction_fee_bps: 100,
+    min_list_price_s: null,
+    min_recipe_tier: 2
   };
   if (claimed.t2) p.shop_price_s = Math.min(p.shop_price_s, 98);
   if (claimed.t3) p.auction_fee_bps = 0;
@@ -679,7 +622,7 @@ function getPerks(userId){
   return perksFromClaimed(c);
 }
 
-// Extend /api/me to include has_artefact + perks snapshot
+// /api/me prošireno
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -718,8 +661,7 @@ app.get("/api/me", (req, res) => {
   });
 });
 
-
-//---ARTEFACT BONUS GOLD (ADMIN)
+// --- ARTEFACT BONUS GOLD (ADMIN) — single
 app.post("/api/admin/set-bonus-gold", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
@@ -730,10 +672,62 @@ app.post("/api/admin/set-bonus-gold", (req, res) => {
   return res.json({ ok: true, bonus_gold: g });
 });
 
-// Root i Admin HTML
-app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html"))); // admin.html se ne dira
+// BONUS CODES (ADMIN)
+app.get("/api/admin/bonus-codes", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  try{
+    const rows = db.prepare(`SELECT slot, code, percent, total_used_silver, updated_at FROM bonus_codes ORDER BY slot ASC`).all();
+    const map = new Map(rows.map(r => [r.slot, r]));
+    const out = [];
+    for (let i=0;i<5;i++){
+      const r = map.get(i) || { slot:i, code:"", percent:0, total_used_silver:0, updated_at: nowISO() };
+      out.push({
+        slot: r.slot,
+        code: r.code || "",
+        percent: r.percent|0,
+        total_used_silver: r.total_used_silver|0,
+        total_used_gold: Math.floor((r.total_used_silver|0)/100),
+        updated_at: r.updated_at
+      });
+    }
+    res.json({ ok:true, codes: out });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
 
-// --- Admin: dry-run pregled (ne briše, samo vraća koje bi obrisao)
+app.post("/api/admin/set-bonus-code", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  try{
+    const { index, code, percent } = req.body || {};
+    const slot = parseInt(index, 10);
+    if (!Number.isInteger(slot) || slot < 0 || slot > 4) {
+      return res.status(400).json({ ok:false, error:"Bad index (0..4)" });
+    }
+    const sanitizeCode = (s)=> String(s||"").toUpperCase().replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+    const c = sanitizeCode(code);
+    const p = Math.max(0, Math.min(100, parseInt(percent,10) || 0));
+
+    db.prepare(`
+      INSERT INTO bonus_codes(slot,code,percent,total_used_silver,updated_at)
+      VALUES (?,?,?,?,?)
+      ON CONFLICT(slot) DO UPDATE SET code=excluded.code, percent=excluded.percent, updated_at=excluded.updated_at
+    `).run(slot, c, p, 0, nowISO());
+
+    const row = db.prepare(`SELECT slot,code,percent,total_used_silver,updated_at FROM bonus_codes WHERE slot=?`).get(slot);
+    res.json({
+      ok:true,
+      code: row.code, percent: row.percent|0,
+      total_used_silver: row.total_used_silver|0,
+      total_used_gold: Math.floor((row.total_used_silver|0)/100),
+      slot: row.slot, updated_at: row.updated_at
+    });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+// cleanup helpers (admin)
 app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
 
@@ -757,12 +751,10 @@ app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
 
   const a = scan(path.join(__dirname, "public", "images"));
   const b = scan(path.join(__dirname, "public"));
-  // ukloni duplikate
   const set = Array.from(new Set([...a, ...b]));
   res.json({ ok:true, matches: set });
 });
 
-// --- Admin: ručni cleanup (briše)
 app.post("/api/admin/cleanup-images", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
 
@@ -873,7 +865,7 @@ app.post("/api/admin/disable-user",(req,res)=>{
   res.json({ ok:true });
 });
 
-// ===== BONUS: status i claim =====
+// ===== BONUS: status i claim
 function itemCodesByTier(tier){
   const rows = db.prepare(`SELECT code FROM items WHERE tier=? ORDER BY code`).all(tier|0);
   return rows.map(r=>r.code);
@@ -924,7 +916,6 @@ app.post("/api/bonus/claim",(req,res)=>{
     if (codes.length !== 10) return res.status(500).json({ ok:false, error:"Tier does not have exactly 10 items" });
 
     const tx = db.transaction(()=>{
-      // provjeri i skini 1 qty za svaki od 10
       for (const c of codes){
         const id = itemIdByCode(c);
         if (!id) throw new Error("Missing item "+c);
@@ -946,7 +937,7 @@ app.post("/api/bonus/claim",(req,res)=>{
   }
 });
 
-// =============== SHOP (T1 only) — respektira BONUS
+// =============== SHOP (T1) — respektira BONUS
 const SHOP_T1_COST_S_BASE = 100;
 const RECIPE_DROP_MIN = 4;
 const RECIPE_DROP_MAX = 8;
@@ -979,9 +970,9 @@ app.post("/api/shop/buy-t1",(req,res)=>{
       const cost = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
 
       if(user.balance_silver < cost) throw new Error("Insufficient funds.");
-      db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(cost,user.id);
-      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+      db.prepare(`INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)`)
         .run(user.id,-cost,"SHOP_BUY_T1",null,nowISO());
+      db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(cost,user.id);
 
       let nextAt = user.next_recipe_at;
       if (nextAt == null){
@@ -1025,7 +1016,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
   }
 });
 
-// =============== RECIPES & CRAFTING — respektira BONUS (no fail)
+// =============== RECIPES & CRAFTING
 app.get("/api/recipes/list", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1148,7 +1139,7 @@ function addInv(userId, itemId, recipeId, qty) {
   }
 }
 
-// Craft ARTEFACT (10× DISTINCT T5)
+// Craft ARTEFACT
 app.post("/api/craft/artefact", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
@@ -1178,7 +1169,7 @@ app.post("/api/craft/artefact", (req, res) => {
   }
 });
 
-// =============== INVENTORY (full + artefact bonus)
+// =============== INVENTORY
 app.get("/api/inventory",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
@@ -1201,7 +1192,7 @@ app.get("/api/inventory",(req,res)=>{
   res.json({ok:true, items, recipes, artefactBonusGold});
 });
 
-// ================= SALES (Marketplace) — respektira BONUS
+// ================= SALES
 function mapListing(a) {
   return {
     id: a.id,
@@ -1401,17 +1392,6 @@ app.post("/api/sales/buy", (req, res) => {
 
 app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
 
-// ===== ADMIN: Artefact bonus gold set (ostavljeno kako je bilo)
-app.post("/api/admin/set-bonus-gold", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
-  const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
-  const g = Math.max(0, parseInt(bonus_gold, 10) || 0);
-  const row = db.prepare(`SELECT id FROM items WHERE code=?`).get(String(code));
-  if (!row) return res.status(404).json({ ok: false, error: "Item not found" });
-  db.prepare(`UPDATE items SET bonus_gold=? WHERE code=?`).run(g, String(code));
-  return res.json({ ok: true, bonus_gold: g });
-});
-
 // ===== HEALTH
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, time: nowISO() });
@@ -1421,11 +1401,3 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
-
-
-
-
-
-
-
-
