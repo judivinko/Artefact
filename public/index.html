@@ -9,7 +9,7 @@
   <script src="https://www.paypal.com/sdk/js?client-id=REPLACE_WITH_YOUR_PAYPAL_CLIENT_ID&currency=USD"></script>
   <style>
     :root{ --line:#233047; --text:#e5e7eb }
-    .hidden{display:none}
+    .hidden{display:none} /* FIX: uklonjen slučajni tekst koji je lomio CSS */
     .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
     .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
     .itemrow:last-child{border-bottom:0}
@@ -67,10 +67,13 @@
   <div class="row" style="gap:8px">
     <span id="balance" class="badge hidden">0g 0s</span>
 
-    <!-- PayPal dugme (između Gold/Silver i Logout) -->
+    <!-- PayPal sekcija (DODANO: iznos + bonus kod + dugme) -->
     <div id="paypal-wrap" class="hidden">
+      <input id="paypal-amount" class="input" type="number" min="10" step="1" value="10" placeholder="USD" style="width:96px" />
+      <input id="paypal-bonus" class="input" type="text" maxlength="32" placeholder="Bonus code (optional)" style="width:160px" />
       <div id="paypal-button-container"></div>
     </div>
+    <!-- /PayPal sekcija -->
 
     <button id="btn-open-register" class="btn secondary">Register</button>
     <button id="btn-open-login" class="btn">Log in</button>
@@ -422,22 +425,24 @@
 
       window.paypal.Buttons({
         style: { layout: 'horizontal', height: 35 },
+
+        // KORISTI IZNOS IZ INPUTA (umjesto prompta)
         createOrder: function(data, actions){
-          let amt = window.localStorage.getItem("pp_last_amt") || "10";
-          amt = prompt("USD amount (min $10):", amt);
-          const v = parseFloat(amt || "0");
-          if (!Number.isFinite(v) || v < 10) { alert("Minimum is $10"); return; }
-          window.localStorage.setItem("pp_last_amt", String(v));
+          const el = document.getElementById("paypal-amount");
+          const v = Math.max(10, parseFloat(el?.value || "10") || 10);
+          el && (el.value = String(Math.floor(v)));
           return actions.order.create({
             purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
           });
         },
+
         onApprove: async function(data, actions){
           try{
             await actions.order.capture();
+            const bonus_code = (document.getElementById("paypal-bonus")?.value || "").trim();
             const r = await api("/api/paypal/confirm",{
               method:"POST",
-              body: JSON.stringify({ orderId: data.orderID })
+              body: JSON.stringify({ orderId: data.orderID, bonus_code })
             });
             if (WHO) WHO.balance_silver = (r.balance_silver|0);
             renderBalance(); toast("Top-up successful.");
