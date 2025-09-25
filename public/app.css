@@ -111,6 +111,31 @@ img:not(.icon){
 #tab-craft .list {
   min-height: 500px;  
 }
+/* === GOLD BADGE (samo #balance) — istaknutije + animacija nakon top-upa === */
+#balance.badge{
+  background: linear-gradient(180deg,#0e2a4a,#10335e);
+  border-color:#3b82f6;                  /* plavkasta ivica */
+  box-shadow: 0 0 0 1px #0b223d inset,   /* unutarnji rub */
+              0 0 12px rgba(59,130,246,.25);
+  font-weight: 700;
+  letter-spacing: .2px;
+  font-size: 14px;                       /* ostaje u tvom stilu */
+  padding: 6px 12px;                     /* malo šire da “diše” */
+}
+
+/* kratka pulse animacija kad se gold poveća (JS samo doda .pulse klasu) */
+@keyframes pulseGlow{
+  0%   { box-shadow: 0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform: scale(1); }
+  40%  { box-shadow: 0 0 0 1px #0b223d inset, 0 0 22px rgba(59,130,246,.55); transform: scale(1.05); }
+  100% { box-shadow: 0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform: scale(1); }
+}
+#balance.pulse{ animation: pulseGlow 1.2s ease-out; }
+
+/* (neobavezno) malo veća vidljivost na mobitelu */
+@media (max-width: 520px){
+  #balance.badge{ font-size: 15px; padding: 7px 12px; }
+}
+
 
 
 
