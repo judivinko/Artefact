@@ -187,25 +187,35 @@
       localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
     }
 
-    // >>> OVDJE JE JEDINA IZMJENA: LOCK/UNLOCK SAMO ZA SAVE DUGMAD <<<
+    // LOCK sada zaključava:
+    //   1) polja za ključ (kao i prije),
+    //   2) "safe" dugmad (Save 1–5, Save all),
+    //   3) INPUT polja bonus kodova (code + percent).
     function applyLock(){
-      // postojeće zaključavanje polja za ključ
-      $("#admin-key").disabled   = LOCKED;
+      // 1) postojeće: field i tipke za key
+      $("#admin-key").disabled = LOCKED;
       $("#btn-key-set").disabled = LOCKED;
       $("#btn-key-clear").disabled = LOCKED;
 
-      // NOVO: zaključaj/otključaj isključivo Save dugmad u Bonus Codes sekciji
-      const btns = [
+      // 2) safe dugmad u Bonus Codes sekciji
+      const safeButtons = [
         "btn-save-1","btn-save-2","btn-save-3","btn-save-4","btn-save-5",
         "btn-codes-save-all"
       ];
-      btns.forEach(id => {
+      safeButtons.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = LOCKED;
       });
-      // "Reload" i inputi ostaju netaknuti
+
+      // 3) input polja (code + percent) – onemogući unos kad je LOCK
+      for (let i = 0; i < 5; i++){
+        const codeEl = document.getElementById(`bonus-code-${i}`);
+        const pctEl  = document.getElementById(`bonus-percent-${i}`);
+        if (codeEl) codeEl.disabled = LOCKED;
+        if (pctEl)  pctEl.disabled  = LOCKED;
+      }
+      // Napomena: "Reload" dugme i "Total used" polja ostaju kao prije (reload dozvoljen; total je ionako disabled).
     }
-    // <<< KRAJ IZMJENE >>>
 
     async function api(path, opts={}){
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
@@ -330,15 +340,9 @@
       savePrefs(); applyLock();
       await checkAdmin(); await loadUsers(); await loadBonusCodes();
     });
-    $("#btn-key-clear").addEventListener("click", ()=>{
-      ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared.");
-    });
-    $("#key-lock").addEventListener("change", ()=>{
-      LOCKED=$("#key-lock").checked; savePrefs(); applyLock();
-    });
-    $("#key-remember").addEventListener("change", ()=>{
-      REMEMBER=$("#key-remember").checked; savePrefs();
-    });
+    $("#btn-key-clear").addEventListener("click", ()=>{ ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared."); });
+    $("#key-lock").addEventListener("change", ()=>{ LOCKED=$("#key-lock").checked; savePrefs(); applyLock(); });
+    $("#key-remember").addEventListener("change", ()=>{ REMEMBER=$("#key-remember").checked; savePrefs(); });
 
     $("#btn-refresh-users").addEventListener("click", loadUsers);
     $("#btn-refresh-inv").addEventListener("click", loadInventory);
