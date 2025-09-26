@@ -8,7 +8,6 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
-const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -88,7 +87,6 @@ const app = express();
 const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(express.json());
-app.use(cookieParser());
 
 // --- DB (single, robust)   ⬅️  OVDJE POČINJE DUPLIKAT
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
@@ -347,34 +345,32 @@ for (let i = 1; i <= 5; i++) {
   }
 }
 
-// --- seed helpers ---
+// --- seed helpers (bez recepta) ---
 function ensureItem(code, name, tier, volatile = 0) {
+  if (typeof code !== "string" || !code) throw new Error("ensureItem: bad code");
+  if (typeof name !== "string" || !name) throw new Error("ensureItem: bad name");
+  const t = Math.max(1, parseInt(tier, 10) || 1);
+  const vol = volatile ? 1 : 0;
+
   const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
   if (row) {
-    db.prepare("UPDATE items SET name=?, tier=?, volatile=? WHERE id=?").run(name, tier, volatile, row.id);
+    db.prepare("UPDATE items SET name=?, tier=?, volatile=? WHERE id=?")
+      .run(name, t, vol, row.id);
     return row.id;
   }
-  db.prepare("INSERT INTO items(code,name,tier,volatile) VALUES (?,?,?,?)").run(code, name, tier, volatile);
+  db.prepare("INSERT INTO items(code,name,tier,volatile) VALUES (?,?,?,?)")
+    .run(code, name, t, vol);
   return db.prepare("SELECT id FROM items WHERE code=?").get(code).id;
 }
-function idByCode(code){ const r=db.prepare("SELECT id FROM items WHERE code=?").get(code); return r&&r.id; }
-function ensureRecipe(code, name, tier, outCode, ingCodes) {
-  const outId = idByCode(outCode); if(!outId) throw new Error("Missing item "+outCode);
-  const r = db.prepare("SELECT id FROM recipes WHERE code=?").get(code);
-  let rid;
-  if (!r){
-    db.prepare("INSERT INTO recipes(code,name,tier,output_item_id) VALUES (?,?,?,?)").run(code,name,tier,outId);
-    rid = db.prepare("SELECT id FROM recipes WHERE code=?").get(code).id;
-  } else {
-    db.prepare("UPDATE recipes SET name=?, tier=?, output_item_id=? WHERE id=?").run(name,tier,outId,r.id);
-    rid = r.id;
-    db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id=?").run(rid);
-  }
-  for(const c of ingCodes){
-    const iid = idByCode(c); if(!iid) throw new Error("Missing ingredient "+c);
-    db.prepare("INSERT INTO recipe_ingredients(recipe_id,item_id,qty) VALUES (?,?,1)").run(rid,iid);
-  }
-  return rid;
+
+function idByCode(code) {
+  const r = db.prepare("SELECT id FROM items WHERE code=?").get(code);
+  return r ? r.id : null;
+}
+
+// recipes nisu potrebne: zadržavamo potpis funkcije radi kompatibilnosti, ali ne radimo ništa
+function ensureRecipe(/* code, name, tier, outCode, ingCodes */) {
+  return null; // no-op
 }
 
 
@@ -1373,6 +1369,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
