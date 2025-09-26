@@ -1,5 +1,5 @@
 /* =========================== 
-   ARTEFACT • Global styles (razmak + manji artefakt)
+   ARTEFACT • Global styles (final)
    =========================== */
 
 :root{
@@ -83,6 +83,10 @@ button:active:not(:disabled):not(.secondary):not(.muted):not(.danger),
   transform:translateY(0);
   box-shadow:0 2px 4px rgba(0,0,0,.25);
 }
+button:focus-visible, .btn:focus-visible{
+  outline:2px solid #24c1aa;
+  outline-offset:2px;
+}
 
 button.secondary, .btn.secondary{ background:#0d2a3a; color:#fff; }
 button.muted, .btn.muted{ background:#1f2937; color:var(--text); }
@@ -119,52 +123,52 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   display:block;
   margin:16px auto 0;
   width:100%;
-  max-width:340px;   /* nešto manje da ne pregori */
-  max-height:340px;
+  max-width:360px;
+  max-height:360px;
   object-fit:contain;
   border-radius:12px;
 }
 
-/* Globalne slike */
+/* Globalne slike — vraćeno na 512px */
 img:not(.icon){
   display:block;
   margin:16px auto;
   width:100%;
-  max-width:560px;   /* ostale slike malo veće */
-  max-height:560px;
+  max-width:512px;
+  max-height:512px;
   object-fit:contain;
 }
 
-/* Item preview */
+/* Item preview — vraćeno na 512px */
 .item-img{
   display:block;
   margin:20px auto;
   width:100%;
-  max-width:560px;
-  max-height:560px;
+  max-width:512px;
+  max-height:512px;
   object-fit:contain;
   border-radius:12px;
 }
 
-/* ARTEFACT glavna slika — smanjeno posebno */
+/* ARTEFACT glavna slika — srednje velika */
 #artefact-img{
-  max-width:420px !important;
-  max-height:420px !important;
-  margin:12px auto;
+  max-width:500px !important;
+  max-height:500px !important;
+  margin:16px auto;
 }
 
-/* Slotovi */
+/* Slotovi — veći */
 .img-slot{
-  margin-top:18px;
+  margin-top:20px;
   width:100%;
-  min-height:160px;
-  padding:18px;
+  min-height:200px;
+  padding:20px;
   border:1px dashed #233047;
   border-radius:12px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:15px;
+  font-size:16px;
   opacity:.9;
 }
 .img-slot:hover{ opacity:1; }
