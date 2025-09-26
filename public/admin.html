@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/app.css" />
   <style>
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width: 900px){.grid2{grid-template-columns:1fr}}
+    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
     .list{background:#0b1220;border:1px solid #233047;border-radius:10px;padding:12px;white-space:pre-wrap}
     .rowx{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f2937;font-size:12px;color:#93c5fd}
@@ -25,7 +25,6 @@
     .tag.green{background:#0f2e1b;color:#bbf7d0}
     .tight{margin:0;padding:0}
 
-    /* Bonus codes table */
     .codes-table{width:100%;border-collapse:collapse}
     .codes-table th,.codes-table td{padding:8px 10px;border-bottom:1px solid #233047;text-align:left}
     .codes-table th{color:#94a3b8;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.4px}
@@ -60,7 +59,7 @@
     </section>
 
     <section class="grid2">
-      <!-- LEFT: Controls -->
+      <!-- Controls -->
       <div class="card">
         <div class="label">Controls</div>
 
@@ -88,43 +87,34 @@
         </div>
         <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
 
-        <!-- ===== Bonus Codes (clean) ===== -->
-<hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
-<div class="label">Bonus Codes</div>
-<div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Svaki red ima svoj Save.</div>
+        <!-- Bonus Codes -->
+        <hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
+        <div class="label">Bonus Codes</div>
+        <div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Svaki red ima svoj Save.</div>
 
-<div class="rowx" style="margin-top:8px;justify-content:space-between">
-  <button id="btn-codes-reload" class="secondary">Reload</button>
-  <button id="btn-codes-save-all" class="secondary">Save all</button>
-</div>
+        <div class="rowx" style="margin-top:8px;justify-content:space-between">
+          <button id="btn-codes-reload" class="secondary">Reload</button>
+          <button id="btn-codes-save-all" class="secondary">Save all</button>
+        </div>
 
-<div class="codes-wrap">
-  <table class="codes-table">
-    <thead>
-      <tr>
-        <th class="codes-col-code">Bonus code</th>
-        <th class="codes-col-pct">Percent (%)</th>
-        <th class="codes-col-used">Total used (gold)</th>
-        <th class="codes-col-act">Action</th>
-      </tr>
-    </thead>
-    <tbody id="codes-tbody"><!-- rows 1..5 by JS --></tbody>
-  </table>
-</div>
+        <div class="codes-wrap" style="overflow:auto;margin-top:8px">
+          <table class="codes-table">
+            <thead>
+              <tr>
+                <th style="width:40%">Bonus code</th>
+                <th style="width:20%">Percent (%)</th>
+                <th style="width:25%">Total used (gold)</th>
+                <th style="width:15%">Action</th>
+              </tr>
+            </thead>
+            <tbody id="codes-tbody"></tbody>
+          </table>
+        </div>
 
-<div id="codes-msg" class="muted" style="margin-top:6px"></div>
+        <div id="codes-msg" class="muted" style="margin-top:6px"></div>
+      </div>
 
-  // bind za svako dugme posebno
-  for (let i = 0; i < 5; i++){
-    const btn = document.getElementById(`btn-save-${i}`);
-    if (btn) {
-      btn.onclick = async () => { await saveBonusRow(i); };
-    }
-  }
-}
-
-
-      <!-- RIGHT: Users + Inventory -->
+      <!-- Users + Inventory -->
       <div class="card">
         <div class="rowx" style="justify-content:space-between;">
           <div class="label">Users (active first, A–Z)</div>
@@ -160,7 +150,6 @@
     }
     function setWho(text){ $("#who").textContent = text; }
 
-    // ---------- Persist key / lock
     function loadPrefs(){
       ADMIN_KEY = localStorage.getItem("admin.key") || "";
       LOCKED = localStorage.getItem("admin.lock") === "1";
@@ -182,7 +171,6 @@
       $("#btn-key-clear").disabled = LOCKED;
     }
 
-    // ---------- Fetch helper with header
     async function api(path, opts={}){
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
       if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
@@ -202,12 +190,10 @@
       }
     }
 
-    // ---------- Users
     function renderUsers(){
       const q = $("#search").value.trim().toLowerCase();
       const box = $("#users"); box.innerHTML = "";
       let list = users.slice();
-      // sort: active first, then email A–Z
       list.sort((a,b)=>{
         if (a.is_disabled !== b.is_disabled) return a.is_disabled ? 1 : -1;
         return a.email.localeCompare(b.email);
@@ -264,7 +250,6 @@
       }catch(e){ box.textContent = e.message; }
     }
 
-    // ---------- Controls
     async function changeGold(sign){
       if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
       const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
@@ -315,131 +300,122 @@
       }
     }
 
-    // ---------- BONUS CODES (5 redova)
-function renderBonusRows(data){
-  const tbody = $("#codes-tbody");
-  tbody.innerHTML = "";
-  for (let i=0;i<5;i++){
-    const entry = data?.[i] || { code:"", percent:0, total_credited_silver:0, is_active:1 };
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${(entry.code||"")}">
-      </td>
-      <td>
-        <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent||0)}">
-      </td>
-      <td>
-        <!-- prikaz u GOLD, server vraća silver -->
-        <input id="bonus-used-${i}" value="${Math.floor((entry.total_credited_silver||0)/100)}" disabled>
-      </td>
-      <td>
-        <div class="codes-row-actions">
-          <button class="secondary" data-save="${i}">Save</button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  }
-  tbody.querySelectorAll("[data-save]").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
-      const idx = parseInt(btn.getAttribute("data-save"),10);
-      await saveBonusRow(idx);
-    });
-  });
-}
-
-async function loadBonusCodes(){
-  try{
-    const r = await api("/api/admin/bonus-codes");
-    renderBonusRows(r?.slots || []); // <-- server vraća 'slots'
-    msg("#codes-msg", "Loaded.", true);
-  }catch(e){
-    renderBonusRows([]);
-    msg("#codes-msg", e.message || "Failed to load.", false);
-  }
-}
-
-function sanitizeCode(raw){
-  const s = String(raw||"").trim().toUpperCase();
-  // dozvoli A-Z 0-9 _ - . max 32
-  return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
-}
-
-// ---------- SAVE BONUS ROW ----------
-async function saveBonusRow(i){
-  const codeEl = document.getElementById(`bonus-code-${i}`);
-  const pctEl  = document.getElementById(`bonus-percent-${i}`);
-  const usedEl = document.getElementById(`bonus-used-${i}`);
-  const code = sanitizeCode(codeEl?.value || "");
-  const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
-  try{
-    const r = await api("/api/admin/bonus-codes", {
-      method:"POST",
-      body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
-    });
-    // server vraća total_credited_silver (u silverima)
-    if (usedEl && r && typeof r.total_credited_silver === "number") {
-      usedEl.value = Math.floor(r.total_credited_silver / 100); // prikaži u gold
+    function renderBonusRows(data){
+      const tbody = $("#codes-tbody");
+      tbody.innerHTML = "";
+      for (let i=0;i<5;i++){
+        const entry = data?.[i] || { code:"", percent:0, total_credited_silver:0, is_active:1 };
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>
+            <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${(entry.code||"")}">
+          </td>
+          <td>
+            <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent||0)}">
+          </td>
+          <td>
+            <input id="bonus-used-${i}" value="${Math.floor((entry.total_credited_silver||0)/100)}" disabled>
+          </td>
+          <td>
+            <div class="codes-row-actions">
+              <button class="secondary" data-save="${i}">Save</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+      tbody.querySelectorAll("[data-save]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const idx = parseInt(btn.getAttribute("data-save"),10);
+          await saveBonusRow(idx);
+        });
+      });
     }
-    msg("#codes-msg", `Saved row ${i+1}.`, true);
-  }catch(e){
-    msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
-  }
-}
 
-async function saveAllBonusRows(){
-  for (let i=0;i<5;i++){
-    try{ await saveBonusRow(i); }catch{}
-  }
-}
+    async function loadBonusCodes(){
+      try{
+        const r = await api("/api/admin/bonus-codes");
+        renderBonusRows(r?.slots || []);
+        msg("#codes-msg", "Loaded.", true);
+      }catch(e){
+        renderBonusRows([]);
+        msg("#codes-msg", e.message || "Failed to load.", false);
+      }
+    }
 
+    function sanitizeCode(raw){
+      const s = String(raw||"").trim().toUpperCase();
+      return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+    }
 
-    // ---------- Events
-    $("#btn-key-set").addEventListener("click", async ()=>{
+    async function saveBonusRow(i){
+      const codeEl = document.getElementById(`bonus-code-${i}`);
+      const pctEl  = document.getElementById(`bonus-percent-${i}`);
+      const usedEl = document.getElementById(`bonus-used-${i}`);
+      const code = sanitizeCode(codeEl?.value || "");
+      const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
+      try{
+        const r = await api("/api/admin/bonus-codes", {
+          method:"POST",
+          body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
+        });
+        if (usedEl && r && typeof r.total_credited_silver === "number") {
+          usedEl.value = Math.floor(r.total_credited_silver / 100);
+        }
+        msg("#codes-msg", `Saved row ${i+1}.`, true);
+      }catch(e){
+        msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
+      }
+    }
+
+    async function saveAllBonusRows(){
+      for (let i=0;i<5;i++){
+        try{ await saveBonusRow(i); }catch{}
+      }
+    }
+
+    document.getElementById("btn-key-set").addEventListener("click", async ()=>{
       ADMIN_KEY = $("#admin-key").value.trim();
       REMEMBER = $("#key-remember").checked;
       LOCKED = $("#key-lock").checked;
-      savePrefs(); 
+      savePrefs();
       applyLock();
       await checkAdmin();
       await loadUsers();
       await loadBonusCodes();
     });
 
-    $("#btn-key-clear").addEventListener("click", ()=>{
-      ADMIN_KEY = ""; 
-      savePrefs(); 
-      applyLock(); 
+    document.getElementById("btn-key-clear").addEventListener("click", ()=>{
+      ADMIN_KEY = "";
+      savePrefs();
+      applyLock();
       msg("#key-msg","Cleared.");
     });
 
-    $("#key-lock").addEventListener("change", ()=>{
+    document.getElementById("key-lock").addEventListener("change", ()=>{
       LOCKED = $("#key-lock").checked;
-      savePrefs(); 
+      savePrefs();
       applyLock();
     });
 
-    $("#key-remember").addEventListener("change", ()=>{
+    document.getElementById("key-remember").addEventListener("change", ()=>{
       REMEMBER = $("#key-remember").checked;
       savePrefs();
     });
 
-    $("#btn-refresh-users").addEventListener("click", loadUsers);
-    $("#btn-refresh-inv").addEventListener("click", loadInventory);
-    $("#search").addEventListener("input", renderUsers);
+    document.getElementById("btn-refresh-users").addEventListener("click", loadUsers);
+    document.getElementById("btn-refresh-inv").addEventListener("click", loadInventory);
+    document.getElementById("search").addEventListener("input", renderUsers);
 
-    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
-    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
-    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
-    $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+    document.getElementById("btn-give").addEventListener("click", ()=> changeGold(+1));
+    document.getElementById("btn-take").addEventListener("click", ()=> changeGold(-1));
+    document.getElementById("btn-disable").addEventListener("click", ()=> setDisabled(true));
+    document.getElementById("btn-enable").addEventListener("click", ()=> setDisabled(false));
+    document.getElementById("btn-set-bonus").addEventListener("click", setArtefactBonusGold);
 
-    // Bonus codes events
-    $("#btn-codes-reload").addEventListener("click", loadBonusCodes);
-    $("#btn-codes-save-all").addEventListener("click", saveAllBonusRows);
+    document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
+    document.getElementById("btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
-    // ---------- Init
     loadPrefs();
     (async ()=>{
       try{
@@ -452,13 +428,9 @@ async function saveAllBonusRows(){
         await loadUsers();
         await loadBonusCodes();
       } else {
-        renderBonusRows([]); // nacrtaj prazne redove dok se ne unese ključ
+        renderBonusRows([]);
       }
     })();
   </script>
 </body>
 </html>
-
-
-
-
