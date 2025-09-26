@@ -148,6 +148,67 @@ async function paypalGetOrder(accessToken, orderId){
   return data;
 }
 
+// ----------------- PAYPAL config + create-order (DODANO) -----------------
+
+// Frontendu vraćamo client_id/mode da može inicijalizirati PayPal SDK
+app.get("/api/paypal/config", (req, res) => {
+  try{
+    if (!PAYPAL_CLIENT_ID) {
+      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+    }
+    return res.json({
+      ok: true,
+      client_id: PAYPAL_CLIENT_ID,
+      mode: PAYPAL_MODE,           // "sandbox" | "live"
+      currency: "USD",
+      min_usd: MIN_USD
+    });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+// (Opcionalno, ali korisno) – server-side kreiranje PayPal narudžbe
+// body: { amount_usd: number }
+app.post("/api/paypal/create-order", async (req, res) => {
+  try{
+    const uid = requireAuth(req); // korisnik mora biti logiran
+    if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET){
+      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+    }
+    const amount = Number(req.body?.amount_usd);
+    if (!Number.isFinite(amount) || amount < MIN_USD) {
+      return res.status(400).json({ ok:false, error:`Minimum is $${MIN_USD}` });
+    }
+
+    const access = await paypalToken();
+    const resp = await fetch(PAYPAL_BASE + "/v2/checkout/orders", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + access,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          { amount: { currency_code: "USD", value: amount.toFixed(2) } }
+        ],
+        application_context: {
+          shipping_preference: "NO_SHIPPING",
+          user_action: "PAY_NOW",
+        }
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      return res.status(400).json({ ok:false, error:"Create order failed", details:data });
+    }
+    return res.json({ ok:true, id: data.id });
+  }catch(e){
+    return res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
 // ----------------- MIGRATIONS -----------------
 function ensure(sql){ db.exec(sql); }
 function tableExists(name) {
@@ -646,7 +707,7 @@ app.post("/api/paypal/confirm", async (req, res) => {
     const slotRow = code
       ? db.prepare("SELECT slot, percent, is_active FROM bonus_codes WHERE upper(code)=?").get(code)
       : null;
-    const pct = (slotRow && slotRow.is_active) ? Math.max(0, Math.min(100, slotRow.percent|0)) : 0;
+    const pct = (slotRow && slotRow.is_active) ? Math.max(0, Math.min(100, (slotRow.percent|0))) : 0;
     const bonusSilver = Math.floor(baseSilver * pct / 100);
     const totalSilverToAdd = baseSilver + bonusSilver;
 
