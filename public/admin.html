@@ -88,31 +88,31 @@
         </div>
         <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
 
-        // ---------- BONUS CODES (5 redova)
-function renderBonusRows(data){
-  const tbody = document.getElementById("codes-tbody");
-  tbody.innerHTML = "";
-  for (let i = 0; i < 5; i++){
-    const entry = data?.[i] || { code:"", percent:0, total_credited_silver:0, is_active:1 };
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${entry.code || ""}">
-      </td>
-      <td>
-        <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent || 0)}">
-      </td>
-      <td>
-        <input id="bonus-used-${i}" value="${Math.floor((entry.total_credited_silver || 0)/100)}" disabled>
-      </td>
-      <td>
-        <div class="codes-row-actions">
-          <button id="btn-save-${i}" class="secondary" data-save="${i}">Save ${i+1}</button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  }
+        <!-- ===== Bonus Codes (clean) ===== -->
+<hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
+<div class="label">Bonus Codes</div>
+<div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Svaki red ima svoj Save.</div>
+
+<div class="rowx" style="margin-top:8px;justify-content:space-between">
+  <button id="btn-codes-reload" class="secondary">Reload</button>
+  <button id="btn-codes-save-all" class="secondary">Save all</button>
+</div>
+
+<div class="codes-wrap">
+  <table class="codes-table">
+    <thead>
+      <tr>
+        <th class="codes-col-code">Bonus code</th>
+        <th class="codes-col-pct">Percent (%)</th>
+        <th class="codes-col-used">Total used (gold)</th>
+        <th class="codes-col-act">Action</th>
+      </tr>
+    </thead>
+    <tbody id="codes-tbody"><!-- rows 1..5 by JS --></tbody>
+  </table>
+</div>
+
+<div id="codes-msg" class="muted" style="margin-top:6px"></div>
 
   // bind za svako dugme posebno
   for (let i = 0; i < 5; i++){
@@ -458,6 +458,7 @@ async function saveAllBonusRows(){
   </script>
 </body>
 </html>
+
 
 
 
