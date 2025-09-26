@@ -327,7 +327,6 @@ for (let i = 1; i <= 5; i++) {
   }
 }
 
-
 // --- seed helpers ---
 function ensureItem(code, name, tier, volatile = 0) {
   const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
@@ -357,6 +356,7 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
   }
   return rid;
 }
+
 
 // Items & Recipes (seed)
 ensureItem("SCRAP","Scrap",1,1);
@@ -1353,6 +1353,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
