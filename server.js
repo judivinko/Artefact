@@ -1,4 +1,4 @@
-// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija + BONUS CODES
+// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija + BONUS CODES 
 // =================================================================================
 const express = require("express");
 const http = require("http");
@@ -124,6 +124,11 @@ function addMinutes(iso, mins){
   return d.toISOString();
 }
 
+// ★ CHANGED: helper za određivanje je li zahtjev stvarno preko HTTPS-a (iza proxyja)
+function isReqSecure(req){
+  return !!(req.secure || String(req.headers['x-forwarded-proto']||'').toLowerCase()==='https');
+}
+
 // -------- PayPal helpers --------
 const fetch = global.fetch || ((...args) => import("node-fetch").then(({ default: f }) => f(...args)));
 async function paypalToken(){
@@ -150,14 +155,15 @@ async function paypalGetOrder(accessToken, orderId){
 
 // ----------------- PAYPAL config + create-order (DODANO) -----------------
 
-// Frontendu vraćamo client_id/mode da može inicijalizirati PayPal SDK
+// ★ CHANGED: ne ruši frontend kad nema konfiguracije
 app.get("/api/paypal/config", (req, res) => {
   try{
     if (!PAYPAL_CLIENT_ID) {
-      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+      return res.json({ ok:false, configured:false, error:"PayPal not configured" });
     }
     return res.json({
       ok: true,
+      configured: true,
       client_id: PAYPAL_CLIENT_ID,
       mode: PAYPAL_MODE,           // "sandbox" | "live"
       currency: "USD",
@@ -170,11 +176,15 @@ app.get("/api/paypal/config", (req, res) => {
 
 // (Opcionalno, ali korisno) – server-side kreiranje PayPal narudžbe
 // body: { amount_usd: number }
+// ★ CHANGED: jasni statusi (401 za no-auth, 400 za no-config)
 app.post("/api/paypal/create-order", async (req, res) => {
   try{
-    const uid = requireAuth(req); // korisnik mora biti logiran
+    let uid;
+    try { uid = requireAuth(req); } 
+    catch { return res.status(401).json({ ok:false, error:"Not logged in" }); }
+
     if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET){
-      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+      return res.status(400).json({ ok:false, error:"PayPal not configured" });
     }
     const amount = Number(req.body?.amount_usd);
     if (!Number.isFinite(amount) || amount < MIN_USD) {
@@ -576,7 +586,9 @@ app.post("/api/register", async (req, res) => {
     const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
     if (exists) return res.status(409).json({ ok:false, error:"Email taken" });
 
-    const hash = await bcrypt.hash(password, 10);
+    // ★ CHANGED: stabilno hashanje s bcryptjs (sync)
+    const hash = bcrypt.hashSync(password, 10);
+
     db.prepare(`
       INSERT INTO users(email,pass_hash,created_at,is_admin,is_disabled,balance_silver,shop_buy_count,next_recipe_at,last_seen)
       VALUES (?,?,?,?,?,?,?,?,?)
@@ -588,35 +600,31 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+// ★ CHANGED: login sync compare + secure određuje se po stvarnom requestu
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!isEmail(email)) return res.status(400).json({ ok:false, error:"Bad email" });
 
-    // VAŽNO: login traži korisnika case-insensitive
     const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
     if (!u) return res.status(404).json({ ok:false, error:"User not found" });
     if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
 
-    const ok = await bcrypt.compare(password || "", u.pass_hash);
+    const ok = bcrypt.compareSync(password || "", u.pass_hash);
     if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
 
     const token = signToken(u);
 
-    // uskladi 'secure' s clearCookie pozivom i Render okolinom
-    const isSecure = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-
     res.cookie(TOKEN_NAME, token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: isSecure,
+      secure: isReqSecure(req),
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
 
-    // vrati minimalne podatke potrebne frontendu
     return res.json({ ok:true, user:{ id: u.id, email: u.email } });
   } catch (e) {
     return res.status(500).json({ ok:false, error:"Login failed" });
@@ -629,12 +637,11 @@ app.get("/api/logout", (req, res) => {
     try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {}
   }
 
-  const isSecure = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
-
+  // ★ CHANGED: čišćenje kolačića dosljedno s loginom
   res.clearCookie(TOKEN_NAME, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isSecure,
+    secure: isReqSecure(req),
     path: "/"
   });
 
@@ -703,11 +710,15 @@ app.post("/api/admin/bonus-codes", (req, res) => {
 });
 
 // ----------------- PAYPAL confirm (+ bonus_code podrška) -----------------
+// ★ CHANGED: jasni statusi (401/400) umjesto generičnih 500
 app.post("/api/paypal/confirm", async (req, res) => {
   try{
-    const uid = requireAuth(req);
+    let uid;
+    try { uid = requireAuth(req); }
+    catch { return res.status(401).json({ ok:false, error:"Not logged in" }); }
+
     if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET){
-      return res.status(500).json({ ok:false, error:"PayPal not configured" });
+      return res.status(400).json({ ok:false, error:"PayPal not configured" });
     }
     const { orderId, bonus_code: rawCode } = req.body || {};
     if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
@@ -820,7 +831,8 @@ app.get("/api/me", (req, res) => {
     "SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at FROM users WHERE id=?"
   ).get(tok.uid);
   if (!u) {
-    res.clearCookie(TOKEN_NAME, { httpOnly: true, sameSite: "lax", secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"), path: "/" });
+    // ★ CHANGED: dosljedan clearCookie
+    res.clearCookie(TOKEN_NAME, { httpOnly: true, sameSite: "lax", secure: isReqSecure(req), path: "/" });
     return res.status(401).json({ ok:false });
   }
   const buysToNext = (u.next_recipe_at==null) ? null : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
@@ -1592,8 +1604,3 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
-
-
-
-
-
