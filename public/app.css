@@ -1,5 +1,5 @@
-/* ===========================
-   ARTEFACT • Global styles (final, enforced)
+/* =========================== 
+   ARTEFACT • Global styles (razmak + manji artefakt)
    =========================== */
 
 :root{
@@ -25,18 +25,18 @@ body{
 a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
 
 .container{ max-width:1100px; margin:16px auto; padding:0 12px; }
-.card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0; }
+.card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; margin:20px 0; }
 
-.header{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); }
+.header{ display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--card); border-bottom:1px solid var(--line); }
 .header.no-border{ border-bottom:0!important; }
 .brand{ font-weight:700; letter-spacing:.3px; }
 
-.row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+.row{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
 .right{ margin-left:auto; }
 
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-.grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 
 @media (max-width:900px){
   .grid{ grid-template-columns:1fr; }
@@ -60,16 +60,13 @@ input,select,button{ font:inherit; }
   border:1px solid #233047; border-radius:10px; padding:10px 12px;
 }
 
-/* ===========================
-   Dugmad — doteraj SAMO default (ne mijenjamo veličinu)
-   =========================== */
-
+/* Dugmad — samo default dotjerano */
 button, .btn{
   background:var(--accent);
   color:#0b1220;
   font-weight:700;
   border:0;
-  padding:10px 14px;          /* ostaje isto — NE mijenjamo veličinu */
+  padding:10px 14px;
   border-radius:10px;
   cursor:pointer;
   transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
@@ -86,10 +83,6 @@ button:active:not(:disabled):not(.secondary):not(.muted):not(.danger),
   transform:translateY(0);
   box-shadow:0 2px 4px rgba(0,0,0,.25);
 }
-button:focus-visible, .btn:focus-visible{
-  outline:2px solid #24c1aa;
-  outline-offset:2px;
-}
 
 button.secondary, .btn.secondary{ background:#0d2a3a; color:#fff; }
 button.muted, .btn.muted{ background:#1f2937; color:var(--text); }
@@ -103,12 +96,12 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
   background:#071021;
   font-size:14px;
 }
-.itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
+.itemrow{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line); }
 .itemrow:last-child{ border-bottom:0; }
-.list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+.list{ max-height:400px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
-.tabbar{ margin:6px 0 4px; }
-.chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
+.tabbar{ margin:8px 0 6px; }
+.chip{ padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
 .chip.active{ background:#0e3a2f; }
 
 img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block; }
@@ -116,60 +109,62 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
 #how .label, #tips .label{ font-size:20px; }
 
-/* =========================================================
-   IMAGE AREA UPGRADE — veći kontejneri (ENFORCED sa !important)
-   ========================================================= */
+/* ===========================
+   IMAGE AREA
+   =========================== */
 
-/* HOW: kartice prostranije, slika puni veći okvir */
-#how .card{ padding:24px 24px !important; }
-
+/* HOW sekcija — više prostora */
+#how .card{ padding:28px; }
 #how .card img{
-  display:block !important;
-  margin:12px auto 0 !important;
-  width:100% !important;
-  max-width:380px !important;     /* + ~50% u odnosu na tipični 256 */
-  max-height:380px !important;
-  height:auto !important;
-  object-fit:contain !important;
-  border-radius:12px !important;
+  display:block;
+  margin:16px auto 0;
+  width:100%;
+  max-width:340px;   /* nešto manje da ne pregori */
+  max-height:340px;
+  object-fit:contain;
+  border-radius:12px;
 }
 
-/* Globalno: NE diramo .icon, ali svim većim slikama damo više “lufta”.
-   Ove vrijednosti s !important probijaju stare inline stilove. */
+/* Globalne slike */
 img:not(.icon){
-  display:block !important;
-  margin:14px auto !important;
-  width:100% !important;
-  max-width:640px !important;     /* stari limit 512 → sada 640 */
-  max-height:640px !important;
-  height:auto !important;
-  object-fit:contain !important;
+  display:block;
+  margin:16px auto;
+  width:100%;
+  max-width:560px;   /* ostale slike malo veće */
+  max-height:560px;
+  object-fit:contain;
 }
 
-/* Preview itema — često koristiš .item-img; da raste unutar većeg okvira */
+/* Item preview */
 .item-img{
-  display:block !important;
-  margin:16px auto !important;
-  width:100% !important;
-  max-width:640px !important;     /* 512 → 640 */
-  max-height:640px !important;
-  height:auto !important;
-  object-fit:contain !important;
-  border-radius:12px !important;
+  display:block;
+  margin:20px auto;
+  width:100%;
+  max-width:560px;
+  max-height:560px;
+  object-fit:contain;
+  border-radius:12px;
 }
 
-/* Slotovi za slike — viši okvir, slike iznad već imaju width:100% pa narastu */
-.img-slot{
-  margin-top:16px !important;
-  width:100% !important;
-  min-height:168px !important;    /* 96 → 168 */
-  padding:16px !important;
-  border:1px dashed #233047 !important;
-  border-radius:12px !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  font-size:15px !important;
-  opacity:.9 !important;
+/* ARTEFACT glavna slika — smanjeno posebno */
+#artefact-img{
+  max-width:420px !important;
+  max-height:420px !important;
+  margin:12px auto;
 }
-.img-slot:hover{ opacity:1 !important; }
+
+/* Slotovi */
+.img-slot{
+  margin-top:18px;
+  width:100%;
+  min-height:160px;
+  padding:18px;
+  border:1px dashed #233047;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:15px;
+  opacity:.9;
+}
+.img-slot:hover{ opacity:1; }
