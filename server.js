@@ -125,7 +125,7 @@ function addMinutes(iso, mins){
 }
 
 // -------- PayPal helpers --------
-// const fetch = require("node-fetch"); // za Node < 18 odkomentiraj
+const fetch = global.fetch || ((...args) => import("node-fetch").then(({ default: f }) => f(...args)));
 async function paypalToken(){
   const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
     method: "POST",
@@ -1559,6 +1559,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
