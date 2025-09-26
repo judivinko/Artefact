@@ -80,6 +80,9 @@ function deleteFilesStartingWith0(rootDir) {
     console.log("[CLEANUP] Nije našao fajlove koji počinju sa " + JSON.stringify("0") + " u /public(/images)");
   }
 })();
+// ---------- DB 
+const db = new Database(DB_FILE); 
+db.pragma("journal_mode = WAL");
 
 // ---------- App
 const app = express();
@@ -152,9 +155,7 @@ async function paypalGetOrder(accessToken, orderId){
   if(!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
   return data;
 }
-// DB
-const db = new Database(DB_FILE);
-db.pragma("journal_mode = WAL");
+
 
 
 // ====== DB MIGRATIONS ======
@@ -1354,6 +1355,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
