@@ -144,133 +144,143 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 .codes-actions{display:flex; gap:8px; align-items:center; justify-content:flex-start}
 .codes-actions .btn{padding:8px 10px}
 
-/* =========================================================
-   3) INDEX — UREĐENO (možeš mijenjati; ADMIN se ne dira)
-   ========================================================= */
+/* =========================
+   INDEX — CSS-only upgrades
+   ========================= */
 
-/* Landing copy */
-#about p, #how p, #tips li{ font-size:16px; line-height:1.7; }
-#how .label, #tips .label{ font-size:20px; }
-
-/* Veće kartice/slike u “How” — bez rušenja layouta igre */
-#how .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-@media (max-width:900px){ #how .grid{ grid-template-columns:1fr; } }
-#how .card img,
-#about img{
-  width:9.5em; height:9.5em;
-  object-fit:contain;
-  border-radius:12px;
-  margin-top:10px;
-  display:block;
-  filter: drop-shadow(0 2px 12px rgba(0,0,0,.25));
+/* 1) Globalno – slike malo veće i čišće ikone */
+img:not(.icon){
+  max-width: 640px;
+  max-height: 640px;
+}
+img.icon{
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
 }
 
-/* TAB bar */
-#app .tabbar{ margin:8px 0 6px; }
-#app .chip{
-  padding:10px 14px;
-  border:1px solid #1f2937;
-  border-radius:12px;
-  background:#0e1726;
-  cursor:pointer;
-  transition:transform .08s ease, background .12s ease, border-color .12s ease;
-}
-#app .chip:hover{ transform:translateY(-1px); border-color:#334155; }
-#app .chip.active{ background:#0e3a2f; border-color:#14532d; }
-
-/* Liste i redovi */
-#app .list,
-#tab-craft .list,
-#tab-market .list,
-#tab-inv .list,
-#tab-bonus .list{
-  max-height:380px;
-  overflow:auto;
-  border:1px solid #233047;
-  border-radius:12px;
-  background:#0b1220;
-  scrollbar-width:thin;
-  scrollbar-color:#334155 transparent;
-}
-#app .list::-webkit-scrollbar{ height:10px; width:10px; }
-#app .list::-webkit-scrollbar-thumb{ background:#334155; border-radius:10px; }
-
-#app .itemrow{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px;
-  border-bottom:1px solid #1f283d;
-}
-#app .itemrow:last-child{ border-bottom:0; }
-
-/* Badge */
-#app .badge{
-  border:1px solid #2a3a54;
-  padding:4px 9px;
-  border-radius:999px;
-  background:linear-gradient(180deg,#0c1424,#0a1528);
-  font-size:13px;
+/* Landing "How" slike imaju inline width:8em -> nadjačaj da budu veće */
+#how .card img{
+  width: 12em !important;
+  height: 12em !important;
 }
 
-/* Gumbi (hover/focus) */
-#app .btn, #app button{
-  background:#2dd4bf; color:#0b1220; font-weight:700;
-  border:0; padding:10px 14px; border-radius:12px; cursor:pointer;
-  transition:transform .06s ease, filter .12s ease, opacity .12s ease;
+/* 2) Lijepši gumbi (ne mijenja logiku) */
+button, .btn{
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 700;
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  box-shadow: 0 1px 0 rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.18);
 }
-#app .btn:hover, #app button:hover{ transform:translateY(-1px); filter:brightness(1.05); }
-#app .btn:active, #app button:active{ transform:translateY(0); }
-#app .btn.secondary{ background:#0b5bd1; color:#fff; }
-#app .btn.muted{ background:#1f2937; color:#e2e8f0; }
-#app .btn.danger{ background:#ef4444; color:#fff; }
-#app .btn:disabled{ opacity:.6; cursor:not-allowed; }
-
-/* Inputi s fokus prstenom */
-#app .input, #app input, #app select{
-  background:#0b1220; color:#e2e8f0;
-  border:1px solid #233047; border-radius:10px; padding:10px 12px;
-  outline:none; transition:border-color .12s ease, box-shadow .12s ease;
+button:hover:not(:disabled), .btn:hover:not(:disabled){
+  transform: translateY(-1px);
+  box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.24);
 }
-#app .input:focus, #app input:focus, #app select:focus{
-  border-color:#3b82f6;
-  box-shadow:0 0 0 2px rgba(59,130,246,.25);
+button:active:not(:disabled), .btn:active:not(:disabled){
+  transform: translateY(0);
 }
 
-/* Craft tab — minimalna visina liste desno */
-#tab-craft .list{ min-height:500px; }
-
-/* Header balance — vidljiviji + pulse na top-up */
-#balance.badge{
-  background: linear-gradient(180deg,#0e2a4a,#10335e);
-  border-color:#3b82f6;
-  box-shadow:
-    0 0 0 1px #0b223d inset,
-    0 0 12px rgba(59,130,246,.25);
-  font-weight:700;
-  letter-spacing:.2px;
-  font-size:14px;
-  padding:6px 12px;
+/* 3) BONUS — pločice veće + “lokalizacija” kartica uz desni placeholder */
+#tab-bonus #bonus-grid .card{
+  display: grid;
+  grid-template-columns: minmax(340px, 600px) 1fr;
+  gap: 16px;
+  align-items: start;
 }
-@keyframes pulseGlow{
-  0%   { box-shadow:0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform:scale(1); }
-  40%  { box-shadow:0 0 0 1px #0b223d inset, 0 0 22px rgba(59,130,246,.55); transform:scale(1.05); }
-  100% { box-shadow:0 0 0 1px #0b223d inset, 0 0 12px rgba(59,130,246,.25); transform:scale(1); }
-}
-#balance.pulse{ animation:pulseGlow 1.2s ease-out; }
-@media (max-width:520px){
-  #balance.badge{ font-size:15px; padding:7px 12px; }
+#bonus-t2, #bonus-t3, #bonus-t4, #bonus-t5{
+  grid-column: 1;
+  max-height: 280px;            /* kompaktnije */
+  overflow: auto;
 }
 
-/* PayPal UI (index) */
-#btn-open-paypal{ display:inline-flex; align-items:center; gap:6px; }
-#btn-open-paypal.hidden{ display:none!important; }
-#paypal-panel.card{ margin-top:8px; display:block; }
-#paypal-panel.hidden{ display:none!important; }
-#paypal-button-container{ transform:scale(.95); transform-origin:left center; }
-@media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
-/* sakrij bilo kakav stari wrap */
-#paypal-wrap{ display:none !important; }
+/* desni prazan prostor (slot) za budući sadržaj — samo stil, bez HTML izmjene */
+#tab-bonus #bonus-grid .card::after{
+  content: "";
+  grid-column: 2;
+  min-height: 240px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+}
 
-/* Bonus pločice */
-.tile{ display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:6px; }
-.tile.ok{ border-color:#165c32; background:#0e3a2f; }
-.tile.miss{ opacity:.85; }
+/* pločice veće i čitljivije */
+#tab-bonus .tile{
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+#tab-bonus .tile .icon{
+  width: 46px;
+  height: 46px;
+}
+
+/* 4) SHOP — “lokalizacija” lijevo + desni placeholder za budući sadržaj */
+#tab-shop.card{
+  display: grid;
+  grid-template-columns: minmax(300px, 440px) 1fr;
+  gap: 16px;
+}
+
+/* sve postojeće elemente zadrži u lijevom stupcu */
+#tab-shop > .row:first-child,
+#tab-shop > div[style^="margin"],
+#tab-shop > .row:last-child,
+#tab-shop #shop-msg,
+#tab-shop #shop-balance{
+  grid-column: 1;
+}
+
+/* desni slot (vizualni placeholder) */
+#tab-shop.card::after{
+  content: "";
+  grid-column: 2;
+  min-height: 220px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.02);
+}
+
+/* 5) MARKET — priprema za 3. kolonu (CSS-only; aktivira se kad postoji .market-info) */
+#tab-market .grid{
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+#tab-market .grid:has(.market-info){
+  grid-template-columns: 1fr 1fr 0.9fr;
+}
+#tab-market .market-info{
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 12px;
+}
+
+/* veće ikone i malo viši redovi u listama da popune prostor */
+#tab-market .itemrow,
+#inv-full .itemrow,
+#inv-list .itemrow,
+#market .itemrow,
+#mine .itemrow{
+  padding: 10px 12px;
+}
+#tab-market .itemrow .icon,
+#inv-full .itemrow .icon,
+#inv-list .itemrow .icon,
+#market .itemrow .icon,
+#mine .itemrow .icon{
+  width: 42px;
+  height: 42px;
+}
+
+/* 6) Crafting/Inventory liste — malo veće ikone za bolju vidljivost */
+#recipes .itemrow .icon,
+#rec-details .itemrow .icon{
+  width: 42px;
+  height: 42px;
+}
+#inv-full .icon{ width: 42px; height: 42px; }
+
+/* 7) Scroll kutije – deblji unutarnji padding da slike “dišu” */
+.list{
+  padding: 6px;
+}
