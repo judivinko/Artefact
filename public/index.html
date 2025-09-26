@@ -410,10 +410,8 @@
  <!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
   let WHO = null;
-  window.CURRENT_RECIPE_ID = null;
-
-  // Sigurnosni stub: definira se kasnije u "Shop" skripti, ali da ne dobijemo ReferenceError prije toga
-  window.refreshMeLight ||= async () => {};
+window.CURRENT_RECIPE_ID = null;
+if (!window.refreshMeLight) window.refreshMeLight = async () => {};
 
   // Otvaranje auth kartica iz header dugmadi
   function openAuth(which){
@@ -1268,4 +1266,5 @@
   </script>
 </body>
 </html>
+
 
