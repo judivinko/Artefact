@@ -6,8 +6,35 @@
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
 
-  <!-- PayPal SDK (LIVE) – koristi tvoj CLIENT ID -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AaEoUADmVpmLsRpHlQrhXCQUEUfhApcyTlsclIDJ448RC5QzbVGQQ0YrcJwS69KN7J6f2TKIEXrIko&currency=USD&intent=capture"></script>
+  <!-- PayPal SDK se dinamički učitava ispod preko /api/paypal/config -->
+  <script>
+    (async function loadPayPalSDK(){
+      try{
+        const r = await fetch("/api/paypal/config", { credentials:"include" });
+        const j = await r.json().catch(()=>null);
+        if (!r.ok || !j?.ok || !j?.client_id) {
+          console.warn("PayPal not configured:", j?.error || r.status);
+          window.__PAYPAL_DISABLED__ = true;
+          return;
+        }
+        const qs = new URLSearchParams({
+          "client-id": j.client_id,
+          "currency": j.currency || "USD",
+          "intent": "capture",
+          "components": "buttons"
+        });
+        const s = document.createElement("script");
+        s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
+        s.async = true;
+        s.onload = () => { window.__PAYPAL_READY__ = true; };
+        document.head.appendChild(s);
+        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
+      }catch(e){
+        console.warn("PayPal SDK load failed:", e);
+        window.__PAYPAL_DISABLED__ = true;
+      }
+    })();
+  </script>
 
   <style>
     :root{ --line:#233047; --text:#e5e7eb }
@@ -56,14 +83,12 @@
     /* Balance */
     #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
 
-    /* ==== PayPal dugme i panel ==== */
+    /* PayPal UI */
     #btn-open-paypal.hidden{ display:none; }
     #paypal-panel.hidden{ display:none; }
     #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
     @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
-
-    /* (ako je stari #paypal-wrap prisutan negdje, sakrij ga) */
-    #paypal-wrap{ display:none !important; }
+    #paypal-wrap{ display:none !important; } /* bilo kakav stari wrap sakrivamo */
   </style>
 </head>
 <body>
@@ -73,7 +98,7 @@
     <div class="row" style="gap:8px">
       <span id="balance" class="badge hidden">0g 0s</span>
 
-      <!-- NOVO: PayPal (plavo) dugme koje otvara panel ispod -->
+      <!-- PayPal dugme otvara panel ispod -->
       <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
 
       <button id="btn-open-register" class="btn secondary">Register</button>
@@ -82,7 +107,7 @@
     </div>
   </header>
 
-  <!-- ===== PayPal panel (ispod headera) ===== -->
+  <!-- ===== PayPal panel ===== -->
   <section id="paypal-panel" class="card hidden">
     <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
       <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
@@ -442,18 +467,20 @@
       if (tab === "bonus") { safeCall("loadBonus"); }
     }
 
-    // === PayPal smart buttons u panelu ===
     function initPayPalPanelButtons(){
       try{
+        if (window.__PAYPAL_DISABLED__) return;                  // nije konfigurirano
         const host = document.getElementById("paypal-button-container");
         if (!window.paypal || !host) return;
         if (host.dataset.rendered === "1") return;
+
+        const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
 
         window.paypal.Buttons({
           style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
           createOrder: function(_data, actions){
             const el = document.getElementById("pp-amount");
-            let v = Math.max(10, parseFloat(el?.value || "10") || 10);
+            let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
             v = Math.floor(v);
             if (el) el.value = String(v);
             return actions.order.create({
@@ -494,6 +521,7 @@
     }
 
     function togglePaypalPanel(forceOpen){
+      if (window.__PAYPAL_DISABLED__) return; // nema PayPal-a
       const panel = document.getElementById("paypal-panel");
       if (!panel) return;
       const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
@@ -510,10 +538,10 @@
       $("#app")?.classList.remove("hidden");
       renderBalance?.();
 
-      // pokaži PayPal dugme i spoji handler
+      // PayPal dugme samo ako je SDK konfiguriran
       const ppBtn = document.getElementById("btn-open-paypal");
       if (ppBtn){
-        ppBtn.classList.remove("hidden");
+        ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
         if (!ppBtn.dataset.bound){
           ppBtn.addEventListener("click", ()=> togglePaypalPanel());
           ppBtn.dataset.bound = "1";
@@ -533,7 +561,6 @@
       $("#card-login") && ($("#card-login").style.display="none");
       $("#reg-msg") && ($("#reg-msg").textContent="");
       $("#log-msg") && ($("#log-msg").textContent="");
-      // sakrij panel + dugme
       document.getElementById("paypal-panel")?.classList.add("hidden");
       document.getElementById("btn-open-paypal")?.classList.add("hidden");
     }
@@ -612,20 +639,8 @@
       $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
       $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
-      $("#btn-open-register")?.addEventListener("click", () => {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-register") && ($("#card-register").style.display="block");
-        $("#card-login") && ($("#card-login").style.display="none");
-        $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
-        $("#reg-email")?.focus();
-      });
-      $("#btn-open-login")?.addEventListener("click", () => {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none");
-        $("#auth")?.scrollIntoView({behavior:"smooth", block:"start"});
-        $("#log-email")?.focus();
-      });
+      // Tab switch
+      $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
 
       loadMe();
     });
@@ -827,7 +842,7 @@
               <img class="icon" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
             </div>
-            <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
+            <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
           </div>`;
       }).join("");
 
@@ -1147,78 +1162,80 @@
   </script>
 
   <!-- ===== BONUS (frontend) ===== -->
-<script>
-  function tile(name, code, ok, tier){
-    const ico = iconForByCode(code, tier);
-    return `
-      <div class="tile ${ok?'ok':'miss'}">
-        <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-        <div>${esc(name)}</div>
-      </div>`;
-  }
-
-  async function loadBonus(){
-    const lock = $("#bonus-lock");
-    const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-    const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
-
-    try{
-      const r = await api("/api/bonus/status");
-      const hasArt = !!r?.has_artefact;
-      lock?.classList.toggle("hidden", hasArt);
-      if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
-
-      function prettyNameFromCode(code){
-        return String(code)
-          .replace(/^T\d_/, "")
-          .replaceAll("_"," ")
-          .toLowerCase()
-          .replace(/\b\w/g, c=>c.toUpperCase());
-      }
-
-      for (const t of [2,3,4,5]){
-        const box = boxes[t]; if (!box) continue;
-        const info = r.tiers?.[t];
-        if (!info){ box.textContent="No data"; continue; }
-
-        const items = [];
-        for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-        for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
-
-        box.innerHTML = items.join("") || "Empty.";
-
-        const btn = btns[t];
-        if (btn){
-          const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-          btn.disabled = !canClaim;
-          btn.textContent = info.claimed ? "Claimed" : "Claim";
-          if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-
-          btn.onclick = async ()=>{
-            if (btn.disabled) return;
-            const prev = btn.textContent;
-            btn.disabled = true; btn.textContent = "Claiming…";
-            try{
-              await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
-              toast(`T${t} bonus claimed.`);
-              await loadBonus();
-              await refreshMeLight();
-            }catch(e){
-              alert(e?.message || "Claim failed.");
-            } finally{
-              btn.textContent = prev;
-            }
-          };
-        }
-      }
-    }catch(e){
-      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none");
-      }
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+  <script>
+    function tile(name, code, ok, tier){
+      const ico = iconForByCode(code, tier);
+      return `
+        <div class="tile ${ok?'ok':'miss'}">
+          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>${esc(name)}</div>
+        </div>`;
     }
-  }
-</script>
+
+    async function loadBonus(){
+      const lock = $("#bonus-lock");
+      const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+      const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+      Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+
+      try{
+        const r = await api("/api/bonus/status");
+        const hasArt = !!r?.has_artefact;
+        lock?.classList.toggle("hidden", hasArt);
+        if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+
+        function prettyNameFromCode(code){
+          return String(code)
+            .replace(/^T\d_/, "")
+            .replaceAll("_"," ")
+            .toLowerCase()
+            .replace(/\b\w/g, c=>c.toUpperCase());
+        }
+
+        for (const t of [2,3,4,5]){
+          const box = boxes[t]; if (!box) continue;
+          const info = r.tiers?.[t];
+          if (!info){ box.textContent="No data"; continue; }
+
+          const items = [];
+          for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
+          for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
+
+          box.innerHTML = items.join("") || "Empty.";
+
+          const btn = btns[t];
+          if (btn){
+            const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+            btn.disabled = !canClaim;
+            btn.textContent = info.claimed ? "Claimed" : "Claim";
+            if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+
+            btn.onclick = async ()=>{
+              if (btn.disabled) return;
+              const prev = btn.textContent;
+              btn.disabled = true; btn.textContent = "Claiming…";
+              try{
+                await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+                toast(`T${t} bonus claimed.`);
+                await loadBonus();
+                await refreshMeLight();
+              }catch(e){
+                alert(e?.message || "Claim failed.");
+              } finally{
+                btn.textContent = prev;
+              }
+            };
+          }
+        }
+      }catch(e){
+        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+          $("#auth")?.classList.remove("hidden");
+          $("#card-login") && ($("#card-login").style.display="block");
+          $("#card-register") && ($("#card-register").style.display="none");
+        }
+        Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+      }
+    }
+  </script>
+</body>
+</html>
