@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
   <link rel="stylesheet" href="/app.css" />
-
-  <!-- PayPal SDK se dinamički učitava ispod preko /api/paypal/config -->
   <script>
     (async function loadPayPalSDK(){
       try{
@@ -79,16 +77,12 @@
     .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
     .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
     .img-slot:hover{ opacity:1 }
-
-    /* Balance */
     #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
-
-    /* PayPal UI */
     #btn-open-paypal.hidden{ display:none; }
     #paypal-panel.hidden{ display:none; }
     #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
     @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
-    #paypal-wrap{ display:none !important; } /* bilo kakav stari wrap sakrivamo */
+    #paypal-wrap{ display:none !important; }
   </style>
 </head>
 <body>
@@ -97,10 +91,7 @@
     <div class="brand">ARTEFACT</div>
     <div class="row" style="gap:8px">
       <span id="balance" class="badge hidden">0g 0s</span>
-
-      <!-- PayPal dugme otvara panel ispod -->
       <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
-
       <button id="btn-open-register" class="btn secondary">Register</button>
       <button id="btn-open-login" class="btn">Log in</button>
       <button id="btn-logout" class="btn muted hidden">Log out</button>
@@ -355,7 +346,6 @@
     </div>
   </section>
 
-  <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
@@ -389,11 +379,9 @@
   <script>
     const RECIPE_ICON = "/recipe.png";
     const FALLBACK_ITEM_ICON = "/t1_bronze.png";
-
     const esc = s => String(s)
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
       .replaceAll('"',"&quot;").replaceAll("'","&#39;");
-
     function fileNameFromCodeTier(code, tier){
       if(!code) return null;
       const m = String(code).match(/^T([1-6])_(.*)$/);
@@ -409,15 +397,12 @@
 
   <!-- ===== Global state + Tabs + PayPal panel ===== -->
   <script>
-  // Helpers ($, $$, safeCall) – pretpostavlja se da već postoje u tvojem kodu.
   window.$  ||= (s => document.querySelector(s));
   window.$$ ||= (s => Array.from(document.querySelectorAll(s)));
   window.safeCall ||= (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
 
   let WHO = null;
   window.CURRENT_RECIPE_ID = null;
-
-  // stub da spriječi ReferenceError prije nego što shop skripta definira refreshMeLight
   window.refreshMeLight ||= async () => {};
 
   function showLanding(){
@@ -486,9 +471,7 @@
       const host = document.getElementById("paypal-button-container");
       if (!window.paypal || !host) return;
       if (host.dataset.rendered === "1") return;
-
       const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
-
       window.paypal.Buttons({
         style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
         createOrder: function(_data, actions){
@@ -526,7 +509,6 @@
           alert("PayPal error.");
         }
       }).render("#paypal-button-container");
-
       host.dataset.rendered = "1";
     }catch(e){
       console.warn("initPayPalPanelButtons failed:", e);
@@ -550,7 +532,6 @@
     $("#auth")?.classList.add("hidden");
     $("#app")?.classList.remove("hidden");
     renderBalance?.();
-
     const ppBtn = document.getElementById("btn-open-paypal");
     if (ppBtn){
       ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
@@ -639,13 +620,25 @@
     setLoggedOutUI();
   }
 
-  // simple fetch helper expected elsewhere; dodaj ako nemaš
   window.api ||= async (path, opts={}) => {
     const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
     const data = await res.json().catch(()=> ({}));
     if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
     return data;
   };
+
+  function openAuth(mode){
+    const auth = document.getElementById("auth");
+    if (!auth) return;
+    auth.classList.remove("hidden");
+    document.getElementById("app")?.classList.add("hidden");
+    const reg = document.getElementById("card-register");
+    const log = document.getElementById("card-login");
+    if (reg) reg.style.display = (mode === "register" ? "block" : "none");
+    if (log) log.style.display = (mode === "login"    ? "block" : "none");
+    if (mode === "register") document.getElementById("reg-email")?.focus();
+    if (mode === "login")    document.getElementById("log-email")?.focus();
+  }
 
   document.addEventListener("DOMContentLoaded", () => {
     const header = document.querySelector("header.header");
@@ -654,14 +647,17 @@
       header.insertAdjacentElement("afterend", auth);
     }
 
-    $("#btn-register")?.addEventListener("click", doRegister);
-    $("#btn-login")?.addEventListener("click", doLogin);
-    $("#btn-logout")?.addEventListener("click", doLogout);
+    document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
+    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
 
-    $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    document.getElementById("btn-register")?.addEventListener("click", doRegister);
+    document.getElementById("btn-login")?.addEventListener("click", doLogin);
+    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+
+    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
 
     $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
 
@@ -805,7 +801,6 @@
         safeCall("loadInventoryFull");
         safeCall("loadMarket");
         safeCall("loadMine");
-
         if (msg) {
           let txt = `Bought: ${ok}`;
           if (fail) txt += `, failed: ${fail}`;
@@ -891,7 +886,6 @@
         const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
         box.innerHTML = renderIngredients(details);
         window.CURRENT_RECIPE_ID = details.recipe.id;
-
         const btn = $("#btn-craft");
         btn?.addEventListener("click", async ()=>{
           if (btn.disabled) return;
@@ -969,14 +963,11 @@
       try{
         const r = await api("/api/inventory");
         const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-
         const itemsAll = Array.isArray(r.items) ? r.items : [];
         const items = itemsAll.filter(x => !q || (x.name||"").toLowerCase().includes(q));
         const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
-
         const recipes = (Array.isArray(r.recipes) ? r.recipes : [])
           .filter(x => !q || (x.name||"").toLowerCase().includes(q));
-
         box.innerHTML = "";
         const add = (arr, kind) => {
           for (const it of arr){
@@ -998,7 +989,6 @@
         };
         add(itemsFiltered,"item");
         add(recipes,"recipe");
-
         if (!box.children.length) box.textContent = "Empty.";
       }catch(e){
         box.textContent = e?.message || "Failed.";
@@ -1015,9 +1005,7 @@
         const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
         const rows = (r?.listings || []).filter(Boolean);
         const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-
         if (!rowsFiltered.length){ box.textContent="No listings."; return; }
-
         box.innerHTML = "";
         for (const s of rowsFiltered){
           const priceS = s?.price_s | 0;
@@ -1071,30 +1059,21 @@
     async function loadMine(){
       const box = $("#mine"); if(!box) return;
       box.textContent = "Loading…";
-
       try{
         const r = await api("/api/sales/mine");
-
-        // Prikaži SAMO live oglase; bez artefacta i T6+
         const rows = (r?.listings || [])
           .filter(Boolean)
-          .filter(s =>
-            s?.status === "live" &&
-            !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6))
-          );
-
+          .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
         if (!rows.length){
           box.textContent = "No live listings.";
           return;
         }
-
         box.innerHTML = "";
         for (const s of rows){
           const priceS = s?.price_s | 0;
           const g = Math.floor(priceS/100), ss = priceS%100;
           const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
           const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-
           const row = document.createElement("div");
           row.className = "itemrow";
           row.innerHTML = `
@@ -1107,7 +1086,6 @@
               <button class="btn danger">Cancel</button>
             </div>
           `;
-
           const btn = row.querySelector("button");
           btn.addEventListener("click", async ()=>{
             if (btn.disabled) return;
@@ -1115,7 +1093,6 @@
             btn.disabled = true; btn.textContent = "Cancel…";
             try{
               await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-              // nakon otkazivanja više nije live → ponovo učitaj liste
               loadMarket();
               loadMine();
               loadInventoryPanel();
@@ -1125,7 +1102,6 @@
               btn.disabled = false; btn.textContent = prev;
             }
           });
-
           box.appendChild(row);
         }
       }catch(e){
@@ -1144,12 +1120,10 @@
         const qty = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
         if (silver < 0) silver = 0;
         if (silver > 99) silver = 99;
-
         await api("/api/sales/list", {
           method: "POST",
           body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
         });
-
         const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
         window.SEL_INV = null;
         loadMarket();
@@ -1168,7 +1142,6 @@
         const r = await api("/api/inventory");
         const items   = Array.isArray(r.items)   ? r.items   : [];
         const recipes = Array.isArray(r.recipes) ? r.recipes : [];
-
         const lines=[];
         for(const it of items){
           const icon = (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON);
@@ -1200,7 +1173,6 @@
 
   <!-- ===== BONUS (frontend) ===== -->
   <script>
-    // helper da ne ostane vječno "Loading…"
     function withTimeout(promise, ms=8000){
       return new Promise((resolve, reject)=>{
         const t = setTimeout(()=> reject(new Error("Timeout")), ms);
@@ -1222,11 +1194,8 @@
       const lock = $("#bonus-lock");
       const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
       const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-
-      // disable tipke dok traje loading
       Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
       Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
-
       let cleared = false;
       setTimeout(()=>{
         if (cleared) return;
@@ -1236,7 +1205,6 @@
       try{
         const r = await withTimeout(api("/api/bonus/status"), 8000);
         cleared = true;
-
         const hasArt = !!r?.has_artefact;
         lock?.classList.toggle("hidden", hasArt);
         if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
@@ -1253,11 +1221,9 @@
           const box = boxes[t]; if (!box) continue;
           const info = r.tiers?.[t];
           if (!info){ box.textContent="No data"; continue; }
-
           const items = [];
           for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
           for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
-
           box.innerHTML = items.join("") || "Empty.";
 
           const btn = btns[t];
@@ -1266,7 +1232,6 @@
             btn.disabled = !canClaim;
             btn.textContent = info.claimed ? "Claimed" : "Claim";
             if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-
             btn.onclick = async ()=>{
               if (btn.disabled) return;
               const prev = btn.textContent;
@@ -1295,3 +1260,5 @@
       }
     }
   </script>
+</body>
+</html>
