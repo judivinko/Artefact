@@ -315,6 +315,7 @@ CREATE TABLE IF NOT EXISTS bonus_codes(
   total_credited_silver INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1
 );`);
+
 for (let i = 1; i <= 5; i++) {
   const row = db.prepare("SELECT 1 FROM bonus_codes WHERE id=?").get(i);
   if (!row) {
@@ -324,6 +325,7 @@ for (let i = 1; i <= 5; i++) {
     `).run(i, `SLOT${i}`, 0, 0);
   }
 }
+
 
 // --- seed helpers ---
 function ensureItem(code, name, tier, volatile = 0) {
@@ -1338,4 +1340,5 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
