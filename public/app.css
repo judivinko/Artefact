@@ -1,8 +1,7 @@
-/* ===========================
-   ARTEFACT • Global styles
-   =========================== */
+/* =========================================================
+   1) SHARED / CORE — zajedničko za INDEX i ADMIN (NE DIRATI)
+   ========================================================= */
 
-/* Theme vars */
 :root{
   --bg:#0f172a;
   --card:#111827;
@@ -35,13 +34,13 @@ a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
 .header.no-border{ border-bottom:0!important; }
 .brand{ font-weight:700; letter-spacing:.3px; }
 
+/* Flex / grid helpers */
 .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 .right{ margin-left:auto; }
 
 .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
-
 @media (max-width:900px){
   .grid{ grid-template-columns:1fr; }
   .grid-4{ grid-template-columns:repeat(2,1fr); }
@@ -84,21 +83,16 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 }
 .itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
 .itemrow:last-child{ border-bottom:0; }
-.list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
-
-/* Tabs */
-.tabbar{ margin:6px 0 4px; }
-.chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
-.chip.active{ background:#0e3a2f; }
+.list{
+  max-height:360px; overflow:auto;
+  border:1px solid var(--line); border-radius:10px;
+  background:#0b1220;
+}
 
 /* Icons & images */
 img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block; }
 
-/* Landing copy */
-#about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
-#how .label, #tips .label{ font-size:20px; }
-
-/* Global max image size (except .icon) */
+/* Global max image size (osim .icon) */
 img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 
 /* Preview images */
@@ -116,10 +110,135 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 }
 .img-slot:hover{ opacity:1; }
 
-/* Craft tab tweaks */
+/* =================================================
+   2) ADMIN — OSTAVLJENO KAKO JEST (NE DIRATI)
+   (klase korištene u admin panelu)
+   ================================================= */
+
+/* Layout za admin lijevo/desno */
+.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
+
+/* Pomoćne za admin */
+.rowx{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace }
+.tag{ font-size:11px; padding:2px 6px; border-radius:6px; background:#1f2937 }
+.tag.red{ background:#3b1113; color:#fecaca }
+.tag.green{ background:#0f2e1b; color:#bbf7d0 }
+.search{ width:100%; padding:8px; border-radius:8px; border:1px solid #233047; background:#0b1220; color:#e2e8f0 }
+
+/* Redovi korisnika */
+.user-row{ display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:8px }
+.user-row:hover{ background:#0f172a }
+
+/* Bonus Codes (admin tabela) */
+.codes-wrap{margin-top:8px; overflow:auto; border:1px solid #233047; border-radius:10px;}
+.codes-table{width:100%; border-collapse:collapse; background:#0b1220}
+.codes-table th,.codes-table td{padding:10px 12px; border-bottom:1px solid #233047; text-align:left}
+.codes-table th{color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px}
+.codes-col-code{width:40%}
+.codes-col-pct{width:20%}
+.codes-col-used{width:25%}
+.codes-col-act{width:15%}
+.codes-table input{background:#0b1220; color:#e2e8f0; border:1px solid #233047; border-radius:8px; padding:8px 10px; width:100%}
+.codes-actions{display:flex; gap:8px; align-items:center; justify-content:flex-start}
+.codes-actions .btn{padding:8px 10px}
+
+/* =========================================================
+   3) INDEX — UREĐENO (možeš mijenjati; ADMIN se ne dira)
+   ========================================================= */
+
+/* Landing copy */
+#about p, #how p, #tips li{ font-size:16px; line-height:1.7; }
+#how .label, #tips .label{ font-size:20px; }
+
+/* Veće kartice/slike u “How” — bez rušenja layouta igre */
+#how .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width:900px){ #how .grid{ grid-template-columns:1fr; } }
+#how .card img,
+#about img{
+  width:9.5em; height:9.5em;
+  object-fit:contain;
+  border-radius:12px;
+  margin-top:10px;
+  display:block;
+  filter: drop-shadow(0 2px 12px rgba(0,0,0,.25));
+}
+
+/* TAB bar */
+#app .tabbar{ margin:8px 0 6px; }
+#app .chip{
+  padding:10px 14px;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  background:#0e1726;
+  cursor:pointer;
+  transition:transform .08s ease, background .12s ease, border-color .12s ease;
+}
+#app .chip:hover{ transform:translateY(-1px); border-color:#334155; }
+#app .chip.active{ background:#0e3a2f; border-color:#14532d; }
+
+/* Liste i redovi */
+#app .list,
+#tab-craft .list,
+#tab-market .list,
+#tab-inv .list,
+#tab-bonus .list{
+  max-height:380px;
+  overflow:auto;
+  border:1px solid #233047;
+  border-radius:12px;
+  background:#0b1220;
+  scrollbar-width:thin;
+  scrollbar-color:#334155 transparent;
+}
+#app .list::-webkit-scrollbar{ height:10px; width:10px; }
+#app .list::-webkit-scrollbar-thumb{ background:#334155; border-radius:10px; }
+
+#app .itemrow{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px;
+  border-bottom:1px solid #1f283d;
+}
+#app .itemrow:last-child{ border-bottom:0; }
+
+/* Badge */
+#app .badge{
+  border:1px solid #2a3a54;
+  padding:4px 9px;
+  border-radius:999px;
+  background:linear-gradient(180deg,#0c1424,#0a1528);
+  font-size:13px;
+}
+
+/* Gumbi (hover/focus) */
+#app .btn, #app button{
+  background:#2dd4bf; color:#0b1220; font-weight:700;
+  border:0; padding:10px 14px; border-radius:12px; cursor:pointer;
+  transition:transform .06s ease, filter .12s ease, opacity .12s ease;
+}
+#app .btn:hover, #app button:hover{ transform:translateY(-1px); filter:brightness(1.05); }
+#app .btn:active, #app button:active{ transform:translateY(0); }
+#app .btn.secondary{ background:#0b5bd1; color:#fff; }
+#app .btn.muted{ background:#1f2937; color:#e2e8f0; }
+#app .btn.danger{ background:#ef4444; color:#fff; }
+#app .btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* Inputi s fokus prstenom */
+#app .input, #app input, #app select{
+  background:#0b1220; color:#e2e8f0;
+  border:1px solid #233047; border-radius:10px; padding:10px 12px;
+  outline:none; transition:border-color .12s ease, box-shadow .12s ease;
+}
+#app .input:focus, #app input:focus, #app select:focus{
+  border-color:#3b82f6;
+  box-shadow:0 0 0 2px rgba(59,130,246,.25);
+}
+
+/* Craft tab — minimalna visina liste desno */
 #tab-craft .list{ min-height:500px; }
 
-/* Header balance — more visible + pulse on top-up */
+/* Header balance — vidljiviji + pulse na top-up */
 #balance.badge{
   background: linear-gradient(180deg,#0e2a4a,#10335e);
   border-color:#3b82f6;
@@ -141,46 +260,17 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
   #balance.badge{ font-size:15px; padding:7px 12px; }
 }
 
-/* ===========================
-   PayPal (header button + panel)
-   =========================== */
-
-/* (legacy wrapper ako postoji, sakrij) */
-#paypal-wrap{ display:none!important; }
-
-/* Header PayPal dugme: VIDLJIVO po defaultu, skriva se klasom .hidden koju JS već koristi */
-#btn-open-paypal{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
-
-/* Panel ispod headera s inputima + PayPal smart dugmetom */
+/* PayPal UI (index) */
+#btn-open-paypal{ display:inline-flex; align-items:center; gap:6px; }
+#btn-open-paypal.hidden{ display:none!important; }
 #paypal-panel.card{ margin-top:8px; display:block; }
 #paypal-panel.hidden{ display:none!important; }
-
-.pp-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.pp-input{
-  background:#0b1220; color:var(--text);
-  border:1px solid #233047; border-radius:10px; padding:10px 12px;
-}
-.pp-input#pp-amount{ width:120px; }
-.pp-input#pp-bonus{ width:240px; }
-
-/* PayPal-rendered button scale (bolje se uklapa u layout) */
 #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
-@media (max-width:520px){
-  #paypal-button-container{ transform:scale(.9); }
+@media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
+/* sakrij bilo kakav stari wrap */
+#paypal-wrap{ display:none !important; }
 
-/* ===== Bonus Codes (Admin) ===== */
-.codes-wrap{margin-top:8px; overflow:auto; border:1px solid #233047; border-radius:10px;}
-.codes-table{width:100%; border-collapse:collapse; background:#0b1220}
-.codes-table th,.codes-table td{padding:10px 12px; border-bottom:1px solid #233047; text-align:left}
-.codes-table th{color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px}
-.codes-col-code{width:40%}
-.codes-col-pct{width:20%}
-.codes-col-used{width:25%}
-.codes-col-act{width:15%}
-.codes-table input{background:#0b1220; color:#e2e8f0; border:1px solid #233047; border-radius:8px; padding:8px 10px; width:100%}
-.codes-actions{display:flex; gap:8px; align-items:center; justify-content:flex-start}
-.codes-actions .btn{padding:8px 10px}
+/* Bonus pločice */
+.tile{ display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:6px; }
+.tile.ok{ border-color:#165c32; background:#0e3a2f; }
+.tile.miss{ opacity:.85; }
