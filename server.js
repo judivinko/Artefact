@@ -153,26 +153,23 @@ async function paypalGetOrder(accessToken, orderId){
   return data;
 }
 
-// ----------------- PAYPAL config + create-order (DODANO) -----------------
-
-// ★ CHANGED: ne ruši frontend kad nema konfiguracije
-app.get("/api/paypal/config", (req, res) => {
-  try{
-    if (!PAYPAL_CLIENT_ID) {
-      return res.json({ ok:false, configured:false, error:"PayPal not configured" });
-    }
-    return res.json({
-      ok: true,
-      configured: true,
-      client_id: PAYPAL_CLIENT_ID,
-      mode: PAYPAL_MODE,           // "sandbox" | "live"
+/// ----------------- PAYPAL config + create-order -----------------
+app.get("/api/paypal/config", (_req, res) => {
+  try {
+    const configured = !!PAYPAL_CLIENT_ID;
+    return res.status(200).json({
+      ok: configured,
+      configured,
+      client_id: configured ? PAYPAL_CLIENT_ID : null,
+      mode: PAYPAL_MODE,
       currency: "USD",
       min_usd: MIN_USD
     });
-  }catch(e){
-    return res.status(500).json({ ok:false, error:String(e.message||e) });
+  } catch (e) {
+    return res.status(200).json({ ok:false, configured:false, error:String(e.message||e) });
   }
 });
+
 
 // (Opcionalno, ali korisno) – server-side kreiranje PayPal narudžbe
 // body: { amount_usd: number }
@@ -1604,3 +1601,4 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
