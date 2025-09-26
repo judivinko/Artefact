@@ -88,31 +88,41 @@
         </div>
         <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
 
-        <!-- NEW: Bonus Codes -->
-        <hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
-        <div class="label">Bonus Codes</div>
-        <div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Za svaki postavi postotak bonusa i prati koliko je ukupno uplaćeno preko tog koda.</div>
-        <div class="rowx" style="margin-top:8px;justify-content:space-between">
-          <button id="btn-codes-reload" class="secondary">Reload</button>
-          <button id="btn-codes-save-all" class="secondary">Save all</button>
+        // ---------- BONUS CODES (5 redova)
+function renderBonusRows(data){
+  const tbody = document.getElementById("codes-tbody");
+  tbody.innerHTML = "";
+  for (let i = 0; i < 5; i++){
+    const entry = data?.[i] || { code:"", percent:0, total_credited_silver:0, is_active:1 };
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${entry.code || ""}">
+      </td>
+      <td>
+        <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent || 0)}">
+      </td>
+      <td>
+        <input id="bonus-used-${i}" value="${Math.floor((entry.total_credited_silver || 0)/100)}" disabled>
+      </td>
+      <td>
+        <div class="codes-row-actions">
+          <button id="btn-save-${i}" class="secondary" data-save="${i}">Save ${i+1}</button>
         </div>
-        <div style="overflow:auto;margin-top:8px">
-          <table class="codes-table" id="codes-table">
-            <thead>
-              <tr>
-                <th style="width:40%">Bonus code</th>
-                <th style="width:20%">Percent (%)</th>
-                <th style="width:25%">Total used (gold)</th>
-                <th style="width:15%">Action</th>
-              </tr>
-            </thead>
-            <tbody id="codes-tbody">
-              <!-- rows 0..4 rendered by JS -->
-            </tbody>
-          </table>
-        </div>
-        <div id="codes-msg" class="muted" style="margin-top:6px"></div>
-      </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // bind za svako dugme posebno
+  for (let i = 0; i < 5; i++){
+    const btn = document.getElementById(`btn-save-${i}`);
+    if (btn) {
+      btn.onclick = async () => { await saveBonusRow(i); };
+    }
+  }
+}
+
 
       <!-- RIGHT: Users + Inventory -->
       <div class="card">
@@ -448,5 +458,6 @@ async function saveAllBonusRows(){
   </script>
 </body>
 </html>
+
 
 
