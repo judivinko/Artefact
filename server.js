@@ -27,7 +27,6 @@ db.pragma("journal_mode = WAL");
 console.log("[DB] OK:", DB_FILE);
 
 
-
 /* ===== PAYPAL CONFIG ===== */
 const USD_TO_GOLD = 100;                             // 1 USD = 100 gold
 const MIN_USD = 10;                                  // minimalna uplata
@@ -1354,6 +1353,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
