@@ -1187,7 +1187,7 @@
     }
   </script>
 
-  <!-- ===== BONUS (frontend) ===== -->
+    <!-- ===== BONUS (frontend) ===== -->
   <script>
     function tile(name, code, ok, tier){
       const ico = iconForByCode(code, tier);
@@ -1257,7 +1257,7 @@
         if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
           $("#auth")?.classList.remove("hidden");
           $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none"));
+          $("#card-register") && ($("#card-register").style.display="none");
         }
         Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
       }
