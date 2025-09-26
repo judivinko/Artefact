@@ -70,7 +70,7 @@ function deleteFilesStartingWith0(rootDir) {
     const r2 = deleteFilesStartingWith0(dirPublic);
     r = { checked: r1.checked + r2.checked, deleted: r1.deleted + r2.deleted, found: [...r1.found, ...r2.found] };
   }
-  console.log([CLEANUP] Pregledano: ${r.checked}, obrisano: ${r.deleted});
+  console.log(`[CLEANUP] Pregledano: ${r.checked}, obrisano: ${r.deleted}`);
   if (r.found.length) {
     console.log("[CLEANUP] Obrisano:", r.found.map(p => p.replace(__dirname, "")).join(" | "));
   } else {
@@ -1395,3 +1395,4 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(ARTEFACT server listening on http://${HOST}:${PORT});
 });
+
