@@ -90,12 +90,23 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 
-// ---------- DB (single, robust)
+// --- DB (single, robust)   ⬅️  OVDJE POČINJE DUPLIKAT
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
+
+// osiguraj da folder postoji (radi i ako /data već postoji)
 try { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); } catch {}
-const db = new Database(DB_FILE, { timeout: 5000 });
-db.pragma("journal_mode = WAL");
-console.log("[DB] OK:", DB_FILE);
+
+// inicijalizacija baze
+let db;
+try {
+  db = new Database(DB_FILE, { timeout: 5000 });
+  db.pragma("journal_mode = WAL");
+  console.log("[DB] OK:", DB_FILE);
+} catch (err) {
+  console.error("[DB] FAIL:", DB_FILE, err && err.message);
+  process.exit(1);
+}
+
 
 
 // Static
@@ -1362,6 +1373,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
