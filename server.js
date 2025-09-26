@@ -82,9 +82,6 @@ function deleteFilesStartingWith0(rootDir) {
     console.log("[CLEANUP] Nije našao fajlove koji počinju sa " + JSON.stringify("0") + " u /public(/images)");
   }
 })();
-// ---------- DB 
-const db = new Database(DB_FILE); 
-db.pragma("journal_mode = WAL");
 
 // ---------- App
 const app = express();
@@ -1361,6 +1358,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
