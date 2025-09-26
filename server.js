@@ -94,8 +94,8 @@ app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.h
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-// ---------- DB
-const db = new Database(DB_FILE, { verbose: console.log });
+// ---------- DB (jedina instanca)
+const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
 
@@ -1353,6 +1353,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
