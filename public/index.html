@@ -56,12 +56,13 @@
     /* Balance */
     #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
 
-    /* PayPal inline dugme (plavo) – samo ovo dodano */
-    #paypal-inline{ display:inline-flex; align-items:center; transform:scale(.95); transform-origin:right center }
-    #paypal-inline > div{ display:inline-block }
-    @media (max-width:520px){ #paypal-inline{ transform:scale(.9) } }
+    /* ==== PayPal dugme i panel ==== */
+    #btn-open-paypal.hidden{ display:none; }
+    #paypal-panel.hidden{ display:none; }
+    #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
+    @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
 
-    /* (stari #paypal-wrap više ne koristimo; ako ostane u DOM-u – sakrij) */
+    /* (ako je stari #paypal-wrap prisutan negdje, sakrij ga) */
     #paypal-wrap{ display:none !important; }
   </style>
 </head>
@@ -72,14 +73,28 @@
     <div class="row" style="gap:8px">
       <span id="balance" class="badge hidden">0g 0s</span>
 
-      <!-- NOVO: jedno PayPal dugme (plavo) između badge-a i Logout -->
-      <div id="paypal-inline" class="hidden"></div>
+      <!-- NOVO: PayPal (plavo) dugme koje otvara panel ispod -->
+      <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
 
       <button id="btn-open-register" class="btn secondary">Register</button>
       <button id="btn-open-login" class="btn">Log in</button>
       <button id="btn-logout" class="btn muted hidden">Log out</button>
     </div>
   </header>
+
+  <!-- ===== PayPal panel (ispod headera) ===== -->
+  <section id="paypal-panel" class="card hidden">
+    <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
+      <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
+      <input id="pp-amount" class="input" type="number" min="10" step="1" value="10" placeholder="USD" style="width:120px" />
+      <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
+      <input id="pp-bonus" class="input" type="text" maxlength="32" placeholder="optional" style="width:240px" />
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div id="paypal-button-container"></div>
+    </div>
+    <div id="pp-msg" class="muted" style="margin-top:8px"></div>
+  </section>
 
   <!-- ===== Auth ===== -->
   <section id="auth" class="card hidden" style="margin-top:12px">
@@ -367,7 +382,7 @@
     }
   </script>
 
-  <!-- ===== Global state + Tabs + PayPal init ===== -->
+  <!-- ===== Global state + Tabs + PayPal panel ===== -->
   <script>
     let WHO = null;
     window.CURRENT_RECIPE_ID = null;
@@ -426,27 +441,21 @@
       if (tab === "inv") { safeCall("loadInventoryFull"); }
       if (tab === "bonus") { safeCall("loadBonus"); }
     }
-    function enterGame(defaultTab="shop"){ setTab(defaultTab); }
-    function exitGame(){ showLanding(); }
 
-    // === PayPal Buttons init (plavo dugme u #paypal-inline) ===
-    function initPayPalButtons(){
+    // === PayPal smart buttons u panelu ===
+    function initPayPalPanelButtons(){
       try{
-        const host = document.getElementById("paypal-inline");
+        const host = document.getElementById("paypal-button-container");
         if (!window.paypal || !host) return;
-
-        if (host.dataset.rendered === "1") {
-          host.classList.remove("hidden");
-          return;
-        }
+        if (host.dataset.rendered === "1") return;
 
         window.paypal.Buttons({
           style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
           createOrder: function(_data, actions){
-            let v = parseFloat(prompt("Amount in USD (min 10)", "10") || "10");
-            if (!isFinite(v)) v = 10;
-            v = Math.max(10, Math.floor(v));
-            host.dataset.amount = String(v);
+            const el = document.getElementById("pp-amount");
+            let v = Math.max(10, parseFloat(el?.value || "10") || 10);
+            v = Math.floor(v);
+            if (el) el.value = String(v);
             return actions.order.create({
               purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
             });
@@ -454,7 +463,7 @@
           onApprove: async function(data, actions){
             try{
               await actions.order.capture();
-              const bonus_code = (prompt("Bonus code (optional)", "") || "").trim();
+              const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
               const r = await api("/api/paypal/confirm", {
                 method:"POST",
                 body: JSON.stringify({ orderId: data.orderID, bonus_code })
@@ -462,7 +471,12 @@
               if (WHO) WHO.balance_silver = (r.balance_silver|0);
               renderBalance();
               await refreshMeLight();
-              toast(`Hvala na uplati! Gold je dodan.<br> + Pridruži se zajednici: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">Discord</a>`);
+              const msg = document.getElementById("pp-msg");
+              if (msg){
+                msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
+              } else {
+                toast(`Thank you for your payment! Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">Discord</a>`);
+              }
             }catch(e){
               alert(e?.message || "Payment confirm failed.");
             }
@@ -471,36 +485,22 @@
             console.error("PayPal error:", err);
             alert("PayPal error.");
           }
-        }).render("#paypal-inline");
+        }).render("#paypal-button-container");
 
         host.dataset.rendered = "1";
-        host.classList.remove("hidden");
       }catch(e){
-        console.warn("initPayPalButtons failed:", e);
+        console.warn("initPayPalPanelButtons failed:", e);
       }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      showLanding();
-      $$(".chip").forEach(c => c.addEventListener("click", () => setTab(c.dataset.tab)));
-      const balanceEl = $("#balance");
-      if (balanceEl) {
-        let enteredOnce = false;
-        const obs = new MutationObserver(() => {
-          const loggedIn = !balanceEl.classList.contains("hidden");
-          const appHidden = $("#app")?.classList.contains("hidden");
-          if (loggedIn && appHidden && !enteredOnce) {
-            enteredOnce = true;
-            setTab("shop");
-          }
-        });
-        obs.observe(balanceEl, { attributes: true, attributeFilter: ["class"] });
-      }
-    });
-  </script>
+    function togglePaypalPanel(forceOpen){
+      const panel = document.getElementById("paypal-panel");
+      if (!panel) return;
+      const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !open);
+      if (open) initPayPalPanelButtons();
+    }
 
-  <!-- ===== Auth (Frontend) ===== -->
-  <script>
     function setLoggedInUI(){
       $("#btn-open-register")?.classList.add("hidden");
       $("#btn-open-login")?.classList.add("hidden");
@@ -509,9 +509,16 @@
       $("#auth")?.classList.add("hidden");
       $("#app")?.classList.remove("hidden");
       renderBalance?.();
-      // NOVO: prikaži i inicijaliziraj PayPal dugme
-      $("#paypal-inline")?.classList.remove("hidden");
-      initPayPalButtons();
+
+      // pokaži PayPal dugme i spoji handler
+      const ppBtn = document.getElementById("btn-open-paypal");
+      if (ppBtn){
+        ppBtn.classList.remove("hidden");
+        if (!ppBtn.dataset.bound){
+          ppBtn.addEventListener("click", ()=> togglePaypalPanel());
+          ppBtn.dataset.bound = "1";
+        }
+      }
     }
     function setLoggedOutUI(){
       WHO = null;
@@ -526,9 +533,11 @@
       $("#card-login") && ($("#card-login").style.display="none");
       $("#reg-msg") && ($("#reg-msg").textContent="");
       $("#log-msg") && ($("#log-msg").textContent="");
-      // NOVO: sakrij PayPal dugme
-      $("#paypal-inline")?.classList.add("hidden");
+      // sakrij panel + dugme
+      document.getElementById("paypal-panel")?.classList.add("hidden");
+      document.getElementById("btn-open-paypal")?.classList.add("hidden");
     }
+
     async function loadMe(){
       try{
         const r = await api("/api/me");
@@ -1138,77 +1147,78 @@
   </script>
 
   <!-- ===== BONUS (frontend) ===== -->
-  <script>
-    function tile(name, code, ok, tier){
-      const ico = iconForByCode(code, tier);
-      return `
-        <div class="tile ${ok?'ok':'miss'}">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(name)}</div>
-        </div>`;
-    }
+<script>
+  function tile(name, code, ok, tier){
+    const ico = iconForByCode(code, tier);
+    return `
+      <div class="tile ${ok?'ok':'miss'}">
+        <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>${esc(name)}</div>
+      </div>`;
+  }
 
-    async function loadBonus(){
-      const lock = $("#bonus-lock");
-      const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-      const btns = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+  async function loadBonus(){
+    const lock = $("#bonus-lock");
+    const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+    const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
 
-      try{
-        const r = await api("/api/bonus/status");
-        const hasArt = !!r?.has_artefact;
-        lock?.classList.toggle("hidden", hasArt);
-        if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+    try{
+      const r = await api("/api/bonus/status");
+      const hasArt = !!r?.has_artefact;
+      lock?.classList.toggle("hidden", hasArt);
+      if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
 
-        function prettyNameFromCode(code){
-          return String(code).replace(/^T\d_/, "").replaceAll("_"," ").toLowerCase()
-            .replace(/\b\w/g, c=>c.toUpperCase());
-        }
-
-        for (const t of [2,3,4,5]){
-          const box = boxes[t]; if (!box) continue;
-          const info = r.tiers?.[t];
-          if (!info){ box.textContent="No data"; continue; }
-
-          const items = [];
-          for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-          for (const c of (info.missing||[])) items.push(tile(pretyNameFromCode(c), c, false, t));
-          box.innerHTML = items.join("") || "Empty.";
-
-          const btn = btns[t];
-          if (btn){
-            const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-            btn.disabled = !canClaim;
-            btn.textContent = info.claimed ? "Claimed" : "Claim";
-            if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-
-            btn.onclick = async ()=>{
-              if (btn.disabled) return;
-              const prev = btn.textContent;
-              btn.disabled = true; btn.textContent = "Claiming…";
-              try{
-                await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
-                toast(`T${t} bonus claimed.`);
-                await loadBonus();
-                await refreshMeLight();
-              }catch(e){
-                alert(e?.message || "Claim failed.");
-              } finally{
-                btn.textContent = prev;
-              }
-            };
-          }
-        }
-      }catch(e){
-        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-          $("#auth")?.classList.remove("hidden");
-          $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none");
-        }
-        Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+      function prettyNameFromCode(code){
+        return String(code)
+          .replace(/^T\d_/, "")
+          .replaceAll("_"," ")
+          .toLowerCase()
+          .replace(/\b\w/g, c=>c.toUpperCase());
       }
-    }
-  </script>
-</body>
-</html>
 
+      for (const t of [2,3,4,5]){
+        const box = boxes[t]; if (!box) continue;
+        const info = r.tiers?.[t];
+        if (!info){ box.textContent="No data"; continue; }
+
+        const items = [];
+        for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
+        for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
+
+        box.innerHTML = items.join("") || "Empty.";
+
+        const btn = btns[t];
+        if (btn){
+          const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+          btn.disabled = !canClaim;
+          btn.textContent = info.claimed ? "Claimed" : "Claim";
+          if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+
+          btn.onclick = async ()=>{
+            if (btn.disabled) return;
+            const prev = btn.textContent;
+            btn.disabled = true; btn.textContent = "Claiming…";
+            try{
+              await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+              toast(`T${t} bonus claimed.`);
+              await loadBonus();
+              await refreshMeLight();
+            }catch(e){
+              alert(e?.message || "Claim failed.");
+            } finally{
+              btn.textContent = prev;
+            }
+          };
+        }
+      }
+    }catch(e){
+      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+        $("#auth")?.classList.remove("hidden");
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#card-register") && ($("#card-register").style.display="none");
+      }
+      Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+    }
+  }
+</script>
