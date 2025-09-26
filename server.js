@@ -571,43 +571,76 @@ app.post("/api/register", async (req, res) => {
     const { email, password } = req.body || {};
     if (!isEmail(email)) return res.status(400).json({ ok:false, error:"Bad email" });
     if (!isPass(password)) return res.status(400).json({ ok:false, error:"Password too short" });
-    const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(email);
+
+    // provjera postoje li već korisnik (case-insensitive)
+    const exists = db.prepare("SELECT id FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
     if (exists) return res.status(409).json({ ok:false, error:"Email taken" });
+
     const hash = await bcrypt.hash(password, 10);
     db.prepare(`
       INSERT INTO users(email,pass_hash,created_at,is_admin,is_disabled,balance_silver,shop_buy_count,next_recipe_at,last_seen)
       VALUES (?,?,?,?,?,?,?,?,?)
-    `).run(email.toLowerCase(), hash, nowISO(), 0, 0, 0, 0, null, nowISO());
-    res.json({ ok:true });
-  } catch {
-    res.status(500).json({ ok:false, error:"Register failed" });
+    `).run(String(email).toLowerCase(), hash, nowISO(), 0, 0, 0, 0, null, nowISO());
+
+    return res.json({ ok:true });
+  } catch (e) {
+    return res.status(500).json({ ok:false, error:"Register failed" });
   }
 });
 
-app.post("/api/login", async (req,res)=>{
+app.post("/api/login", async (req, res) => {
   try {
-    const {email,password} = req.body||{};
-    const u = db.prepare("SELECT * FROM users WHERE email=?").get((email||"").toLowerCase());
-    if (!u) return res.status(404).json({ok:false,error:"User not found"});
-    if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
-    const ok = await bcrypt.compare(password||"", u.pass_hash);
-    if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
+    const { email, password } = req.body || {};
+    if (!isEmail(email)) return res.status(400).json({ ok:false, error:"Bad email" });
+
+    // VAŽNO: login traži korisnika case-insensitive
+    const u = db.prepare("SELECT * FROM users WHERE lower(email)=lower(?)").get(String(email||"").toLowerCase());
+    if (!u) return res.status(404).json({ ok:false, error:"User not found" });
+    if (u.is_disabled) return res.status(403).json({ ok:false, error:"Account disabled" });
+
+    const ok = await bcrypt.compare(password || "", u.pass_hash);
+    if (!ok) return res.status(401).json({ ok:false, error:"Wrong password" });
+
     const token = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
-    res.cookie(TOKEN_NAME, token, { httpOnly: true, sameSite: "lax", secure: isProd, path: "/", maxAge: 7*24*60*60*1000 });
+
+    // uskladi 'secure' s clearCookie pozivom i Render okolinom
+    const isSecure = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
+
+    res.cookie(TOKEN_NAME, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isSecure,
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-    return res.json({ok:true, user:{id:u.id,email:u.email}});
-  } catch {
-    return res.status(500).json({ok:false,error:"Login failed"});
+
+    // vrati minimalne podatke potrebne frontendu
+    return res.json({ ok:true, user:{ id: u.id, email: u.email } });
+  } catch (e) {
+    return res.status(500).json({ ok:false, error:"Login failed" });
   }
 });
 
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
-  if (tok) db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
-  res.clearCookie(TOKEN_NAME, { httpOnly: true, sameSite: "lax", secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"), path: "/" });
+  if (tok) {
+    try { db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid); } catch {}
+  }
+
+  const isSecure = (process.env.NODE_ENV === "production") || (process.env.RENDER === "true");
+
+  res.clearCookie(TOKEN_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isSecure,
+    path: "/"
+  });
+
   return res.json({ ok:true });
 });
+
 
 // ----------------- BONUS CODES (ADMIN) -----------------
 function sanitizeCode(raw){
@@ -1559,6 +1592,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
