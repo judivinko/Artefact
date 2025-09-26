@@ -1,5 +1,5 @@
 /* ===========================
-   ARTEFACT • Global styles (merged)
+   ARTEFACT • Global styles (merged + PayPal)
    =========================== */
 
 /* Theme vars */
@@ -137,12 +137,20 @@ img:not(.icon){
   #balance.badge{ font-size:15px; padding:7px 12px; }
 }
 
-/* PayPal wrap (između Gold/Silver i Logout) */
-#paypal-wrap{
-  display:inline-flex; align-items:center;
+/* ==== PayPal dugme (inline, plavo) ==== */
+#paypal-inline{
+  display:inline-flex;
+  align-items:center;
+  transform:scale(.95);
+  transform-origin:right center;
 }
-#paypal-wrap .paypal-note{
-  margin-left:8px; font-size:12px; color:var(--muted);
+#paypal-inline > div{ display:inline-block; }
+
+/* Ako ostane stari wrap, neka bude sakriven */
+#paypal-wrap{ display:none !important; }
+
+@media (max-width:520px){
+  #paypal-inline{ transform:scale(.9); }
 }
 
 /* Admin/shared bits using same variables (index i admin) */
