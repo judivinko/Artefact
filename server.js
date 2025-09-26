@@ -20,9 +20,11 @@ const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
 const TOKEN_NAME = "token";
 const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gmail.com").toLowerCase();
 
-const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
-fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
-const db = new Database(DB_FILE, { verbose: console.log });
+const DB_FILE = process.env.DB_PATH ? process.env.DB_PATH : path.join(__dirname, "data", "artefact.db");
+try { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); } catch {}
+const db = new Database(DB_FILE);
+db.pragma("journal_mode = WAL");
+
 
 /* ===== PAYPAL CONFIG ===== */
 const USD_TO_GOLD = 100;                             // 1 USD = 100 gold
@@ -90,6 +92,10 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
+
+// ---------- DB 
+const db = new Database(DB_FILE); 
+db.pragma("journal_mode = WAL");
 
 // Static
 app.use(express.static(path.join(__dirname, "public")));
@@ -1355,6 +1361,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
