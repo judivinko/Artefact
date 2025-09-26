@@ -101,19 +101,44 @@ app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "publ
 
 // ===== Helpers (generic) =====
 const nowISO = () => new Date().toISOString();
-function isEmail(x){ return typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
-function isPass(x){ return typeof x==="string" && x.length>=6; }
-function signToken(u){ return jwt.sign({ uid:u.id, email:u.email }, JWT_SECRET, { expiresIn:"7d" }); }
-function readToken(req){
-  const t = req.cookies && req.cookies[TOKEN_NAME];
-  if(!t) return null;
-  try{ return jwt.verify(t, JWT_SECRET); }catch{ return null; }
+
+function isEmail(x) {
+  return typeof x === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
 }
+
+function isPass(x) {
+  return typeof x === "string" && x.length >= 6;
+}
+
+function signToken(u) {
+  return jwt.sign({ uid: u.id, email: u.email }, JWT_SECRET, { expiresIn: "7d" });
+}
+
+// --- cookie parsing bez cookie-parser-a
+function getCookie(req, name) {
+  const raw = req.headers.cookie || "";
+  const parts = raw.split(";").map(v => v.trim());
+  for (const p of parts) {
+    if (p.startsWith(name + "=")) {
+      return decodeURIComponent(p.substring(name.length + 1));
+    }
+  }
+  return null;
+}
+
+function readToken(req) {
+  const t = getCookie(req, TOKEN_NAME);
+  if (!t) return null;
+  try { return jwt.verify(t, JWT_SECRET); }
+  catch { return null; }
+}
+
 function verifyTokenFromCookies(req) {
   const tok = readToken(req);
   if (!tok) return null;
   return { uid: tok.uid, email: tok.email };
 }
+
 function requireAuth(req) {
   const tok = readToken(req);
   if (!tok) throw new Error("Not logged in.");
@@ -121,20 +146,25 @@ function requireAuth(req) {
   if (!u || u.is_disabled) throw new Error("Account disabled");
   return u.id;
 }
-function isAdmin(req){
+
+function isAdmin(req) {
+  // Node već spušta header imena u lowercase, ali ostavljamo i alternativu
   const hdr = (req.headers["x-admin-key"] || req.headers["X-Admin-Key"] || "").toString();
   if (hdr && hdr === ADMIN_KEY) return true;
   const tok = readToken(req); if (!tok) return false;
   const r = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
-  return !!(r && r.is_admin===1);
+  return !!(r && r.is_admin === 1);
 }
-function addMinutes(iso, mins){
-  const d = new Date(iso); d.setMinutes(d.getMinutes()+mins); return d.toISOString();
+
+function addMinutes(iso, mins) {
+  const d = new Date(iso);
+  d.setMinutes(d.getMinutes() + mins);
+  return d.toISOString();
 }
 
 /* ===== PayPal helpers ===== */
 // Node 18+ ima globalni fetch
-async function paypalToken(){
+async function paypalToken() {
   const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
     method: "POST",
     headers: {
@@ -144,15 +174,15 @@ async function paypalToken(){
     body: "grant_type=client_credentials"
   });
   const data = await res.json();
-  if(!res.ok) throw new Error("PayPal token fail: " + JSON.stringify(data));
+  if (!res.ok) throw new Error("PayPal token fail: " + JSON.stringify(data));
   return data.access_token;
 }
-async function paypalGetOrder(accessToken, orderId){
+async function paypalGetOrder(accessToken, orderId) {
   const res = await fetch(PAYPAL_BASE + "/v2/checkout/orders/" + encodeURIComponent(orderId), {
     headers: { "Authorization": "Bearer " + accessToken }
   });
   const data = await res.json();
-  if(!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
+  if (!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
   return data;
 }
 
@@ -1353,6 +1383,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
