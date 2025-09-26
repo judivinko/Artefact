@@ -1533,80 +1533,6 @@ app.post("/api/sales/cancel", (req, res) => {
 });
 
 
-// ------- SALES: helper za mapiranje reda u unified shape -------
-function mapSaleRow(row){
-  if (!row) return null;
-  if (row.type === "item") {
-    const it = db.prepare("SELECT id, code, name, tier FROM items WHERE id=?").get(row.item_id);
-    return {
-      id: row.id,
-      kind: "item",
-      item_id: row.item_id,
-      recipe_id: null,
-      code: it?.code || null,
-      name: it?.name || `Item #${row.item_id}`,
-      tier: it?.tier ?? null,
-      qty: row.qty|0,
-      price_s: row.price_s|0,
-      status: row.status,
-      seller_user_id: row.seller_user_id,
-      created_at: row.created_at,
-      sold_at: row.sold_at || null,
-      sold_price_s: row.sold_price_s || null,
-    };
-  } else {
-    const r = db.prepare("SELECT id, code, name, tier FROM recipes WHERE id=?").get(row.recipe_id);
-    return {
-      id: row.id,
-      kind: "recipe",
-      item_id: null,
-      recipe_id: row.recipe_id,
-      code: r?.code || null,
-      name: r?.name || `Recipe #${row.recipe_id}`,
-      tier: r?.tier ?? null,
-      qty: row.qty|0,
-      price_s: row.price_s|0,
-      status: row.status,
-      seller_user_id: row.seller_user_id,
-      created_at: row.created_at,
-      sold_at: row.sold_at || null,
-      sold_price_s: row.sold_price_s || null,
-    };
-  }
-}
-
-// ------- SALES: LIVE list (public) -------
-app.get("/api/sales/live", (req, res) => {
-  try{
-    const q = String(req.query.q || "").trim().toLowerCase();
-    const rows = db.prepare(
-      "SELECT * FROM sales WHERE status='live' ORDER BY created_at DESC LIMIT 500"
-    ).all();
-    let listings = rows.map(mapSaleRow).filter(Boolean);
-    if (q) {
-      listings = listings.filter(x => (x.name||"").toLowerCase().includes(q));
-    }
-    return res.json({ ok:true, listings });
-  }catch(e){
-    return res.status(500).json({ ok:false, error:String(e.message||e) });
-  }
-});
-
-// ------- SALES: moje objave (requires auth) -------
-app.get("/api/sales/mine", (req, res) => {
-  const tok = readToken(req);
-  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
-  try{
-    const rows = db.prepare(
-      "SELECT * FROM sales WHERE seller_user_id=? ORDER BY created_at DESC LIMIT 500"
-    ).all(tok.uid);
-    const listings = rows.map(mapSaleRow).filter(Boolean);
-    return res.json({ ok:true, listings });
-  }catch(e){
-    return res.status(500).json({ ok:false, error:String(e.message||e) });
-  }
-});
-
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
 (function ensureDefaultAdmin(){
@@ -1633,5 +1559,6 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
