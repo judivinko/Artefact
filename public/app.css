@@ -164,3 +164,24 @@ hr.sep{ border:0; border-top:1px solid var(--line); margin:12px 0; }
 
 /* Make images in header buttons tidy */
 .header img{ display:inline-block; vertical-align:middle; }
+/* ==== PayPal top button + panel ==== */
+#btn-open-paypal{ display:none; }                /* skriven dok se ne ulogira */
+#btn-open-paypal.show{ display:inline-flex; }    /* pokaži kad je user ulogiran */
+
+#paypal-panel.card{
+  margin-top:8px;
+  display:block;
+}
+#paypal-panel.hidden{ display:none; }
+
+.pp-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.pp-input{ background:#0b1220; color:var(--text); border:1px solid #233047; border-radius:10px; padding:10px 12px; }
+.pp-input#pp-amount{ width:120px; }
+.pp-input#pp-bonus{ width:240px; }
+
+#paypal-button-container{ transform:scale(.95); transform-origin:left center; }
+@media (max-width:520px){
+  #paypal-button-container{ transform:scale(.9); }
+}
+
+
