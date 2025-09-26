@@ -36,7 +36,7 @@
   <main class="container">
     <!-- Admin Key -->
     <section class="card">
-      <div class="label">Admin Key</div>
+      <div class="label">Admin</div>
       <div class="rowx">
         <input id="admin-key" type="password" placeholder="x-admin-key" />
         <button id="btn-key-set">Set</button>
@@ -214,7 +214,7 @@
         if (codeEl) codeEl.disabled = LOCKED;
         if (pctEl)  pctEl.disabled  = LOCKED;
       }
-      // Napomena: "Reload" dugme i "Total used" polja ostaju kao prije (reload dozvoljen; total je ionako disabled).
+      // "Reload" i "Total used" ostaju kao prije.
     }
 
     async function api(path, opts={}){
@@ -282,7 +282,7 @@
       }catch(e){ box.textContent = e.message; }
     }
 
-    // Bonus codes
+    // ----------------- Bonus codes -----------------
     function sanitizeCode(raw){
       const s = String(raw||"").trim().toUpperCase();
       return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
@@ -308,6 +308,8 @@
         }
         msg("#codes-msg", e.message || "Failed to load.", false);
       }
+      // nakon punjenja, primijeni per-row lock stanja
+      applyRowLocksFromStorage();
     }
     async function saveBonusRow(i){
       const codeEl = document.getElementById(`bonus-code-${i}`);
@@ -330,6 +332,47 @@
     }
     async function saveAllBonusRows(){
       for (let i=0;i<5;i++){ try{ await saveBonusRow(i); }catch{} }
+    }
+
+    // ======== NOVO: Per-row LOCK/UNLOCK (bez promjena HTML-a) ========
+    const ROW_LOCK_KEY = "admin.bonus.rowlocks"; // JSON mapa: {"0":true,...}
+    function getRowLocks(){
+      try { return JSON.parse(localStorage.getItem(ROW_LOCK_KEY) || "{}") || {}; } catch { return {}; }
+    }
+    function setRowLocks(map){
+      try { localStorage.setItem(ROW_LOCK_KEY, JSON.stringify(map||{})); } catch {}
+    }
+    function isRowLocked(i){ return !!getRowLocks()[i]; }
+    function setRowLocked(i, locked){
+      const map = getRowLocks(); map[i] = !!locked; setRowLocks(map);
+      const codeEl = document.getElementById(`bonus-code-${i}`);
+      const pctEl  = document.getElementById(`bonus-percent-${i}`);
+      const btn    = document.getElementById(`btn-save-${i+1}`);
+      if (codeEl) codeEl.disabled = locked;
+      if (pctEl)  pctEl.disabled  = locked;
+      if (btn){
+        const base = `Save ${i+1}`;
+        btn.textContent = locked ? `${base} 🔒` : base;
+        btn.classList.toggle("muted", locked);
+        btn.style.cursor = locked ? "not-allowed" : "";
+      }
+      // osvježi i Save all vizual
+      updateSaveAllVisual();
+    }
+    function applyRowLocksFromStorage(){ for (let i=0;i<5;i++) setRowLocked(i, isRowLocked(i)); }
+    function toggleRowLock(i){ setRowLocked(i, !isRowLocked(i)); }
+    function setAllRowLocks(locked){ for (let i=0;i<5;i++) setRowLocked(i, !!locked); }
+    function toggleAllRowLocks(){
+      let anyUnlocked=false; for (let i=0;i<5;i++) if (!isRowLocked(i)) { anyUnlocked=true; break; }
+      setAllRowLocks(anyUnlocked); // ako ima otključanih -> zaključa sve; inače otključa sve
+    }
+    function updateSaveAllVisual(){
+      const btnAll = document.getElementById("btn-codes-save-all");
+      if (!btnAll) return;
+      let allLocked = true; for (let i=0;i<5;i++) if (!isRowLocked(i)) { allLocked=false; break; }
+      btnAll.textContent = allLocked ? "Save all 🔒" : "Save all";
+      btnAll.classList.toggle("muted", allLocked);
+      btnAll.style.cursor = allLocked ? "not-allowed" : "";
     }
 
     // Events
@@ -355,14 +398,39 @@
     $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
 
     document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
-    document.getElementById("btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
+    // Save all:
+    (function wireSaveAll(){
+      const btnAll = document.getElementById("btn-codes-save-all");
+      if (!btnAll) return;
+      updateSaveAllVisual();
+      btnAll.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        if (ev.shiftKey){
+          toggleAllRowLocks();
+          return;
+        }
+        // spremi samo otključane redove
+        for (let i=0;i<5;i++){ if (!isRowLocked(i)) { try{ await saveBonusRow(i); }catch{} } }
+        msg("#codes-msg","Saved all (locked rows skipped).", true);
+      });
+    })();
+
+    // Save 1..5: obični klik = Save; Shift+klik = Lock/Unlock tog reda
     ["1","2","3","4","5"].forEach((n, i) => {
       const btn = document.getElementById(`btn-save-${n}`);
       if (btn) {
-        btn.addEventListener("click", (ev) => {
+        btn.addEventListener("click", async (ev) => {
           ev.preventDefault();
-          saveBonusRow(i);
+          if (ev.shiftKey){
+            toggleRowLock(i);
+            return;
+          }
+          if (isRowLocked(i)){
+            msg("#codes-msg", `Row ${i+1} is locked. Hold Shift and click to unlock.`, false);
+            return;
+          }
+          await saveBonusRow(i);
         });
       }
     });
@@ -375,6 +443,8 @@
         if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
         else setWho("Not logged in (key mode).");
       }catch{ setWho("Not logged in (key mode)."); }
+      // primijeni per-row lock stanja odmah
+      applyRowLocksFromStorage();
       if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); await loadBonusCodes(); }
     })();
 
