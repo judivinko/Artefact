@@ -186,11 +186,26 @@
       localStorage.setItem("admin.lock", LOCKED ? "1" : "0");
       localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
     }
+
+    // >>> OVDJE JE JEDINA IZMJENA: LOCK/UNLOCK SAMO ZA SAVE DUGMAD <<<
     function applyLock(){
-      $("#admin-key").disabled = LOCKED;
+      // postojeće zaključavanje polja za ključ
+      $("#admin-key").disabled   = LOCKED;
       $("#btn-key-set").disabled = LOCKED;
       $("#btn-key-clear").disabled = LOCKED;
+
+      // NOVO: zaključaj/otključaj isključivo Save dugmad u Bonus Codes sekciji
+      const btns = [
+        "btn-save-1","btn-save-2","btn-save-3","btn-save-4","btn-save-5",
+        "btn-codes-save-all"
+      ];
+      btns.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = LOCKED;
+      });
+      // "Reload" i inputi ostaju netaknuti
     }
+    // <<< KRAJ IZMJENE >>>
 
     async function api(path, opts={}){
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
@@ -315,9 +330,15 @@
       savePrefs(); applyLock();
       await checkAdmin(); await loadUsers(); await loadBonusCodes();
     });
-    $("#btn-key-clear").addEventListener("click", ()=>{ ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared."); });
-    $("#key-lock").addEventListener("change", ()=>{ LOCKED=$("#key-lock").checked; savePrefs(); applyLock(); });
-    $("#key-remember").addEventListener("change", ()=>{ REMEMBER=$("#key-remember").checked; savePrefs(); });
+    $("#btn-key-clear").addEventListener("click", ()=>{
+      ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared.");
+    });
+    $("#key-lock").addEventListener("change", ()=>{
+      LOCKED=$("#key-lock").checked; savePrefs(); applyLock();
+    });
+    $("#key-remember").addEventListener("change", ()=>{
+      REMEMBER=$("#key-remember").checked; savePrefs();
+    });
 
     $("#btn-refresh-users").addEventListener("click", loadUsers);
     $("#btn-refresh-inv").addEventListener("click", loadInventory);
@@ -333,15 +354,14 @@
     document.getElementById("btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
     ["1","2","3","4","5"].forEach((n, i) => {
-  const btn = document.getElementById(`btn-save-${n}`);
-  if (btn) {
-    btn.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      saveBonusRow(i);
+      const btn = document.getElementById(`btn-save-${n}`);
+      if (btn) {
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          saveBonusRow(i);
+        });
+      }
     });
-  }
-});
-
 
     // Init
     loadPrefs();
@@ -399,4 +419,3 @@
   </script>
 </body>
 </html>
-
