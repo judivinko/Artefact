@@ -16,7 +16,7 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 const ADMIN_KEY = process.env.ADMIN_KEY || "dev-admin-key";
-const TOKEN_NAME = "token";
+const TOKEN_NAME = "token"; // ostavljen, ali SE NE KORISTI (nema cookies)
 const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gmail.com").toLowerCase();
 
 // ---------- DB (single, robust)
@@ -25,7 +25,6 @@ try { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); } catch {}
 const db = new Database(DB_FILE, { timeout: 5000 });
 db.pragma("journal_mode = WAL");
 console.log("[DB] OK:", DB_FILE);
-
 
 /* ===== PAYPAL CONFIG ===== */
 const USD_TO_GOLD = 100;                             // 1 USD = 100 gold
@@ -90,42 +89,24 @@ const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(express.json());
 
-
 // Static
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-
-
 // ===== Helpers (generic) =====
 const nowISO = () => new Date().toISOString();
-
-function isEmail(x) {
-  return typeof x === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x);
-}
-
-function isPass(x) {
-  return typeof x === "string" && x.length >= 6;
-}
-
-function signToken(u) {
-  return jwt.sign({ uid: u.id, email: u.email }, JWT_SECRET, { expiresIn: "7d" });
-}
-
-// ===== Helpers (generic) =====
-const nowISO = () => new Date().toISOString();
-
 function isEmail(x){ return typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
 function isPass(x){ return typeof x==="string" && x.length>=6; }
 function signToken(u){ return jwt.sign({ uid:u.id, email:u.email }, JWT_SECRET, { expiresIn:"7d" }); }
 
-// --- AUTH preko Authorization: Bearer <token> (nema cookies)
+// --- AUTH preko Authorization: Bearer <token> (bez cookies)
 function readToken(req) {
   const h = (req.headers["authorization"] || "").toString();
   if (!h.startsWith("Bearer ")) return null;
-  const token = h.slice(7);
+  const token = h.slice(7).trim();
+  if (!token) return null;
   try { return jwt.verify(token, JWT_SECRET); }
   catch { return null; }
 }
@@ -179,8 +160,6 @@ async function paypalGetOrder(accessToken, orderId){
   if(!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
   return data;
 }
-
-
 
 // ====== DB MIGRATIONS ======
 function ensure(sql){ db.exec(sql); }
@@ -381,7 +360,6 @@ function ensureRecipe(/* code, name, tier, outCode, ingCodes */) {
   return null; // no-op
 }
 
-
 // Items & Recipes (seed)
 ensureItem("SCRAP","Scrap",1,1);
 const T1 = [
@@ -452,7 +430,7 @@ const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
 const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
 const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
 
-// seed recepata
+// seed recepata (no-op ensureRecipe, OK radi kompatibilnosti)
 T2_ITEMS.forEach(([outCode, outName], i) => {
   const need = P_T2[i];
   const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
@@ -504,13 +482,12 @@ app.post("/api/login", async (req,res)=>{
     if (u.is_disabled) return res.status(403).json({ok:false,error:"Account disabled"});
     const ok = await bcrypt.compare(password||"", u.pass_hash);
     if (!ok) return res.status(401).json({ok:false,error:"Wrong password"});
+
     const token  = signToken(u);
-    const isProd = process.env.NODE_ENV === "production";
-    res.cookie(TOKEN_NAME, token, {
-      httpOnly: true, sameSite: "lax", secure: isProd, path: "/", maxAge: 7*24*60*60*1000
-    });
     db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), u.id);
-    return res.json({ok:true, user:{id:u.id,email:u.email}});
+
+    // NEMA kolačića — vraćamo token
+    return res.json({ ok:true, token, user:{id:u.id,email:u.email} });
   } catch {
     return res.status(500).json({ok:false,error:"Login failed"});
   }
@@ -519,11 +496,7 @@ app.post("/api/login", async (req,res)=>{
 app.get("/api/logout", (req, res) => {
   const tok = readToken(req);
   if (tok) db.prepare("UPDATE users SET last_seen=? WHERE id=?").run(nowISO(), tok.uid);
-  res.clearCookie(TOKEN_NAME, {
-    httpOnly: true, sameSite: "lax",
-    secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"),
-    path: "/"
-  });
+  // NEMA clearCookie — samo 200 OK; klijent zaboravi token
   return res.json({ ok:true });
 });
 
@@ -677,11 +650,7 @@ app.get("/api/me", (req, res) => {
     SELECT id,email,is_admin,balance_silver,shop_buy_count,next_recipe_at
     FROM users WHERE id=?`).get(tok.uid);
   if (!u) {
-    res.clearCookie(TOKEN_NAME, {
-      httpOnly: true, sameSite: "lax",
-      secure: (process.env.NODE_ENV==="production"||process.env.RENDER==="true"),
-      path: "/"
-    });
+    // NEMA clearCookie
     return res.status(401).json({ ok:false });
   }
   const buysToNext = (u.next_recipe_at==null) ? null
@@ -803,7 +772,6 @@ app.get("/api/admin/bonus-codes", (req, res) => {
     FROM bonus_codes
     ORDER BY id ASC
   `).all();
-  // frontend očekuje "codes"
   res.json({ ok:true, codes: rows });
 });
 
@@ -818,7 +786,6 @@ app.post("/api/admin/bonus-codes", (req, res) => {
   const active = is_active ? 1 : 0;
 
   try{
-    // jedinstven kod (osim u istom slotu)
     const clash = db.prepare(`SELECT id FROM bonus_codes WHERE lower(code)=lower(?) AND id<>?`).get(c, id);
     if (clash) return res.status(409).json({ ok:false, error:"Code already used on a different slot" });
 
@@ -833,7 +800,6 @@ app.post("/api/admin/bonus-codes", (req, res) => {
       FROM bonus_codes WHERE id=?
     `).get(id);
 
-    // frontend očekuje total_credited_silver + slot
     res.json({ ok:true, total_credited_silver: row.total_credited_silver, slot: row });
   }catch(e){
     res.status(500).json({ ok:false, error:String(e.message || e) });
@@ -912,7 +878,6 @@ app.post("/api/bonus/claim",(req,res)=>{
   }
 });
 
-
 // =============== SHOP (T1) — respektira BONUS
 const SHOP_T1_COST_S_BASE = 100;
 const RECIPE_DROP_MIN = 4;
@@ -935,7 +900,7 @@ function pickWeightedRecipe(minTier=2){
 }
 
 app.post("/api/shop/buy-t1",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
+  const uTok = getAuth(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
   try{
     const result = db.transaction(()=>{
@@ -1147,7 +1112,7 @@ app.post("/api/craft/artefact", (req, res) => {
 
 // =============== INVENTORY (full + artefact bonus)
 app.get("/api/inventory",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
+  const uTok = getAuth(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
   const items = db.prepare(`
     SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
@@ -1377,26 +1342,3 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
