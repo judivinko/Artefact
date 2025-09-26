@@ -145,11 +145,17 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
    PayPal (header button + panel)
    =========================== */
 
-/* Top PayPal button (between balance and logout) */
-#btn-open-paypal{ display:none; }          /* hidden by default */
-#btn-open-paypal.show{ display:inline-flex; } /* shown when user logged in */
+/* (legacy wrapper ako postoji, sakrij) */
+#paypal-wrap{ display:none!important; }
 
-/* Panel under header with inputs + PayPal smart button */
+/* Header PayPal dugme: VIDLJIVO po defaultu, skriva se klasom .hidden koju JS već koristi */
+#btn-open-paypal{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* Panel ispod headera s inputima + PayPal smart dugmetom */
 #paypal-panel.card{ margin-top:8px; display:block; }
 #paypal-panel.hidden{ display:none!important; }
 
@@ -161,7 +167,7 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 .pp-input#pp-amount{ width:120px; }
 .pp-input#pp-bonus{ width:240px; }
 
-/* make the PayPal-rendered button fit nicely */
+/* PayPal-rendered button scale (bolje se uklapa u layout) */
 #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
 @media (max-width:520px){
   #paypal-button-container{ transform:scale(.9); }
