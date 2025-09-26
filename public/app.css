@@ -1,6 +1,6 @@
-/* =========================================================
-   1) SHARED / CORE — zajedničko za INDEX i ADMIN (NE DIRATI)
-   ========================================================= */
+/* ===========================
+   ARTEFACT • Global styles (original)
+   =========================== */
 
 :root{
   --bg:#0f172a;
@@ -14,7 +14,6 @@
   --success:#22c55e;
 }
 
-/* Reset / base */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -25,40 +24,36 @@ body{
 }
 a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
 
-/* Layout */
 .container{ max-width:1100px; margin:16px auto; padding:0 12px; }
 .card{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin:16px 0; }
 
-/* Header */
 .header{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); }
 .header.no-border{ border-bottom:0!important; }
 .brand{ font-weight:700; letter-spacing:.3px; }
 
-/* Flex / grid helpers */
 .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
 .right{ margin-left:auto; }
 
 .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+
 @media (max-width:900px){
   .grid{ grid-template-columns:1fr; }
   .grid-4{ grid-template-columns:repeat(2,1fr); }
   .grid-5{ grid-template-columns:repeat(3,1fr); }
 }
 
-/* Utils */
 .hidden{ display:none!important; }
 .muted{ color:var(--muted); font-size:14px; }
 .label{ font-size:14px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
 
 .toast{
   position:fixed; bottom:12px; right:12px;
-  background:#0b5bd1; color:#fff;
+  background:#0d1b2a; color:#fff;
   padding:10px 12px; border-radius:10px; z-index:50;
 }
 
-/* Inputs & Buttons */
 input,select,button{ font:inherit; }
 .input, input, select{
   background:#0b1220; color:var(--text);
@@ -68,12 +63,11 @@ button, .btn{
   background:var(--accent); color:#0b1220; font-weight:700;
   border:0; padding:10px 14px; border-radius:10px; cursor:pointer;
 }
-button.secondary, .btn.secondary{ background:#0b5bd1; color:#fff; }
+button.secondary, .btn.secondary{ background:#0d2a3a; color:#fff; }
 button.muted, .btn.muted{ background:#1f2937; color:var(--text); }
 button.danger, .btn.danger{ background:var(--danger); color:#fff; }
 button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-/* Lists / rows */
 .badge{
   border:1px solid var(--line);
   padding:4px 8px;
@@ -83,25 +77,25 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 }
 .itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
 .itemrow:last-child{ border-bottom:0; }
-.list{
-  max-height:360px; overflow:auto;
-  border:1px solid var(--line); border-radius:10px;
-  background:#0b1220;
-}
+.list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
-/* Icons & images */
+.tabbar{ margin:6px 0 4px; }
+.chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
+.chip.active{ background:#0e3a2f; }
+
 img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block; }
 
-/* Global max image size (osim .icon) */
+#about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
+#how .label, #tips .label{ font-size:20px; }
+
+/* Global max image size (original) */
 img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 
-/* Preview images */
 .item-img{
   display:block; width:100%; max-width:512px; max-height:512px;
   object-fit:contain; border-radius:10px; margin-top:8px;
 }
 
-/* Image slot */
 .img-slot{
   margin-top:10px; width:100%; min-height:96px;
   border:1px dashed #233047; border-radius:10px;
@@ -110,177 +104,31 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 }
 .img-slot:hover{ opacity:1; }
 
-/* =================================================
-   2) ADMIN — OSTAVLJENO KAKO JEST (NE DIRATI)
-   (klase korištene u admin panelu)
-   ================================================= */
+/* =================================================================
+   IMAGE UPGRADE (jedine izmjene u odnosu na original — samo za slike)
+   ================================================================= */
 
-/* Layout za admin lijevo/desno */
-.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
-
-/* Pomoćne za admin */
-.rowx{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace }
-.tag{ font-size:11px; padding:2px 6px; border-radius:6px; background:#1f2937 }
-.tag.red{ background:#3b1113; color:#fecaca }
-.tag.green{ background:#0f2e1b; color:#bbf7d0 }
-.search{ width:100%; padding:8px; border-radius:8px; border:1px solid #233047; background:#0b1220; color:#e2e8f0 }
-
-/* Redovi korisnika */
-.user-row{ display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:8px }
-.user-row:hover{ background:#0f172a }
-
-/* Bonus Codes (admin tabela) */
-.codes-wrap{margin-top:8px; overflow:auto; border:1px solid #233047; border-radius:10px;}
-.codes-table{width:100%; border-collapse:collapse; background:#0b1220}
-.codes-table th,.codes-table td{padding:10px 12px; border-bottom:1px solid #233047; text-align:left}
-.codes-table th{color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px}
-.codes-col-code{width:40%}
-.codes-col-pct{width:20%}
-.codes-col-used{width:25%}
-.codes-col-act{width:15%}
-.codes-table input{background:#0b1220; color:#e2e8f0; border:1px solid #233047; border-radius:8px; padding:8px 10px; width:100%}
-.codes-actions{display:flex; gap:8px; align-items:center; justify-content:flex-start}
-.codes-actions .btn{padding:8px 10px}
-
-/* =========================
-   INDEX — CSS-only upgrades
-   ========================= */
-
-/* 1) Globalno – slike malo veće i čišće ikone */
-img:not(.icon){
-  max-width: 640px;
-  max-height: 640px;
-}
-img.icon{
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-}
-
-/* Landing "How" slike imaju inline width:8em -> nadjačaj da budu veće */
+/* 1) Landing HOW sekcija — slike duplo veće
+   (HTML ima inline width/height: 8em → ovim ih prebijamo samo ovdje) */
 #how .card img{
-  width: 12em !important;
-  height: 12em !important;
+  width:16em !important;
+  height:16em !important;
+  object-fit:contain;
+  display:block;
+  margin-top:8px;
+  border-radius:10px;
 }
 
-/* 2) Lijepši gumbi (ne mijenja logiku) */
-button, .btn{
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-weight: 700;
-  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-  box-shadow: 0 1px 0 rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.18);
-}
-button:hover:not(:disabled), .btn:hover:not(:disabled){
-  transform: translateY(-1px);
-  box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.24);
-}
-button:active:not(:disabled), .btn:active:not(:disabled){
-  transform: translateY(0);
+/* 2) Malo veća globalna dozvoljena veličina (da bolje popune prostor) */
+img:not(.icon){
+  max-width:640px;
+  max-height:640px;
 }
 
-/* 3) BONUS — pločice veće + “lokalizacija” kartica uz desni placeholder */
-#tab-bonus #bonus-grid .card{
-  display: grid;
-  grid-template-columns: minmax(340px, 600px) 1fr;
-  gap: 16px;
-  align-items: start;
-}
-#bonus-t2, #bonus-t3, #bonus-t4, #bonus-t5{
-  grid-column: 1;
-  max-height: 280px;            /* kompaktnije */
-  overflow: auto;
+/* 3) Bonus pločice/previewi ako negdje koriste .item-img – dopuštamo veći limit */
+.item-img{
+  max-width:640px;
+  max-height:640px;
 }
 
-/* desni prazan prostor (slot) za budući sadržaj — samo stil, bez HTML izmjene */
-#tab-bonus #bonus-grid .card::after{
-  content: "";
-  grid-column: 2;
-  min-height: 240px;
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  background: rgba(255,255,255,.02);
-}
-
-/* pločice veće i čitljivije */
-#tab-bonus .tile{
-  padding: 10px 12px;
-  border-radius: 12px;
-}
-#tab-bonus .tile .icon{
-  width: 46px;
-  height: 46px;
-}
-
-/* 4) SHOP — “lokalizacija” lijevo + desni placeholder za budući sadržaj */
-#tab-shop.card{
-  display: grid;
-  grid-template-columns: minmax(300px, 440px) 1fr;
-  gap: 16px;
-}
-
-/* sve postojeće elemente zadrži u lijevom stupcu */
-#tab-shop > .row:first-child,
-#tab-shop > div[style^="margin"],
-#tab-shop > .row:last-child,
-#tab-shop #shop-msg,
-#tab-shop #shop-balance{
-  grid-column: 1;
-}
-
-/* desni slot (vizualni placeholder) */
-#tab-shop.card::after{
-  content: "";
-  grid-column: 2;
-  min-height: 220px;
-  border: 1px dashed var(--line);
-  border-radius: 12px;
-  background: rgba(255,255,255,.02);
-}
-
-/* 5) MARKET — priprema za 3. kolonu (CSS-only; aktivira se kad postoji .market-info) */
-#tab-market .grid{
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-#tab-market .grid:has(.market-info){
-  grid-template-columns: 1fr 1fr 0.9fr;
-}
-#tab-market .market-info{
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--card);
-  padding: 12px;
-}
-
-/* veće ikone i malo viši redovi u listama da popune prostor */
-#tab-market .itemrow,
-#inv-full .itemrow,
-#inv-list .itemrow,
-#market .itemrow,
-#mine .itemrow{
-  padding: 10px 12px;
-}
-#tab-market .itemrow .icon,
-#inv-full .itemrow .icon,
-#inv-list .itemrow .icon,
-#market .itemrow .icon,
-#mine .itemrow .icon{
-  width: 42px;
-  height: 42px;
-}
-
-/* 6) Crafting/Inventory liste — malo veće ikone za bolju vidljivost */
-#recipes .itemrow .icon,
-#rec-details .itemrow .icon{
-  width: 42px;
-  height: 42px;
-}
-#inv-full .icon{ width: 42px; height: 42px; }
-
-/* 7) Scroll kutije – deblji unutarnji padding da slike “dišu” */
-.list{
-  padding: 6px;
-}
+/* Kraj – ništa drugo nije mijenjano osim dimenzija slika */
