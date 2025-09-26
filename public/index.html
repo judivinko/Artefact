@@ -56,12 +56,13 @@
     /* Balance */
     #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
 
-    /* PayPal kupnja */
-    #paypal-wrap { display:flex; align-items:center; gap:6px }
-    #paypal-button-container { transform:scale(.92); transform-origin:right center }
-    @media (max-width:520px){
-      #paypal-button-container { transform:scale(.86); }
-    }
+    /* PayPal inline dugme (plavo) – samo ovo dodano */
+    #paypal-inline{ display:inline-flex; align-items:center; transform:scale(.95); transform-origin:right center }
+    #paypal-inline > div{ display:inline-block }
+    @media (max-width:520px){ #paypal-inline{ transform:scale(.9) } }
+
+    /* (stari #paypal-wrap više ne koristimo; ako ostane u DOM-u – sakrij) */
+    #paypal-wrap{ display:none !important; }
   </style>
 </head>
 <body>
@@ -71,12 +72,8 @@
     <div class="row" style="gap:8px">
       <span id="balance" class="badge hidden">0g 0s</span>
 
-      <!-- PayPal sekcija: iznos + bonus kod + dugme (label: paypal) -->
-      <div id="paypal-wrap" class="hidden">
-        <input id="paypal-amount" class="input" type="number" min="10" step="1" value="10" placeholder="USD" style="width:96px" />
-        <input id="paypal-bonus" class="input" type="text" maxlength="32" placeholder="Bonus code (optional)" style="width:160px" />
-        <div id="paypal-button-container"></div>
-      </div>
+      <!-- NOVO: jedno PayPal dugme (plavo) između badge-a i Logout -->
+      <div id="paypal-inline" class="hidden"></div>
 
       <button id="btn-open-register" class="btn secondary">Register</button>
       <button id="btn-open-login" class="btn">Log in</button>
@@ -432,21 +429,24 @@
     function enterGame(defaultTab="shop"){ setTab(defaultTab); }
     function exitGame(){ showLanding(); }
 
-    // PayPal Buttons init
+    // === PayPal Buttons init (plavo dugme u #paypal-inline) ===
     function initPayPalButtons(){
       try{
-        const container = document.getElementById("paypal-button-container");
-        const wrap = document.getElementById("paypal-wrap");
-        if (!window.paypal || !container || !wrap) return;
-        if (container.dataset.rendered === "1") {
-          wrap.classList.remove("hidden"); return;
+        const host = document.getElementById("paypal-inline");
+        if (!window.paypal || !host) return;
+
+        if (host.dataset.rendered === "1") {
+          host.classList.remove("hidden");
+          return;
         }
+
         window.paypal.Buttons({
-          style: { layout: 'horizontal', height: 35, label: 'paypal' },
+          style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
           createOrder: function(_data, actions){
-            const el = document.getElementById("paypal-amount");
-            const v = Math.max(10, parseFloat(el?.value || "10") || 10);
-            if (el) el.value = String(Math.floor(v));
+            let v = parseFloat(prompt("Amount in USD (min 10)", "10") || "10");
+            if (!isFinite(v)) v = 10;
+            v = Math.max(10, Math.floor(v));
+            host.dataset.amount = String(v);
             return actions.order.create({
               purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
             });
@@ -454,8 +454,11 @@
           onApprove: async function(data, actions){
             try{
               await actions.order.capture();
-              const bonus_code = (document.getElementById("paypal-bonus")?.value || "").trim();
-              const r = await api("/api/paypal/confirm",{ method:"POST", body: JSON.stringify({ orderId: data.orderID, bonus_code }) });
+              const bonus_code = (prompt("Bonus code (optional)", "") || "").trim();
+              const r = await api("/api/paypal/confirm", {
+                method:"POST",
+                body: JSON.stringify({ orderId: data.orderID, bonus_code })
+              });
               if (WHO) WHO.balance_silver = (r.balance_silver|0);
               renderBalance();
               await refreshMeLight();
@@ -468,9 +471,10 @@
             console.error("PayPal error:", err);
             alert("PayPal error.");
           }
-        }).render("#paypal-button-container");
-        container.dataset.rendered = "1";
-        wrap.classList.remove("hidden");
+        }).render("#paypal-inline");
+
+        host.dataset.rendered = "1";
+        host.classList.remove("hidden");
       }catch(e){
         console.warn("initPayPalButtons failed:", e);
       }
@@ -505,7 +509,9 @@
       $("#auth")?.classList.add("hidden");
       $("#app")?.classList.remove("hidden");
       renderBalance?.();
-      initPayPalButtons(); // prikaži PayPal dugme kad je korisnik ulogiran
+      // NOVO: prikaži i inicijaliziraj PayPal dugme
+      $("#paypal-inline")?.classList.remove("hidden");
+      initPayPalButtons();
     }
     function setLoggedOutUI(){
       WHO = null;
@@ -520,7 +526,8 @@
       $("#card-login") && ($("#card-login").style.display="none");
       $("#reg-msg") && ($("#reg-msg").textContent="");
       $("#log-msg") && ($("#log-msg").textContent="");
-      $("#paypal-wrap")?.classList.add("hidden");
+      // NOVO: sakrij PayPal dugme
+      $("#paypal-inline")?.classList.add("hidden");
     }
     async function loadMe(){
       try{
@@ -905,7 +912,7 @@
     });
   </script>
 
-    <!-- ===== Market & Inventory ===== -->
+  <!-- ===== Market & Inventory ===== -->
   <script>
     window.SEL_INV = null;
 
@@ -958,7 +965,6 @@
         const q = $("#market-q")?.value?.trim() || "";
         const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
         const rows = (r?.listings || []).filter(Boolean);
-        // filter out ARTEFACT / T6+ items (defense-in-depth)
         const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
 
         if (!rowsFiltered.length){ box.textContent="No listings."; return; }
@@ -1166,7 +1172,7 @@
 
           const items = [];
           for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-          for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
+          for (const c of (info.missing||[])) items.push(tile(pretyNameFromCode(c), c, false, t));
           box.innerHTML = items.join("") || "Empty.";
 
           const btn = btns[t];
