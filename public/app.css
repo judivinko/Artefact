@@ -171,4 +171,16 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
 @media (max-width:520px){
   #paypal-button-container{ transform:scale(.9); }
-}
+
+/* ===== Bonus Codes (Admin) ===== */
+.codes-wrap{margin-top:8px; overflow:auto; border:1px solid #233047; border-radius:10px;}
+.codes-table{width:100%; border-collapse:collapse; background:#0b1220}
+.codes-table th,.codes-table td{padding:10px 12px; border-bottom:1px solid #233047; text-align:left}
+.codes-table th{color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px}
+.codes-col-code{width:40%}
+.codes-col-pct{width:20%}
+.codes-col-used{width:25%}
+.codes-col-act{width:15%}
+.codes-table input{background:#0b1220; color:#e2e8f0; border:1px solid #233047; border-radius:8px; padding:8px 10px; width:100%}
+.codes-actions{display:flex; gap:8px; align-items:center; justify-content:flex-start}
+.codes-actions .btn{padding:8px 10px}
