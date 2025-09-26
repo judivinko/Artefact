@@ -332,11 +332,16 @@
     document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
     document.getElementById("btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
-    document.getElementById("btn-save-1").addEventListener("click", ()=> saveBonusRow(0));
-    document.getElementById("btn-save-2").addEventListener("click", ()=> saveBonusRow(1));
-    document.getElementById("btn-save-3").addEventListener("click", ()=> saveBonusRow(2));
-    document.getElementById("btn-save-4").addEventListener("click", ()=> saveBonusRow(3));
-    document.getElementById("btn-save-5").addEventListener("click", ()=> saveBonusRow(4));
+    ["1","2","3","4","5"].forEach((n, i) => {
+  const btn = document.getElementById(`btn-save-${n}`);
+  if (btn) {
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      saveBonusRow(i);
+    });
+  }
+});
+
 
     // Init
     loadPrefs();
@@ -394,3 +399,4 @@
   </script>
 </body>
 </html>
+
