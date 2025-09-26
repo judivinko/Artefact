@@ -1549,7 +1549,11 @@ app.post("/api/sales/cancel", (req, res) => {
   }
 })();
 
+app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
+
+
 // ----------------- START -----------------
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
