@@ -688,6 +688,7 @@ app.get("/api/admin/ping",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   res.json({ok:true});
 });
+
 app.get("/api/admin/users",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const rows = db.prepare(`
@@ -695,19 +696,20 @@ app.get("/api/admin/users",(req,res)=>{
            created_at,last_seen,shop_buy_count,next_recipe_at
     FROM users`).all();
   const users = rows.map(u=>({
-    id:u.id,
-    email:u.email,
-    is_admin:!!u.is_admin,
-    is_disabled:!!u.is_disabled,
-    gold:Math.floor(u.balance_silver/100),
-    silver:u.balance_silver%100,
-    created_at:u.created_at,
-    last_seen:u.last_seen,
-    shop_buy_count:u.shop_buy_count,
-    next_recipe_at:u.next_recipe_at
+    id: u.id,
+    email: u.email,
+    is_admin: !!u.is_admin,
+    is_disabled: !!u.is_disabled,
+    gold: Math.floor(u.balance_silver/100),
+    silver: u.balance_silver % 100,
+    created_at: u.created_at,
+    last_seen: u.last_seen,
+    shop_buy_count: u.shop_buy_count,
+    next_recipe_at: u.next_recipe_at
   }));
   res.json({ok:true,users});
 });
+
 app.post("/api/admin/adjust-balance",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const {email,gold=0,silver=0,delta_silver} = req.body||{};
@@ -728,6 +730,7 @@ app.post("/api/admin/adjust-balance",(req,res)=>{
   const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(u.id).balance_silver;
   res.json({ok:true,balance_silver:bal});
 });
+
 app.get("/api/admin/user/:id/inventory",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const uid = parseInt(req.params.id,10);
@@ -745,6 +748,7 @@ app.get("/api/admin/user/:id/inventory",(req,res)=>{
     ORDER BY r.tier,r.name`).all(uid);
   res.json({ok:true,items,recipes});
 });
+
 app.post("/api/admin/disable-user",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   const { email, disabled } = req.body || {};
@@ -774,7 +778,8 @@ app.get("/api/admin/bonus-codes", (req, res) => {
     FROM bonus_codes
     ORDER BY id ASC
   `).all();
-  res.json({ ok:true, slots: rows });
+  // frontend očekuje "codes"
+  res.json({ ok:true, codes: rows });
 });
 
 app.post("/api/admin/bonus-codes", (req, res) => {
@@ -788,7 +793,7 @@ app.post("/api/admin/bonus-codes", (req, res) => {
   const active = is_active ? 1 : 0;
 
   try{
-    // osiguraj jedinstvenost koda (osim na trenutnom slotu)
+    // jedinstven kod (osim u istom slotu)
     const clash = db.prepare(`SELECT id FROM bonus_codes WHERE lower(code)=lower(?) AND id<>?`).get(c, id);
     if (clash) return res.status(409).json({ ok:false, error:"Code already used on a different slot" });
 
@@ -797,8 +802,14 @@ app.post("/api/admin/bonus-codes", (req, res) => {
          SET code=?, percent=?, is_active=?
        WHERE id=?
     `).run(c, pct, active, id);
-    const row = db.prepare(`SELECT id, code, percent, total_credited_silver, is_active FROM bonus_codes WHERE id=?`).get(id);
-    res.json({ ok:true, slot: row });
+
+    const row = db.prepare(`
+      SELECT id, code, percent, total_credited_silver, is_active
+      FROM bonus_codes WHERE id=?
+    `).get(id);
+
+    // frontend očekuje total_credited_silver + slot
+    res.json({ ok:true, total_credited_silver: row.total_credited_silver, slot: row });
   }catch(e){
     res.status(500).json({ ok:false, error:String(e.message || e) });
   }
@@ -875,6 +886,7 @@ app.post("/api/bonus/claim",(req,res)=>{
     res.status(400).json({ ok:false, error:String(e.message||e) });
   }
 });
+
 
 // =============== SHOP (T1) — respektira BONUS
 const SHOP_T1_COST_S_BASE = 100;
@@ -1340,6 +1352,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
