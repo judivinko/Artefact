@@ -7,23 +7,17 @@
   <link rel="stylesheet" href="/app.css" />
   <style>
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+    @media (max-width: 900px){.grid2{grid-template-columns:1fr}}
     .list{background:#0b1220;border:1px solid #233047;border-radius:10px;padding:12px;white-space:pre-wrap}
     .rowx{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f2937;font-size:12px;color:#93c5fd}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-    .muted{opacity:.8}
-    .success{color:#22c55e}.danger{color:#ef4444}
-    .pointer{cursor:pointer}
-    .right{float:right}
-    .lock{margin-left:8px}
-    .search{width:100%;padding:8px;border-radius:8px;border:1px solid #233047;background:#0b1220;color:#e2e8f0}
-    .user-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:8px}
-    .user-row:hover{background:#0f172a}
+    .muted{opacity:.85}
     .tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#1f2937}
     .tag.red{background:#3b1113;color:#fecaca}
     .tag.green{background:#0f2e1b;color:#bbf7d0}
-    .tight{margin:0;padding:0}
+    .search{width:100%;padding:8px;border-radius:8px;border:1px solid #233047;background:#0b1220;color:#e2e8f0}
+    .user-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:8px}
+    .user-row:hover{background:#0f172a}
 
     .codes-table{width:100%;border-collapse:collapse}
     .codes-table th,.codes-table td{padding:8px 10px;border-bottom:1px solid #233047;text-align:left}
@@ -33,6 +27,7 @@
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header class="header">
     <div class="brand">ARTEFACT • Admin</div>
     <div id="who" class="muted">Status: unknown</div>
@@ -46,11 +41,11 @@
         <input id="admin-key" type="password" placeholder="x-admin-key" />
         <button id="btn-key-set">Set</button>
         <button id="btn-key-clear" class="secondary">Clear</button>
-        <label class="rowx lock">
+        <label class="rowx">
           <input type="checkbox" id="key-lock" />
           <span>Lock key</span>
         </label>
-        <label class="rowx lock">
+        <label class="rowx">
           <input type="checkbox" id="key-remember" />
           <span>Remember in this browser</span>
         </label>
@@ -63,7 +58,7 @@
       <div class="card">
         <div class="label">Controls</div>
 
-        <div class="muted tight" id="sel-user-label">Selected user: —</div>
+        <div class="muted" id="sel-user-label">Selected user: —</div>
 
         <div class="rowx" style="margin-top:8px">
           <input id="gold-amount" type="number" min="-999999" step="1" placeholder="Gold amount (1g = 100s)" />
@@ -87,17 +82,16 @@
         </div>
         <div id="bonus-msg" class="muted" style="margin-top:6px"></div>
 
-        <!-- Bonus Codes -->
         <hr style="border:none;border-top:1px solid #233047;margin:12px 0" />
         <div class="label">Bonus Codes</div>
-        <div class="muted" style="margin-top:4px">Unesi do 5 bonus kodova. Svaki red ima svoj Save.</div>
+        <div class="muted" style="margin-top:4px">Unesi do 5 kodova. Svaki red ima svoj “Save X”.</div>
 
         <div class="rowx" style="margin-top:8px;justify-content:space-between">
           <button id="btn-codes-reload" class="secondary">Reload</button>
           <button id="btn-codes-save-all" class="secondary">Save all</button>
         </div>
 
-        <div class="codes-wrap" style="overflow:auto;margin-top:8px">
+        <div style="overflow:auto;margin-top:8px">
           <table class="codes-table">
             <thead>
               <tr>
@@ -107,10 +101,40 @@
                 <th style="width:15%">Action</th>
               </tr>
             </thead>
-            <tbody id="codes-tbody"></tbody>
+            <tbody id="codes-tbody">
+              <tr>
+                <td><input id="bonus-code-0" placeholder="e.g. WINTER5"></td>
+                <td><input id="bonus-percent-0" type="number" min="0" max="100" step="1" placeholder="0"></td>
+                <td><input id="bonus-used-0" value="0" disabled></td>
+                <td><div class="codes-row-actions"><button id="btn-save-1" class="secondary">Save 1</button></div></td>
+              </tr>
+              <tr>
+                <td><input id="bonus-code-1" placeholder="e.g. SPRING10"></td>
+                <td><input id="bonus-percent-1" type="number" min="0" max="100" step="1" placeholder="0"></td>
+                <td><input id="bonus-used-1" value="0" disabled></td>
+                <td><div class="codes-row-actions"><button id="btn-save-2" class="secondary">Save 2</button></div></td>
+              </tr>
+              <tr>
+                <td><input id="bonus-code-2" placeholder="e.g. SUMMER3"></td>
+                <td><input id="bonus-percent-2" type="number" min="0" max="100" step="1" placeholder="0"></td>
+                <td><input id="bonus-used-2" value="0" disabled></td>
+                <td><div class="codes-row-actions"><button id="btn-save-3" class="secondary">Save 3</button></div></td>
+              </tr>
+              <tr>
+                <td><input id="bonus-code-3" placeholder="e.g. FALL7"></td>
+                <td><input id="bonus-percent-3" type="number" min="0" max="100" step="1" placeholder="0"></td>
+                <td><input id="bonus-used-3" value="0" disabled></td>
+                <td><div class="codes-row-actions"><button id="btn-save-4" class="secondary">Save 4</button></div></td>
+              </tr>
+              <tr>
+                <td><input id="bonus-code-4" placeholder="e.g. VIP15"></td>
+                <td><input id="bonus-percent-4" type="number" min="0" max="100" step="1" placeholder="0"></td>
+                <td><input id="bonus-used-4" value="0" disabled></td>
+                <td><div class="codes-row-actions"><button id="btn-save-5" class="secondary">Save 5</button></div></td>
+              </tr>
+            </tbody>
           </table>
         </div>
-
         <div id="codes-msg" class="muted" style="margin-top:6px"></div>
       </div>
 
@@ -136,19 +160,16 @@
   </main>
 
   <script>
+    // Helpers
     const $ = s => document.querySelector(s);
-    let ADMIN_KEY = "";
-    let LOCKED = false;
-    let REMEMBER = false;
-    let users = [];
-    let selected = null;
+    let ADMIN_KEY = "", LOCKED = false, REMEMBER = false;
+    let users = [], selected = null;
 
-    function msg(el, text, ok=true){
-      const e=$(el);
-      e.textContent=text;
-      e.className = ok ? "muted success" : "muted danger";
+    function msg(sel, text, ok=true){
+      const e=$(sel); if(!e) return;
+      e.textContent=text; e.className = ok ? "muted success" : "muted danger";
     }
-    function setWho(text){ $("#who").textContent = text; }
+    function setWho(text){ const e=$("#who"); if(e) e.textContent = text; }
 
     function loadPrefs(){
       ADMIN_KEY = localStorage.getItem("admin.key") || "";
@@ -175,33 +196,26 @@
       const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
       if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
       const res = await fetch(path, { credentials:"include", ...opts, headers });
-      let data = null;
-      try{ data = await res.json(); }catch{}
+      let data = null; try{ data = await res.json(); }catch{}
       if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
       return data;
     }
 
     async function checkAdmin(){
-      try{
-        await api("/api/admin/ping");
-        msg("#key-msg", "Admin OK");
-      }catch(e){
-        msg("#key-msg", "Key invalid or missing ("+e.message+")", false);
-      }
+      try{ await api("/api/admin/ping"); msg("#key-msg","Admin OK",true); }
+      catch(e){ msg("#key-msg","Key invalid or missing ("+e.message+")",false); }
     }
 
+    // Users
     function renderUsers(){
-      const q = $("#search").value.trim().toLowerCase();
+      const q = ($("#search").value||"").trim().toLowerCase();
       const box = $("#users"); box.innerHTML = "";
       let list = users.slice();
-      list.sort((a,b)=>{
-        if (a.is_disabled !== b.is_disabled) return a.is_disabled ? 1 : -1;
-        return a.email.localeCompare(b.email);
-      });
+      list.sort((a,b)=> (a.is_disabled===b.is_disabled ? a.email.localeCompare(b.email) : (a.is_disabled?1:-1)));
       if (q) list = list.filter(u => u.email.toLowerCase().includes(q));
-      if (!list.length){ box.textContent = "No users."; return; }
+      if (!list.length){ box.textContent="No users."; return; }
       for (const u of list){
-        const row = document.createElement("div"); row.className = "user-row pointer";
+        const row = document.createElement("div"); row.className="user-row";
         row.innerHTML = `
           <div>
             <span class="mono">#${u.id}</span>
@@ -216,26 +230,19 @@
     }
     async function loadUsers(){
       $("#users").textContent = "Loading…";
-      try{
-        const r = await api("/api/admin/users");
-        users = r.users || [];
-        renderUsers();
-      }catch(e){
-        $("#users").textContent = e.message;
-      }
+      try{ const r = await api("/api/admin/users"); users = r.users||[]; renderUsers(); }
+      catch(e){ $("#users").textContent = e.message; }
     }
-
     function selectUser(u){
       selected = u;
       $("#sel-user-label").textContent = `Selected user: ${u.email} (id ${u.id})`;
       $("#ops-msg").textContent = "";
       loadInventory();
     }
-
     async function loadInventory(){
       const box = $("#inv");
-      if (!selected){ box.textContent = "Select a user from the list →"; return; }
-      box.textContent = "Loading…";
+      if (!selected){ box.textContent="Select a user from the list →"; return; }
+      box.textContent="Loading…";
       try{
         const r = await api(`/api/admin/user/${selected.id}/inventory`);
         const lines = [];
@@ -250,104 +257,33 @@
       }catch(e){ box.textContent = e.message; }
     }
 
-    async function changeGold(sign){
-      if (!selected){ msg("#ops-msg", "Select a user first.", false); return; }
-      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
-      if (amount === 0){ msg("#ops-msg", "Enter non-zero gold amount.", false); return; }
-      const gold = sign > 0 ? amount : -amount;
-      try{
-        const r = await api("/api/admin/adjust-balance", {
-          method:"POST",
-          body: JSON.stringify({ email: selected.email, gold })
-        });
-        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`);
-        await loadUsers();
-        const found = users.find(x => x.id === selected.id);
-        if (found) selected = found;
-        await loadInventory();
-      }catch(e){
-        msg("#ops-msg", e.message, false);
-      }
-    }
-
-    async function setDisabled(flag){
-      if (!selected){ msg("#ops-msg","Select a user first.", false); return; }
-      try{
-        await api("/api/admin/disable-user", {
-          method:"POST",
-          body: JSON.stringify({ email: selected.email, disabled: flag })
-        });
-        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.");
-        await loadUsers();
-        const found = users.find(x => x.id === selected.id);
-        if (found) selected = found;
-        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
-      }catch(e){
-        msg("#ops-msg", e.message, false);
-      }
-    }
-
-    async function setArtefactBonusGold(){
-      const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
-      try{
-        const r = await api("/api/admin/set-bonus-gold", {
-          method:"POST",
-          body: JSON.stringify({ code: "ARTEFACT", bonus_gold })
-        });
-        msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`);
-      }catch(e){
-        msg("#bonus-msg", e.message, false);
-      }
-    }
-
-    function renderBonusRows(data){
-      const tbody = $("#codes-tbody");
-      tbody.innerHTML = "";
-      for (let i=0;i<5;i++){
-        const entry = data?.[i] || { code:"", percent:0, total_credited_silver:0, is_active:1 };
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>
-            <input id="bonus-code-${i}" placeholder="e.g. WINTER5" value="${(entry.code||"")}">
-          </td>
-          <td>
-            <input id="bonus-percent-${i}" type="number" min="0" max="100" step="1" placeholder="0" value="${Number(entry.percent||0)}">
-          </td>
-          <td>
-            <input id="bonus-used-${i}" value="${Math.floor((entry.total_credited_silver||0)/100)}" disabled>
-          </td>
-          <td>
-            <div class="codes-row-actions">
-              <button class="secondary" data-save="${i}">Save</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      }
-      tbody.querySelectorAll("[data-save]").forEach(btn=>{
-        btn.addEventListener("click", async ()=>{
-          const idx = parseInt(btn.getAttribute("data-save"),10);
-          await saveBonusRow(idx);
-        });
-      });
-    }
-
-    async function loadBonusCodes(){
-      try{
-        const r = await api("/api/admin/bonus-codes");
-        renderBonusRows(r?.slots || []);
-        msg("#codes-msg", "Loaded.", true);
-      }catch(e){
-        renderBonusRows([]);
-        msg("#codes-msg", e.message || "Failed to load.", false);
-      }
-    }
-
+    // Bonus codes
     function sanitizeCode(raw){
       const s = String(raw||"").trim().toUpperCase();
       return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
     }
-
+    async function loadBonusCodes(){
+      try{
+        const r = await api("/api/admin/bonus-codes");
+        const rows = r?.slots || [];
+        for (let i=0;i<5;i++){
+          const entry = rows[i] || { code:"", percent:0, total_credited_silver:0 };
+          const codeEl = document.getElementById(`bonus-code-${i}`);
+          const pctEl  = document.getElementById(`bonus-percent-${i}`);
+          const usedEl = document.getElementById(`bonus-used-${i}`);
+          if (codeEl) codeEl.value = entry.code || "";
+          if (pctEl)  pctEl.value  = Number(entry.percent||0);
+          if (usedEl) usedEl.value = Math.floor((entry.total_credited_silver||0)/100);
+        }
+        msg("#codes-msg", "Loaded.", true);
+      }catch(e){
+        for (let i=0;i<5;i++){
+          const usedEl = document.getElementById(`bonus-used-${i}`);
+          if (usedEl) usedEl.value = 0;
+        }
+        msg("#codes-msg", e.message || "Failed to load.", false);
+      }
+    }
     async function saveBonusRow(i){
       const codeEl = document.getElementById(`bonus-code-${i}`);
       const pctEl  = document.getElementById(`bonus-percent-${i}`);
@@ -359,7 +295,7 @@
           method:"POST",
           body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
         });
-        if (usedEl && r && typeof r.total_credited_silver === "number") {
+        if (usedEl && typeof r.total_credited_silver === "number") {
           usedEl.value = Math.floor(r.total_credited_silver / 100);
         }
         msg("#codes-msg", `Saved row ${i+1}.`, true);
@@ -367,55 +303,42 @@
         msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
       }
     }
-
     async function saveAllBonusRows(){
-      for (let i=0;i<5;i++){
-        try{ await saveBonusRow(i); }catch{}
-      }
+      for (let i=0;i<5;i++){ try{ await saveBonusRow(i); }catch{} }
     }
 
-    document.getElementById("btn-key-set").addEventListener("click", async ()=>{
+    // Events
+    $("#btn-key-set").addEventListener("click", async ()=>{
       ADMIN_KEY = $("#admin-key").value.trim();
       REMEMBER = $("#key-remember").checked;
       LOCKED = $("#key-lock").checked;
-      savePrefs();
-      applyLock();
-      await checkAdmin();
-      await loadUsers();
-      await loadBonusCodes();
+      savePrefs(); applyLock();
+      await checkAdmin(); await loadUsers(); await loadBonusCodes();
     });
+    $("#btn-key-clear").addEventListener("click", ()=>{ ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared."); });
+    $("#key-lock").addEventListener("change", ()=>{ LOCKED=$("#key-lock").checked; savePrefs(); applyLock(); });
+    $("#key-remember").addEventListener("change", ()=>{ REMEMBER=$("#key-remember").checked; savePrefs(); });
 
-    document.getElementById("btn-key-clear").addEventListener("click", ()=>{
-      ADMIN_KEY = "";
-      savePrefs();
-      applyLock();
-      msg("#key-msg","Cleared.");
-    });
+    $("#btn-refresh-users").addEventListener("click", loadUsers);
+    $("#btn-refresh-inv").addEventListener("click", loadInventory);
+    $("#search").addEventListener("input", renderUsers);
 
-    document.getElementById("key-lock").addEventListener("change", ()=>{
-      LOCKED = $("#key-lock").checked;
-      savePrefs();
-      applyLock();
-    });
-
-    document.getElementById("key-remember").addEventListener("change", ()=>{
-      REMEMBER = $("#key-remember").checked;
-      savePrefs();
-    });
-
-    document.getElementById("btn-refresh-users").addEventListener("click", loadUsers);
-    document.getElementById("btn-refresh-inv").addEventListener("click", loadInventory);
-    document.getElementById("search").addEventListener("input", renderUsers);
-
-    document.getElementById("btn-give").addEventListener("click", ()=> changeGold(+1));
-    document.getElementById("btn-take").addEventListener("click", ()=> changeGold(-1));
-    document.getElementById("btn-disable").addEventListener("click", ()=> setDisabled(true));
-    document.getElementById("btn-enable").addEventListener("click", ()=> setDisabled(false));
-    document.getElementById("btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
+    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
+    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+    $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
 
     document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
     document.getElementById("btn-codes-save-all").addEventListener("click", saveAllBonusRows);
 
+    document.getElementById("btn-save-1").addEventListener("click", ()=> saveBonusRow(0));
+    document.getElementById("btn-save-2").addEventListener("click", ()=> saveBonusRow(1));
+    document.getElementById("btn-save-3").addEventListener("click", ()=> saveBonusRow(2));
+    document.getElementById("btn-save-4").addEventListener("click", ()=> saveBonusRow(3));
+    document.getElementById("btn-save-5").addEventListener("click", ()=> saveBonusRow(4));
+
+    // Init
     loadPrefs();
     (async ()=>{
       try{
@@ -423,14 +346,51 @@
         if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
         else setWho("Not logged in (key mode).");
       }catch{ setWho("Not logged in (key mode)."); }
-      if (ADMIN_KEY){
-        await checkAdmin();
-        await loadUsers();
-        await loadBonusCodes();
-      } else {
-        renderBonusRows([]);
-      }
+      if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); await loadBonusCodes(); }
     })();
+
+    // Controls helpers
+    async function changeGold(sign){
+      if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
+      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
+      if (amount === 0){ msg("#ops-msg","Enter non-zero gold amount.",false); return; }
+      const gold = sign > 0 ? amount : -amount;
+      try{
+        const r = await api("/api/admin/adjust-balance", {
+          method:"POST",
+          body: JSON.stringify({ email: selected.email, gold })
+        });
+        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`, true);
+        await loadUsers();
+        const found = users.find(x => x.id === selected.id);
+        if (found) selected = found;
+        await loadInventory();
+      }catch(e){ msg("#ops-msg", e.message, false); }
+    }
+    async function setDisabled(flag){
+      if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
+      try{
+        await api("/api/admin/disable-user", {
+          method:"POST",
+          body: JSON.stringify({ email: selected.email, disabled: flag })
+        });
+        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.", true);
+        await loadUsers();
+        const found = users.find(x => x.id === selected.id);
+        if (found) selected = found;
+        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
+      }catch(e){ msg("#ops-msg", e.message, false); }
+    }
+    async function setArtefactBonusGold(){
+      const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
+      try{
+        const r = await api("/api/admin/set-bonus-gold", {
+          method:"POST",
+          body: JSON.stringify({ code:"ARTEFACT", bonus_gold })
+        });
+        msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`, true);
+      }catch(e){ msg("#bonus-msg", e.message, false); }
+    }
   </script>
 </body>
 </html>
