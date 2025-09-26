@@ -152,9 +152,15 @@ async function paypalGetOrder(accessToken, orderId){
   if(!res.ok) throw new Error("PayPal order fail: " + JSON.stringify(data));
   return data;
 }
-// ---------- DB (jedina instanca)
-const db = new Database(DB_FILE, { fileMustExist: false, timeout: 5000 });
+// ---------- DB lokacija + instanca (JEDINA)
+const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
+fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+
+const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
+
+console.log("[DB] Using file:", DB_FILE);
+
 
 // ====== DB MIGRATIONS ======
 function ensure(sql){ db.exec(sql); }
@@ -1353,6 +1359,7 @@ app.get("/api/health", (_req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
 });
+
 
 
 
