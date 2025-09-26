@@ -1,5 +1,5 @@
-// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija
-// ==============================================
+// ARTEFACT • Full Server (Express + better-sqlite3) + BONUS sekcija + BONUS CODES
+// =================================================================================
 const express = require("express");
 const http = require("http");
 const path = require("path");
@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+// ----------------- CONFIG -----------------
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const HOST = process.env.HOST || "0.0.0.0";
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
@@ -19,7 +20,7 @@ const DEFAULT_ADMIN_EMAIL = (process.env.DEFAULT_ADMIN_EMAIL || "judi.vinko81@gm
 const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db");
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
-/* ===== PAYPAL CONFIG (DODANO) ===== */
+// ----------------- PAYPAL -----------------
 const USD_TO_GOLD = 100; // 1 USD = 100 gold
 const MIN_USD = 10; // minimalna uplata
 const PAYPAL_MODE = (process.env.PAYPAL_MODE || "sandbox").toLowerCase(); // "live" | "sandbox"
@@ -27,7 +28,7 @@ const PAYPAL_BASE = PAYPAL_MODE === "live" ? "https://api-m.paypal.com" : "https
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET || "";
 
-// ---------- Auto-cleanup slika koje počinju sa "0" (pri startu; rekurzivno + logs)
+// ----------------- STARTUP: cleanup '0*' images -----------------
 function deleteFilesStartingWith0(rootDir) {
   try {
     if (!fs.existsSync(rootDir)) return { checked: 0, deleted: 0, found: [] };
@@ -39,25 +40,19 @@ function deleteFilesStartingWith0(rootDir) {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
       for (const ent of entries) {
         const full = path.join(dir, ent.name);
-        if (ent.isDirectory()) {
-          stack.push(full);
-        } else {
+        if (ent.isDirectory()) stack.push(full);
+        else {
           checked++;
           if (ent.name.startsWith("0")) {
             found.push(full);
-            try {
-              fs.unlinkSync(full);
-              deleted++;
-            } catch (e) {
-              console.error("[CLEANUP] Greška brisanja:", full, e);
-            }
+            try { fs.unlinkSync(full); deleted++; } catch (e) { console.error("[CLEANUP] del err:", full, e); }
           }
         }
       }
     }
     return { checked, deleted, found };
   } catch (e) {
-    console.error("[CLEANUP] Greška skeniranja:", e);
+    console.error("[CLEANUP] scan err:", e);
     return { checked: 0, deleted: 0, found: [] };
   }
 }
@@ -72,31 +67,28 @@ function deleteFilesStartingWith0(rootDir) {
     r = { checked: r1.checked + r2.checked, deleted: r1.deleted + r2.deleted, found: [...r1.found, ...r2.found] };
   }
   console.log(`[CLEANUP] Pregledano: ${r.checked}, obrisano: ${r.deleted}`);
-  if (r.found.length) {
-    console.log("[CLEANUP] Obrisano:", r.found.map(p => p.replace(__dirname, "")).join(" | "));
-  } else {
-    console.log('[CLEANUP] Nije našao fajlove koji počinju sa "0" u /public(/images)');
-  }
+  if (r.found.length) console.log("[CLEANUP] Obrisano:", r.found.map(p => p.replace(__dirname, "")).join(" | "));
+  else console.log('[CLEANUP] Nije našao fajlove koji počinju sa "0" u /public(/images)');
 })();
 
-// ---------- App
+// ----------------- APP -----------------
 const app = express();
 const server = http.createServer(app);
 app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 
-// Static
+// Static + pages
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-// ---------- DB
+// ----------------- DB -----------------
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
-// ===== Helpers (generic) =====
+// -------- Helpers --------
 const nowISO = () => new Date().toISOString();
 function isEmail(x){ return typeof x==="string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x); }
 function isPass(x){ return typeof x==="string" && x.length>=6; }
@@ -132,9 +124,8 @@ function addMinutes(iso, mins){
   return d.toISOString();
 }
 
-/* ===== PayPal helpers (DODANO) ===== */
-// const fetch = require("node-fetch"); // ako si na Node < 18, odkomentiraj
-
+// -------- PayPal helpers --------
+// const fetch = require("node-fetch"); // za Node < 18 odkomentiraj
 async function paypalToken(){
   const res = await fetch(PAYPAL_BASE + "/v1/oauth2/token", {
     method: "POST",
@@ -157,23 +148,18 @@ async function paypalGetOrder(accessToken, orderId){
   return data;
 }
 
-// ====== DB MIGRATIONS (core) ======
+// ----------------- MIGRATIONS -----------------
 function ensure(sql){ db.exec(sql); }
 function tableExists(name) {
-  try {
-    return !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name);
-  } catch {
-    return false;
-  }
+  try { return !!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name); }
+  catch { return false; }
 }
 function hasColumn(table, col) {
   try {
     const tbl = String(table).replace(/[^A-Za-z0-9_]/g, "");
     const rows = db.prepare(`PRAGMA table_info(${tbl})`).all();
     return rows.some(c => c.name === col);
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 ensure(`
@@ -285,7 +271,7 @@ ensure(`
   );
 `);
 
-// ====== BONUS: tablica za trajne set-bonuse ======
+// ---- BONUS: set_bonuses (trajni set bonusi)
 ensure(`
   CREATE TABLE IF NOT EXISTS set_bonuses(
     user_id INTEGER NOT NULL,
@@ -296,7 +282,7 @@ ensure(`
   );
 `);
 
-// ====== BONUS: tablica za PayPal uplate (idempotencija) ======
+// ---- PayPal uplate (idempot) + bonus_code reference
 ensure(`
   CREATE TABLE IF NOT EXISTS paypal_payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -306,11 +292,26 @@ ensure(`
     amount REAL NOT NULL,
     credited_silver INTEGER NOT NULL,
     created_at TEXT NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
+    bonus_code TEXT
+  );
+`);
+if (!hasColumn("paypal_payments", "bonus_code")) {
+  try { db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_code TEXT;`); } catch {}
+}
+
+// ---- BONUS-CODES: do 5 slotova
+ensure(`
+  CREATE TABLE IF NOT EXISTS bonus_codes(
+    slot INTEGER PRIMARY KEY CHECK(slot BETWEEN 1 AND 5),
+    code TEXT UNIQUE,
+    percent INTEGER NOT NULL DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    total_credited_silver INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT
   );
 `);
 
-// Legacy / migrations for sales etc.
+// ---- Legacy / migrations for sales & escrow tweaks ----
 db.transaction(() => {
   if (!tableExists("sales")) {
     db.exec(`
@@ -384,7 +385,7 @@ db.transaction(() => {
   }
 })();
 
-// --- seed helpers ---
+// ----------------- SEED (Items & Recipes, identično kao prije) -----------------
 function ensureItem(code, name, tier, volatile = 0) {
   const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
   if (row) {
@@ -419,13 +420,11 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
   return rid;
 }
 
-// Items & Recipes (seed) — ONLY recipes touched below as agreed
+// T1
 ensureItem("SCRAP","Scrap",1,1);
-const T1 = [
-  ["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
+const T1 = [["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
   ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
-  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]
-];
+  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]];
 for (const [c,n] of T1) ensureItem(c,n,1,0);
 
 // T2
@@ -446,15 +445,9 @@ for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
 
 // T4
 const T4_ITEMS = [
-  ["T4_CRYSTAL_LENS","Crystal Lens"],
-  ["T4_ENGINE_CORE","Engine Core"],
-  ["T4_MIGHT_GATE","Might Gate"],
-  ["T4_NOMAD_DWELLING","Nomad Dwelling"],
-  ["T4_SECRET_CHEST","Secret Chest"],
-  ["T4_SHADOW_BLADE","Shadow Blade"],
-  ["T4_STRENGTH_PILLAR","Strength Pillar"],
-  ["T4_TRAVELER_SATCHEL","Traveler Satchel"],
-  ["T4_VISION_CORE","Vision Core"],
+  ["T4_CRYSTAL_LENS","Crystal Lens"],["T4_ENGINE_CORE","Engine Core"],["T4_MIGHT_GATE","Might Gate"],
+  ["T4_NOMAD_DWELLING","Nomad Dwelling"],["T4_SECRET_CHEST","Secret Chest"],["T4_SHADOW_BLADE","Shadow Blade"],
+  ["T4_STRENGTH_PILLAR","Strength Pillar"],["T4_TRAVELER_SATCHEL","Traveler Satchel"],["T4_VISION_CORE","Vision Core"],
   ["T4_WISDOM_GOBLET","Wisdom Goblet"]
 ];
 for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
@@ -467,7 +460,7 @@ const T5_ITEMS = [
 ];
 for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
 
-// ---------- helpers lokalni za seed recepata (NE diraju ostatak servera) ----------
+// --- helpers za seed recepata ---
 const takeRotated = (pool, count, offset) => {
   if (!pool.length) return [];
   const start = offset % pool.length;
@@ -479,55 +472,39 @@ const takeRotated = (pool, count, offset) => {
   }
   return out;
 };
-
-// kodovi za bazene
 const T1_CODES = T1.map(([c])=>c);
 const T2_CODES = T2_ITEMS.map(([c])=>c);
 const T3_CODES = T3_ITEMS.map(([c])=>c);
 const T4_CODES = T4_ITEMS.map(([c])=>c);
-
-// raspodjele po tieru (10 recepata)
 const P_T2 = [4,4,4, 5,5,5, 6,6, 7,7];
 const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
 const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
 const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
 
-// ---------- seed recepata (ensureRecipe) ----------
-// T2: koristi T1 kao sastojke
+// seed recepata
 T2_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T2[i];
-  const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
+  const need = P_T2[i]; const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 2, outCode, ings);
 });
-
-// T3: koristi T2 kao sastojke
 T3_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T3[i];
-  const ings = takeRotated(T2_CODES, Math.min(need, T2_CODES.length), i);
+  const need = P_T3[i]; const ings = takeRotated(T2_CODES, Math.min(need, T2_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 3, outCode, ings);
 });
-
-// T4: koristi T3 kao sastojke
 T4_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T4[i];
-  const ings = takeRotated(T3_CODES, Math.min(need, T3_CODES.length), i);
+  const need = P_T4[i]; const ings = takeRotated(T3_CODES, Math.min(need, T3_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 4, outCode, ings);
 });
-
-// T5: koristi T4 kao sastojke
 T5_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T5[i];
-  const ings = takeRotated(T4_CODES, Math.min(need, T4_CODES.length), i);
+  const need = P_T5[i]; const ings = takeRotated(T4_CODES, Math.min(need, T4_CODES.length), i);
   ensureRecipe("R_"+outCode, outName, 5, outCode, ings);
 });
 
 // ARTEFACT (nema recept)
 ensureItem("ARTEFACT","Artefact",6,0);
-
-// --- MIGRACIJA: prefiks "R " za recepte koji ga nemaju
+// prefiks "R "
 try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
 
-// ---------- AUTH (jedna, čista implementacija)
+// ----------------- AUTH -----------------
 app.post("/api/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -571,48 +548,109 @@ app.get("/api/logout", (req, res) => {
   return res.json({ ok:true });
 });
 
-// ===== PAYPAL: potvrda uplate i automatsko dodavanje golda (idempotent) =====
+// ----------------- BONUS CODES (ADMIN) -----------------
+function sanitizeCode(raw){
+  const s = String(raw||"").trim().toUpperCase();
+  return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+}
+
+// GET: list slots (1..5)
+app.get("/api/admin/bonus-codes", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  const rows = db.prepare("SELECT slot, code, percent, is_active, total_credited_silver FROM bonus_codes ORDER BY slot ASC").all();
+  const bySlot = {};
+  rows.forEach(r => bySlot[r.slot] = r);
+  const slots = [];
+  for (let i=1;i<=5;i++){
+    slots.push(bySlot[i] || { slot:i, code:"", percent:0, is_active:1, total_credited_silver:0 });
+  }
+  res.json({ ok:true, slots });
+});
+
+// POST: save one row {slot, code, percent, is_active}
+app.post("/api/admin/bonus-codes", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  try{
+    let { slot, code, percent, is_active } = req.body || {};
+    slot = parseInt(slot,10);
+    if (!(slot>=1 && slot<=5)) return res.status(400).json({ ok:false, error:"Bad slot" });
+    code = sanitizeCode(code || "");
+    percent = Math.max(0, Math.min(100, parseInt(percent,10)||0));
+    is_active = !!is_active ? 1 : 0;
+
+    const tx = db.transaction(() => {
+      // Ako isti code postoji u drugom slotu, očisti ga da bi UNIQUE prošao
+      if (code) {
+        const dup = db.prepare("SELECT slot FROM bonus_codes WHERE code=? AND slot<>?").get(code, slot);
+        if (dup) db.prepare("UPDATE bonus_codes SET code=NULL WHERE slot=?").run(dup.slot);
+      }
+      // Upsert
+      const cur = db.prepare("SELECT slot FROM bonus_codes WHERE slot=?").get(slot);
+      if (!cur) {
+        db.prepare(`
+          INSERT INTO bonus_codes(slot, code, percent, is_active, total_credited_silver, updated_at)
+          VALUES (?,?,?,?,0,?)
+        `).run(slot, code || null, percent, is_active, nowISO());
+      } else {
+        db.prepare(`
+          UPDATE bonus_codes
+             SET code=?, percent=?, is_active=?, updated_at=?
+           WHERE slot=?
+        `).run(code || null, percent, is_active, nowISO(), slot);
+      }
+      const out = db.prepare("SELECT slot, code, percent, is_active, total_credited_silver FROM bonus_codes WHERE slot=?").get(slot);
+      return out || { slot, code, percent, is_active, total_credited_silver:0 };
+    });
+    const out = tx();
+    res.json({ ok:true, ...out });
+  }catch(e){
+    res.status(400).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+// ----------------- PAYPAL confirm (+ bonus_code podrška) -----------------
 app.post("/api/paypal/confirm", async (req, res) => {
   try{
     const uid = requireAuth(req);
     if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET){
       return res.status(500).json({ ok:false, error:"PayPal not configured" });
     }
-    const { orderId } = req.body || {};
+    const { orderId, bonus_code: rawCode } = req.body || {};
     if (!orderId) return res.status(400).json({ ok:false, error:"orderId required" });
 
-    // 0) Ako je već procesirano — samo vrati balans (idempotencija)
-    const already = db.prepare(
-      "SELECT credited_silver FROM paypal_payments WHERE paypal_order_id=?"
-    ).get(String(orderId));
+    // već obrađeno?
+    const already = db.prepare("SELECT credited_silver FROM paypal_payments WHERE paypal_order_id=?").get(String(orderId));
     if (already){
       const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid)?.balance_silver ?? 0;
       return res.json({ ok:true, balance_silver: bal, note:"already processed" });
     }
 
-    // 1) Verifikacija narudžbe na PayPal-u
     const token = await paypalToken();
     const order = await paypalGetOrder(token, orderId);
     if (!order || order.status !== "COMPLETED"){
       return res.status(400).json({ ok:false, error:"Payment not completed", status: order?.status || "UNKNOWN" });
     }
 
-    // 2) Iznos i valuta
     const pu = order.purchase_units && order.purchase_units[0];
     const currency = pu?.amount?.currency_code;
     const paid = Number(pu?.amount?.value);
-    if (currency !== "USD" || !Number.isFinite(paid)){
-      return res.status(400).json({ ok:false, error:"Unsupported currency or invalid amount" });
-    }
-    if (paid < MIN_USD){
-      return res.status(400).json({ ok:false, error: `Minimum is $${MIN_USD}` });
-    }
+    if (currency !== "USD" || !Number.isFinite(paid)) return res.status(400).json({ ok:false, error:"Unsupported currency or invalid amount" });
+    if (paid < MIN_USD) return res.status(400).json({ ok:false, error: `Minimum is $${MIN_USD}` });
 
-    // 3) Preračun
+    // base credit
     const addGold = Math.floor(paid * USD_TO_GOLD);
-    const addSilver = addGold * 100;
+    const baseSilver = addGold * 100;
 
-    // 4) DB transakcija
+    // bonus code lookup (case-insensitive)
+    const code = sanitizeCode(rawCode || "");
+    const slotRow = code
+      ? db.prepare("SELECT slot, percent, is_active FROM bonus_codes WHERE upper(code)=?").get(code)
+      : null;
+    const pct = (slotRow && slotRow.is_active) ? Math.max(0, Math.min(100, slotRow.percent|0)) : 0;
+    const bonusSilver = Math.floor(baseSilver * pct / 100);
+    const totalSilverToAdd = baseSilver + bonusSilver;
+
+    // transakcija + idempotencija
     const after = db.transaction(() => {
       const dupe = db.prepare("SELECT 1 FROM paypal_payments WHERE paypal_order_id=?").get(String(orderId));
       if (dupe) {
@@ -620,15 +658,34 @@ app.post("/api/paypal/confirm", async (req, res) => {
         return cur?.balance_silver ?? 0;
       }
       db.prepare(`
-        INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at)
-        VALUES (?,?,?,?,?,?)
-      `).run(String(orderId), uid, String(currency), paid, addSilver, nowISO());
+        INSERT INTO paypal_payments(paypal_order_id,user_id,currency,amount,credited_silver,created_at,bonus_code)
+        VALUES (?,?,?,?,?,?,?)
+      `).run(String(orderId), uid, String(currency), paid, totalSilverToAdd, nowISO(), code || null);
+
       const cur = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
       if (!cur) throw new Error("User not found");
-      const newBal = (cur.balance_silver | 0) + addSilver;
+      const newBal = (cur.balance_silver | 0) + totalSilverToAdd;
       db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
+
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(uid, addSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
+        .run(uid, baseSilver, "PAYPAL_TOPUP", String(orderId), nowISO());
+
+      if (bonusSilver > 0) {
+        db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+          .run(uid, bonusSilver, "PAYPAL_BONUS_CODE", code || "", nowISO());
+      }
+
+      // zbroji u slotu
+      if (slotRow && slotRow.is_active) {
+        db.prepare(`
+          INSERT INTO bonus_codes(slot, code, percent, is_active, total_credited_silver, updated_at)
+          VALUES (?,?,?,?,?,?)
+          ON CONFLICT(slot) DO UPDATE SET
+            total_credited_silver = total_credited_silver + excluded.total_credited_silver,
+            updated_at = excluded.updated_at
+        `).run(slotRow.slot, code || null, pct, 1, totalSilverToAdd, nowISO());
+      }
+
       return newBal;
     })();
 
@@ -639,7 +696,7 @@ app.post("/api/paypal/confirm", async (req, res) => {
   }
 });
 
-// ===== BONUS helpers =====
+// ----------------- BONUS perks helpers -----------------
 function userHasArtefact(userId){
   const r = db.prepare(
     "SELECT 1 FROM user_items ui JOIN items i ON i.id = ui.item_id WHERE ui.user_id=? AND i.code='ARTEFACT' AND ui.qty>0 LIMIT 1"
@@ -661,7 +718,7 @@ function perksFromClaimed(claimed){
 }
 function getPerks(userId){ return perksFromClaimed(getClaimedTiers(userId)); }
 
-// Extend /api/me
+// ----------------- /api/me -----------------
 app.get("/api/me", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false });
@@ -692,7 +749,7 @@ app.get("/api/me", (req, res) => {
   }});
 });
 
-//---ARTEFACT BONUS GOLD (ADMIN)
+// ----------------- ADMIN core -----------------
 app.post("/api/admin/set-bonus-gold", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
   const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
@@ -703,7 +760,6 @@ app.post("/api/admin/set-bonus-gold", (req, res) => {
   return res.json({ ok: true, bonus_gold: g });
 });
 
-// --- Admin: dry-run pregled
 app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
   function scan(rootDir) {
@@ -720,7 +776,7 @@ app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
           else if (ent.name.startsWith("0")) hit.push(full.replace(__dirname, ""));
         }
       }
-    } catch (e) {}
+    } catch {}
     return hit;
   }
   const a = scan(path.join(__dirname, "public", "images"));
@@ -729,7 +785,6 @@ app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
   res.json({ ok:true, matches: set });
 });
 
-// --- Admin: ručni cleanup (briše)
 app.post("/api/admin/cleanup-images", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
   const dirs = [ path.join(__dirname, "public", "images"), path.join(__dirname, "public") ];
@@ -749,24 +804,16 @@ app.post("/api/admin/cleanup-images", (req, res) => {
             checked++;
             if (ent.name.startsWith("0")) {
               found.push(full.replace(__dirname, ""));
-              try {
-                fs.unlinkSync(full);
-                deleted++;
-              } catch (e) {
-                console.error("[CLEANUP] Greška:", full, e);
-              }
+              try { fs.unlinkSync(full); deleted++; } catch (e) { console.error("[CLEANUP] err:", full, e); }
             }
           }
         }
       }
-    } catch (e) {
-      console.error("[CLEANUP] Greška skeniranja:", e);
-    }
+    } catch (e) { console.error("[CLEANUP] scan err:", e); }
   }
   res.json({ ok:true, checked, deleted, found });
 });
 
-// =============== ADMIN (ping, users, adjust, inventory, disable)
 app.get("/api/admin/ping",(req,res)=>{
   if (!isAdmin(req)) return res.status(401).json({ok:false,error:"Unauthorized"});
   res.json({ok:true});
@@ -834,7 +881,7 @@ app.post("/api/admin/disable-user",(req,res)=>{
   res.json({ ok:true });
 });
 
-// ===== BONUS: status i claim =====
+// ----------------- BONUS status/claim -----------------
 function itemCodesByTier(tier){
   const rows = db.prepare("SELECT code FROM items WHERE tier=? ORDER BY code").all(tier|0);
   return rows.map(r=>r.code);
@@ -902,7 +949,7 @@ app.post("/api/bonus/claim",(req,res)=>{
   }
 });
 
-// =============== SHOP (T1 only) — respektira BONUS
+// ----------------- SHOP (T1) -----------------
 const SHOP_T1_COST_S_BASE = 100;
 const RECIPE_DROP_MIN = 4;
 const RECIPE_DROP_MAX = 8;
@@ -980,7 +1027,7 @@ app.post("/api/shop/buy-t1",(req,res)=>{
   }
 });
 
-// =============== RECIPES & CRAFTING — respektira BONUS (no fail)
+// ----------------- RECIPES & CRAFT -----------------
 app.get("/api/recipes/list", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1044,9 +1091,7 @@ app.post("/api/craft/do", (req, res) => {
         if (!inv || inv.qty < n.qty) missing.push(n.name);
       }
       if (missing.length > 0) throw { code: "MISSING_MATS", missing };
-      for (const n of need) {
-        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(n.qty, tok.uid, n.item_id);
-      }
+      for (const n of need) db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(n.qty, tok.uid, n.item_id);
       const perks = getPerks(tok.uid);
       const fail = perks.craft_no_fail ? false : (Math.random() < 0.10);
       if (!fail) {
@@ -1079,7 +1124,7 @@ app.post("/api/craft/do", (req, res) => {
   }
 });
 
-// ===== ARTEFACT helpers
+// ----------------- ARTEFACT craft -----------------
 function addInv(userId, itemId, recipeId, qty) {
   const q = Math.max(1, parseInt(qty,10) || 1);
   if (itemId) {
@@ -1099,7 +1144,6 @@ function addInv(userId, itemId, recipeId, qty) {
   }
 }
 
-// Craft ARTEFACT (10× DISTINCT T5)
 app.post("/api/craft/artefact", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error: "Not logged in." });
@@ -1114,9 +1158,7 @@ app.post("/api/craft/artefact", (req, res) => {
       `).all(tok.uid);
       if (!have || have.length < 10) throw new Error("Need 10 distinct T5 items.");
       const picked = have.slice(0, 10);
-      for (const it of picked) {
-        db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=?").run(tok.uid, it.id);
-      }
+      for (const it of picked) db.prepare("UPDATE user_items SET qty=qty-1 WHERE user_id=? AND item_id=?").run(tok.uid, it.id);
       const art = db.prepare("SELECT id, bonus_gold FROM items WHERE code='ARTEFACT'").get();
       if (!art) throw new Error("ARTEFACT item missing (seed).");
       addInv(tok.uid, art.id, null, 1);
@@ -1129,231 +1171,324 @@ app.post("/api/craft/artefact", (req, res) => {
   }
 });
 
-// =============== INVENTORY (full + artefact bonus)
-app.get("/api/inventory",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  const items = db.prepare(`
-    SELECT i.id,i.code,i.name,i.tier,COALESCE(ui.qty,0) qty
-    FROM items i
-    JOIN user_items ui ON ui.item_id=i.id AND ui.user_id=?
-    WHERE ui.qty>0
-    ORDER BY i.tier ASC, i.name ASC
-  `).all(uTok.uid);
-  const recipes = db.prepare(`
-    SELECT r.id,r.code,r.name,r.tier,COALESCE(ur.qty,0) qty
-    FROM recipes r
-    JOIN user_recipes ur ON ur.recipe_id=r.id AND ur.user_id=?
-    WHERE ur.qty>0
-    ORDER BY r.tier ASC, r.name ASC
-  `).all(uTok.uid);
-  const art = db.prepare("SELECT bonus_gold FROM items WHERE code='ARTEFACT'").get();
-  const artefactBonusGold = (art?.bonus_gold | 0);
-  res.json({ok:true, items, recipes, artefactBonusGold});
+// ----------------- INVENTORY -----------------
+app.get("/api/inventory", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
+  try {
+    const items = db.prepare(`
+      SELECT i.id, i.code, i.name, i.tier, ui.qty
+      FROM user_items ui
+      JOIN items i ON i.id = ui.item_id
+      WHERE ui.user_id = ? AND ui.qty > 0
+      ORDER BY i.tier ASC, i.name ASC
+    `).all(tok.uid);
+
+    const recipes = db.prepare(`
+      SELECT r.id, r.code, r.name, r.tier, ur.qty
+      FROM user_recipes ur
+      JOIN recipes r ON r.id = ur.recipe_id
+      WHERE ur.user_id = ? AND ur.qty > 0
+      ORDER BY r.tier ASC, r.name ASC
+    `).all(tok.uid);
+
+    const arte = db.prepare(`SELECT bonus_gold FROM items WHERE code='ARTEFACT'`).get();
+    const artefactBonusGold = arte ? (arte.bonus_gold|0) : 0;
+
+    res.json({ ok:true, items, recipes, artefactBonusGold });
+  } catch (e) {
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
 });
 
-// ================= SALES (Marketplace) — respektira BONUS
-function mapListing(a) {
+// ----------------- MARKETPLACE (sales) -----------------
+
+// helper: compile listing row for API responses
+function shapeListing(row) {
   return {
-    id: a.id,
-    kind: a.type,
-    item_id: a.item_id,
-    recipe_id: a.recipe_id,
-    qty: a.qty,
-    price_s: a.buy_now_price_s,
-    seller_user_id: a.seller_user_id,
-    status: a.status,
-    start_time: a.start_time,
-    end_time: a.end_time,
-    name: a.name ?? null,
-    tier: a.tier ?? null,
-    code: a.code ?? null
+    id: row.id,
+    seller_user_id: row.seller_user_id,
+    kind: row.type === "recipe" ? "recipe" : "item",
+    item_id: row.item_id || null,
+    recipe_id: row.recipe_id || null,
+    code: row.code || null,
+    name: row.title || row.name || null,
+    tier: row.tier || null,
+    qty: row.qty|0,
+    price_s: row.price_s|0,
+    status: row.status
   };
 }
 
+// LIVE listings (with optional ?q= search)
 app.get("/api/sales/live", (req, res) => {
-  try {
-    const q = (req.query && String(req.query.q || "").trim().toLowerCase()) || "";
-    const rows = db.prepare(`
-      SELECT a.*, COALESCE(i.name, r.name) AS name, COALESCE(i.tier, r.tier) AS tier, COALESCE(i.code, r.code) AS code
-      FROM auctions a
-      LEFT JOIN items i ON a.type='item' AND i.id=a.item_id
-      LEFT JOIN recipes r ON a.type='recipe' AND r.id=a.recipe_id
-      WHERE a.status='live'
-      ORDER BY a.id DESC
-      LIMIT 500
+  try{
+    const q = (req.query.q || "").toString().trim().toLowerCase();
+    let rows = db.prepare(`
+      SELECT s.*, i.code AS i_code, i.name AS i_name, i.tier AS i_tier,
+             r.code AS r_code, r.name AS r_name, r.tier AS r_tier
+      FROM sales s
+      LEFT JOIN items i   ON s.type='item'   AND i.id = s.item_id
+      LEFT JOIN recipes r ON s.type='recipe' AND r.id = s.recipe_id
+      WHERE s.status='live'
+      ORDER BY s.created_at DESC
     `).all();
-    let result = rows;
-    if (q) result = rows.filter(a => (a.name || "").toLowerCase().includes(q));
-    res.json({ ok:true, listings: result.map(mapListing) });
-  } catch (e) {
-    res.status(500).json({ ok:false, error: String(e.message || e) });
-  }
-});
 
-app.get("/api/sales/mine", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const rows = db.prepare(`
-      SELECT a.*, COALESCE(i.name, r.name) AS name, COALESCE(i.tier, r.tier) AS tier, COALESCE(i.code, r.code) AS code
-      FROM auctions a
-      LEFT JOIN items i ON a.type='item' AND i.id=a.item_id
-      LEFT JOIN recipes r ON a.type='recipe' AND r.id=a.recipe_id
-      WHERE a.seller_user_id=? AND a.status='live'
-      ORDER BY a.id DESC
-      LIMIT 500
-    `).all(uid);
-    res.json({ ok:true, listings: rows.map(mapListing) });
-  } catch (e) {
-    res.status(401).json({ ok:false, error: String(e.message || e) });
-  }
-});
+    rows = rows.map(r => {
+      const name = r.title || (r.type==='item' ? r.i_name : r.r_name) || "";
+      const code = (r.type==='item' ? r.i_code : r.r_code) || null;
+      const tier = (r.type==='item' ? r.i_tier : r.r_tier) || null;
+      return {
+        ...shapeListing(r),
+        code,
+        name,
+        tier
+      };
+    });
 
-app.post("/api/sales/list", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const { kind, id, qty, gold = 0, silver = 0 } = req.body || {};
-    if (!(kind === "item" || kind === "recipe")) throw new Error("Bad kind.");
-    const targetId = parseInt(id, 10);
-    if (!targetId) throw new Error("Bad id.");
-    const qn = Math.max(1, parseInt(qty, 10) || 1);
-    let price = (Math.max(0, parseInt(gold, 10) || 0) * 100) + (Math.max(0, parseInt(silver, 10) || 0) % 100);
-    const perks = getPerks(uid);
-    if (perks.min_list_price_s && price < perks.min_list_price_s) {
-      return res.status(400).json({ ok:false, error:`Min price is ${perks.min_list_price_s}s (T5 bonus)` });
+    if (q) {
+      rows = rows.filter(r => (r.name||"").toLowerCase().includes(q));
     }
-    if (price <= 0) throw new Error("Price must be > 0.");
-    let listingFeeS = Math.floor(price / 100);
-    if (perks.auction_fee_bps === 0) listingFeeS = 0;
 
-    const out = db.transaction(()=>{
-      if (listingFeeS > 0) {
-        const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-        if (!bal || bal.balance_silver < listingFeeS) throw new Error("Insufficient funds for listing fee.");
-        db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(listingFeeS, uid);
-        db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-          .run(uid, -listingFeeS, "SALE_LIST_FEE", null, nowISO());
-      }
-      if (kind === "item") {
-        const row = db.prepare("SELECT COALESCE(qty,0) qty FROM user_items WHERE user_id=? AND item_id=?").get(uid, targetId);
-        if (!row || row.qty < qn) throw new Error("Not enough items.");
-        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(qn, uid, targetId);
+    // UI ionako filtrira ARTEFACT/T6, ali i ovdje pazimo:
+    rows = rows.filter(r => !(r.kind==="item" && (r.code==="ARTEFACT" || (r.tier|0)>=6)));
+
+    res.json({ ok:true, listings: rows });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+// My listings
+app.get("/api/sales/mine", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
+  try{
+    let rows = db.prepare(`
+      SELECT s.*, i.code AS i_code, i.name AS i_name, i.tier AS i_tier,
+             r.code AS r_code, r.name AS r_name, r.tier AS r_tier
+      FROM sales s
+      LEFT JOIN items i   ON s.type='item'   AND i.id = s.item_id
+      LEFT JOIN recipes r ON s.type='recipe' AND r.id = s.recipe_id
+      WHERE s.seller_user_id = ?
+      ORDER BY s.created_at DESC
+    `).all(tok.uid);
+
+    rows = rows.map(r => {
+      const name = r.title || (r.type==='item' ? r.i_name : r.r_name) || "";
+      const code = (r.type==='item' ? r.i_code : r.r_code) || null;
+      const tier = (r.type==='item' ? r.i_tier : r.r_tier) || null;
+      return {
+        ...shapeListing(r),
+        code,
+        name,
+        tier
+      };
+    });
+
+    res.json({ ok:true, listings: rows });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+// Create listing
+// body: { kind: "item"|"recipe", id, qty, gold, silver }
+app.post("/api/sales/list", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
+  try{
+    const { kind, id, qty, gold=0, silver=0 } = req.body || {};
+    const k = (kind==="recipe") ? "recipe" : "item";
+    const srcId = parseInt(id,10);
+    const q = Math.max(1, parseInt(qty,10) || 1);
+    let s = Math.max(0, parseInt(silver,10) || 0); if (s>99) s=99;
+    const g = Math.max(0, parseInt(gold,10) || 0);
+    const price_s = g*100 + s;
+
+    if (!srcId) return res.status(400).json({ ok:false, error:"Bad id" });
+    if (price_s <= 0) return res.status(400).json({ ok:false, error:"Price must be > 0" });
+
+    const insert = db.transaction(() => {
+      if (k === "item") {
+        const item = db.prepare(`
+          SELECT i.id AS item_id, i.code, i.name, i.tier, ui.qty
+          FROM user_items ui
+          JOIN items i ON i.id = ui.item_id
+          WHERE ui.user_id=? AND ui.item_id=? AND ui.qty >= ?
+        `).get(tok.uid, srcId, q);
+        if (!item) throw new Error("Not enough quantity");
+        if (item.code === "ARTEFACT" || (item.tier|0) >= 6) throw new Error("Cannot list this item");
+
+        // enforce per-user min price if user has T5 bonus (UI hint)
+        const perks = getPerks(tok.uid);
+        if (perks.min_list_price_s && price_s < perks.min_list_price_s) {
+          throw new Error(`Minimum price is ${perks.min_list_price_s}s`);
+        }
+
+        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?").run(q, tok.uid, item.item_id);
+        db.prepare(`
+          INSERT INTO sales(seller_user_id,type,item_id,qty,price_s,title,status,created_at)
+          VALUES (?,?,?,?,?,'', 'live', ?)
+        `).run(tok.uid, "item", item.item_id, q, price_s, nowISO());
       } else {
-        const row = db.prepare("SELECT COALESCE(qty,0) qty FROM user_recipes WHERE user_id=? AND recipe_id=?").get(uid, targetId);
-        if (!row || row.qty < qn) throw new Error("Not enough recipes.");
-        db.prepare("UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?").run(qn, uid, targetId);
+        const rec = db.prepare(`
+          SELECT r.id AS recipe_id, r.code, r.name, r.tier, ur.qty
+          FROM user_recipes ur
+          JOIN recipes r ON r.id = ur.recipe_id
+          WHERE ur.user_id=? AND ur.recipe_id=? AND ur.qty >= ?
+        `).get(tok.uid, srcId, q);
+        if (!rec) throw new Error("Not enough quantity");
+
+        const perks = getPerks(tok.uid);
+        if (perks.min_list_price_s && price_s < perks.min_list_price_s) {
+          throw new Error(`Minimum price is ${perks.min_list_price_s}s`);
+        }
+
+        db.prepare("UPDATE user_recipes SET qty=qty-? WHERE user_id=? AND recipe_id=?").run(q, tok.uid, rec.recipe_id);
+        db.prepare(`
+          INSERT INTO sales(seller_user_id,type,recipe_id,qty,price_s,title,status,created_at)
+          VALUES (?,?,?,?,?,'', 'live', ?)
+        `).run(tok.uid, "recipe", rec.recipe_id, q, price_s, nowISO());
       }
-      const ins = db.prepare(`
-        INSERT INTO auctions (seller_user_id,type,item_id,recipe_id,qty,
-                              start_price_s,buy_now_price_s,fee_bps,status,start_time,end_time)
-        VALUES (?,?,?,?,?, ?,?,100,'live',?,?)
-      `).run(
-        uid, kind, kind === "item" ? targetId : null, kind === "recipe" ? targetId : null, qn,
-        price, price, nowISO(), addMinutes(nowISO(), 7 * 24 * 60)
-      );
-      db.prepare(`
-        INSERT INTO inventory_escrow(auction_id,owner_user_id,type,item_id,recipe_id,qty,created_at)
-        VALUES (?,?,?,?,?,?,?)
-      `).run(
-        ins.lastInsertRowid, uid, kind,
-        kind === "item" ? targetId : null,
-        kind === "recipe" ? targetId : null,
-        qn, nowISO()
-      );
-      return { id: ins.lastInsertRowid, status: "live", price_s: price, qty: qn, listing_fee_s: listingFeeS };
-    })();
+    });
+    insert();
 
-    res.json({ ok:true, listing: out });
-  } catch (e) {
-    res.status(400).json({ ok:false, error: String(e.message || e) });
+    res.json({ ok:true });
+  }catch(e){
+    res.status(400).json({ ok:false, error:String(e.message||e) });
   }
 });
 
-app.post("/api/sales/cancel", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const id = parseInt(req.body && req.body.id, 10);
-    if (!id) throw new Error("Missing id.");
-    const out = db.transaction(() => {
-      const a = db.prepare("SELECT * FROM auctions WHERE id=?").get(id);
-      if (!a) throw new Error("Not found.");
-      if (a.seller_user_id !== uid) throw new Error("Forbidden.");
-      if (a.status !== "live") throw new Error("Not live.");
-      const esc = db.prepare("SELECT * FROM inventory_escrow WHERE auction_id=?").get(id);
-      if (!esc) throw new Error("Missing escrow.");
-      addInv(uid, esc.item_id, esc.recipe_id, esc.qty);
-      db.prepare("UPDATE auctions SET status='canceled' WHERE id=?").run(id);
-      db.prepare("DELETE FROM inventory_escrow WHERE auction_id=?").run(id);
-      return { id, status: "canceled" };
-    })();
-    res.json({ ok:true, listing: out });
-  } catch (e) {
-    res.status(400).json({ ok:false, error: String(e.message || e) });
-  }
-});
-
+// Buy listing
+// body: { id }
 app.post("/api/sales/buy", (req, res) => {
-  try {
-    const buyerId = requireAuth(req);
-    const id = parseInt(req.body && req.body.id, 10);
-    if (!id) throw new Error("Missing id.");
-    const out = db.transaction(() => {
-      const a = db.prepare("SELECT * FROM auctions WHERE id=?").get(id);
-      if (!a) throw new Error("Not found.");
-      if (a.status !== "live") throw new Error("Not live.");
-      if (!a.buy_now_price_s) throw new Error("Not a buy-now listing.");
-      if (a.seller_user_id === buyerId) throw new Error("You can't buy your own listing.");
-      const price = a.buy_now_price_s;
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
 
-      const buyer = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(buyerId);
-      if (!buyer || buyer.balance_silver < price) throw new Error("Insufficient funds.");
+  try{
+    const { id } = req.body || {};
+    const sid = parseInt(id,10);
+    if (!sid) return res.status(400).json({ ok:false, error:"Bad id" });
 
-      const esc = db.prepare("SELECT * FROM inventory_escrow WHERE auction_id=?").get(id);
-      if (!esc) throw new Error("Missing escrow.");
+    const result = db.transaction(() => {
+      const s = db.prepare(`
+        SELECT * FROM sales WHERE id=? AND status='live'
+      `).get(sid);
+      if (!s) throw new Error("Listing not found");
+      if (s.seller_user_id === tok.uid) throw new Error("It's your listing");
 
-      const fee = Math.floor((a.fee_bps || 100) * price / 10000);
-      const net = price - fee;
+      const buyer = db.prepare("SELECT id, balance_silver FROM users WHERE id=?").get(tok.uid);
+      const seller = db.prepare("SELECT id, balance_silver FROM users WHERE id=?").get(s.seller_user_id);
+      if (!buyer || !seller) throw new Error("User missing");
 
-      db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(price, buyerId);
+      const price = s.price_s | 0;
+      if (buyer.balance_silver < price) throw new Error("Insufficient funds");
+
+      // Fee (affects seller proceeds). Default 1% (100 bps). If seller has T3 claimed -> 0%.
+      const sellerPerks = getPerks(s.seller_user_id);
+      const fee_bps = sellerPerks.auction_fee_bps ?? 100; // 100=1%
+      const fee = Math.floor(price * (fee_bps / 10000));
+      const proceeds = price - fee;
+
+      // money move
+      db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?").run(price, buyer.id);
+      db.prepare("UPDATE users SET balance_silver = balance_silver + ? WHERE id=?").run(proceeds, seller.id);
+
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(buyerId, -price, "SALE_BUY", String(id), nowISO());
-
-      db.prepare("UPDATE users SET balance_silver=balance_silver+? WHERE id=?").run(net, a.seller_user_id);
+        .run(buyer.id, -price, "MARKET_BUY", String(sid), nowISO());
       db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(a.seller_user_id, net, "SALE_EARN", String(id), nowISO());
+        .run(seller.id, proceeds, "MARKET_SELL", String(sid), nowISO());
+      if (fee > 0) {
+        db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+          .run(seller.id, -fee, "MARKET_FEE", String(sid), nowISO());
+      }
 
-      addInv(buyerId, esc.item_id, esc.recipe_id, esc.qty);
+      // transfer goods to buyer + close listing
+      if (s.type === "item") {
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,?)
+          ON CONFLICT(user_id,item_id) DO UPDATE SET qty = qty + excluded.qty
+        `).run(buyer.id, s.item_id, s.qty);
+      } else {
+        db.prepare(`
+          INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
+          VALUES (?,?,?,0)
+          ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty = qty + excluded.qty
+        `).run(buyer.id, s.recipe_id, s.qty);
+      }
 
-      db.prepare(`
-        UPDATE auctions
-           SET status='paid',
-               winner_user_id=?,
-               sold_price_s=?,
-               end_time=?,
-               highest_bid_s=?,
-               highest_bidder_user_id=?
-         WHERE id=?
-      `).run(buyerId, price, nowISO(), price, buyerId, id);
+      db.prepare("UPDATE sales SET status='sold', buyer_user_id=?, sold_at=?, sold_price_s=? WHERE id=?")
+        .run(buyer.id, nowISO(), price, s.id);
 
-      db.prepare("DELETE FROM inventory_escrow WHERE auction_id=?").run(id);
-
-      return { id, paid_s: price };
+      const afterBuyer  = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(buyer.id).balance_silver;
+      const afterSeller = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(seller.id).balance_silver;
+      return { buyer_balance_silver: afterBuyer, seller_balance_silver: afterSeller };
     })();
 
-    res.json({ ok:true, result: out });
-  } catch (e) {
-    res.status(400).json({ ok:false, error: String(e.message || e) });
+    res.json({ ok:true, ...result });
+  }catch(e){
+    res.status(400).json({ ok:false, error:String(e.message||e) });
   }
 });
 
-app.get("/api/sales/ping", (_req,res)=>res.json({ok:true}));
+// Cancel listing (seller only, live -> return to inventory)
+app.post("/api/sales/cancel", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
 
-// ===== HEALTH
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, time: nowISO() });
+  try{
+    const { id } = req.body || {};
+    const sid = parseInt(id,10);
+    if (!sid) return res.status(400).json({ ok:false, error:"Bad id" });
+
+    db.transaction(() => {
+      const s = db.prepare("SELECT * FROM sales WHERE id=? AND status='live'").get(sid);
+      if (!s) throw new Error("Listing not found");
+      if (s.seller_user_id !== tok.uid) throw new Error("Not your listing");
+
+      if (s.type === "item") {
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,?)
+          ON CONFLICT(user_id,item_id) DO UPDATE SET qty = qty + excluded.qty
+        `).run(tok.uid, s.item_id, s.qty);
+      } else {
+        db.prepare(`
+          INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
+          VALUES (?,?,?,0)
+          ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty = qty + excluded.qty
+        `).run(tok.uid, s.recipe_id, s.qty);
+      }
+
+      db.prepare("UPDATE sales SET status='canceled' WHERE id=?").run(sid);
+    })();
+
+    res.json({ ok:true });
+  }catch(e){
+    res.status(400).json({ ok:false, error:String(e.message||e) });
+  }
 });
 
-// =============== START
+// ----------------- DEFAULT ADMIN USER (optional) -----------------
+(function ensureDefaultAdmin(){
+  if (!DEFAULT_ADMIN_EMAIL) return;
+  const have = db.prepare("SELECT id,is_admin FROM users WHERE lower(email)=lower(?)").get(DEFAULT_ADMIN_EMAIL);
+  if (!have) {
+    const hash = bcrypt.hashSync("changeme", 10);
+    db.prepare(`
+      INSERT INTO users(email,pass_hash,created_at,is_admin,is_disabled,balance_silver,shop_buy_count,next_recipe_at,last_seen)
+      VALUES (?,?,?,?,?,?,?,?,?)
+    `).run(DEFAULT_ADMIN_EMAIL, hash, new Date().toISOString(), 1, 0, 0, 0, null, new Date().toISOString());
+    console.log("[seed] created default admin:", DEFAULT_ADMIN_EMAIL);
+  } else if (!have.is_admin) {
+    db.prepare("UPDATE users SET is_admin=1 WHERE id=?").run(have.id);
+    console.log("[seed] elevated admin:", DEFAULT_ADMIN_EMAIL);
+  }
+})();
+
+// ----------------- START -----------------
 server.listen(PORT, HOST, () => {
-  console.log(`ARTEFACT server listening on http://${HOST}:${PORT}`);
+  console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
