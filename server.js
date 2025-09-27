@@ -230,6 +230,7 @@ function hasColumn(table, col) {
   } catch { return false; }
 }
 
+/* ---------- CORE TABLES (no duplicates) ---------- */
 ensure(`
   CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -306,40 +307,9 @@ ensure(`
     FOREIGN KEY(recipe_id) REFERENCES recipes(id)
   );
 `);
-ensure(`
-  CREATE TABLE IF NOT EXISTS inventory_escrow(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    auction_id INTEGER,
-    owner_user_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    item_id INTEGER,
-    recipe_id INTEGER,
-    qty INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL
-  );
-`);
-ensure(`
-  CREATE TABLE IF NOT EXISTS auctions(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    seller_user_id INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    item_id INTEGER,
-    recipe_id INTEGER,
-    qty INTEGER NOT NULL DEFAULT 1,
-    start_price_s INTEGER NOT NULL DEFAULT 0,
-    buy_now_price_s INTEGER,
-    fee_bps INTEGER NOT NULL DEFAULT 100,
-    status TEXT NOT NULL DEFAULT 'live',
-    start_time TEXT NOT NULL,
-    end_time TEXT NOT NULL,
-    winner_user_id INTEGER,
-    sold_price_s INTEGER,
-    highest_bid_s INTEGER,
-    highest_bidder_user_id INTEGER
-  );
-`);
+/* auctions / sales / inventory_escrow će se rješavati u transakciji ispod (create or migrate) */
 
-// ---- BONUS: set_bonuses (trajni set bonusi)
+/* ---- set_bonuses (trajni set bonusi) ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS set_bonuses(
     user_id INTEGER NOT NULL,
@@ -350,7 +320,7 @@ ensure(`
   );
 `);
 
-// ---- PayPal uplate (idempot) + bonus_code reference
+/* ---- PayPal uplate (idempot) + bonus_code reference ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS paypal_payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -367,7 +337,7 @@ if (!hasColumn("paypal_payments", "bonus_code")) {
   try { db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_code TEXT;`); } catch {}
 }
 
-// ---- BONUS-CODES: do 5 slotova
+/* ---- BONUS-CODES: do 5 slotova ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS bonus_codes(
     slot INTEGER PRIMARY KEY CHECK(slot BETWEEN 1 AND 5),
@@ -379,8 +349,9 @@ ensure(`
   );
 `);
 
-// ---- Legacy / migrations for sales & escrow tweaks ----
+/* ---------- LEGACY / CREATE-OR-MIGRATE (bez duplikata) ---------- */
 db.transaction(() => {
+  /* SALES */
   if (!tableExists("sales")) {
     db.exec(`
       CREATE TABLE sales(
@@ -395,19 +366,24 @@ db.transaction(() => {
         status TEXT NOT NULL DEFAULT 'live',
         created_at TEXT NOT NULL,
         sold_at TEXT,
-        buyer_user_id INTEGER
+        buyer_user_id INTEGER,
+        sold_price_s INTEGER,
+        sold_qty INTEGER DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_sales_live ON sales(status, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sales_seller ON sales(seller_user_id, status);
     `);
   } else {
-    if (!hasColumn("sales", "price_s")) db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
-    if (!hasColumn("sales", "title")) db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
-    if (!hasColumn("sales", "status")) db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
-    if (!hasColumn("sales", "buyer_user_id")) db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
-    if (!hasColumn("sales", "sold_at")) db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
+    if (!hasColumn("sales", "price_s"))        db.exec(`ALTER TABLE sales ADD COLUMN price_s INTEGER NOT NULL DEFAULT 0;`);
+    if (!hasColumn("sales", "title"))          db.exec(`ALTER TABLE sales ADD COLUMN title TEXT NOT NULL DEFAULT '';`);
+    if (!hasColumn("sales", "status"))         db.exec(`ALTER TABLE sales ADD COLUMN status TEXT NOT NULL DEFAULT 'live';`);
+    if (!hasColumn("sales", "buyer_user_id"))  db.exec(`ALTER TABLE sales ADD COLUMN buyer_user_id INTEGER;`);
+    if (!hasColumn("sales", "sold_at"))        db.exec(`ALTER TABLE sales ADD COLUMN sold_at TEXT;`);
+    if (!hasColumn("sales", "sold_price_s"))   db.exec(`ALTER TABLE sales ADD COLUMN sold_price_s INTEGER;`);
+    if (!hasColumn("sales", "sold_qty"))       db.exec(`ALTER TABLE sales ADD COLUMN sold_qty INTEGER DEFAULT 0;`);
   }
 
+  /* AUCTIONS */
   if (!tableExists("auctions")) {
     db.exec(`
       CREATE TABLE auctions(
@@ -431,8 +407,14 @@ db.transaction(() => {
       CREATE INDEX IF NOT EXISTS idx_auctions_live ON auctions(status, start_time DESC);
       CREATE INDEX IF NOT EXISTS idx_auctions_seller ON auctions(seller_user_id, status);
     `);
+  } else {
+    if (!hasColumn("auctions", "winner_user_id"))        db.exec(`ALTER TABLE auctions ADD COLUMN winner_user_id INTEGER;`);
+    if (!hasColumn("auctions", "sold_price_s"))          db.exec(`ALTER TABLE auctions ADD COLUMN sold_price_s INTEGER;`);
+    if (!hasColumn("auctions", "highest_bid_s"))         db.exec(`ALTER TABLE auctions ADD COLUMN highest_bid_s INTEGER;`);
+    if (!hasColumn("auctions", "highest_bidder_user_id"))db.exec(`ALTER TABLE auctions ADD COLUMN highest_bidder_user_id INTEGER;`);
   }
 
+  /* INVENTORY_ESCROW */
   if (!tableExists("inventory_escrow")) {
     db.exec(`
       CREATE TABLE inventory_escrow(
@@ -448,12 +430,12 @@ db.transaction(() => {
       CREATE INDEX IF NOT EXISTS idx_inventory_escrow_auction ON inventory_escrow(auction_id);
     `);
   } else {
-    if (!hasColumn("inventory_escrow", "type")) db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
-    if (!hasColumn("inventory_escrow", "auction_id")) db.exec(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER;`);
+    if (!hasColumn("inventory_escrow", "type"))      db.exec(`ALTER TABLE inventory_escrow ADD COLUMN type TEXT NOT NULL DEFAULT 'item';`);
+    if (!hasColumn("inventory_escrow", "auction_id"))db.exec(`ALTER TABLE inventory_escrow ADD COLUMN auction_id INTEGER;`);
   }
 })();
 
-// ----------------- SEED (Items & Recipes, identično kao prije) -----------------
+/* ----------------- SEED (Items & Recipes, identično kao prije) ----------------- */
 function ensureItem(code, name, tier, volatile = 0) {
   const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
   if (row) {
@@ -487,6 +469,7 @@ function ensureRecipe(code, name, tier, outCode, ingCodes) {
   }
   return rid;
 }
+
 
 // T1
 ensureItem("SCRAP","Scrap",1,1);
@@ -1601,4 +1584,5 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
