@@ -1,5 +1,5 @@
-/* =========================== 
-   ARTEFACT • Global styles
+/* ===========================
+   ARTEFACT • Global styles (uskladjeno)
    =========================== */
 
 :root{
@@ -12,7 +12,7 @@
   --accent-2:#334155;
   --danger:#ef4444;
   --success:#22c55e;
-  --cell: 1.5cm; /* VISINA REDA i SLOT (liste) = 1.5 cm */
+  --cell: 1.5cm;   /* visina/širina slike i slota u appu */
 }
 
 *{ box-sizing:border-box; }
@@ -56,7 +56,7 @@ a{ color:inherit; text-decoration:underline; text-underline-offset:2px; }
 }
 
 /* ===========================
-   Buttons
+   Buttons / Inputs
    =========================== */
 
 input,select,button{ font:inherit; }
@@ -85,7 +85,7 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
   font-size:14px;
 }
 
-/* Red u listama: tačno 1.5 cm visine */
+/* Red u listama: tačno 1.5 cm visine (usklađeno sa slikama) */
 .itemrow{ 
   display:flex; 
   align-items:center; 
@@ -97,68 +97,65 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 }
 .itemrow:last-child{ border-bottom:0; }
 
-/* Kontejner liste */
 .list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
 /* ===========================
-   SLOT ZA SLIKE – 1.5 cm × 1.5 cm (LISTE)
+   SLIKE U APPU — 1.5 cm (index koristi class="img-cell")
    =========================== */
-.list .itemrow .img-slot{
+.img-cell{
   width: var(--cell);
   height: var(--cell);
-  min-height: var(--cell);     /* fix: pobija globalni min-height */
   flex: 0 0 var(--cell);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-
-/* Slika u listama popunjava cijeli slot (nema lufta) */
-.list .itemrow .img-slot img{
-  width:100%;
-  height:100%;
-  object-fit:cover;  /* stavi contain ako ne želiš crop */
   display:block;
+  object-fit:cover;           /* stavi contain ako ne želiš crop */
   border-radius:2px;
 }
 
 /* ===========================
-   CRAFTING: slika Artefakta = 1.5 cm (eksplicitno)
+   SLOT/PROSTOR ZA SLIKE U LISTAMA — 1.5 cm
+   (ako koristiš wrapper <div class="img-slot"><img ...></div>)
    =========================== */
-#tab-craft .img-slot{
+.img-slot{
   width: var(--cell);
   height: var(--cell);
-  min-height: var(--cell);     /* fix: pobija globalni min-height */
+  min-height: var(--cell);    /* sigurno pobija sve globalne min-height */
   flex: 0 0 var(--cell);
   display:flex;
   align-items:center;
   justify-content:center;
   overflow:hidden;
+  border-radius:2px;
 }
-#tab-craft .img-slot img{
+.img-slot img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:cover;           /* stavi contain ako ne želiš crop */
   display:block;
   border-radius:2px;
 }
 
+/* Craft tab (ako se koristi slot unutra) */
+#tab-craft .img-slot{
+  width: var(--cell);
+  height: var(--cell);
+  min-height: var(--cell);
+  flex: 0 0 var(--cell);
+}
+
+/* ===========================
+   Tabbar / chips
+   =========================== */
 .tabbar{ margin:6px 0 4px; }
 .chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
 .chip.active{ background:#0e3a2f; }
 
 /* ===========================
-   Typography
-   =========================== */
-/* (nema .icon stilova – koristimo .img-slot img i .item-img) */
-
-/* ===========================
-   Global images (preview izvan listi)
+   Global images (landing / preview)
    =========================== */
 
-/* Velike/preview slike na početnoj stranici: 4 cm × 4 cm */
+/* Landing (HOW) slike — 4 cm × 4 cm (pokriva i class="img-landing" iz indexa) */
 #how .card img,
+.img-landing,
 .item-img{
   width: 4cm !important;
   height: 4cm !important;
@@ -171,47 +168,22 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 }
 
 /* ===========================
-   Image containers (drugi preview slotovi, ako ih koristiš)
-   =========================== */
-
-.img-slot{
-  margin-top:10px; width:100%; min-height:200px;
-  border:1px dashed #233047; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; opacity:.85;
-}
-.img-slot:hover{ opacity:1; }
-
-/* ===========================
-   Grid stretch (kontejneri maksimalno u linijama)
+   Layout sitnice
    =========================== */
 
 .grid, .grid-4, .grid-5{ align-items:stretch; }
 .grid > .card, .grid-4 > .card, .grid-5 > .card{ height:100%; }
 
-/* ===========================
-   HOW sekcija – layout
-   =========================== */
-
 #how .grid{ grid-auto-rows:1fr; }
-
 #how .card{
   min-height:460px;
   padding:20px 16px;
   display:flex; flex-direction:column;
 }
-
 #how .card .label,
 #how .card p{ margin-bottom:10px; }
-
 #how .card p{
   flex:1 1 auto; min-height:0;
 }
 
-/* ===========================
-   Artefakt (srednja veličina)
-   =========================== */
-
-#how .card:last-child img{
-  /* ostaje 4cm zbog selektora iznad; ovaj blok može ostati prazan ili se ukloniti */
-}
+/* Nema .icon stilova – sve ide preko .img-cell / .img-slot / .img-landing */
