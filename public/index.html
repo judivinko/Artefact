@@ -974,223 +974,247 @@
     });
   </script>
 
-   <!-- ===== Market & Inventory ===== -->
-  <script>
-    window.SEL_INV = null;
+  <!-- ===== Market & Inventory ===== -->
+<script>
+  window.SEL_INV = null;
 
-    async function loadInventoryPanel(){
-      const box = $("#inv-list"); if(!box) return;
-      box.textContent = "Loading…";
-      try{
-        const r = await api("/api/inventory");
-        const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-        const itemsAll = Array.isArray(r.items) ? r.items : [];
-        const items = itemsAll.filter(x => !q || (x.name||"").toLowerCase().includes(q));
-        const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
-        const recipes = (Array.isArray(r.recipes) ? r.recipes : [])
-          .filter(x => !q || (x.name||"").toLowerCase().includes(q));
-        box.innerHTML = "";
-        const add = (arr, kind) => {
-          for (const it of arr){
-            const icon = (kind==="item") ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-            const row = document.createElement("div");
-            row.className = "itemrow";
-            row.innerHTML = `
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-                <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
-              </div>
-              <button class="btn muted">Pick</button>`;
-            row.querySelector("button").addEventListener("click", ()=>{
-              window.SEL_INV = { kind, id: it.id, name: it.name };
-              const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
-            });
-            box.appendChild(row);
-          }
-        };
-        add(itemsFiltered,"item");
-        add(recipes,"recipe");
-        if (!box.children.length) box.textContent = "Empty.";
-      }catch(e){
-        box.textContent = e?.message || "Failed.";
-      }
-    }
-    $("#inv-search")?.addEventListener("input", loadInventoryPanel);
-
-    async function loadMarket(){
-      const box = $("#market"); if(!box) return;
-      box.textContent = "Loading…";
-      try{
-        const qRaw = $("#market-q")?.value || "";
-        const q = qRaw.trim();
-        const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
-        const rows = (r?.listings || []).filter(Boolean);
-        const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-        if (!rowsFiltered.length){ box.textContent="No listings."; return; }
-        box.innerHTML = "";
-        for (const s of rowsFiltered){
-          const priceS = s?.price_s | 0;
-          const g = Math.floor(priceS/100), ss = priceS%100;
-          const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-          const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-          const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);
+  async function loadInventoryPanel(){
+    const box = $("#inv-list"); if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const r = await api("/api/inventory");
+      const q = ($("#inv-search")?.value || "").trim().toLowerCase();
+      const itemsAll = Array.isArray(r.items) ? r.items : [];
+      const items = itemsAll.filter(x => !q || (x.name||"").toLowerCase().includes(q));
+      const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
+      const recipes = (Array.isArray(r.recipes) ? r.recipes : [])
+        .filter(x => !q || (x.name||"").toLowerCase().includes(q));
+      box.innerHTML = "";
+      const add = (arr, kind) => {
+        for (const it of arr){
+          const icon = (kind==="item") ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
           const row = document.createElement("div");
           row.className = "itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div><span class="badge">${mine ? "N" : "Y"}</span> ${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
+              <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
             </div>
-            <div class="row">
-              <span class="badge">${g}g ${ss}s</span>
-              ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
-            </div>`;
-          const btn = row.querySelector("button");
-          if (!mine) {
-            btn.addEventListener("click", async ()=>{
-              if (btn.disabled) return;
-              const prev = btn.textContent;
-              btn.disabled = true; btn.textContent = "Buying…";
-              try{
-                await api("/api/sales/buy",{method:"POST",body:JSON.stringify({id:s.id})});
-                toast("Purchased.");
-                loadMarket();
-                loadMine();
-                loadInventoryPanel();
-                safeCall("loadInventoryFull");
-                if (typeof renderBalance === "function") renderBalance();
-              }catch(e){
-                const msg = e?.message || e?.error || "Purchase failed.";
-                toast(msg);
-              }finally{
-                btn.disabled = false; btn.textContent = prev;
-              }
-            });
-          } else {
-            btn?.addEventListener?.("click", ()=> toast("To je tvoj oglas."));
-          }
+            <button class="btn muted">Pick</button>`;
+          row.querySelector("button").addEventListener("click", ()=>{
+            window.SEL_INV = { kind, id: it.id, name: it.name };
+            const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
+          });
           box.appendChild(row);
         }
-      }catch(e){
-        box.textContent = e?.message || "Failed.";
-      }
+      };
+      add(itemsFiltered,"item");
+      add(recipes,"recipe");
+      if (!box.children.length) box.textContent = "Empty.";
+    }catch(e){
+      box.textContent = e?.message || "Failed.";
     }
-    $("#market-q")?.addEventListener("input", loadMarket);
+  }
+  $("#inv-search")?.addEventListener("input", loadInventoryPanel);
 
-    async function loadMine(){
-      const box = $("#mine"); if(!box) return;
-      box.textContent = "Loading…";
-      try{
-        const r = await api("/api/sales/mine");
-        const rows = (r?.listings || [])
-          .filter(Boolean)
-          .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-        if (!rows.length){
-          box.textContent = "No live listings.";
-          return;
-        }
-        box.innerHTML = "";
-        for (const s of rows){
-          const priceS = s?.price_s | 0;
-          const g = Math.floor(priceS/100), ss = priceS%100;
-          const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-          const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-          const row = document.createElement("div");
-          row.className = "itemrow";
-          row.innerHTML = `
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
-            </div>
-            <div class="row">
-              <span class="badge">${g}g ${ss}s</span>
-              <button class="btn danger">Cancel</button>
-            </div>
-          `;
-          const btn = row.querySelector("button");
+  async function loadMarket(){
+    const box = $("#market"); if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const qRaw = $("#market-q")?.value || "";
+      const q = qRaw.trim();
+      const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
+      const rows = (r?.listings || []).filter(Boolean);
+      const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
+      if (!rowsFiltered.length){ box.textContent="No listings."; return; }
+      box.innerHTML = "";
+      for (const s of rowsFiltered){
+        const priceS = s?.price_s | 0;
+        const g = Math.floor(priceS/100), ss = priceS%100;
+        const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
+        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
+        const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);
+        const row = document.createElement("div");
+        row.className = "itemrow";
+        row.innerHTML = `
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div><span class="badge">${mine ? "N" : "Y"}</span> ${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
+          </div>
+          <div class="row">
+            <span class="badge">${g}g ${ss}s</span>
+            ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
+          </div>`;
+        const btn = row.querySelector("button");
+        if (!mine) {
           btn.addEventListener("click", async ()=>{
             if (btn.disabled) return;
             const prev = btn.textContent;
-            btn.disabled = true; btn.textContent = "Cancel…";
+            btn.disabled = true; btn.textContent = "Buying…";
             try{
-              await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-              loadMarket();
-              loadMine();
-              loadInventoryPanel();
+              const res = await api("/api/sales/buy", {
+                method:"POST",
+                body: JSON.stringify({ id: s.id }) // ako backend očekuje "listing_id", promijeni ovdje ključ
+              });
+
+              // ažuriraj balans ako backend vrati
+              if (res && typeof res.balance_silver === "number" && WHO) {
+                WHO.balance_silver = res.balance_silver | 0;
+              }
+
+              // povuci svježe stanje korisnika (balans/perkovi/buys_to_next)
+              await refreshMeLight();
+
+              // osvježi market + moje oglase + inventar (panel + full)
+              await loadMarket();
+              await loadMine();
+              await loadInventoryPanel();
+              await safeCall("loadInventoryFull");
+
+              // user feedback
+              if (res?.purchased?.name) {
+                const qty = res?.purchased?.qty ?? 1;
+                toast(`Purchased: ${res.purchased.name}${qty>1?` (x${qty})`:""}`);
+              } else {
+                toast("Purchased.");
+              }
             }catch(e){
-              toast(e?.message || "Cancel failed.");
+              const msg = e?.data?.error || e?.message || e?.error || "Purchase failed.";
+              toast(msg);
             }finally{
               btn.disabled = false; btn.textContent = prev;
             }
           });
-          box.appendChild(row);
+        } else {
+          btn?.addEventListener?.("click", ()=> toast("To je tvoj oglas."));
         }
-      }catch(e){
-        box.textContent = e?.message || "Failed.";
+        box.appendChild(row);
       }
+    }catch(e){
+      box.textContent = e?.message || "Failed.";
     }
+  }
+  $("#market-q")?.addEventListener("input", loadMarket);
 
-    $("#btn-mine")?.addEventListener("click", loadMine);
-
-    $("#btn-list")?.addEventListener("click", async ()=>{
-      try{
-        const sel = window.SEL_INV;
-        if (!sel){ toast("Pick an item/recipe first."); return; }
-        const gold = parseInt($("#price-g")?.value || "0", 10) || 0;
-        let silver = parseInt($("#price-s")?.value || "0", 10) || 0;
-        const qty = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
-        if (silver < 0) silver = 0;
-        if (silver > 99) silver = 99;
-        await api("/api/sales/list", {
-          method: "POST",
-          body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
+  async function loadMine(){
+    const box = $("#mine"); if(!box) return;
+    box.textContent = "Loading…";
+    try{
+      const r = await api("/api/sales/mine");
+      const rows = (r?.listings || [])
+        .filter(Boolean)
+        .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
+      if (!rows.length){
+        box.textContent = "No live listings.";
+        return;
+      }
+      box.innerHTML = "";
+      for (const s of rows){
+        const priceS = s?.price_s | 0;
+        const g = Math.floor(priceS/100), ss = priceS%100;
+        const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
+        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
+        const row = document.createElement("div");
+        row.className = "itemrow";
+        row.innerHTML = `
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
+          </div>
+          <div class="row">
+            <span class="badge">${g}g ${ss}s</span>
+            <button class="btn danger">Cancel</button>
+          </div>
+        `;
+        const btn = row.querySelector("button");
+        btn.addEventListener("click", async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent;
+          btn.disabled = true; btn.textContent = "Cancel…";
+          try{
+            await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
+            await loadMarket();
+            await loadMine();
+            await loadInventoryPanel();
+            await safeCall("loadInventoryFull");
+            await refreshMeLight();
+          }catch(e){
+            toast(e?.message || "Cancel failed.");
+          }finally{
+            btn.disabled = false; btn.textContent = prev;
+          }
         });
-        const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
-        window.SEL_INV = null;
-        loadMarket();
-        loadMine();
-        loadInventoryPanel();
-      }catch(e){
-        const msg = e?.message || "Listing failed.";
-        ( $("#list-msg") ? ($("#list-msg").textContent = msg) : toast(msg) );
+        box.appendChild(row);
       }
-    });
-
-    async function loadInventoryFull(){
-      const box=$("#inv-full"); if(!box) return;
-      box.textContent="Loading…";
-      try{
-        const r = await api("/api/inventory");
-        const items   = Array.isArray(r.items)   ? r.items   : [];
-        const recipes = Array.isArray(r.recipes) ? r.recipes : [];
-        const lines=[];
-        for(const it of items){
-          const icon = (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON);
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-                <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
-              </div>
-              <div class="muted">x${it.qty}</div>
-            </div>`);
-        }
-        for(const rc of recipes){
-          lines.push(`
-            <div class="itemrow">
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
-                <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
-              </div>
-              <div class="muted">x${rc.qty}</div>
-            </div>`);
-        }
-        box.innerHTML = lines.join("") || "Empty.";
-      }catch(e){
-        box.textContent = e?.message || "Failed.";
-      }
+    }catch(e){
+      box.textContent = e?.message || "Failed.";
     }
-  </script>
+  }
+
+  $("#btn-mine")?.addEventListener("click", loadMine);
+
+  $("#btn-list")?.addEventListener("click", async ()=>{
+    try{
+      const sel = window.SEL_INV;
+      if (!sel){ toast("Pick an item/recipe first."); return; }
+      const gold = parseInt($("#price-g")?.value || "0", 10) || 0;
+      let silver = parseInt($("#price-s")?.value || "0", 10) || 0;
+      const qty = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
+      if (silver < 0) silver = 0;
+      if (silver > 99) silver = 99;
+      await api("/api/sales/list", {
+        method: "POST",
+        body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
+      });
+      const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
+      window.SEL_INV = null;
+      await loadMarket();
+      await loadMine();
+      await loadInventoryPanel();
+      await safeCall("loadInventoryFull");
+      await refreshMeLight();
+    }catch(e){
+      const msg = e?.message || "Listing failed.";
+      ( $("#list-msg") ? ($("#list-msg").textContent = msg) : toast(msg) );
+    }
+  });
+
+  async function loadInventoryFull(){
+    const box=$("#inv-full"); if(!box) return;
+    box.textContent="Loading…";
+    try{
+      const r = await api("/api/inventory");
+      const items   = Array.isArray(r.items)   ? r.items   : [];
+      const recipes = Array.isArray(r.recipes) ? r.recipes : [];
+      const lines=[];
+      for(const it of items){
+        const icon = (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON);
+        lines.push(`
+          <div class="itemrow">
+            <div class="row" style="gap:10px;align-items:center">
+              <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
+            </div>
+            <div class="muted">x${it.qty}</div>
+          </div>`);
+      }
+      for(const rc of recipes){
+        lines.push(`
+          <div class="itemrow">
+            <div class="row" style="gap:10px;align-items:center">
+              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
+              <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
+            </div>
+            <div class="muted">x${rc.qty}</div>
+          </div>`);
+      }
+      box.innerHTML = lines.join("") || "Empty.";
+    }catch(e){
+      box.textContent = e?.message || "Failed.";
+    }
+  }
+</script>
+
 
   <!-- ===== BONUS (frontend) ===== -->
   <script>
@@ -1283,3 +1307,4 @@
   </script>
 </body>
 </html>
+
