@@ -83,6 +83,27 @@
     #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
     @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
     #paypal-wrap{ display:none !important; }
+
+    /* ===== DODANO: fiksne dimenzije slika umjesto "ikona" ===== */
+    :root{
+      --cell: 1.5cm;   /* visina/širina za sve slike u aplikaciji (slotovi, craft, market, inventory, bonus) */
+      --landing: 4cm;  /* slike na početnoj stranici (HOW sekcija) */
+    }
+    .img-cell{
+      width: var(--cell);
+      height: var(--cell);
+      object-fit: contain;
+      border-radius: 6px;
+      display: block;
+    }
+    .img-landing{
+      width: var(--landing);
+      height: var(--landing);
+      object-fit: contain;
+      border-radius: 10px;
+      display: block;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -151,8 +172,8 @@
             In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
             Materials are ingredients for crafting, while recipes unlock higher tiers.
           </p>
-          <img src="/t1_bronze.png" alt="T1 example" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-          <img src="/recipe.png" alt="Recipe example" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+          <img src="/t1_bronze.png" alt="T1 example" class="img-landing" onerror="this.style.display='none'">
+          <img src="/recipe.png" alt="Recipe example" class="img-landing" onerror="this.style.display='none'">
         </div>
 
         <div class="card">
@@ -162,10 +183,10 @@
             Crafting can sometimes <i>fail</i> and yield <b>Scrap</b> —
             <span id="craft-fail-note" class="badge">10% fail</span>
           </p>
-          <img src="/t2_golden_ring.png" alt="T2" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-          <img src="/t3_gate_of_might.png" alt="T3" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-          <img src="/t4_engine_core.png" alt="T4" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
-          <img src="/t5_ancient_relic.png" alt="T5" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+          <img src="/t2_golden_ring.png" alt="T2" class="img-landing" onerror="this.style.display='none'">
+          <img src="/t3_gate_of_might.png" alt="T3" class="img-landing" onerror="this.style.display='none'">
+          <img src="/t4_engine_core.png" alt="T4" class="img-landing" onerror="this.style.display='none'">
+          <img src="/t5_ancient_relic.png" alt="T5" class="img-landing" onerror="this.style.display='none'">
         </div>
 
         <div class="card">
@@ -184,7 +205,7 @@
             When you have <b>10 different T5</b>, you can craft an <b>ARTEFACT</b>.<br>
             It provides a permanent <b>gold bonus</b> — and unlocks the <b>Bonus</b> section.
           </p>
-          <img src="/artefakt.png" alt="Artefact" style="width:8em;height:8em;object-fit:contain;border-radius:10px;margin-top:8px;display:block" onerror="this.style.display='none'">
+          <img src="/artefakt.png" alt="Artefact" class="img-landing" onerror="this.style.display='none'">
         </div>
       </div>
     </section>
@@ -231,7 +252,7 @@
         <div class="label">Crafting</div>
         <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
         <button id="btn-artefact" class="btn right">
-          <img src="/artefakt.png" alt="Artefact" style="width:20px;height:20px;object-fit:contain;vertical-align:-3px;margin-right:8px;border-radius:4px" onerror="this.onerror=null;this.style.display='none'">
+          <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
           Craft ARTEFACT (10× distinct T5)
         </button>
       </div>
@@ -685,7 +706,7 @@
       const icon = iconForByCode(obj.code, obj.tier);
       msg.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
         </div>`;
     }
@@ -693,7 +714,7 @@
       const msg = $("#shop-msg"); if(!msg) return;
       msg.innerHTML = `
         <div class="row" style="gap:10px;align-items:center">
-          <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+          <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
           <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
         </div>`;
     }
@@ -821,7 +842,7 @@
       return `
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="icon" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+            <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
             <div>
               <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
               <div class="muted">T${r.tier} · x${r.qty}</div>
@@ -857,7 +878,7 @@
         return `
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
             </div>
             <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
@@ -976,7 +997,7 @@
             row.className = "itemrow";
             row.innerHTML = `
               <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+                <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
                 <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
               </div>
               <button class="btn muted">Pick</button>`;
@@ -1017,7 +1038,7 @@
           row.className = "itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div><span class="badge">${mine ? "N" : "Y"}</span> ${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
             </div>
             <div class="row">
@@ -1078,7 +1099,7 @@
           row.className = "itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
-              <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
               <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
             </div>
             <div class="row">
@@ -1148,7 +1169,7 @@
           lines.push(`
             <div class="itemrow">
               <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+                <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
                 <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
               </div>
               <div class="muted">x${it.qty}</div>
@@ -1158,7 +1179,7 @@
           lines.push(`
             <div class="itemrow">
               <div class="row" style="gap:10px;align-items:center">
-                <img class="icon" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
+                <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
                 <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
               </div>
               <div class="muted">x${rc.qty}</div>
@@ -1185,7 +1206,7 @@
       const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
       return `
         <div class="tile ${ok?'ok':'miss'}">
-          <img class="icon" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>${esc(name)}</div>
         </div>`;
     }
