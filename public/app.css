@@ -12,6 +12,7 @@
   --accent-2:#334155;
   --danger:#ef4444;
   --success:#22c55e;
+  --cell:20px; /* visina reda (razmak između linija) */
 }
 
 *{ box-sizing:border-box; }
@@ -83,7 +84,14 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
   background:#071021;
   font-size:14px;
 }
-.itemrow{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid var(--line); }
+.itemrow{ 
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between; 
+  padding:0 6px; 
+  border-bottom:1px solid var(--line); 
+  min-height:var(--cell); /* visina reda = 20px */
+}
 .itemrow:last-child{ border-bottom:0; }
 .list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
@@ -95,7 +103,14 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
    Typography
    =========================== */
 
-img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block; }
+img.icon{ 
+  width:auto; 
+  height:100%;          /* slika popunjava cijeli red */
+  aspect-ratio:1/1;     /* kvadrat */
+  object-fit:cover; 
+  border-radius:4px; 
+  display:block; 
+}
 
 #about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
 #how .label, #tips .label{ font-size:20px; }
@@ -165,34 +180,4 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 #how .card:last-child img{
   max-width:500px !important;
   max-height:500px !important;
-}
-
-/* ===========================
-   Slot za slike u listama (Crafting / Inventory / Market)
-   =========================== */
-
-:root { --cell: 96px; } /* podešava kvadratni slot, mijenjaj po potrebi */
-
-.list .itemrow{
-  min-height: var(--cell);
-  align-items: stretch;
-}
-
-.list .itemrow > .row{
-  height: 100%;
-  align-items: stretch !important;
-  gap: 10px;
-}
-
-.list .itemrow img.icon{
-  height: 100%;
-  aspect-ratio: 1 / 1;
-  width: auto;
-  object-fit: cover;  /* ili contain ako ne želiš crop */
-  display: block;
-  border-radius: 10px;
-}
-
-.list .itemrow > button{
-  align-self: center;
 }
