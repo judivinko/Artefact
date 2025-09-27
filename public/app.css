@@ -166,3 +166,33 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
   max-width:500px !important;
   max-height:500px !important;
 }
+
+/* ===========================
+   Slot za slike u listama (Crafting / Inventory / Market)
+   =========================== */
+
+:root { --cell: 96px; } /* podešava kvadratni slot, mijenjaj po potrebi */
+
+.list .itemrow{
+  min-height: var(--cell);
+  align-items: stretch;
+}
+
+.list .itemrow > .row{
+  height: 100%;
+  align-items: stretch !important;
+  gap: 10px;
+}
+
+.list .itemrow img.icon{
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  width: auto;
+  object-fit: cover;  /* ili contain ako ne želiš crop */
+  display: block;
+  border-radius: 10px;
+}
+
+.list .itemrow > button{
+  align-self: center;
+}
