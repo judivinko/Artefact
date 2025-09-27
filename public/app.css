@@ -12,7 +12,7 @@
   --accent-2:#334155;
   --danger:#ef4444;
   --success:#22c55e;
-  --cell:20px; /* visina reda i slotova */
+  --cell: 1cm; /* VISINA REDA = 1 cm, SLIKA/slot = 1 cm × 1 cm */
 }
 
 *{ box-sizing:border-box; }
@@ -85,34 +85,37 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
   font-size:14px;
 }
 
+/* Red u listama: tačno 1 cm visine (razmak između linija = 1 cm) */
 .itemrow{ 
   display:flex; 
   align-items:center; 
   justify-content:space-between; 
-  padding:0 6px; 
+  padding:0 6px;                 /* bez vertikalnog paddinga da linije budu uz sadržaj */
   border-bottom:1px solid var(--line); 
   min-height:var(--cell);
   max-height:var(--cell);
 }
 .itemrow:last-child{ border-bottom:0; }
+
+/* Kontejner liste */
 .list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
 
-/* ==== SLOT ZA SLIKE (20×20 px) ==== */
+/* SLOT ZA SLIKE U LISTAMA (Crafting / Inventory / Market) – 1 cm × 1 cm */
 .list .itemrow .img-slot{
-  width:var(--cell);
-  height:var(--cell);
-  flex:0 0 var(--cell);
+  width: var(--cell);
+  height: var(--cell);
+  flex: 0 0 var(--cell);
   display:flex;
   align-items:center;
   justify-content:center;
   overflow:hidden;
 }
 
-/* Slika puni cijeli slot */
+/* Slika popunjava cijeli slot (bez lufta) */
 .list .itemrow .img-slot img.icon{
   width:100%;
   height:100%;
-  object-fit:cover;
+  object-fit:cover;  /* koristi contain ako ne želiš crop */
   display:block;
   border-radius:2px;
 }
@@ -124,6 +127,8 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
 /* ===========================
    Typography
    =========================== */
+
+img.icon{ width:auto; height:auto; object-fit:contain; border-radius:6px; display:block; } /* globalno; u listama ga prepisujemo preko .img-slot img.icon */
 
 #about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
 #how .label, #tips .label{ font-size:20px; }
@@ -140,7 +145,7 @@ img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
 }
 
 /* ===========================
-   Image containers (preview slotovi)
+   Image containers (preview slotovi izvan listi)
    =========================== */
 
 .img-slot{
