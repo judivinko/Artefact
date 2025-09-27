@@ -84,16 +84,33 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
   background:#071021;
   font-size:14px;
 }
+
 .itemrow{ 
   display:flex; 
   align-items:center; 
   justify-content:space-between; 
   padding:0 6px; 
   border-bottom:1px solid var(--line); 
-  min-height:var(--cell); /* visina reda = 20px */
+  min-height:var(--cell); /* red visok 20px */
 }
 .itemrow:last-child{ border-bottom:0; }
 .list{ max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+
+/* Slika puni cijeli kvadrat (20×20px) */
+.list .itemrow > .row{
+  gap:6px;
+  align-items:center !important;
+  height:var(--cell);
+}
+
+.list .itemrow img.icon{
+  flex:0 0 var(--cell);
+  width:var(--cell) !important;
+  height:var(--cell) !important;
+  object-fit:cover;
+  display:block;
+  border-radius:2px;
+}
 
 .tabbar{ margin:6px 0 4px; }
 .chip{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1b2a; cursor:pointer; }
@@ -103,81 +120,9 @@ button:disabled, .btn:disabled{ opacity:.6; cursor:not-allowed; }
    Typography
    =========================== */
 
-img.icon{ 
-  width:auto; 
-  height:100%;          /* slika popunjava cijeli red */
-  aspect-ratio:1/1;     /* kvadrat */
-  object-fit:cover; 
-  border-radius:4px; 
-  display:block; 
-}
-
 #about p, #how p, #tips li{ font-size:16px; line-height:1.6; }
 #how .label, #tips .label{ font-size:20px; }
 
 /* ===========================
    Global images
-   =========================== */
-
-img:not(.icon){ max-width:512px; max-height:512px; width:auto; height:auto; }
-
-.item-img{
-  display:block; width:100%; max-width:512px; max-height:512px;
-  object-fit:contain; border-radius:10px; margin-top:8px;
-}
-
-/* ===========================
-   Image containers
-   =========================== */
-
-.img-slot{
-  margin-top:10px; width:100%; min-height:200px;
-  border:1px dashed #233047; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; opacity:.85;
-}
-.img-slot:hover{ opacity:1; }
-
-/* ===========================
-   Grid stretch (kontejneri maksimalno u linijama)
-   =========================== */
-
-.grid, .grid-4, .grid-5{ align-items:stretch; }
-.grid > .card, .grid-4 > .card, .grid-5 > .card{ height:100%; }
-
-/* ===========================
-   HOW sekcija (veći stage + slike pune kontejner)
-   =========================== */
-
-#how .grid{ grid-auto-rows:1fr; }
-
-#how .card{
-  min-height:460px;
-  padding:20px 16px;
-  display:flex; flex-direction:column;
-}
-
-#how .card .label,
-#how .card p{ margin-bottom:10px; }
-
-#how .card p{
-  flex:1 1 auto; min-height:0;
-}
-
-#how .card img{
-  width:100% !important;
-  height:auto !important;
-  display:block;
-  margin-top:auto; margin-bottom:0;
-  object-fit:contain; border-radius:10px;
-  max-width:512px; max-height:512px;
-}
-
-/* ===========================
-   Artefakt (srednja veličina)
-   =========================== */
-
-#how .card:last-child img{
-  max-width:500px !important;
-  max-height:500px !important;
-}
+   ============
