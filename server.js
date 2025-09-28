@@ -440,12 +440,13 @@ db.transaction(() => {
 
 const NAME_BY_CODE = Object.fromEntries([
   ["SCRAP","Scrap"],
-  ...T1,          // [["BRONZE","Bronze"], ...]   (from your existing arrays)
-  ...T2_ITEMS,    // e.g. ["T2_BRONZE_DOOR","Bronze Door"]
+  ...T1,
+  ...T2_ITEMS,
   ...T3_ITEMS,
   ...T4_ITEMS,
   ...T5_ITEMS,
 ]);
+
 
 function nameFor(code){ return NAME_BY_CODE[code] || code; }
 
@@ -1575,6 +1576,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
