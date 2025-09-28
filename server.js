@@ -435,9 +435,6 @@ db.transaction(() => {
   }
 })();
 
-// --- helpers for seeding REALISTIC RECIPES (EN) ---
-// Quantities are represented by repeating ingredient codes; ensureRecipe inserts each as qty=1.
-
 const NAME_BY_CODE = Object.fromEntries([
   ["SCRAP","Scrap"],
   ...T1,
@@ -447,13 +444,8 @@ const NAME_BY_CODE = Object.fromEntries([
   ...T5_ITEMS,
 ]);
 
-function nameFor(code){
-  return NAME_BY_CODE[code] || code;
-}
+function nameFor(code){ return NAME_BY_CODE[code] || code; }
 
-// -------------------------------
-// T2 from T1
-// -------------------------------
 const RECIPES_T2 = {
   T2_BRONZE_DOOR:    ["BRONZE","BRONZE","BRONZE","IRON"],
   T2_SILVER_GOBLET:  ["SILVER","SILVER","SILVER","GOLD"],
@@ -467,9 +459,6 @@ const RECIPES_T2 = {
   T2_IRON_ARMOR:     ["IRON","IRON","IRON","IRON","LEATHER","CLOTH","BRONZE"],
 };
 
-// -------------------------------
-// T3 from T2
-// -------------------------------
 const RECIPES_T3 = {
   T3_GATE_OF_MIGHT:      ["T2_BRONZE_DOOR","T2_BRONZE_DOOR","T2_BRONZE_DOOR","T2_IRON_ARMOR"],
   T3_GOBLET_OF_WISDOM:   ["T2_SILVER_GOBLET","T2_SILVER_GOBLET","T2_SILVER_GOBLET","T2_CRYSTAL_ORB"],
@@ -483,9 +472,6 @@ const RECIPES_T3 = {
   T3_ARMOR_OF_GUARD:     ["T2_IRON_ARMOR","T2_IRON_ARMOR","T2_IRON_ARMOR","T2_IRON_ARMOR","T2_STONE_PILLAR","T2_BRONZE_DOOR","T2_LEATHER_BAG"],
 };
 
-// -------------------------------
-// T4 from T3
-// -------------------------------
 const RECIPES_T4 = {
   T4_CRYSTAL_LENS:     ["T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE"],
   T4_ENGINE_CORE:      ["T3_ARMOR_OF_GUARD","T3_ARMOR_OF_GUARD","T3_ARMOR_OF_GUARD","T3_GATE_OF_MIGHT","T3_PILLAR_OF_STRENGTH"],
@@ -499,9 +485,6 @@ const RECIPES_T4 = {
   T4_WISDOM_GOBLET:    ["T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_CHEST_OF_SECRETS","T3_GATE_OF_MIGHT"],
 };
 
-// -------------------------------
-// T5 from T4
-// -------------------------------
 const RECIPES_T5 = {
   T5_ANCIENT_RELIC:   ["T4_SECRET_CHEST","T4_SECRET_CHEST","T4_SECRET_CHEST","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_STRENGTH_PILLAR"],
   T5_SUN_LENS:        ["T4_CRYSTAL_LENS","T4_CRYSTAL_LENS","T4_CRYSTAL_LENS","T4_VISION_CORE","T4_WISDOM_GOBLET","T4_MIGHT_GATE"],
@@ -515,22 +498,16 @@ const RECIPES_T5 = {
   T5_WISDOM_CHALICE:  ["T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_VISION_CORE","T4_SECRET_CHEST","T4_TRAVELER_SATCHEL","T4_MIGHT_GATE","T4_NOMAD_DWELLING"],
 };
 
-// -------------------------------
-// seed helpers
-// -------------------------------
 function seedRecipeMap(tier, map){
   for (const [outCode, ingCodes] of Object.entries(map)){
     ensureRecipe("R_"+outCode, nameFor(outCode), tier, outCode, ingCodes);
   }
 }
 
-// seed all
 seedRecipeMap(2, RECIPES_T2);
 seedRecipeMap(3, RECIPES_T3);
 seedRecipeMap(4, RECIPES_T4);
 seedRecipeMap(5, RECIPES_T5);
-
-// (ARTEFACT stays recipe-less)
 
 
 // ----------------- AUTH -----------------
@@ -1562,6 +1539,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
