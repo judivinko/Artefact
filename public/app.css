@@ -163,18 +163,32 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
 @media (max-width:600px){ #tab-shop .buy-block{ width:100% } }
 
 /* ------------------------------
-   CRAFTING
+   CRAFTING — balansirano
 ------------------------------ */
 #tab-craft{
   min-height: calc(100vh - var(--vh-offset));
-}
-#tab-craft:not(.hidden){
   display:flex;
   flex-direction:column;
 }
-#tab-craft .grid{ flex:1; min-height:0 }
-#tab-craft .grid > .card{ display:flex; flex-direction:column; min-height:0 }
-#recipes.list, #rec-details.list{ flex:1; min-height:0; max-height:none }
+#tab-craft .grid{
+  flex:1;
+  min-height:0;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+#tab-craft .grid > .card{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  flex:1;
+}
+#recipes.list,
+#rec-details.list{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+}
 
 /* ------------------------------
    INVENTORY
