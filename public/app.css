@@ -1,9 +1,5 @@
 /* =========================================================
-   ARTEFACT — APP CSS (fixed)
-   - Fixes craft/inventory overflow
-   - Proper admin scoping (requires <body class="admin">)
-   - Safer heights with flex/min-height:0
-   - Consistent lists, chips, inputs, images
+   ARTEFACT — FULL CSS (App first, Admin scoped last)
    ========================================================= */
 
 /* ------------------------------
@@ -13,15 +9,15 @@
   --line:#233047;
   --text:#e5e7eb;
 
-  /* Images / slots */
-  --cell: 1.5cm;         /* universal slot size */
-  --landing: 4cm;        /* landing HOW images */
+  /* SLIKE / SLOTOVI */
+  --cell: 1.5cm;          /* univerzalni slot za ikonice/slike */
+  --landing: 4cm;         /* landing HOW slike */
 
   /* Layout helpers */
-  --row-pad-v: 8px;      /* vertical padding of itemrow */
-  --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
+  --row-pad-v: 8px;       /* vert. padding itemrow-a */
+  --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px); /* slika + padding + border */
 
-  /* Background */
+  /* Pozadina */
   --bg0:#0b1220;
   --bg1:#0e1b2e;
   --bg2:#0a0f1f;
@@ -34,7 +30,8 @@
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
-  margin:0; color:var(--text);
+  margin:0;
+  color:var(--text);
   background:
     radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
     radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
@@ -42,7 +39,8 @@ body{
     linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
 }
 body::before{
-  content:""; position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
   background:
     radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.04), transparent 40%),
     radial-gradient(ellipse at 70% 70%, rgba(255,255,255,0.035), transparent 45%);
@@ -53,7 +51,7 @@ body::before{
 /* ------------------------------
    Utilities / text / layout
 ------------------------------ */
-.hidden{ display:none }
+.hidden{ display:none !important }
 .muted{ opacity:.8 }
 .label{ font-weight:600 }
 .brand{ font-weight:700 }
@@ -70,7 +68,7 @@ body::before{
   position:sticky; top:0; z-index:20;
   background:rgba(11,18,32,.6); backdrop-filter: blur(8px);
 }
-.header.no-border{ border-bottom:0!important }
+.header.no-border{ border-bottom:0 !important }
 
 /* ------------------------------
    Core components
@@ -86,8 +84,8 @@ body::before{
   transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
   box-shadow: 0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
 }
-.btn:hover{ transform:translateY(-1px); border-color:#2a3d63; background:#12233e }
-.btn:active{ transform:translateY(0) }
+.btn:hover{ transform:translateY(-1px); border-color:#2a3d63; background:#12233e; }
+.btn:active{ transform:translateY(0); }
 .btn.muted{ opacity:.9 }
 .btn.secondary{ background:#0b2236 }
 .btn.secondary:hover{ background:#0e2a44 }
@@ -106,7 +104,6 @@ body::before{
   padding:12px; margin-top:12px; backdrop-filter: blur(8px);
   box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02);
 }
-
 .toast{
   position:fixed; bottom:16px; right:16px; background:#0d1b2a; border:1px solid var(--line);
   border-radius:8px; padding:10px 12px; box-shadow:0 10px 24px rgba(0,0,0,.35); z-index:50;
@@ -115,17 +112,14 @@ body::before{
 /* Lists & rows */
 .itemrow{
   display:flex; align-items:center; justify-content:space-between;
-  padding: var(--row-pad-v) 10px; border-bottom:1px solid #13223a; min-height: var(--rowH);
+  padding: var(--row-pad-v) 10px; border-bottom:1px solid #13223a;
+  min-height: var(--rowH);
 }
 .itemrow:last-child{ border-bottom:0 }
-
 .list{
-  /* IMPORTANT when list is inside flex parent: */
-  min-height:0; /* allow shrinking */
-  max-height:360px; /* sensible default */
-  overflow:auto;
-  border:1px solid var(--line); border-radius:10px;
-  background:rgba(9,19,38,.5); backdrop-filter: blur(6px);
+  max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px;
+  background:rgba(9,19,38,.5);
+  backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
 }
 
@@ -145,27 +139,28 @@ body::before{
 }
 
 /* Images / slots */
-img{ max-width:100%; height:auto }
 img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block }
-.img-cell{ width:var(--cell); height:var(--cell); object-fit:contain; border-radius:6px; display:block }
-.img-landing{ width:var(--landing); height:var(--landing); object-fit:contain; border-radius:10px; display:block; margin-top:8px }
+.img-cell{ width:var(--cell); height:var(--cell); object-fit:contain; border-radius:6px; display:block; }
+.img-landing{ width:var(--landing); height:var(--landing); object-fit:contain; border-radius:10px; display:block; margin-top:8px; }
 .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
 .img-slot:hover{ opacity:1 }
 
 /* ------------------------------
-   Tabs (non-sticky)
+   Tabs
 ------------------------------ */
 .tabbar{ margin:6px 0 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .chip{
   padding:10px 14px; border:1px solid #1c2a44; border-radius:12px;
-  background:#0d1b2acc; backdrop-filter: blur(6px); cursor:pointer;
+  background:#0d1b2acc; backdrop-filter: blur(6px);
+  cursor:pointer;
   transition:transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 2px 10px rgba(0,0,0,.25);
 }
-.chip:hover{ transform:translateY(-1px); border-color:#2a3d63 }
+.chip:hover{ transform:translateY(-1px); border-color:#2a3d63; }
 .chip.active{
   background:linear-gradient(180deg,#123155,#0f2340);
-  border-color:#2e4b7a; box-shadow: inset 0 0 0 1px rgba(120,170,255,.15), 0 6px 16px rgba(20,40,80,.45);
+  border-color:#2e4b7a;
+  box-shadow: inset 0 0 0 1px rgba(120,170,255,.15), 0 6px 16px rgba(20,40,80,.45);
 }
 
 /* ------------------------------
@@ -175,93 +170,115 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #shop-balance.badge{ font-weight:700 }
 
 /* ------------------------------
-   CRAFTING — fix overflow across sections
+   CRAFTING — fiksne liste i bez preljeva
 ------------------------------ */
-#tab-craft{ display:flex; flex-direction:column; gap:12px }
-#tab-craft .grid{ align-items:stretch }
+#tab-craft{ display:flex; flex-direction:column; gap:12px; }
+#tab-craft .grid{ align-items:stretch; }
 
-/* Make both lists flexible and scrollable without fixed height */
-#recipes.list, #rec-details.list{
-  max-height:520px; /* allow more items before scrolling */
-  min-height:0;     /* critical inside flex/grid */
+/* Obje liste (lijevo i desno) točno 8 redaka visine (bez da ulaze u druge sekcije) */
+#recipes.list,
+#rec-details.list{
+  min-height: calc(var(--rowH) * 8 + 2px);
+  max-height: calc(var(--rowH) * 8 + 2px);
   overflow:auto;
 }
-/* Keep CTA row visible */
+
+/* “Craft” red ostaje vidljiv pri dnu desne liste */
 #rec-details .itemrow:last-child{
-  position:sticky; bottom:0; background:rgba(9,19,38,.88); backdrop-filter: blur(6px);
+  position:sticky; bottom:0;
+  background:rgba(9,19,38,.92); backdrop-filter: blur(6px);
 }
 
 /* ------------------------------
    INVENTORY
 ------------------------------ */
-#tab-inv .list{ max-height: 520px; min-height:0 }
+#tab-inv .list{ max-height: 520px; overflow:auto }
 
 /* ------------------------------
    MARKET
 ------------------------------ */
-#tab-market .list{ max-height: 520px; min-height:0 }
+#tab-market .list{ max-height: 520px; overflow:auto }
 
 /* ------------------------------
    BONUS
 ------------------------------ */
 #tab-bonus .grid > .card{ min-height:auto }
-#bonus-grid .list{ max-height: 360px; min-height:0 }
+#bonus-grid .list{ max-height: 360px }
 
 /* ------------------------------
-   Header balance pulse
+   Header balance pulse (vizualno)
 ------------------------------ */
-@keyframes pulseTw{ 0%{ box-shadow:0 0 0 0 rgba(120,170,255,.35) } 70%{ box-shadow:0 0 0 8px rgba(120,170,255,0) } 100%{ box-shadow:0 0 0 0 rgba(120,170,255,0) } }
+@keyframes pulseTw{
+  0%{ box-shadow:0 0 0 0 rgba(120,170,255,.35) }
+  70%{ box-shadow:0 0 0 8px rgba(120,170,255,0) }
+  100%{ box-shadow:0 0 0 0 rgba(120,170,255,0) }
+}
 #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
-
 /* ==================================================================
-   ADMIN (SCOPED) – requires <body class="admin"> in admin.html
+   ADMIN (SCOPED) – vrijedi samo na admin stranici
+   Stavi <body class="admin"> u admin.html
    ================================================================== */
-body.admin{ background:#0f172a; color:#e5e7eb; font-size:15px }
-body.admin .container{ max-width:1100px }
-body.admin .card{ background:#111827cc; border:1px solid #1f2937 }
-body.admin .label{ color:#94a3b8; text-transform:uppercase; letter-spacing:.5px }
-body.admin .muted{ color:#94a3b8 }
+body.admin{
+  background:#0f172a;
+  color:#e2e8f0;
+  font-size:14px;
+  line-height:1.45;
+}
+body.admin .container{ max-width:1100px; margin:0 auto; padding:12px; }
+body.admin .header{ background:#0f172acc; border-bottom:1px solid #1f2937; }
+body.admin .card{ background:#111827cc; border:1px solid #1f2937; border-radius:12px; padding:12px; margin-top:12px; }
+body.admin .label{ color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; }
+body.admin .muted{ color:#94a3b8; }
 
-/* Slots/images same 1.5cm as app */
-body.admin img.icon, body.admin .img-cell{ width:var(--cell); height:var(--cell); object-fit:contain; border-radius:6px; display:block }
+/* layout helpers */
+body.admin .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+@media (max-width:900px){ body.admin .grid2{ grid-template-columns:1fr } }
+body.admin .rowx{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+body.admin .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace }
 
-/* Tables/lists */
-body.admin .table{ width:100%; border-collapse:collapse }
-body.admin .table th, body.admin .table td{ padding:8px 10px; border-bottom:1px solid #1f2937; text-align:left }
-body.admin .table th{ color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px }
-
-/* Admin search/input */
-body.admin .search{ width:100%; padding:8px 10px; border-radius:8px; border:1px solid #233047; background:#0b1220; color:var(--text) }
+/* inputi */
 body.admin input[type="text"],
+body.admin input[type="password"],
 body.admin input[type="number"],
-body.admin input[type="password"]{
-  background:#0b1220; border:1px solid #233047; border-radius:8px; padding:8px 10px; color:var(--text)
+body.admin .search{
+  width:100%; padding:8px 10px; border-radius:8px;
+  border:1px solid #233047; background:#0b1220; color:#e2e8f0;
 }
 body.admin input:disabled{ opacity:.7; cursor:not-allowed }
 
-/* Two-column layout */
-body.admin .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
-@media (max-width:900px){ body.admin .grid2{ grid-template-columns:1fr } }
-
-/* User rows */
-body.admin .user-row{ display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:8px; transition: background .15s ease }
-body.admin .user-row:hover{ background:#0f172a }
-
-/* Tags */
+/* tagovi */
 body.admin .tag{ font-size:11px; padding:2px 6px; border-radius:6px; background:#1f2937 }
 body.admin .tag.red{ background:#3b1113; color:#fecaca }
 body.admin .tag.green{ background:#0f2e1b; color:#bbf7d0 }
 
-/* Codes table */
-body.admin .codes-table{ width:100%; border-collapse:collapse }
-body.admin .codes-table th, body.admin .codes-table td{ padding:8px 10px; border-bottom:1px solid #1f2937; text-align:left }
-body.admin .codes-table th{ color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px }
-body.admin .codes-table input{ background:#0b1220; border:1px solid #233047; border-radius:8px; padding:8px 10px; color:#e2e8f0; width:100% }
-
-/* Admin lists */
-body.admin #users.list,
-body.admin #inv.list{
-  background:#0b1220cc; border:1px solid #1f2937; border-radius:10px; padding:12px; white-space:pre-wrap;
-  max-height:520px; min-height:0; overflow:auto;
+/* liste – stabilna visina + skrol */
+body.admin .list{
+  background:#0b1220cc; border:1px solid #1f2937; border-radius:10px;
+  padding:12px; white-space:pre-wrap;
+  max-height: 65vh; overflow:auto;
 }
+
+/* red korisnika */
+body.admin .user-row{
+  display:flex; gap:8px; align-items:center; justify-content:space-between;
+  padding:6px 8px; border-radius:8px; transition: background .15s ease;
+}
+body.admin .user-row:hover{ background:#0f172a }
+
+/* tablica kodova */
+body.admin .codes-table{ width:100%; border-collapse:collapse }
+body.admin .codes-table th, body.admin .codes-table td{
+  padding:8px 10px; border-bottom:1px solid #233047; text-align:left
+}
+body.admin .codes-table th{
+  color:#94a3b8; font-weight:600; text-transform:uppercase; font-size:12px; letter-spacing:.4px
+}
+body.admin .codes-table input{
+  background:#0b1220; border:1px solid #233047; border-radius:8px; padding:8px 10px; color:#e2e8f0; width:100%
+}
+body.admin .codes-row-actions{ display:flex; gap:8px; align-items:center }
+
+/* slike u adminu — iste dimenzije slotova */
+body.admin img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block }
+body.admin .img-cell{ width:var(--cell); height:var(--cell); object-fit:contain; border-radius:6px; display:block }
