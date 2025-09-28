@@ -435,6 +435,82 @@ db.transaction(() => {
   }
 })();
 
+/* ----------------- SEED (Items & Recipes, identično kao prije) ----------------- */
+function ensureItem(code, name, tier, volatile = 0) {
+  const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
+  if (row) {
+    db.prepare("UPDATE items SET name=?, tier=?, volatile=? WHERE id=?").run(name, tier, volatile, row.id);
+    return row.id;
+  }
+  db.prepare("INSERT INTO items(code,name,tier,volatile) VALUES (?,?,?,?)").run(code, name, tier, volatile);
+  return db.prepare("SELECT id FROM items WHERE code=?").get(code).id;
+}
+function idByCode(code){
+  const r = db.prepare("SELECT id FROM items WHERE code=?").get(code);
+  return r && r.id;
+}
+function ensureRecipe(code, name, tier, outCode, ingCodes) {
+  const outId = idByCode(outCode);
+  if(!outId) throw new Error("Missing item "+outCode);
+  const r = db.prepare("SELECT id FROM recipes WHERE code=?").get(code);
+  let rid;
+  if (!r){
+    db.prepare("INSERT INTO recipes(code,name,tier,output_item_id) VALUES (?,?,?,?)").run(code,name,tier,outId);
+    rid = db.prepare("SELECT id FROM recipes WHERE code=?").get(code).id;
+  } else {
+    db.prepare("UPDATE recipes SET name=?, tier=?, output_item_id=? WHERE id=?").run(name,tier,outId,r.id);
+    rid = r.id;
+    db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id=?").run(rid);
+  }
+  for(const c of ingCodes){
+    const iid = idByCode(c);
+    if(!iid) throw new Error("Missing ingredient "+c);
+    db.prepare("INSERT INTO recipe_ingredients(recipe_id,item_id,qty) VALUES (?,?,1)").run(rid,iid);
+  }
+  return rid;
+}
+
+// T1
+ensureItem("SCRAP","Scrap",1,1);
+const T1 = [["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
+  ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
+  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]];
+for (const [c,n] of T1) ensureItem(c,n,1,0);
+
+// T2
+const T2_ITEMS = [
+  ["T2_BRONZE_DOOR","Bronze Door"],["T2_SILVER_GOBLET","Silver Goblet"],["T2_GOLDEN_RING","Golden Ring"],
+  ["T2_WOODEN_CHEST","Wooden Chest"],["T2_STONE_PILLAR","Stone Pillar"],["T2_LEATHER_BAG","Leather Bag"],
+  ["T2_CLOTH_TENT","Cloth Tent"],["T2_CRYSTAL_ORB","Crystal Orb"],["T2_OBSIDIAN_KNIFE","Obsidian Knife"],["T2_IRON_ARMOR","Iron Armor"]
+];
+for (const [code,name] of T2_ITEMS) ensureItem(code,name,2,0);
+
+// T3
+const T3_ITEMS = [
+  ["T3_GATE_OF_MIGHT","Gate of Might"],["T3_GOBLET_OF_WISDOM","Goblet of Wisdom"],["T3_RING_OF_GLARE","Ring of Glare"],
+  ["T3_CHEST_OF_SECRETS","Chest of Secrets"],["T3_PILLAR_OF_STRENGTH","Pillar of Strength"],["T3_TRAVELERS_BAG","Traveler's Bag"],
+  ["T3_NOMAD_TENT","Nomad Tent"],["T3_ORB_OF_VISION","Orb of Vision"],["T3_KNIFE_OF_SHADOW","Knife of Shadow"],["T3_ARMOR_OF_GUARD","Armor of Guard"]
+];
+for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
+
+// T4
+const T4_ITEMS = [
+  ["T4_CRYSTAL_LENS","Crystal Lens"],["T4_ENGINE_CORE","Engine Core"],["T4_MIGHT_GATE","Might Gate"],
+  ["T4_NOMAD_DWELLING","Nomad Dwelling"],["T4_SECRET_CHEST","Secret Chest"],["T4_SHADOW_BLADE","Shadow Blade"],
+  ["T4_STRENGTH_PILLAR","Strength Pillar"],["T4_TRAVELER_SATCHEL","Traveler Satchel"],["T4_VISION_CORE","Vision Core"],
+  ["T4_WISDOM_GOBLET","Wisdom Goblet"]
+];
+for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
+
+// T5
+const T5_ITEMS = [
+  ["T5_ANCIENT_RELIC","Ancient Relic"],["T5_SUN_LENS","Sun Lens"],["T5_GUARDIAN_GATE","Guardian Gate"],["T5_NOMAD_HALL","Nomad Hall"],
+  ["T5_VAULT","Royal Vault"],["T5_COLOSSAL_PILLAR","Colossal Pillar"],["T5_WAYFARER_BAG","Wayfarer Bag"],["T5_EYE_OF_TRUTH","Eye of Truth"],
+  ["T5_NIGHTFALL_EDGE","Nightfall Edge"],["T5_WISDOM_CHALICE","Wisdom Chalice"]
+];
+for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
+
+// ---- NOVI seed recepata (realistic) ----
 const NAME_BY_CODE = Object.fromEntries([
   ["SCRAP","Scrap"], ...T1, ...T2_ITEMS, ...T3_ITEMS, ...T4_ITEMS, ...T5_ITEMS,
 ]);
@@ -496,11 +572,16 @@ function seedRecipeMap(tier, map){
   for (const [outCode, ingCodes] of Object.entries(map))
     ensureRecipe("R_"+outCode, nameFor(outCode), tier, outCode, ingCodes);
 }
-
 seedRecipeMap(2, RECIPES_T2);
 seedRecipeMap(3, RECIPES_T3);
 seedRecipeMap(4, RECIPES_T4);
 seedRecipeMap(5, RECIPES_T5);
+
+// ARTEFACT (nema recept)
+ensureItem("ARTEFACT","Artefact",6,0);
+// prefiks "R "
+try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
+
 
 
 
@@ -1533,6 +1614,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
