@@ -35,9 +35,16 @@
   </script>
 
   <style>
-    :root{ --line:#233047; --text:#e5e7eb }
+    :root{
+      --line:#233047;
+      --text:#e5e7eb;
+      --bg0:#0b1220;
+      --bg1:#0e1b2e;
+      --bg2:#0a0f1f;
+      --glass:rgba(11,18,32,.66);
+    }
 
-    /* ===== POZADINA (suptilni shimmer) ===== */
+    /* ===== Global / Background (shimmer) ===== */
     html,body{ height:100% }
     body{
       margin:0;
@@ -46,7 +53,7 @@
         radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
         radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
         radial-gradient(900px 600px at 70% 85%, rgba(234,88,12,0.12), transparent 60%),
-        linear-gradient(160deg, #0b1220 0%, #0e1b2e 45%, #0a0f1f 100%);
+        linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
     }
     body::before{
       content:"";
@@ -58,16 +65,41 @@
     }
 
     .hidden{display:none}
-    .badge{border:1px solid var(--line);padding:4px 8px;border-radius:999px;background:#071021;font-size:12px}
-    .itemrow{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #13223a}
-    .itemrow:last-child{border-bottom:0}
-    .list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#09132680}
 
-    /* ===== TAB dugmad (uljepšano) ===== */
+    /* Badges */
+    .badge{
+      border:1px solid var(--line);
+      padding:4px 8px;
+      border-radius:999px;
+      background:#071021;
+      font-size:12px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    /* Lists / rows */
+    .list{
+      max-height:360px;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:rgba(9,19,38,.5);
+      backdrop-filter: blur(6px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+    }
+    .itemrow{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:8px 10px;border-bottom:1px solid #13223a;
+      transition: background .15s ease;
+    }
+    .itemrow:last-child{border-bottom:0}
+    .itemrow:hover{ background:rgba(255,255,255,.03) }
+
+    /* Chips (tabs) */
     .chip{
       padding:10px 14px;border:1px solid #1c2a44;border-radius:12px;
       background:#0d1b2acc;backdrop-filter: blur(6px);
-      cursor:pointer; transition:transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+      cursor:pointer;
+      transition:transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 2px 10px rgba(0,0,0,.25);
     }
     .chip:hover{ transform:translateY(-1px); border-color:#2a3d63; }
@@ -79,9 +111,14 @@
 
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .right{margin-left:auto}
-    .toast{position:fixed;bottom:16px;right:16px;background:#0d1b2a;border:1px solid #233047;border-radius:8px;padding:10px 12px}
 
-    /* ===== Dugmad (uljepšano) ===== */
+    /* Toast */
+    .toast{
+      position:fixed;bottom:16px;right:16px;background:#0d1b2a;border:1px solid #233047;border-radius:8px;padding:10px 12px;
+      box-shadow:0 10px 24px rgba(0,0,0,.35);
+    }
+
+    /* Buttons */
     .btn{
       cursor:pointer; border:1px solid #1c2a44; background:#0f1c30; color:#e5e7eb;
       border-radius:10px; padding:8px 12px;
@@ -96,14 +133,21 @@
     .btn.danger{background:#3a0d14;border-color:#5a1a22}
     .btn.danger:hover{ background:#4a131b; border-color:#7a2933 }
 
-    .input{background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb}
+    /* Inputs */
+    .input{
+      background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+    }
+    .input:focus{ outline:none; border-color:#3a5b8e; box-shadow:0 0 0 3px rgba(70,130,180,.15) }
 
+    /* Cards */
     .card{
-      background:#0b1220cc;border:1px solid #233047;border-radius:12px;
-      padding:12px;margin-top:12px; backdrop-filter: blur(6px);
-      box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.02);
+      background:var(--glass);border:1px solid #233047;border-radius:12px;
+      padding:12px;margin-top:12px; backdrop-filter: blur(8px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02);
     }
 
+    /* Grids / tiles */
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
@@ -116,42 +160,22 @@
     .header{
       display:flex;align-items:center;justify-content:space-between;
       padding:12px;border-bottom:1px solid #233047;
-      position:sticky;top:0;z-index:10;background:rgba(11,18,32,.6);backdrop-filter: blur(8px)
+      position:sticky;top:0;z-index:10;background:rgba(11,18,32,.7);backdrop-filter: blur(10px)
     }
-    .brand{font-weight:700}
+    .brand{font-weight:700; letter-spacing:.3px}
     .container{max-width:980px;margin:0 auto;padding:12px}
     .label{font-weight:600}
     .muted{opacity:.8}
 
-    /* ===== Paneli da "sjednu" do dna ekrana ===== */
-    #app{ padding-bottom:12px }
-    #tab-shop.card,
-    #tab-craft.card,
-    #tab-market.card,
-    #tab-inv.card,
-    #tab-bonus.card{
-      min-height: calc(100vh - 220px); /* sigurno popunjavanje, bez lomljenja header/tabbar prostora */
-      display:flex; flex-direction:column;
+    /* Balance pulse (grafički samo) */
+    @keyframes pulseTw{
+      0%{ box-shadow:0 0 0 0 rgba(120,170,255,.35) }
+      70%{ box-shadow:0 0 0 8px rgba(120,170,255,0) }
+      100%{ box-shadow:0 0 0 0 rgba(120,170,255,0) }
     }
+    #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
-    /* ===== Shop: sužavanje bloka s dugmadima (~10cm) ===== */
-    #tab-shop .buy-box{ max-width:10cm; width:100% }
-
-    @media (max-width:900px){
-      .grid{grid-template-columns:1fr}
-      .grid-4{grid-template-columns:repeat(2,1fr)}
-      .grid-5{grid-template-columns:repeat(3,1fr)}
-      #tab-shop .buy-box{ max-width:100% } /* na malim ekranima slobodno preko širine */
-    }
-
-    img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
-    .header.no-border{ border-bottom:0!important }
-    #about p, #how p, #tips li { font-size:16px; line-height:1.6 }
-    #how .label, #tips .label { font-size:20px }
-    img{ max-width:512px; max-height:512px; width:auto; height:auto }
-    .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
-    .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
-    .img-slot:hover{ opacity:1 }
+    /* Paypal/Sec */
     #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
     #btn-open-paypal.hidden{ display:none; }
     #paypal-panel.hidden{ display:none; }
@@ -159,10 +183,21 @@
     @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
     #paypal-wrap{ display:none !important; }
 
-    /* ===== Fiksne dimenzije slika ===== */
+    /* Landing text sizes */
+    .header.no-border{ border-bottom:0!important }
+    #about p, #how p, #tips li { font-size:16px; line-height:1.6 }
+    #how .label, #tips .label { font-size:20px }
+
+    /* Images */
+    img{ max-width:512px; max-height:512px; width:auto; height:auto }
+    .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
+    .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
+    .img-slot:hover{ opacity:1 }
+
+    /* Fixed image dimensions used u appu i na landing-u */
     :root{
-      --cell: 1.5cm;   /* slot/crafting/inv/market */
-      --landing: 4cm;  /* slike na landing HOW sekciji */
+      --cell: 1.5cm;   /* slot/crafting/inv/market/bonus */
+      --landing: 4cm;  /* HOW slike */
     }
     .img-cell{
       width: var(--cell);
@@ -179,6 +214,16 @@
       display: block;
       margin-top: 8px;
     }
+
+    /* Responsive */
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr}
+      .grid-4{grid-template-columns:repeat(2,1fr)}
+      .grid-5{grid-template-columns:repeat(3,1fr)}
+    }
+
+    /* (postojeci selektor) zadrzavam radi kompatibilnosti */
+    img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
   </style>
 </head>
 <body>
@@ -315,13 +360,9 @@
       <div style="margin:6px 0">
         <span id="shop-balance" class="badge hidden">0g 0s</span>
       </div>
-
-      <!-- sužen blok za kupovinu (~10cm) -->
-      <div class="buy-box">
-        <div class="row">
-          <button id="btn-buy-t1" class="btn">Buy</button>
-          <div id="shop-msg" class="muted"></div>
-        </div>
+      <div class="row">
+        <button id="btn-buy-t1" class="btn">Buy</button>
+        <div id="shop-msg" class="muted"></div>
       </div>
     </div>
 
@@ -857,23 +898,6 @@
         wrap.style.gap = "6px";
         btn1.parentNode.insertBefore(wrap, btn1);
         wrap.appendChild(btn1);
-
-        if (!$("#btn-buy-t1x10")){
-          const b10 = document.createElement("button");
-          b10.id = "btn-buy-t1x10";
-          b10.className = "btn muted";
-          b10.textContent = "Buy ×10";
-          wrap.appendChild(b10);
-          b10.addEventListener("click", ()=> shopBuyTimes(10));
-        }
-        if (!$("#btn-buy-t1x50")){
-          const b50 = document.createElement("button");
-          b50.id = "btn-buy-t1x50";
-          b50.className = "btn muted";
-          b50.textContent = "Buy ×50";
-          wrap.appendChild(b50);
-          b50.addEventListener("click", ()=> shopBuyTimes(50));
-        }
       }
       updateShopBalanceBadge();
     });
@@ -1133,7 +1157,7 @@
             try{
               const res = await api("/api/sales/buy", {
                 method:"POST",
-                body: JSON.stringify({ id: s.id })
+                body: JSON.stringify({ id: s.id }) // ostavljeno kako je bilo
               });
 
               if (res && typeof res.balance_silver === "number" && WHO) {
@@ -1141,6 +1165,7 @@
               }
 
               await refreshMeLight();
+
               await loadMarket();
               await loadMine();
               await loadInventoryPanel();
