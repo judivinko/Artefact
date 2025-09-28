@@ -435,125 +435,116 @@ db.transaction(() => {
   }
 })();
 
-/* ----------------- SEED (Items & Recipes, identično kao prije) ----------------- */
-function ensureItem(code, name, tier, volatile = 0) {
-  const row = db.prepare("SELECT id FROM items WHERE code=?").get(code);
-  if (row) {
-    db.prepare("UPDATE items SET name=?, tier=?, volatile=? WHERE id=?").run(name, tier, volatile, row.id);
-    return row.id;
-  }
-  db.prepare("INSERT INTO items(code,name,tier,volatile) VALUES (?,?,?,?)").run(code, name, tier, volatile);
-  return db.prepare("SELECT id FROM items WHERE code=?").get(code).id;
-}
-function idByCode(code){
-  const r = db.prepare("SELECT id FROM items WHERE code=?").get(code);
-  return r && r.id;
-}
-function ensureRecipe(code, name, tier, outCode, ingCodes) {
-  const outId = idByCode(outCode);
-  if(!outId) throw new Error("Missing item "+outCode);
-  const r = db.prepare("SELECT id FROM recipes WHERE code=?").get(code);
-  let rid;
-  if (!r){
-    db.prepare("INSERT INTO recipes(code,name,tier,output_item_id) VALUES (?,?,?,?)").run(code,name,tier,outId);
-    rid = db.prepare("SELECT id FROM recipes WHERE code=?").get(code).id;
-  } else {
-    db.prepare("UPDATE recipes SET name=?, tier=?, output_item_id=? WHERE id=?").run(name,tier,outId,r.id);
-    rid = r.id;
-    db.prepare("DELETE FROM recipe_ingredients WHERE recipe_id=?").run(rid);
-  }
-  for(const c of ingCodes){
-    const iid = idByCode(c);
-    if(!iid) throw new Error("Missing ingredient "+c);
-    db.prepare("INSERT INTO recipe_ingredients(recipe_id,item_id,qty) VALUES (?,?,1)").run(rid,iid);
-  }
-  return rid;
-}
+// --- helpers for seeding REALISTIC RECIPES (EN) ---
+// Quantities are represented by repeating ingredient codes; ensureRecipe inserts each as qty=1.
 
+const NAME_BY_CODE = Object.fromEntries([
+  ["SCRAP","Scrap"],
+  ...T1,          // [["BRONZE","Bronze"], ...]   (from your existing arrays)
+  ...T2_ITEMS,    // e.g. ["T2_BRONZE_DOOR","Bronze Door"]
+  ...T3_ITEMS,
+  ...T4_ITEMS,
+  ...T5_ITEMS,
+]);
 
-// T1
-ensureItem("SCRAP","Scrap",1,1);
-const T1 = [["BRONZE","Bronze"],["IRON","Iron"],["SILVER","Silver"],["GOLD","Gold"],
-  ["WOOD","Wood"],["STONE","Stone"],["LEATHER","Leather"],["CLOTH","Cloth"],
-  ["CRYSTAL","Crystal"],["OBSIDIAN","Obsidian"]];
-for (const [c,n] of T1) ensureItem(c,n,1,0);
+function nameFor(code){ return NAME_BY_CODE[code] || code; }
 
-// T2
-const T2_ITEMS = [
-  ["T2_BRONZE_DOOR","Bronze Door"],["T2_SILVER_GOBLET","Silver Goblet"],["T2_GOLDEN_RING","Golden Ring"],
-  ["T2_WOODEN_CHEST","Wooden Chest"],["T2_STONE_PILLAR","Stone Pillar"],["T2_LEATHER_BAG","Leather Bag"],
-  ["T2_CLOTH_TENT","Cloth Tent"],["T2_CRYSTAL_ORB","Crystal Orb"],["T2_OBSIDIAN_KNIFE","Obsidian Knife"],["T2_IRON_ARMOR","Iron Armor"]
-];
-for (const [code,name] of T2_ITEMS) ensureItem(code,name,2,0);
-
-// T3
-const T3_ITEMS = [
-  ["T3_GATE_OF_MIGHT","Gate of Might"],["T3_GOBLET_OF_WISDOM","Goblet of Wisdom"],["T3_RING_OF_GLARE","Ring of Glare"],
-  ["T3_CHEST_OF_SECRETS","Chest of Secrets"],["T3_PILLAR_OF_STRENGTH","Pillar of Strength"],["T3_TRAVELERS_BAG","Traveler's Bag"],
-  ["T3_NOMAD_TENT","Nomad Tent"],["T3_ORB_OF_VISION","Orb of Vision"],["T3_KNIFE_OF_SHADOW","Knife of Shadow"],["T3_ARMOR_OF_GUARD","Armor of Guard"]
-];
-for (const [code,name] of T3_ITEMS) ensureItem(code,name,3,0);
-
-// T4
-const T4_ITEMS = [
-  ["T4_CRYSTAL_LENS","Crystal Lens"],["T4_ENGINE_CORE","Engine Core"],["T4_MIGHT_GATE","Might Gate"],
-  ["T4_NOMAD_DWELLING","Nomad Dwelling"],["T4_SECRET_CHEST","Secret Chest"],["T4_SHADOW_BLADE","Shadow Blade"],
-  ["T4_STRENGTH_PILLAR","Strength Pillar"],["T4_TRAVELER_SATCHEL","Traveler Satchel"],["T4_VISION_CORE","Vision Core"],
-  ["T4_WISDOM_GOBLET","Wisdom Goblet"]
-];
-for (const [code,name] of T4_ITEMS) ensureItem(code,name,4,0);
-
-// T5
-const T5_ITEMS = [
-  ["T5_ANCIENT_RELIC","Ancient Relic"],["T5_SUN_LENS","Sun Lens"],["T5_GUARDIAN_GATE","Guardian Gate"],["T5_NOMAD_HALL","Nomad Hall"],
-  ["T5_VAULT","Royal Vault"],["T5_COLOSSAL_PILLAR","Colossal Pillar"],["T5_WAYFARER_BAG","Wayfarer Bag"],["T5_EYE_OF_TRUTH","Eye of Truth"],
-  ["T5_NIGHTFALL_EDGE","Nightfall Edge"],["T5_WISDOM_CHALICE","Wisdom Chalice"]
-];
-for (const [code,name] of T5_ITEMS) ensureItem(code,name,5,0);
-
-// --- helpers za seed recepata ---
-const takeRotated = (pool, count, offset) => {
-  if (!pool.length) return [];
-  const start = offset % pool.length;
-  const rotated = pool.slice(start).concat(pool.slice(0, start));
-  const out = [];
-  for (const c of rotated) {
-    if (!out.includes(c)) out.push(c);
-    if (out.length >= count) break;
-  }
-  return out;
+// -------------------------------
+// T2 from T1  (P_T2 = 4,4,4, 5,5,5, 6,6, 7,7)
+// -------------------------------
+const RECIPES_T2 = {
+  T2_BRONZE_DOOR:    ["BRONZE","BRONZE","BRONZE","IRON"],                                                         // 4
+  T2_SILVER_GOBLET:  ["SILVER","SILVER","SILVER","GOLD"],                                                         // 4
+  T2_GOLDEN_RING:    ["GOLD","GOLD","GOLD","CRYSTAL"],                                                            // 4
+  T2_WOODEN_CHEST:   ["WOOD","WOOD","WOOD","IRON","LEATHER"],                                                     // 5
+  T2_STONE_PILLAR:   ["STONE","STONE","STONE","IRON","CRYSTAL"],                                                  // 5
+  T2_LEATHER_BAG:    ["LEATHER","LEATHER","LEATHER","CLOTH","IRON"],                                              // 5
+  T2_CLOTH_TENT:     ["CLOTH","CLOTH","CLOTH","WOOD","LEATHER","IRON"],                                           // 6
+  T2_CRYSTAL_ORB:    ["CRYSTAL","CRYSTAL","CRYSTAL","SILVER","GOLD","STONE"],                                     // 6
+  T2_OBSIDIAN_KNIFE: ["OBSIDIAN","OBSIDIAN","OBSIDIAN","OBSIDIAN","WOOD","LEATHER","STONE"],                      // 7
+  T2_IRON_ARMOR:     ["IRON","IRON","IRON","IRON","LEATHER","CLOTH","BRONZE"],                                    // 7
 };
-const T1_CODES = T1.map(([c])=>c);
-const T2_CODES = T2_ITEMS.map(([c])=>c);
-const T3_CODES = T3_ITEMS.map(([c])=>c);
-const T4_CODES = T4_ITEMS.map(([c])=>c);
-const P_T2 = [4,4,4, 5,5,5, 6,6, 7,7];
-const P_T3 = [4,4, 5,5,5, 6,6,6, 7,7];
-const P_T4 = [5,5, 6,6,6, 7,7,7, 8,8];
-const P_T5 = [6,6, 7,7,7, 8,8,8, 9,9];
 
-// seed recepata
-T2_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T2[i]; const ings = takeRotated(T1_CODES, Math.min(need, T1_CODES.length), i);
-  ensureRecipe("R_"+outCode, outName, 2, outCode, ings);
-});
-T3_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T3[i]; const ings = takeRotated(T2_CODES, Math.min(need, T2_CODES.length), i);
-  ensureRecipe("R_"+outCode, outName, 3, outCode, ings);
-});
-T4_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T4[i]; const ings = takeRotated(T3_CODES, Math.min(need, T3_CODES.length), i);
-  ensureRecipe("R_"+outCode, outName, 4, outCode, ings);
-});
-T5_ITEMS.forEach(([outCode, outName], i) => {
-  const need = P_T5[i]; const ings = takeRotated(T4_CODES, Math.min(need, T4_CODES.length), i);
-  ensureRecipe("R_"+outCode, outName, 5, outCode, ings);
-});
+// -------------------------------
+// T3 from T2  (P_T3 = 4,4, 5,5,5, 6,6,6, 7,7)
+// -------------------------------
+const RECIPES_T3 = {
+  T3_GATE_OF_MIGHT:     ["T2_BRONZE_DOOR","T2_BRONZE_DOOR","T2_BRONZE_DOOR","T2_IRON_ARMOR"],                         // 4
+  T3_GOBLET_OF_WISDOM:  ["T2_SILVER_GOBLET","T2_SILVER_GOBLET","T2_SILVER_GOBLET","T2_CRYSTAL_ORB"],                  // 4
+  T3_RING_OF_GLARE:     ["T2_GOLDEN_RING","T2_GOLDEN_RING","T2_GOLDEN_RING","T2_CRYSTAL_ORB","T2_SILVER_GOBLET"],     // 5
+  T3_CHEST_OF_SECRETS:  ["T2_WOODEN_CHEST","T2_WOODEN_CHEST","T2_WOODEN_CHEST","T2_LEATHER_BAG","T2_OBSIDIAN_KNIFE"], // 5
+  T3_PILLAR_OF_STRENGTH:["T2_STONE_PILLAR","T2_STONE_PILLAR","T2_STONE_PILLAR","T2_IRON_ARMOR","T2_BRONZE_DOOR"],     // 5
+  T3_TRAVELERS_BAG:     ["T2_LEATHER_BAG","T2_LEATHER_BAG","T2_LEATHER_BAG","T2_CLOTH_TENT","T2_WOODEN_CHEST","T2_IRON_ARMOR"], // 6
+  T3_NOMAD_TENT:        ["T2_CLOTH_TENT","T2_CLOTH_TENT","T2_CLOTH_TENT","T2_LEATHER_BAG","T2_WOODEN_CHEST","T2_STONE_PILLAR"], // 6
+  T3_ORB_OF_VISION:     ["T2_CRYSTAL_ORB","T2_CRYSTAL_ORB","T2_CRYSTAL_ORB","T2_SILVER_GOBLET","T2_GOLDEN_RING","T2_STONE_PILLAR"], // 6
+  T3_KNIFE_OF_SHADOW:   ["T2_OBSIDIAN_KNIFE","T2_OBSIDIAN_KNIFE","T2_OBSIDIAN_KNIFE","T2_OBSIDIAN_KNIFE","T2_LEATHER_BAG","T2_IRON_ARMOR","T2_WOODEN_CHEST"], // 7
+  T3_ARMOR_OF_GUARD:    ["T2_IRON_ARMOR","T2_IRON_ARMOR","T2_IRON_ARMOR","T2_IRON_ARMOR","T2_STONE_PILLAR","T2_BRONZE_DOOR","T2_LEATHER_BAG"], // 7
+};
 
-// ARTEFACT (nema recept)
-ensureItem("ARTEFACT","Artefact",6,0);
-// prefiks "R "
-try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
+// -------------------------------
+// T4 from T3  (P_T4 = 5,5, 6,6,6, 7,7,7, 8,8)
+// -------------------------------
+const RECIPES_T4 = {
+  // optics lineage: orb -> lens
+  T4_CRYSTAL_LENS:     ["T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE"], // 5
+
+  // engine/fortification lineage: armor/gate/pillar
+  T4_ENGINE_CORE:      ["T3_ARMOR_OF_GUARD","T3_ARMOR_OF_GUARD","T3_ARMOR_OF_GUARD","T3_GATE_OF_MIGHT","T3_PILLAR_OF_STRENGTH"], // 5
+  T4_MIGHT_GATE:       ["T3_GATE_OF_MIGHT","T3_GATE_OF_MIGHT","T3_GATE_OF_MIGHT","T3_PILLAR_OF_STRENGTH","T3_ARMOR_OF_GUARD","T3_CHEST_OF_SECRETS"], // 6
+
+  // nomad lineage: tent/bag/chest support
+  T4_NOMAD_DWELLING:   ["T3_NOMAD_TENT","T3_NOMAD_TENT","T3_NOMAD_TENT","T3_TRAVELERS_BAG","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD"], // 6
+  T4_SECRET_CHEST:     ["T3_CHEST_OF_SECRETS","T3_CHEST_OF_SECRETS","T3_CHEST_OF_SECRETS","T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_KNIFE_OF_SHADOW"], // 6
+
+  // blade lineage
+  T4_SHADOW_BLADE:     ["T3_KNIFE_OF_SHADOW","T3_KNIFE_OF_SHADOW","T3_KNIFE_OF_SHADOW","T3_KNIFE_OF_SHADOW","T3_CHEST_OF_SECRETS","T3_ARMOR_OF_GUARD","T3_GATE_OF_MIGHT"], // 7
+
+  // pillar lineage (bigger)
+  T4_STRENGTH_PILLAR:  ["T3_PILLAR_OF_STRENGTH","T3_PILLAR_OF_STRENGTH","T3_PILLAR_OF_STRENGTH","T3_PILLAR_OF_STRENGTH","T3_GATE_OF_MIGHT","T3_ARMOR_OF_GUARD","T3_ORB_OF_VISION"], // 7
+
+  // bag lineage
+  T4_TRAVELER_SATCHEL: ["T3_TRAVELERS_BAG","T3_TRAVELERS_BAG","T3_TRAVELERS_BAG","T3_TRAVELERS_BAG","T3_NOMAD_TENT","T3_CHEST_OF_SECRETS","T3_RING_OF_GLARE"], // 7
+
+  // vision/core lineage (still from T3 only)
+  T4_VISION_CORE:      ["T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_ORB_OF_VISION","T3_GOBLET_OF_WISDOM","T3_RING_OF_GLARE","T3_CHEST_OF_SECRETS","T3_GATE_OF_MIGHT"], // 8
+
+  // goblet lineage (still from T3 only)
+  T4_WISDOM_GOBLET:    ["T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_GOBLET_OF_WISDOM","T3_ORB_OF_VISION","T3_RING_OF_GLARE","T3_CHEST_OF_SECRETS","T3_GATE_OF_MIGHT"], // 8
+};
+
+// -------------------------------
+// T5 from T4  (P_T5 = 6,6, 7,7,7, 8,8,8, 9,9)
+// -------------------------------
+const RECIPES_T5 = {
+  T5_ANCIENT_RELIC:   ["T4_SECRET_CHEST","T4_SECRET_CHEST","T4_SECRET_CHEST","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_STRENGTH_PILLAR"], // 6
+  T5_SUN_LENS:        ["T4_CRYSTAL_LENS","T4_CRYSTAL_LENS","T4_CRYSTAL_LENS","T4_VISION_CORE","T4_WISDOM_GOBLET","T4_MIGHT_GATE"],             // 6
+  T5_GUARDIAN_GATE:   ["T4_MIGHT_GATE","T4_MIGHT_GATE","T4_MIGHT_GATE","T4_MIGHT_GATE","T4_ENGINE_CORE","T4_STRENGTH_PILLAR","T4_SECRET_CHEST"], // 7
+  T5_NOMAD_HALL:      ["T4_NOMAD_DWELLING","T4_NOMAD_DWELLING","T4_NOMAD_DWELLING","T4_NOMAD_DWELLING","T4_TRAVELER_SATCHEL","T4_SECRET_CHEST","T4_STRENGTH_PILLAR"], // 7
+  T5_VAULT:           ["T4_SECRET_CHEST","T4_SECRET_CHEST","T4_SECRET_CHEST","T4_SECRET_CHEST","T4_MIGHT_GATE","T4_STRENGTH_PILLAR","T4_ENGINE_CORE"], // 7
+  T5_COLOSSAL_PILLAR: ["T4_STRENGTH_PILLAR","T4_STRENGTH_PILLAR","T4_STRENGTH_PILLAR","T4_STRENGTH_PILLAR","T4_ENGINE_CORE","T4_MIGHT_GATE","T4_NOMAD_DWELLING","T4_VISION_CORE"], // 8
+  T5_WAYFARER_BAG:    ["T4_TRAVELER_SATCHEL","T4_TRAVELER_SATCHEL","T4_TRAVELER_SATCHEL","T4_TRAVELER_SATCHEL","T4_NOMAD_DWELLING","T4_VISION_CORE","T4_SECRET_CHEST","T4_WISDOM_GOBLET"], // 8
+  T5_EYE_OF_TRUTH:    ["T4_VISION_CORE","T4_VISION_CORE","T4_VISION_CORE","T4_VISION_CORE","T4_CRYSTAL_LENS","T4_WISDOM_GOBLET","T4_STRENGTH_PILLAR","T4_SECRET_CHEST"], // 8
+  T5_NIGHTFALL_EDGE:  ["T4_SHADOW_BLADE","T4_SHADOW_BLADE","T4_SHADOW_BLADE","T4_SHADOW_BLADE","T4_VISION_CORE","T4_STRENGTH_PILLAR","T4_SECRET_CHEST","T4_MIGHT_GATE","T4_TRAVELER_SATCHEL"], // 9
+  T5_WISDOM_CHALICE:  ["T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_WISDOM_GOBLET","T4_VISION_CORE","T4_SECRET_CHEST","T4_TRAVELER_SATCHEL","T4_MIGHT_GATE","T4_NOMAD_DWELLING"], // 9
+};
+
+// -------------------------------
+// seed helpers
+// -------------------------------
+function seedRecipeMap(tier, map){
+  for (const [outCode, ingCodes] of Object.entries(map)){
+    ensureRecipe("R_"+outCode, nameFor(outCode), tier, outCode, ingCodes);
+  }
+}
+
+// seed all
+seedRecipeMap(2, RECIPES_T2);
+seedRecipeMap(3, RECIPES_T3);
+seedRecipeMap(4, RECIPES_T4);
+seedRecipeMap(5, RECIPES_T5);
+
+// (ARTEFACT stays recipe-less)
+
 
 // ----------------- AUTH -----------------
 app.post("/api/register", async (req, res) => {
@@ -1584,5 +1575,6 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
