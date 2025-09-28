@@ -807,137 +807,176 @@
   </script>
 
   <!-- ===== Shop (Buy T1) ===== -->
-  <script>
-    function updateShopBalanceBadge(){
-      const el = $("#shop-balance");
-      if (!el) return;
-      const s = WHO?.balance_silver | 0;
-      const g = Math.floor(s/100), ss = s%100;
-      if (WHO) {
-        el.textContent = `${g}g ${ss}s`;
-        el.classList.remove("hidden");
-      } else {
-        el.textContent = "0g 0s";
-        el.classList.add("hidden");
-      }
+<script>
+  function updateShopBalanceBadge(){
+    const el = $("#shop-balance");
+    if (!el) return;
+    const s = WHO?.balance_silver | 0;
+    const g = Math.floor(s/100), ss = s%100;
+    if (WHO) {
+      el.textContent = `${g}g ${ss}s`;
+      el.classList.remove("hidden");
+    } else {
+      el.textContent = "0g 0s";
+      el.classList.add("hidden");
     }
-    function renderShopGotItem(obj){
-      const msg = $("#shop-msg"); if(!msg) return;
-      const icon = iconForByCode(obj.code, obj.tier);
-      msg.innerHTML = `
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
-        </div>`;
-    }
-    function renderShopGotRecipe(rec){
-      const msg = $("#shop-msg"); if(!msg) return;
-      msg.innerHTML = `
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-          <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
-        </div>`;
-    }
-    function updateBuysToNextFromWHO(){
-      const b = $("#buysToNext"); if (!b) return;
-      b.textContent = (typeof WHO?.buys_to_next === "number")
-        ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
-    }
-    async function refreshMeLight(){
-      try{
-        const r = await api("/api/me");
-        if (r?.user) {
-          WHO = r.user;
-          renderBalance?.();
-          updateShopBalanceBadge();
-          updateBuysToNextFromWHO();
-          applyPerkIndicators();
-        }
-      }catch{}
-    }
+  }
 
-    $("#btn-buy-t1")?.addEventListener("click", async ()=>{
-      const btn = $("#btn-buy-t1");
-      const prevTxt = btn?.textContent;
-      const msg = $("#shop-msg");
-      try{
-        msg && (msg.textContent = "");
-        if (btn){ btn.disabled = true; btn.textContent = "Buying…"; }
-        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-        if (WHO) WHO.balance_silver = (r.balance_silver | 0);
+  function renderShopGotItem(obj){
+    const msg = $("#shop-msg"); if(!msg) return;
+    const icon = iconForByCode(obj.code, obj.tier);
+    msg.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
+      </div>`;
+  }
+  function renderShopGotRecipe(rec){
+    const msg = $("#shop-msg"); if(!msg) return;
+    msg.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+        <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
+      </div>`;
+  }
+  function updateBuysToNextFromWHO(){
+    const b = $("#buysToNext"); if (!b) return;
+    b.textContent = (typeof WHO?.buys_to_next === "number")
+      ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
+  }
+  async function refreshMeLight(){
+    try{
+      const r = await api("/api/me");
+      if (r?.user) {
+        WHO = r.user;
         renderBalance?.();
         updateShopBalanceBadge();
-        if (r.gotRecipe) renderShopGotRecipe(r.gotRecipe);
-        else if (r.gotItem) renderShopGotItem(r.gotItem);
-        else msg && (msg.textContent = "OK");
-        await refreshMeLight();
-        await safeCall("loadInventoryPanel");
-        safeCall("loadRecipes");
-        safeCall("loadInventoryFull");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-      }catch(e){
-        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-          $("#auth")?.classList.remove("hidden");
-          $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none");
-        }
-        if (msg) msg.textContent = e?.message || "Buy failed.";
-      }finally{
-        if (btn){ btn.disabled = false; btn.textContent = prevTxt || "Buy"; }
+        updateBuysToNextFromWHO();
+        applyPerkIndicators();
       }
-    });
+    }catch{}
+  }
 
-    document.addEventListener("DOMContentLoaded", ()=>{
-      const btn1 = $("#btn-buy-t1");
-      if (btn1){
-        let wrap = document.createElement("div");
-        wrap.style.display = "flex";
-        wrap.style.flexDirection = "column";
-        wrap.style.alignItems = "flex-start";
-        wrap.style.gap = "6px";
-        btn1.parentNode.insertBefore(wrap, btn1);
-        wrap.appendChild(btn1);
-      }
-      updateShopBalanceBadge();
-    });
+  // helper: privremeno onemogući sve shop gumbe tijekom kupnje
+  function setShopButtonsDisabled(flag){
+    $("#btn-buy-t1")?.toggleAttribute("disabled", !!flag);
+    $("#btn-buy10")?.toggleAttribute("disabled", !!flag);
+    $("#btn-buy50")?.toggleAttribute("disabled", !!flag);
+  }
 
-    async function shopBuyTimes(times=1){
-      const msg = $("#shop-msg");
-      let ok=0, fail=0, lastErr=null;
+  $("#btn-buy-t1")?.addEventListener("click", async ()=>{
+    const btn = $("#btn-buy-t1");
+    const prevTxt = btn?.textContent;
+    const msg = $("#shop-msg");
+    try{
       msg && (msg.textContent = "");
-      try{
-        for(let i=0;i<times;i++){
-          try{
-            const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-            if (WHO) WHO.balance_silver = (r.balance_silver | 0);
-            ok++;
-          }catch(e){
-            fail++; lastErr = e?.message || "Failed";
-            if (String(lastErr).toLowerCase().includes("insufficient")) break;
-          }
-        }
-        renderBalance?.();
-        updateShopBalanceBadge();
-        await refreshMeLight();
-        await safeCall("loadInventoryPanel");
-        safeCall("loadRecipes");
-        safeCall("loadInventoryFull");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-        if (msg) {
-          let txt = `Bought: ${ok}`;
-          if (fail) txt += `, failed: ${fail}`;
-          if (lastErr) txt += ` (${lastErr})`;
-          msg.textContent = txt;
-        }
-      }catch(e){
-        if (msg) msg.textContent = e?.message || "Buy failed.";
+      setShopButtonsDisabled(true);
+      if (btn){ btn.textContent = "Buying…"; }
+      const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+      if (WHO) WHO.balance_silver = (r.balance_silver | 0);
+      renderBalance?.();
+      updateShopBalanceBadge();
+      if (r.gotRecipe) renderShopGotRecipe(r.gotRecipe);
+      else if (r.gotItem) renderShopGotItem(r.gotItem);
+      else msg && (msg.textContent = "OK");
+      await refreshMeLight();
+      await safeCall("loadInventoryPanel");
+      safeCall("loadRecipes");
+      safeCall("loadInventoryFull");
+      safeCall("loadMarket");
+      safeCall("loadMine");
+    }catch(e){
+      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+        $("#auth")?.classList.remove("hidden");
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#card-register") && ($("#card-register").style.display="none");
       }
+      if (msg) msg.textContent = e?.message || "Buy failed.";
+    }finally{
+      setShopButtonsDisabled(false);
+      if (btn){ btn.textContent = prevTxt || "Buy"; }
     }
+  });
 
-    document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
-  </script>
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const btn1 = $("#btn-buy-t1");
+    if (btn1){
+      // wrap oko glavnog gumba
+      let wrap = document.createElement("div");
+      wrap.style.display = "flex";
+      wrap.style.flexDirection = "column";
+      wrap.style.alignItems = "flex-start";
+      wrap.style.gap = "6px";
+
+      btn1.parentNode.insertBefore(wrap, btn1);
+      wrap.appendChild(btn1);
+
+      // red s tri gumba: Buy, ×10, ×50
+      let row = document.createElement("div");
+      row.className = "row";
+      row.style.gap = "8px";
+      wrap.appendChild(row);
+      row.appendChild(btn1); // premjesti postojeći
+
+      // Buy ×10
+      const btn10 = document.createElement("button");
+      btn10.id = "btn-buy10";
+      btn10.className = "btn secondary";
+      btn10.textContent = "Buy ×10";
+      btn10.addEventListener("click", ()=> shopBuyTimes(10));
+      row.appendChild(btn10);
+
+      // Buy ×50
+      const btn50 = document.createElement("button");
+      btn50.id = "btn-buy50";
+      btn50.className = "btn secondary";
+      btn50.textContent = "Buy ×50";
+      btn50.addEventListener("click", ()=> shopBuyTimes(50));
+      row.appendChild(btn50);
+    }
+    updateShopBalanceBadge();
+  });
+
+  async function shopBuyTimes(times=1){
+    const msg = $("#shop-msg");
+    let ok=0, fail=0, lastErr=null;
+    msg && (msg.textContent = "");
+    setShopButtonsDisabled(true);
+    try{
+      for(let i=0;i<times;i++){
+        try{
+          const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+          if (WHO) WHO.balance_silver = (r.balance_silver | 0);
+          ok++;
+        }catch(e){
+          fail++; lastErr = e?.message || "Failed";
+          if (String(lastErr).toLowerCase().includes("insufficient")) break;
+        }
+      }
+      renderBalance?.();
+      updateShopBalanceBadge();
+      await refreshMeLight();
+      await safeCall("loadInventoryPanel");
+      safeCall("loadRecipes");
+      safeCall("loadInventoryFull");
+      safeCall("loadMarket");
+      safeCall("loadMine");
+      if (msg) {
+        let txt = `Bought: ${ok}`;
+        if (fail) txt += `, failed: ${fail}`;
+        if (lastErr) txt += ` (${lastErr})`;
+        msg.textContent = txt;
+      }
+    }catch(e){
+      if (msg) msg.textContent = e?.message || "Buy failed.";
+    }finally{
+      setShopButtonsDisabled(false);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
+</script>
+
 
   <!-- ===== Crafting ===== -->
   <script>
@@ -1406,3 +1445,4 @@
   </script>
 </body>
 </html>
+
