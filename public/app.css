@@ -1,30 +1,24 @@
-/* ========================================================= 
-   ARTEFACT — COMPLETE CSS (vizualne dorade ugrađene)
+/* =========================================================
+   ARTEFACT — CSS (vizualne dorade, logika netaknuta)
+   Sekcije: Global, Shop, Crafting, Market, Inventory, Bonus
    ========================================================= */
 
-/* ------------------------------
-   Root vars
------------------------------- */
+/* ========== GLOBAL (shared) ========== */
 :root{
-  --line:#233047;
-  --text:#e5e7eb;
-  --cell:1.5cm;     /* univerzalni slot za ikonice */
-  --landing:4cm;    /* veće slike (landing/HOW) */
-  --vh-offset:160px;/* JS precizira visinu (header+tabbar) */
+  --line:#233047; --text:#e5e7eb;
+  --cell:1.5cm;      /* univerzalni slot slike */
+  --landing:4cm;     /* slike na landing/HOW */
+  --vh-offset:160px; /* korisno za min-height po tabovima */
   --inv-offset:160px;
 }
-
-/* ------------------------------
-   Global background (shimmer)
------------------------------- */
-html,body{ height:100% }
+html,body{height:100%}
 body{
   margin:0; color:var(--text);
   background:
     radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
     radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
     radial-gradient(900px 600px at 70% 85%, rgba(234,88,12,0.12), transparent 60%),
-    linear-gradient(160deg, #0b1220 0%, #0e1b2e 45%, #0a0f1f 100%);
+    linear-gradient(160deg,#0b1220 0%,#0e1b2e 45%,#0a0f1f 100%);
 }
 body::before{
   content:""; position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.6;
@@ -34,10 +28,6 @@ body::before{
   -webkit-mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 75%);
           mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 75%);
 }
-
-/* ------------------------------
-   Utilities / text / layout
------------------------------- */
 .hidden{display:none}
 .muted{opacity:.8}
 .label{font-weight:600}
@@ -46,220 +36,158 @@ body::before{
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .right{margin-left:auto}
 
-/* ------------------------------
-   Header (glass + sticky)
------------------------------- */
 .header{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px; border-bottom:1px solid #233047;
-  position:sticky; top:0; z-index:20;
-  background:rgba(11,18,32,.6); backdrop-filter: blur(8px);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px;border-bottom:1px solid #233047;
+  position:sticky;top:0;z-index:20;
+  background:rgba(11,18,32,.6);backdrop-filter:blur(8px)
 }
-.header.no-border{ border-bottom:0!important }
+.header.no-border{border-bottom:0!important}
 
-/* ------------------------------
-   Core components
------------------------------- */
 .badge{
-  border:1px solid var(--line); padding:4px 8px;
-  border-radius:999px; background:#071021; font-size:12px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03); /* ADD: suptilan relief */
+  border:1px solid var(--line);padding:4px 8px;border-radius:999px;
+  background:#071021;font-size:12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)
 }
-
-/* Buttons (ADD: hover/press/shine) */
 .btn{
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,0.08);
-  background:#0f1b2c; padding:8px 12px; border-radius:10px; color:var(--text);
-  transition: transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease; /* ADD */
-  box-shadow: 0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03); /* ADD */
+  cursor:pointer;border:1px solid rgba(255,255,255,0.08);
+  background:#0f1b2c;color:var(--text);padding:8px 12px;border-radius:10px;
+  transition:transform .08s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease,opacity .15s ease;
+  box-shadow:0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03)
 }
-.btn:hover{ transform:translateY(-1px); border-color:#2a3d63; background:#12233e } /* ADD */
-.btn:active{ transform:translateY(0) } /* ADD */
+.btn:hover{transform:translateY(-1px);border-color:#2a3d63;background:#12233e}
+.btn:active{transform:translateY(0)}
 .btn.muted{opacity:.9}
 .btn.secondary{background:#0d2a3a}
-.btn.secondary:hover{ background:#0e2a44 }  /* ADD */
-.btn.danger{background:#3a0d14;border-color:#5a1a22} /* ADD */
-.btn.danger:hover{ background:#4a131b; border-color:#7a2933 } /* ADD */
+.btn.secondary:hover{background:#0e2a44}
+.btn.danger{background:#3a0d14;border-color:#5a1a22}
+.btn.danger:hover{background:#4a131b;border-color:#7a2933}
 
-/* Inputs (ADD: focus ring) */
 .input{
-  background:#0b1220;border:1px solid #233047;border-radius:8px;
-  padding:8px 10px;color:#e5e7eb;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02); /* ADD */
+  background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)
 }
-.input:focus{ outline:none; border-color:#3a5b8e; box-shadow:0 0 0 3px rgba(70,130,180,.15) } /* ADD */
+.input:focus{outline:none;border-color:#3a5b8e;box-shadow:0 0 0 3px rgba(70,130,180,.15)}
 
-/* Cards (glass look) */
 .card{
-  background:#0b1220cc;border:1px solid #233047;border-radius:12px;
-  padding:12px;margin-top:12px; backdrop-filter: blur(6px); /* +2px */
-  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02); /* ADD */
+  background:#0b1220cc;border:1px solid #233047;border-radius:12px;padding:12px;margin-top:12px;
+  backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02)
 }
 
-/* Toast */
 .toast{
-  position:fixed;bottom:16px;right:16px;background:#0d1b2a;
-  border:1px solid #233047;border-radius:8px;padding:10px 12px; z-index:50;
-  box-shadow:0 10px 24px rgba(0,0,0,.35); /* ADD */
+  position:fixed;bottom:16px;right:16px;background:#0d1b2a;border:1px solid #233047;border-radius:8px;padding:10px 12px;z-index:50;
+  box-shadow:0 10px 24px rgba(0,0,0,.35)
 }
 
-/* Lists & rows */
 .itemrow{
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 10px;border-bottom:1px solid #13223a;
-  transition: background .15s ease; /* ADD */
+  padding:8px 10px;border-bottom:1px solid #13223a;transition:background .15s ease
 }
 .itemrow:last-child{border-bottom:0}
-.itemrow:hover{ background:rgba(255,255,255,.03) } /* ADD */
+.itemrow:hover{background:rgba(255,255,255,.03)}
 .list{
   max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;
-  background:rgba(9,19,38,.5); backdrop-filter: blur(6px); /* ADD */
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);       /* ADD */
+  background:rgba(9,19,38,.5);backdrop-filter:blur(6px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)
 }
 
-/* Tiles */
-.tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px;background:#0c1728} /* ADD bg */
-.tile.ok{border-color:#165c32;background:#0e3a2f}
-.tile.miss{opacity:.85}
-
-/* Grid presets */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 
-/* Images / slots */
+.tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px;background:#0c1728}
+.tile.ok{border-color:#165c32;background:#0e3a2f}
+.tile.miss{opacity:.85}
+
 img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
-.img-cell{
-  width: var(--cell); height: var(--cell);
-  object-fit: contain; border-radius: 6px; display: block;
-}
-.img-landing{
-  width: var(--landing); height: var(--landing);
-  object-fit: contain; border-radius: 10px; display: block; margin-top: 8px;
-}
+.img-cell{width:var(--cell);height:var(--cell);object-fit:contain;border-radius:6px;display:block}
+.img-landing{width:var(--landing);height:var(--landing);object-fit:contain;border-radius:10px;display:block;margin-top:8px}
 
-/* Landing text sizes */
-#about p, #how p, #tips li { font-size:16px; line-height:1.6 }
-#how .label, #tips .label { font-size:20px }
-img{ max-width:512px; max-height:512px; width:auto; height:auto }
-.item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
-.img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
-.img-slot:hover{ opacity:1 }
+#about p,#how p,#tips li{font-size:16px;line-height:1.6}
+#how .label,#tips .label{font-size:20px}
+img{max-width:512px;max-height:512px;width:auto;height:auto}
+.item-img{display:block;width:100%;max-width:512px;max-height:512px;object-fit:contain;border-radius:10px;margin-top:8px}
+.img-slot{margin-top:10px;width:100%;min-height:96px;border:1px dashed #233047;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.85}
+.img-slot:hover{opacity:1}
 
-/* PayPal tweaks */
-#balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
-#btn-open-paypal.hidden{ display:none; }
-#paypal-panel.hidden{ display:none; }
-#paypal-button-container{ transform:scale(.95); transform-origin:left center; }
-@media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
-#paypal-wrap{ display:none !important; }
+/* PayPal sitno */
+#balance{font-size:14px;padding:6px 10px;font-weight:700;letter-spacing:.2px}
+#btn-open-paypal.hidden{display:none}
+#paypal-panel.hidden{display:none}
+#paypal-button-container{transform:scale(.95);transform-origin:left center}
+@media (max-width:520px){#paypal-button-container{transform:scale(.9)}}
+#paypal-wrap{display:none!important}
+@keyframes pulseTw{0%{box-shadow:0 0 0 0 rgba(120,170,255,.35)}70%{box-shadow:0 0 0 8px rgba(120,170,255,0)}100%{box-shadow:0 0 0 0 rgba(120,170,255,0)}}
+#balance.pulse{animation:pulseTw 1.2s ease-out 1}
 
-/* Balance pulse (ADD: samo vizualno) */
-@keyframes pulseTw{
-  0%{ box-shadow:0 0 0 0 rgba(120,170,255,.35) }
-  70%{ box-shadow:0 0 0 8px rgba(120,170,255,0) }
-  100%{ box-shadow:0 0 0 0 rgba(120,170,255,0) }
-}
-#balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
-
-/* ------------------------------
-   Tabs (pill style + sticky bar)
------------------------------- */
+/* Tabbar */
 .tabbar{
-  position: sticky; top: 56px; z-index: 9;
-  display: flex; gap: 8px; align-items: center;
-  padding: 8px 10px; margin: 8px 0 10px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(11,18,32,0.5);
-  backdrop-filter: blur(8px);
-  border-radius: 12px;
-  overflow-x: auto; overflow-y: hidden;
+  position:sticky;top:56px;z-index:9;display:flex;gap:8px;align-items:center;
+  padding:8px 10px;margin:8px 0 10px;border:1px solid rgba(255,255,255,0.06);
+  background:rgba(11,18,32,0.5);backdrop-filter:blur(8px);border-radius:12px;overflow-x:auto;overflow-y:hidden
 }
-.tabbar::before{
-  content:""; position:absolute; inset:0; border-radius:12px; pointer-events:none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-}
+.tabbar::before{content:"";position:absolute;inset:0;border-radius:12px;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04)}
 .chip{
-  position: relative;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  color: #e5e7eb; font-weight: 600; letter-spacing: .2px;
-  transition: transform .15s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
-  user-select: none; white-space: nowrap; cursor:pointer;
+  position:relative;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.08);
+  background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03));
+  color:#e5e7eb;font-weight:600;letter-spacing:.2px;transition:transform .15s, box-shadow .2s, background .2s, border-color .2s;user-select:none;white-space:nowrap;cursor:pointer
 }
-.chip:hover{
-  transform: translateY(-1px);
-  border-color: rgba(163, 230, 255, .35);
-  box-shadow: 0 2px 10px rgba(34,211,238,.12), inset 0 0 0 1px rgba(255,255,255,0.04);
-}
+.chip:hover{transform:translateY(-1px);border-color:rgba(163,230,255,.35);box-shadow:0 2px 10px rgba(34,211,238,.12), inset 0 0 0 1px rgba(255,255,255,0.04)}
 .chip.active{
   background:
     radial-gradient(120% 160% at 50% 0%, rgba(34,211,238,.20), rgba(124,58,237,.12) 45%, transparent 70%),
     linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
-  border-color: rgba(34,211,238,.45);
-  box-shadow: 0 4px 18px rgba(34,211,238,.18), inset 0 0 0 1px rgba(255,255,255,0.05);
+  border-color:rgba(34,211,238,.45);box-shadow:0 4px 18px rgba(34,211,238,.18), inset 0 0 0 1px rgba(255,255,255,0.05)
 }
 .chip.active::after{
-  content:""; position:absolute; left:18px; right:18px; bottom:-6px; height:3px;
-  border-radius:3px;
-  background: linear-gradient(90deg, rgba(34,211,238,.9), rgba(124,58,237,.9));
-  filter: drop-shadow(0 0 6px rgba(34,211,238,.35));
+  content:"";position:absolute;left:18px;right:18px;bottom:-6px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg, rgba(34,211,238,.9), rgba(124,58,237,.9));filter:drop-shadow(0 0 6px rgba(34,211,238,.35))
 }
-@media (min-width: 900px){ .chip{ font-size:15px } }
-
-/* ------------------------------
-   SHOP
------------------------------- */
-/* Buy blok ~10cm, ne do kraja */
-#tab-shop .buy-block{ width:10cm; max-width:100% }
-@media (max-width:600px){ #tab-shop .buy-block{ width:100% } }
-
-/* ------------------------------
-   CRAFTING — full-bleed + full-height
------------------------------- */
-#tab-craft.fullwide{ padding-left:0; padding-right:0 }
-#tab-craft .grid.fullbleed{
-  width:100vw; position:relative; left:50%; transform:translateX(-50%);
-  padding-left:12px; padding-right:12px;
-}
-#tab-craft .grid.fullbleed > .card{ border-radius:0 }
-
-/* visina do dna ekrana; liste skrolaju unutra */
-#tab-craft{
-  min-height: calc(100vh - var(--vh-offset));
-  display:flex; flex-direction:column;
-}
-#tab-craft .grid{ flex:1; min-height:0 }
-#tab-craft .grid > .card{ display:flex; flex-direction:column; min-height:0 }
-#recipes.list, #rec-details.list{ flex:1; min-height:0; max-height:none }
-
-/* ------------------------------
-   INVENTORY — split + veći brojevi + full-height
------------------------------- */
-.inv-grid{
-  display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;
-  height: calc(100vh - var(--inv-offset));
-}
-.inv-pane{ display:flex; flex-direction:column; min-height:0 }
-.inv-pane .list{ flex:1; min-height:0; max-height:none }
-.bigcount{ font-size:16px; font-weight:700; letter-spacing:.2px }
-.itemrow .muted, .itemrow .qty{ font-size:16px; font-weight:600 }
-
-/* ------------------------------
-   BONUS
------------------------------- */
-/* (reuse list/card stilove; po potrebi primijeni full-height wrapper kao u Crafting/Inventory) */
-
-/* ------------------------------
-   Responsive
------------------------------- */
+@media (min-width:900px){.chip{font-size:15px}}
 @media (max-width:900px){
   .grid{grid-template-columns:1fr}
   .grid-4{grid-template-columns:repeat(2,1fr)}
   .grid-5{grid-template-columns:repeat(3,1fr)}
-  .inv-grid{ grid-template-columns:1fr }
-  #tab-craft .grid.fullbleed{ padding-left:8px; padding-right:8px }
 }
+
+/* ========== SHOP ========== */
+#tab-shop{min-height:calc(100vh - var(--vh-offset));display:flex;flex-direction:column}
+#tab-shop .label{letter-spacing:.2px}
+#tab-shop #shop-balance{background:#0c1b2c}
+#tab-shop #shop-msg{min-height:24px}
+#tab-shop #btn-buy-t1,
+#tab-shop #btn-buy-t1x10,
+#tab-shop #btn-buy-t1x50{min-width:96px}
+#tab-shop .list{max-height:300px} /* ako ikad dodaš listu */
+
+/* ========== CRAFTING ========== */
+#tab-craft{min-height:calc(100vh - var(--vh-offset));display:flex;flex-direction:column}
+#tab-craft .grid{flex:1;min-height:0}
+#tab-craft .grid > .card{display:flex;flex-direction:column;min-height:0}
+#tab-craft #recipes.list,
+#tab-craft #rec-details.list{flex:1;min-height:0;max-height:none}
+#tab-craft #craft-perk{background:#0c1b2c}
+#tab-craft #btn-artefact img{margin-right:6px;border:1px solid rgba(255,255,255,.06)}
+#tab-craft #artefact-msg{min-height:20px}
+
+/* ========== MARKET ========== */
+#tab-market{min-height:calc(100vh - var(--vh-offset));display:flex;flex-direction:column}
+#tab-market .grid{flex:1;min-height:0}
+#tab-market .grid > .card{display:flex;flex-direction:column;min-height:0}
+#tab-market #inv-list.list{flex:1;min-height:0;max-height:none}
+#tab-market #market.list{flex:1;min-height:0;max-height:none}
+#tab-market #mine.list{flex:1;min-height:0;max-height:none}
+#tab-market #market-q{width:220px}
+#tab-market #list-msg{min-height:20px}
+#tab-market .badge{font-weight:700} /* cijena vizualno jača */
+
+/* ========== INVENTORY ========== */
+#tab-inv{min-height:calc(100vh - var(--inv-offset));display:flex;flex-direction:column}
+#tab-inv #inv-full.list{flex:1;min-height:0;max-height:none}
+#tab-inv .itemrow .muted{font-size:16px;font-weight:600}
+
+/* ========== BONUS ========== */
+#tab-bonus{min-height:calc(100vh - var(--vh-offset));display:flex;flex-direction:column}
+#tab-bonus #bonus-grid.grid{flex:1;min-height:0}
+#tab-bonus #bonus-grid .card{display:flex;flex-direction:column}
+#tab-bonus #bonus-grid .list{flex:1;min-height:0;max-height:none}
+#tab-bonus #bonus-lock{background:#3a1720;border-color:#61243a}
+#tab-bonus [id^="btn-claim-"]{min-width:92px}
