@@ -3,36 +3,31 @@
    ========================================================= */
 
 /* ------------------------------
+   Reset / base
+------------------------------ */
+*,
+*::before,
+*::after{ box-sizing:border-box }
+html,body{ height:100% }
+body{ margin:0 }
+
+/* ------------------------------
    Root vars
 ------------------------------ */
 :root{
   --line:#233047;
   --text:#e5e7eb;
-
-  /* dimenzije slika/slotova */
-  --cell:1.5cm;     
-  --landing:4cm;    
-
-  /* layout offseti */
-  --vh-offset:160px;   /* header + tabbar */
+  --cell:1.5cm;     /* univerzalni slot za ikonice */
+  --landing:4cm;    /* veće slike (landing/HOW) */
+  --vh-offset:160px;/* header+tabbar offset */
   --inv-offset:160px;
-
-  /* Crafting: vizualno veći (ali zadržan u svom containteru) */
-  --craft-minh: 120vh;   /* desktop */
-  --craft-minh-sm: 92vh; /* mobile/tablet */
 }
 
-/* Globalni box model da ništa ne probija širinu */
-*,
-*::before,
-*::after { box-sizing: border-box }
-
 /* ------------------------------
-   Global background
+   Global background (nije jednobojna)
 ------------------------------ */
-html,body{ height:100% }
 body{
-  margin:0; color:var(--text);
+  color:var(--text);
   background:
     radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
     radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
@@ -51,13 +46,19 @@ body::before{
 /* ------------------------------
    Utilities / text / layout
 ------------------------------ */
-.hidden{display:none !important} /* važno za izolaciju tabova */
+.hidden{display:none}
 .muted{opacity:.8}
 .label{font-weight:600}
 .brand{font-weight:700}
 .container{max-width:980px;margin:0 auto;padding:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .right{margin-left:auto}
+
+/* Prevent horizontal bleed anywhere */
+main, section, .card, #app, #tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
+  max-width:100%;
+  overflow-x:hidden;
+}
 
 /* ------------------------------
    Header
@@ -80,20 +81,19 @@ body::before{
 .btn{
   cursor:pointer; border:1px solid rgba(255,255,255,0.08);
   background:#0f1b2c; padding:8px 12px; border-radius:10px; color:var(--text);
-  max-width:100%;
+  transition:transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
 }
+.btn:hover{ transform:translateY(-1px) }
 .btn.muted{opacity:.9}
 .btn.secondary{background:#0d2a3a}
 .btn.danger{background:#3a0d14}
 .input{
   background:#0b1220;border:1px solid var(--line);border-radius:8px;
-  padding:8px 10px;color:#e5e7eb; max-width:100%;
+  padding:8px 10px;color:#e5e7eb
 }
 .card{
   background:#0b1220cc;border:1px solid var(--line);border-radius:12px;
-  padding:12px;margin-top:12px; backdrop-filter: blur(4px);
-  max-width:100%;
-  overflow:hidden; /* ni jedna kartica ne može širiti layout */
+  padding:12px;margin-top:12px; backdrop-filter: blur(4px)
 }
 .toast{
   position:fixed;bottom:16px;right:16px;background:#0d1b2a;
@@ -103,7 +103,6 @@ body::before{
 /* Lists & rows */
 .itemrow{
   display:flex;align-items:center;justify-content:space-between;
-  gap:10px;
   padding:8px 10px;border-bottom:1px solid #13223a
 }
 .itemrow:last-child{border-bottom:0}
@@ -113,12 +112,12 @@ body::before{
 }
 
 /* Tiles */
-.tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px;background:#0c1728}
+.tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px}
 .tile.ok{border-color:#165c32;background:#0e3a2f}
 .tile.miss{opacity:.85}
 
 /* Grid presets */
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
 
@@ -175,76 +174,65 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
 @media (min-width: 900px){ .chip{ font-size:15px } }
 
 /* ------------------------------
+   Tab containers (contain so they don't bleed)
+------------------------------ */
+#tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
+  min-height: calc(100vh - var(--vh-offset));
+  display:flex; flex-direction:column;
+  overflow-y:auto; overflow-x:hidden;
+}
+
+/* ------------------------------
    SHOP
 ------------------------------ */
 #tab-shop .buy-block{ width:10cm; max-width:100% }
 @media (max-width:600px){ #tab-shop .buy-block{ width:100% } }
 
-/* Dodatno poravnanje bloka s Buy ×10 / ×50 (JS ih već ubacuje ispod glavnog gumba) */
-#tab-shop .buy-multi{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
-
 /* ------------------------------
-   CRAFTING  (veći, ali izoliran)
+   CRAFTING (fiksnih 8 redaka u listi)
 ------------------------------ */
-#tab-craft{
-  /* “duplo” veći dojam: veliki min-height, ali tab je vlastiti scroll-container */
-  min-height: var(--craft-minh);
-  width:100%;
-  overflow-x:hidden;
-  overflow-y:auto;
-  display:flex; flex-direction:column;
-}
+#tab-craft .grid{ flex:1; min-height:0 }
+#tab-craft .grid > .card{ display:flex; flex-direction:column; min-height:0; max-width:100% }
 
-@media (max-width: 900px){
-  #tab-craft{ min-height: var(--craft-minh-sm); }
+/* Lista “Recipes you own” = točno 8 redaka; ostatak skrol */
+#recipes.list{
+  --craft-row-h: 66px;                 /* podešavanje visine retka */
+  height: calc(var(--craft-row-h) * 8 + 4px);
+  max-height: calc(var(--craft-row-h) * 8 + 4px);
+  overflow-y:auto; overflow-x:hidden;
 }
+#recipes.list .itemrow{ min-height: var(--craft-row-h) }
 
-/* grid unutar craftinga – dvije kolone, nikad ne probijaju roditelja */
-#tab-craft .grid{
-  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-  gap:12px;
-  width:100%;
-  overflow-x:hidden;
-}
-
-/* kartice u craftingu pune visinu i raspoređuju sadržaj */
-#tab-craft .grid > .card{ 
-  display:flex; flex-direction:column; min-height:0; max-width:100%;
-}
-
-/* liste u craftingu – fleksibilne, sa skrolom; NE probijaju tab */
-#recipes.list, 
+/* Details panel skrolan unutar kartice, ne izlazi van */
 #rec-details.list{
-  flex:1; 
-  min-height: 0; 
-  max-height: none; 
-  overflow:auto;
+  flex:1; min-height:0; max-height:none; overflow:auto;
 }
-
-/* “Details” donji red (gumb + napomena) da ostane u jednom redu kad ima mjesta */
-#rec-details .itemrow { gap:10px }
-#rec-details .itemrow .btn { flex-shrink:0 }
 
 /* ------------------------------
-   MARKET & INVENTORY
+   MARKET
 ------------------------------ */
-.inv-grid{ 
-  display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;
-  height: calc(100vh - var(--inv-offset)); 
-}
+#tab-market .grid{ flex:1; min-height:0 }
+#tab-market .grid > .card{ display:flex; flex-direction:column; min-height:0 }
+#inv-list.list, #market.list, #mine.list{ flex:1; min-height:0; max-height:none }
+
+/* ------------------------------
+   INVENTORY
+------------------------------ */
+.inv-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; margin-top:8px;
+  height: calc(100vh - var(--inv-offset)); }
 .inv-pane{ display:flex; flex-direction:column; min-height:0 }
-.inv-pane .list{ flex:1; min-height:0; max-height:none; overflow:auto }
+.inv-pane .list{ flex:1; min-height:0; max-height:none }
 .bigcount{ font-size:16px; font-weight:700; letter-spacing:.2px }
 .itemrow .muted, .itemrow .qty{ font-size:16px; font-weight:600 }
 
 /* ------------------------------
-   BONUS (vizualno do ruba ekrana, ali unutar taba)
+   BONUS
 ------------------------------ */
-#tab-bonus{
-  min-height: calc(100vh - var(--vh-offset));
-  overflow:auto;
+#tab-bonus .grid{ flex:1; min-height:0 }
+#tab-bonus .grid > .card{ display:flex; flex-direction:column; min-height:0 }
+#bonus-t2.list, #bonus-t3.list, #bonus-t4.list, #bonus-t5.list{
+  flex:1; min-height:0; max-height:none; overflow:auto;
 }
-#bonus-grid .card{ max-width:100%; overflow:hidden }
 
 /* ------------------------------
    Responsive
@@ -253,7 +241,7 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
   .grid{grid-template-columns:1fr}
   .grid-4{grid-template-columns:repeat(2,1fr)}
   .grid-5{grid-template-columns:repeat(3,1fr)}
-  .inv-grid{ grid-template-columns:1fr; height:auto; }
+  .inv-grid{ grid-template-columns:1fr }
 }
 
 /* =========================================================
