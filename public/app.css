@@ -66,8 +66,11 @@ body::before{
 }
 .btn{
   cursor:pointer; border:1px solid rgba(255,255,255,0.08);
-  background:#0f1b2c; padding:8px 12px; border-radius:10px; color:var(--text)
+  background:#0f1b2c; padding:8px 12px; border-radius:10px; color:var(--text);
+  transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
 }
+.btn:hover{ transform:translateY(-1px) }
+.btn:active{ transform:translateY(0) }
 .btn.muted{opacity:.9}
 .btn.secondary{background:#0d2a3a}
 .btn.danger{background:#3a0d14}
@@ -162,43 +165,50 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
 #tab-shop .buy-block{ width:10cm; max-width:100% }
 @media (max-width:600px){ #tab-shop .buy-block{ width:100% } }
 
+.shop-multi{
+  display:flex; gap:6px; align-items:center; margin-top:6px;
+}
+
 /* ------------------------------
-   CRAFTING — balansirano
+   CRAFTING — veće samo uspravno
 ------------------------------ */
 #tab-craft{
-  min-height: calc(100vh - var(--vh-offset));
-  display:flex;
-  flex-direction:column;
+  min-height: calc((100vh - var(--vh-offset)) * 2); /* 2x visina ekrana */
+  display:flex; flex-direction:column;
+  width:100%; overflow-x:hidden; /* nema širenja vodoravno */
 }
 #tab-craft .grid{
-  flex:1;
-  min-height:0;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
+  flex:1; min-height:0;
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;
+  overflow-x:hidden;
 }
 #tab-craft .grid > .card{
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-  flex:1;
+  display:flex; flex-direction:column; flex:1; min-height:0; max-width:100%;
 }
-#recipes.list,
-#rec-details.list{
-  flex:1;
-  min-height:0;
-  overflow:auto;
+#recipes.list, #rec-details.list{
+  flex:1; min-height:0; overflow:auto; max-width:100%;
+}
+#tab-craft img, #tab-craft .list{
+  max-width:100%; box-sizing:border-box;
 }
 
 /* ------------------------------
    INVENTORY
 ------------------------------ */
-.inv-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;
-  height: calc(100vh - var(--inv-offset)); }
+.inv-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;
+  height: calc(100vh - var(--inv-offset));
+}
 .inv-pane{ display:flex; flex-direction:column; min-height:0 }
 .inv-pane .list{ flex:1; min-height:0; max-height:none }
 .bigcount{ font-size:16px; font-weight:700; letter-spacing:.2px }
 .itemrow .muted, .itemrow .qty{ font-size:16px; font-weight:600 }
+
+/* ------------------------------
+   BONUS
+------------------------------ */
+#tab-bonus .grid .card{ display:flex; flex-direction:column }
+#tab-bonus .list{ flex:1; min-height:0; max-height:240px; overflow:auto }
 
 /* ------------------------------
    Responsive
