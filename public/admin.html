@@ -300,7 +300,7 @@
           if (pctEl)  pctEl.value  = Number(entry.percent||0);
           if (usedEl) usedEl.value = Math.floor((entry.total_credited_silver||0)/100);
         }
-        msg("#codes-msg", "Loaded.", true);
+        msg("#codes-msg, "Loaded.", true);
       }catch(e){
         for (let i=0;i<5;i++){
           const usedEl = document.getElementById(`bonus-used-${i}`);
