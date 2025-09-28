@@ -1,5 +1,5 @@
 /* ========================================================= 
-   ARTEFACT — COMPLETE CSS (Game + Admin)  [FIXED TABS/HEIGHTS]
+   ARTEFACT — COMPLETE CSS (Game + Admin)
    ========================================================= */
 
 /* ------------------------------
@@ -8,25 +8,23 @@
 :root{
   --line:#233047;
   --text:#e5e7eb;
-  --bg0:#0b1220; --bg1:#0e1b2e; --bg2:#0a0f1f;
-  --cell:1.5cm;          /* univerzalni slot za ikonice */
-  --landing:4cm;         /* veće slike (landing/HOW) */
-  --vh-offset:160px;     /* header + tabbar približno */
-  --pane-pad:12px;
+  --cell:1.5cm;     /* univerzalni slot za ikonice */
+  --landing:4cm;    /* veće slike (landing/HOW) */
+  --vh-offset:160px;/* header+tabbar offset (za tabove na app-u) */
+  --inv-offset:160px;
 }
 
 /* ------------------------------
    Global background
 ------------------------------ */
 html,body{ height:100% }
-html{ overflow-y: auto; }
 body{
   margin:0; color:var(--text);
   background:
     radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
     radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
     radial-gradient(900px 600px at 70% 85%, rgba(234,88,12,0.12), transparent 60%),
-    linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
+    linear-gradient(160deg, #0b1220 0%, #0e1b2e 45%, #0a0f1f 100%);
 }
 body::before{
   content:""; position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.6;
@@ -40,14 +38,13 @@ body::before{
 /* ------------------------------
    Utilities / text / layout
 ------------------------------ */
-.hidden{ display:none !important; }  /* VAŽNO: drži neaktivne tabove skrivenima */
+.hidden{display:none}
 .muted{opacity:.8}
 .label{font-weight:600}
 .brand{font-weight:700}
 .container{max-width:980px;margin:0 auto;padding:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .right{margin-left:auto}
-.nowrap{white-space:nowrap}
 
 /* ------------------------------
    Header
@@ -65,32 +62,30 @@ body::before{
 ------------------------------ */
 .badge{
   border:1px solid var(--line); padding:4px 8px;
-  border-radius:999px; background:#071021; font-size:12px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+  border-radius:999px; background:#071021; font-size:12px
 }
 .btn{
   cursor:pointer; border:1px solid rgba(255,255,255,0.08);
   background:#0f1b2c; padding:8px 12px; border-radius:10px; color:var(--text);
-  transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
+  transition:transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
 .btn:hover{ transform:translateY(-1px); border-color:#2a3d63; background:#12233e; }
 .btn:active{ transform:translateY(0); }
 .btn.muted{opacity:.9}
 .btn.secondary{background:#0d2a3a}
-.btn.secondary:hover{ background:#12354a }
-.btn.danger{background:#3a0d14;border-color:#5a1a22}
-.btn.danger:hover{ background:#4a131b; border-color:#7a2933 }
+.btn.danger{background:#3a0d14}
+.btn.small{ padding:6px 10px; font-size:13px; border-radius:8px; }
+
 .input{
   background:#0b1220;border:1px solid var(--line);border-radius:8px;
-  padding:8px 10px;color:#e5e7eb;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+  padding:8px 10px;color:#e5e7eb
 }
 .input:focus{ outline:none; border-color:#3a5b8e; box-shadow:0 0 0 3px rgba(70,130,180,.15) }
+
 .card{
-  background:rgba(11,18,32,.66);border:1px solid var(--line);border-radius:12px;
-  padding:12px;margin-top:12px; backdrop-filter: blur(6px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02);
+  background:#0b1220cc;border:1px solid var(--line);border-radius:12px;
+  padding:12px;margin-top:12px; backdrop-filter: blur(4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18), inset 0 0 0 1px rgba(255,255,255,.02);
 }
 .toast{
   position:fixed;bottom:16px;right:16px;background:#0d1b2a;
@@ -100,15 +95,12 @@ body::before{
 /* Lists & rows */
 .itemrow{
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 10px;border-bottom:1px solid #13223a;
-  transition: background .15s ease;
+  padding:8px 10px;border-bottom:1px solid #13223a
 }
 .itemrow:last-child{border-bottom:0}
-.itemrow:hover{ background:rgba(255,255,255,.03) }
 .list{
-  border:1px solid var(--line);border-radius:10px;
-  background:rgba(9,19,38,.5);box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-  overflow:auto;
+  max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px;
+  background:rgba(9,19,38,.5);
 }
 
 /* Tiles */
@@ -129,7 +121,7 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
 .img-slot:hover{ opacity:1 }
 
 /* ------------------------------
-   Tabs (sticky bar)
+   Tabs
 ------------------------------ */
 .tabbar{
   position: sticky; top: 56px; z-index: 9;
@@ -171,98 +163,68 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
   background: linear-gradient(90deg, rgba(34,211,238,.9), rgba(124,58,237,.9));
   filter: drop-shadow(0 0 6px rgba(34,211,238,.35));
 }
-
-/* ------------------------------
-   APP LAYOUT CONTAINMENT
-   (sprječava "bijeg" sekcija u druge tabove)
------------------------------- */
-#app{ position: relative; }
-#app > .card{ overflow: hidden; }  /* pojedini tab je samostalan panel */
-#app > .card .list{ background: rgba(9,19,38,.5); }
+@media (min-width: 900px){ .chip{ font-size:15px } }
 
 /* ------------------------------
    SHOP
 ------------------------------ */
 #tab-shop .buy-block{ width:10cm; max-width:100% }
-#tab-shop .list{ max-height: 360px; }
 @media (max-width:600px){ #tab-shop .buy-block{ width:100% } }
 
 /* ------------------------------
-   CRAFTING  (fix: 8 redaka vidljiva lista, ne prelazi tab)
+   CRAFTING (izolirano, ne prelazi u druge tabove)
 ------------------------------ */
 #tab-craft{
-  display:flex; flex-direction:column;
   min-height: calc(100vh - var(--vh-offset));
-  max-height: calc(100vh - var(--vh-offset));
-  overflow: hidden;               /* NE u druge sekcije */
+  display:flex; flex-direction:column;
+  overflow:hidden;
 }
-#tab-craft .grid{
-  flex:1; min-height:0;
-}
-#tab-craft .grid > .card{
-  display:flex; flex-direction:column; min-height:0; overflow:hidden;
-}
-
-/* Lijevi panel (recipes list) – ciljano ~8 redaka na 44px */
-#recipes.list{
-  flex:1; min-height:0;
-  max-height: calc(8 * 44px + 2px);   /* oko 8 redaka */
-  overflow-y:auto; overflow-x:hidden;
-}
-
-/* Desni panel (details) */
-#rec-details.list{
-  flex:1; min-height:0; max-height:none; overflow:auto;
-}
-
-/* Gornji info red (bonus, artefact gumb) */
-#tab-craft .row.topline{ gap:8px; align-items:center; }
+#tab-craft .grid{ flex:1; min-height:0 }
+#tab-craft .grid > .card{ display:flex; flex-direction:column; min-height:0 }
+#recipes.list, #rec-details.list{ flex:1; min-height:0; max-height:none; }
 
 /* ------------------------------
-   MARKET  (samostalni skrolovi)
+   MARKET (vraćeno na staro ponašanje)
 ------------------------------ */
 #tab-market{
   min-height: calc(100vh - var(--vh-offset));
-  max-height: calc(100vh - var(--vh-offset));
-  overflow:hidden;
+  display:flex; flex-direction:column;
+  overflow:hidden; /* sprječava “curenje” u sljedeće sekcije */
 }
-#tab-market .grid{ height:100%; min-height:0; }
-#tab-market .grid > .card{ display:flex; flex-direction:column; min-height:0; }
-#inv-list.list{ flex:1; min-height:0; max-height:none; overflow:auto; }
-#market.list{   flex:1; min-height:0; max-height:none; overflow:auto; }
-#mine.list{     flex:1; min-height:0; max-height:none; overflow:auto; }
+#tab-market .grid{ flex:1; min-height:0 }
+#tab-market .grid > .card{ display:flex; flex-direction:column; min-height:0 }
+
+/* Lijevi panel (Create Sale + tvoj inventory za pick) */
+#inv-list.list{ flex:1; min-height:0; max-height:none }
+
+/* Desni panel (Marketplace + My listings) */
+#market.list, #mine.list{ flex:1; min-height:0; max-height:none }
 
 /* ------------------------------
-   INVENTORY  (dvije okomite liste u gridu – ne bježe)
+   INVENTORY
 ------------------------------ */
 #tab-inv{
   min-height: calc(100vh - var(--vh-offset));
-  max-height: calc(100vh - var(--vh-offset));
-  overflow:hidden;
+  display:flex; flex-direction:column; overflow:hidden;
 }
-.inv-grid{
-  display:grid; grid-template-columns:1fr;
-  gap:12px; margin-top:8px;
-  height: calc(100% - 8px); min-height:0;
-}
+.inv-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;
+  height: calc(100vh - var(--inv-offset)); }
 .inv-pane{ display:flex; flex-direction:column; min-height:0 }
-.inv-pane .list{ flex:1; min-height:0; max-height:none; overflow:auto }
+.inv-pane .list{ flex:1; min-height:0; max-height:none }
 .bigcount{ font-size:16px; font-weight:700; letter-spacing:.2px }
 .itemrow .muted, .itemrow .qty{ font-size:16px; font-weight:600 }
 
 /* ------------------------------
-   BONUS  (stabilne visine i grid, bez preljeva)
+   BONUS
 ------------------------------ */
 #tab-bonus{
   min-height: calc(100vh - var(--vh-offset));
-  max-height: none;               /* može biti viši, ali svaki panel ima svoju listu */
-  overflow: visible;
+  display:flex; flex-direction:column; overflow:hidden;
 }
-#tab-bonus .grid{ align-items:stretch; }
-#tab-bonus .grid .card{ display:flex; flex-direction:column; }
-#tab-bonus .list{
-  flex:1; min-height:0; max-height: 240px; /* kontroliran prikaz unutar kartice */
-  overflow:auto;
+#bonus-grid{ flex:1; min-height:0 }
+#bonus-grid .card{ display:flex; flex-direction:column }
+#bonus-t2.list, #bonus-t3.list, #bonus-t4.list, #bonus-t5.list{
+  flex:1; min-height:0; max-height:none;
 }
 
 /* ------------------------------
@@ -272,14 +234,16 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
   .grid{grid-template-columns:1fr}
   .grid-4{grid-template-columns:repeat(2,1fr)}
   .grid-5{grid-template-columns:repeat(3,1fr)}
-  /* kad je usko, craft neka bude malo viši da stane 8 redaka */
-  #tab-craft{ min-height: calc(100vh - 120px); max-height: calc(100vh - 120px); }
+  .inv-grid{ grid-template-columns:1fr }
 }
 
 /* =========================================================
-   ADMIN PANEL (safe-scoped – nema utjecaja na app tabove)
+   ADMIN PANEL (scoped – samo admin stranica / elementi)
    ========================================================= */
-#admin, #admin .card{ overflow-x:hidden; }
+#admin, body.admin { font-size:16px; line-height:1.5; }
+#users.list, #inv.list{ background:#0b1220cc; border:1px solid var(--line); border-radius:10px; padding:12px; white-space:pre-wrap; }
+
+.search{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:#0b1220;color:var(--text);font-size:15px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:900px){ .grid2{grid-template-columns:1fr} }
 .rowx{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -287,21 +251,24 @@ img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:blo
 .tag{font-size:11px;padding:2px 6px;border-radius:6px;background:#1f2937}
 .tag.red{background:#3b1113;color:#fecaca}
 .tag.green{background:#0f2e1b;color:#bbf7d0}
-.search{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#0b1220;color:var(--text)}
-#users.list,#inv.list{background:rgba(11,18,32,.66);border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap}
-.user-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:8px;transition: background .15s ease}
-.user-row:hover{background:#0f172a}
+
 #who{font-size:13px;opacity:.9}
-#admin-key,#gold-amount,#bonus-gold,[id^="bonus-code-"],[id^="bonus-percent-"],[id^="bonus-used-"]{
-  background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--text)
+
+#admin-key,
+#gold-amount,
+#bonus-gold,
+[id^="bonus-code-"],
+[id^="bonus-percent-"],
+[id^="bonus-used-"]{
+  background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--text);font-size:15px
 }
-#admin-key:disabled,#gold-amount:disabled,#bonus-gold:disabled,[id^="bonus-code-"]:disabled,[id^="bonus-percent-"]:disabled{
-  opacity:.7;cursor:not-allowed
-}
-.codes-table{width:100%;border-collapse:collapse; table-layout:fixed}
-.codes-table th,.codes-table td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
-.codes-table th{color:#94a3b8;font-weight:600;text-transform:uppercase;font-size:12px;letter-spacing:.4px}
-.codes-table input{background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:#e2e8f0;width:100%}
+#admin-key:disabled,#gold-amount:disabled,#bonus-gold:disabled,[id^="bonus-code-"]:disabled,[id^="bonus-percent-"]:disabled{opacity:.7;cursor:not-allowed}
+
+.codes-table{width:100%;border-collapse:collapse}
+.codes-table th,.codes-table td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+.codes-table th{color:#94a3b8;font-weight:600;text-transform:uppercase;font-size:13px;letter-spacing:.3px}
+.codes-table input{background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:#e2e8f0;width:100%;font-size:15px}
 .codes-row-actions{display:flex;gap:8px;align-items:center}
-#users.list{ height:420px; max-height:420px; overflow-y:auto; }
-#inv.list{   height:280px; max-height:280px; overflow-y:auto; }
+
+.user-row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;transition: background .15s ease}
+.user-row:hover{background:#0f172a}
