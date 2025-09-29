@@ -321,6 +321,7 @@ ensure(`
 `);
 
 /* ---- PayPal uplate (idempot) + bonus_code reference ---- */
+/* ---- PayPal uplate (idempot) + bonus_code reference ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS paypal_payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,6 +334,8 @@ ensure(`
     bonus_code TEXT
   );
 `);
+
+// Ako je tablica starija i nema bonus_code, dodaj kolonu:
 if (!hasColumn("paypal_payments", "bonus_code")) {
   try { db.exec(`ALTER TABLE paypal_payments ADD COLUMN bonus_code TEXT;`); } catch {}
 }
@@ -348,6 +351,18 @@ ensure(`
     updated_at TEXT
   );
 `);
+
+// MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
+if (!hasColumn("bonus_codes", "total_credited_silver")) {
+  try { db.exec(`ALTER TABLE bonus_codes ADD COLUMN total_credited_silver INTEGER NOT NULL DEFAULT 0;`); } catch {}
+}
+if (!hasColumn("bonus_codes", "updated_at")) {
+  try { db.exec(`ALTER TABLE bonus_codes ADD COLUMN updated_at TEXT;`); } catch {}
+}
+
+// (Opcionalno, ali korisno) — ako je netko ručno stavio negativne postotke ili >100, normaliziraj:
+try { db.exec(`UPDATE bonus_codes SET percent = CASE WHEN percent < 0 THEN 0 WHEN percent > 100 THEN 100 ELSE percent END`); } catch {}
+
 
 /* ---------- LEGACY / CREATE-OR-MIGRATE (bez duplikata) ---------- */
 db.transaction(() => {
@@ -1614,6 +1629,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
