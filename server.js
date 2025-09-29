@@ -761,11 +761,22 @@ app.post("/api/paypal/confirm", async (req, res) => {
       return res.status(400).json({ ok:false, error:"Payment not completed", status: order?.status || "UNKNOWN" });
     }
 
-    const pu = order.purchase_units && order.purchase_units[0];
-    const currency = pu?.amount?.currency_code;
-    const paid = Number(pu?.amount?.value);
-    if (currency !== "USD" || !Number.isFinite(paid)) return res.status(400).json({ ok:false, error:"Unsupported currency or invalid amount" });
-    if (paid < MIN_USD) return res.status(400).json({ ok:false, error: `Minimum is $${MIN_USD}` });
+    // Odredi iznos iz capture (prioritet) ili iz order amount
+const pu = order?.purchase_units?.[0];
+const captureAmt = pu?.payments?.captures?.[0]?.amount; // { currency_code, value }
+const orderAmt   = pu?.amount;                           // { currency_code, value }
+const amt        = captureAmt || orderAmt;
+
+const currency = amt?.currency_code;
+const paid     = Number(amt?.value);
+
+if (currency !== "USD" || !Number.isFinite(paid)) {
+  return res.status(400).json({ ok:false, error: "Unsupported currency or invalid amount" });
+}
+if (paid < MIN_USD) {
+  return res.status(400).json({ ok:false, error: `Minimum is $${MIN_USD}` });
+}
+
 
     // base credit
     const addGold = Math.floor(paid * USD_TO_GOLD);
@@ -1629,6 +1640,7 @@ app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
