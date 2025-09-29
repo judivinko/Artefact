@@ -360,11 +360,18 @@ ensure(`
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
 if (!hasColumn("bonus_codes", "total_credited_silver")) {
-  try { db.exec(`ALTER TABLE bonus_codes ADD COLUMN total_credited_silver INTEGER NOT NULL DEFAULT 0;`); } catch {}
+  db.exec(`ALTER TABLE bonus_codes ADD COLUMN total_credited_silver INTEGER NOT NULL DEFAULT 0;`);
 }
 if (!hasColumn("bonus_codes", "updated_at")) {
-  try { db.exec(`ALTER TABLE bonus_codes ADD COLUMN updated_at TEXT;`); } catch {}
+  db.exec(`ALTER TABLE bonus_codes ADD COLUMN updated_at TEXT;`);
 }
+if (!hasColumn("bonus_codes", "is_active")) {
+  db.exec(`ALTER TABLE bonus_codes ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;`);
+}
+if (!hasColumn("bonus_codes", "percent")) {
+  db.exec(`ALTER TABLE bonus_codes ADD COLUMN percent INTEGER NOT NULL DEFAULT 0;`);
+}
+
 
 // (Opcionalno, ali korisno) — ako je netko ručno stavio negativne postotke ili >100, normaliziraj:
 try { db.exec(`UPDATE bonus_codes SET percent = CASE WHEN percent < 0 THEN 0 WHEN percent > 100 THEN 100 ELSE percent END`); } catch {}
@@ -1649,5 +1656,6 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
