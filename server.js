@@ -82,7 +82,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
-app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 // ----------------- DB -----------------
 const db = new Database(DB_FILE);
@@ -110,14 +109,21 @@ function requireAuth(req) {
   if (!u || u.is_disabled) throw new Error("Account disabled");
   return u.id;
 }
-function isAdmin(req){
-  const hdr = (req.headers["x-admin-key"] || req.headers["X-Admin-Key"] || "").toString();
+function isAdmin(req) {
+  // 1. Header key (samo za dev/test, u produkciji bolje ugasiti)
+  const hdr = String(req.headers["x-admin-key"] || "");
   if (hdr && hdr === ADMIN_KEY) return true;
+
+  // 2. Provjera cookie tokena
   const tok = readToken(req);
   if (!tok) return false;
-  const r = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
-  return !!(r && r.is_admin===1);
+
+  // 3. Admin i nije disabled
+  const r = db.prepare("SELECT is_admin, is_disabled FROM users WHERE id=?").get(tok.uid);
+  return !!(r && r.is_admin === 1 && r.is_disabled !== 1);
 }
+
+
 function addMinutes(iso, mins){
   const d = new Date(iso);
   d.setMinutes(d.getMinutes()+mins);
@@ -1635,22 +1641,13 @@ app.post("/api/sales/cancel", (req, res) => {
 //-----helt------
 app.get("/health", (_req,res)=> res.json({ ok:true, ts: Date.now() }));
 
+app.get(/^\/(?!api\/).*/, (_req, res) => 
+  res.sendFile(path.join(__dirname, "public", "index.html"))
+);
 
 // ----------------- START -----------------
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
 
 
