@@ -17,19 +17,16 @@
         }
         const qs = new URLSearchParams({
           "client-id": j.client_id,
-          "currency": String(j.currency || "USD").toUpperCase(),
+          "currency": j.currency || "USD",
           "intent": "capture",
           "components": "buttons"
         });
         const s = document.createElement("script");
         s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
         s.async = true;
+        // __PAYPAL_READY__ je bio suvišan; nije potreban za rad
         document.head.appendChild(s);
-
-        // expose minimal config to ostatak frontenda
-        const min = Number(j.min_usd);
-        window.__PAYPAL_MIN_USD__ = Number.isFinite(min) && min >= 1 ? Math.floor(min) : 10;
-        window.__PAYPAL_DISABLED__ = false;
+        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
       }catch(e){
         console.warn("PayPal SDK load failed:", e);
         window.__PAYPAL_DISABLED__ = true;
@@ -538,6 +535,100 @@
       return file ? `/${file}` : FALLBACK_ITEM_ICON;
     }
   </script>
+
+  <!-- ===== PayPal panel wiring (client-side capture + /api/paypal/confirm) ===== -->
+  <script>
+    // Nemoj ovisiti o drugim blokovima: čuvamo imena u window i pazimo da ne dupliramo
+    window.initPayPalPanelButtons ||= function initPayPalPanelButtons(){
+      try{
+        if (window.__PAYPAL_DISABLED__) return;
+        const host = document.getElementById("paypal-button-container");
+        if (!window.paypal || !host) return;
+        if (host.dataset.rendered === "1") return;
+
+        const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
+
+        window.paypal.Buttons({
+          style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
+          createOrder: function(_data, actions){
+            const el = document.getElementById("pp-amount");
+            let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
+            v = Math.floor(v); // cjeli USD
+            if (el) el.value = String(v);
+            return actions.order.create({
+              purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
+            });
+          },
+          onApprove: async function(data, actions){
+            try{
+              await actions.order.capture();
+              const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
+              const r = await api("/api/paypal/confirm", {
+                method:"POST",
+                body: JSON.stringify({ orderId: data.orderID, bonus_code })
+              });
+
+              // Pokušaj osvježiti UI balansa (bez ovisnosti o WHO/renderBalance)
+              const bal = Number(r?.balance_silver || 0);
+              const g = Math.floor(bal/100), s = bal%100;
+              const badge = document.getElementById("balance");
+              if (badge){
+                badge.textContent = `${g}g ${s}s`;
+                badge.classList.remove("hidden");
+                badge.classList.add("pulse");
+                setTimeout(()=> badge.classList.remove("pulse"), 1300);
+              }
+
+              // Ako postoji globalni refresh — pozovi
+              if (typeof window.refreshMeLight === "function") {
+                try { await window.refreshMeLight(); } catch {}
+              }
+
+              const msg = document.getElementById("pp-msg");
+              if (msg){
+                msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
+              } else {
+                (window.toast||alert)(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
+              }
+            }catch(e){
+              alert(e?.message || "Payment confirm failed.");
+            }
+          },
+          onError: err => {
+            console.error("PayPal error:", err);
+            alert("PayPal error.");
+          }
+        }).render("#paypal-button-container");
+
+        host.dataset.rendered = "1";
+      }catch(e){
+        console.warn("initPayPalPanelButtons failed:", e);
+      }
+    };
+
+    window.togglePaypalPanel ||= function togglePaypalPanel(forceOpen){
+      if (window.__PAYPAL_DISABLED__) return;
+      const panel = document.getElementById("paypal-panel");
+      if (!panel) return;
+      const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !open);
+      if (open) window.initPayPalPanelButtons();
+    };
+
+    // Pokaži PayPal gumb u headeru ako je omogućeno i poveži klik
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("btn-open-paypal");
+      if (btn){
+        btn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
+        if (!btn.dataset.bound){
+          btn.addEventListener("click", ()=> window.togglePaypalPanel());
+          btn.dataset.bound = "1";
+        }
+      }
+    });
+  </script>
+</body>
+</html>
 
   <!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
@@ -1459,6 +1550,7 @@
   </script>
 </body>
 </html>
+
 
 
 
