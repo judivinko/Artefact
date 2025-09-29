@@ -17,16 +17,19 @@
         }
         const qs = new URLSearchParams({
           "client-id": j.client_id,
-          "currency": j.currency || "USD",
+          "currency": String(j.currency || "USD").toUpperCase(),
           "intent": "capture",
           "components": "buttons"
         });
         const s = document.createElement("script");
         s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
         s.async = true;
-        s.onload = () => { window.__PAYPAL_READY__ = true; };
         document.head.appendChild(s);
-        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
+
+        // expose minimal config to ostatak frontenda
+        const min = Number(j.min_usd);
+        window.__PAYPAL_MIN_USD__ = Number.isFinite(min) && min >= 1 ? Math.floor(min) : 10;
+        window.__PAYPAL_DISABLED__ = false;
       }catch(e){
         console.warn("PayPal SDK load failed:", e);
         window.__PAYPAL_DISABLED__ = true;
@@ -1456,5 +1459,6 @@
   </script>
 </body>
 </html>
+
 
 
