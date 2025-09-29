@@ -215,6 +215,16 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
+/* ------------------------------
+   PayPal panel / button (DODANO)
+------------------------------ */
+#btn-open-paypal.hidden{ display:none }
+#paypal-panel.hidden{ display:none }
+#paypal-button-container{ transform:scale(.95); transform-origin:left center }
+@media (max-width:520px){
+  #paypal-button-container{ transform:scale(.9) }
+}
+
 /* ==================================================================
    ADMIN (SCOPED) – vrijedi samo na admin stranici
    Stavi <body class="admin"> u admin.html
