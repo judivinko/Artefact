@@ -537,7 +537,7 @@
   </script>
 
   <!-- ===== Global state + Tabs + PayPal panel ===== -->
-  <script>
+<script>
   window.$  ||= (s => document.querySelector(s));
   window.$$ ||= (s => Array.from(document.querySelectorAll(s)));
   window.safeCall ||= (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
@@ -613,17 +613,25 @@
       if (!window.paypal || !host) return;
       if (host.dataset.rendered === "1") return;
       const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
+
       window.paypal.Buttons({
         style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-        createOrder: function(_data, actions){
+
+        // ⬇️ PROMJENA: koristimo server-side create-order rutu
+        createOrder: async function(){
           const el = document.getElementById("pp-amount");
           let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
           v = Math.floor(v);
           if (el) el.value = String(v);
-          return actions.order.create({
-            purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
+
+          const r = await api("/api/paypal/create-order", {
+            method: "POST",
+            body: JSON.stringify({ amount_usd: v })
           });
+          if (!r?.ok || !r?.id) throw new Error(r?.error || "Create order failed");
+          return r.id;
         },
+
         onApprove: async function(data, actions){
           try{
             await actions.order.capture();
@@ -645,11 +653,13 @@
             alert(e?.message || "Payment confirm failed.");
           }
         },
+
         onError: err => {
           console.error("PayPal error:", err);
           alert("PayPal error.");
         }
       }).render("#paypal-button-container");
+
       host.dataset.rendered = "1";
     }catch(e){
       console.warn("initPayPalPanelButtons failed:", e);
@@ -804,7 +814,8 @@
 
     loadMe();
   });
-  </script>
+</script>
+
 
   <!-- ===== Shop (Buy T1) ===== -->
 <script>
@@ -1445,4 +1456,5 @@
   </script>
 </body>
 </html>
+
 
