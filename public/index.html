@@ -399,40 +399,47 @@
     </div>
 
     <!-- MARKET -->
-    <div id="tab-market" class="card hidden">
-      <div class="label">Marketplace</div>
-      <div class="grid">
-        <div class="card">
-          <div class="label">Create Sale</div>
-          <input id="inv-search" class="input" placeholder="Search your inventory..." />
-          <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-          <div class="row" style="margin-top:8px">
-            <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-            <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-            <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-            <button id="btn-list" class="btn">List for sale</button>
-          </div>
-          <div class="row muted" style="margin-top:6px">
-            <span id="market-fee-inline" class="badge">Fee: 1%</span>
-          </div>
-          <div id="list-msg" class="muted" style="margin-top:6px"></div>
-        </div>
+<div id="tab-market" class="card hidden">
+  <div class="label">Marketplace</div>
+  <div class="grid">
+    <!-- LEFT CARD – CREATE SALE -->
+    <div class="card">
+      <div class="label">Create Sale</div>
+      <input id="inv-search" class="input" placeholder="Search your inventory..." />
+      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
 
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">Marketplace</div>
-            <input id="market-q" class="input" placeholder="Search by name..." style="width:220px" />
-          </div>
-          <div id="market" class="list">Loading…</div>
-
-          <div class="row" style="justify-content:space-between;margin-top:12px">
-            <div class="label">My listings</div>
-            <button id="btn-mine" class="btn muted">Reload</button>
-          </div>
-          <div id="mine" class="list">Loading…</div>
-        </div>
+      <div class="row" style="margin-top:8px">
+        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
+        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+        <button id="btn-list" class="btn">List for sale</button>
       </div>
+
+      <div class="row muted" style="margin-top:6px">
+        <span id="market-fee-inline" class="badge">Fee: 1%</span>
+      </div>
+
+      <div id="list-msg" class="muted" style="margin-top:6px"></div>
     </div>
+
+    <!-- RIGHT CARD – MARKETPLACE + MY LISTINGS -->
+    <div class="card">
+
+      <!-- MARKETPLACE -->
+      <div class="label">Marketplace</div>
+      <input id="market-q" class="input" placeholder="Search by name..." style="width:100%;max-width:10cm;margin:6px 0 8px" />
+      <div id="market" class="list">Loading…</div>
+
+      <!-- MY LISTINGS -->
+      <div class="label" style="margin-top:12px;">My listings</div>
+      <input id="mine-q" class="input" placeholder="Search your listings..." style="width:100%;max-width:10cm;margin:6px 0 8px" />
+      <div id="mine" class="list">Loading…</div>
+      <button id="btn-mine" class="btn muted" style="margin-top:8px;">Reload</button>
+
+    </div>
+  </div>
+</div>
+
 
     <!-- INVENTORY -->
     <div id="tab-inv" class="card hidden">
@@ -1469,6 +1476,7 @@
   </script>
 </body>
 </html>
+
 
 
 
