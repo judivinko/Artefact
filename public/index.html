@@ -1210,7 +1210,7 @@
             try{
               const res = await api("/api/sales/buy", {
                 method:"POST",
-                body: JSON.stringify({ id: s.id }) // ostavljeno kako je bilo
+                body: JSON.stringify({ id: s.id })
               });
 
               if (res && typeof res.balance_silver === "number" && WHO) {
@@ -1252,10 +1252,19 @@
     const box = $("#mine"); if(!box) return;
     box.textContent = "Loading…";
     try{
+      const qMine = ($("#mine-q")?.value || "").trim().toLowerCase();
+
       const r = await api("/api/sales/mine");
-      const rows = (r?.listings || [])
+      const rowsBase = (r?.listings || [])
         .filter(Boolean)
         .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
+
+      const rows = rowsBase.filter(s => {
+        if (!qMine) return true;
+        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
+        return (title||"").toLowerCase().includes(qMine);
+      });
+
       if (!rows.length){
         box.textContent = "No live listings.";
         return;
@@ -1303,6 +1312,7 @@
     }
   }
 
+  $("#mine-q")?.addEventListener("input", loadMine);
   $("#btn-mine")?.addEventListener("click", loadMine);
 
   $("#btn-list")?.addEventListener("click", async ()=>{
@@ -1459,6 +1469,7 @@
   </script>
 </body>
 </html>
+
 
 
 
