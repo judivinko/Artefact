@@ -372,21 +372,23 @@
     <div class="label">Crafting</div>
   </div>
 
-  <!-- Artefact button: kompaktno dugme (nije preko cijele širine) -->
+  <!-- 1) Artefact dugme (kompaktno, lijevo) -->
   <button id="btn-artefact" class="btn left" style="display:inline-flex;align-items:center;gap:8px;">
-    <img src="/artefakt.png" alt="Artefact" class="img-cell" style="display:inline-block" onerror="this.onerror=null;this.style.display='none'">
+    <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
     Craft ARTEFACT (10× distinct T5)
   </button>
 
-  <!-- Bonus gold pa craft fail, jedan ispod drugog -->
+  <!-- 2) Bonus gold ispod -->
   <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
+
+  <!-- 3) Craft fail ispod -->
   <span id="craft-perk" class="badge muted" title="Crafting fail chance" style="display:inline-block;margin-top:6px">10% fail</span>
 
+  <!-- Poruka (netaknuto) -->
   <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
 
-  <!-- DVO-KOLONSKI CRAFT LAYOUT (VRACENO OTVARANJE RECEPATA) -->
+  <!-- DVO-KOLONSKI CRAFT: lijevo recipes, desno details (otvaranje recepata ostaje) -->
   <div class="grid">
-    <!-- Lijevo: recipes lista (bez podnaslova) -->
     <div class="card">
       <div class="row" style="gap:8px;margin-bottom:6px">
         <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
@@ -394,8 +396,6 @@
       </div>
       <div id="recipes" class="list">Loading…</div>
     </div>
-
-    <!-- Desno: detalji recepta (rec-details) – potrebno za “otvaranje recepata” -->
     <div class="card">
       <div id="rec-details" class="list">Select a recipe…</div>
     </div>
@@ -1484,6 +1484,7 @@
   </script>
 </body>
 </html>
+
 
 
 
