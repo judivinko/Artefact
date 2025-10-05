@@ -367,29 +367,40 @@
     </div>
 
     <!-- CRAFTING -->
-    <div id="tab-craft" class="card hidden">
-      <div class="row">
-        <div class="label">Crafting</div>
-        <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
-        <button id="btn-artefact" class="btn left">
-          <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
-          Craft ARTEFACT (10× distinct T5)
-        </button>
-      </div>
-      <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-      <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+<div id="tab-craft" class="card hidden">
+  <div class="row" style="align-items:center;gap:10px;">
+    <div class="label">Crafting</div>
 
-      <div class="grid">
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">Recipes you own</div>
-            <div class="row">
-              <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-              <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-            </div>
-          </div>
-          <div id="recipes" class="list">Loading…</div>
+    <!-- 1️⃣ Artefact button -->
+    <button id="btn-artefact" class="btn left">
+      <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
+      Craft ARTEFACT (10× distinct T5)
+    </button>
+
+    <!-- 2️⃣ Bonus gold -->
+    <div class="muted">Bonus gold: <span id="artefact-bonus">0</span></div>
+
+    <!-- 3️⃣ Craft fail -->
+    <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
+  </div>
+
+  <!-- poruka ispod -->
+  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Recipes you own</div>
+        <div class="row">
+          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
         </div>
+      </div>
+      <div id="recipes" class="list">Loading…</div>
+    </div>
+  </div>
+</div>
+
 
         <div class="card">
           <div class="label">Details</div>
@@ -1476,6 +1487,7 @@
   </script>
 </body>
 </html>
+
 
 
 
