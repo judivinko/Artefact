@@ -352,63 +352,55 @@
     </div>
 
     <!-- SHOP -->
-    <div id="tab-shop" class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
-        <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-      </div>
-      <div style="margin:6px 0">
-        <span id="shop-balance" class="badge hidden">0g 0s</span>
-      </div>
-      <div class="row">
-        <button id="btn-buy-t1" class="btn">Buy</button>
-        <div id="shop-msg" class="muted"></div>
-      </div>
-    </div>
-
-    <!-- CRAFTING -->
-<div id="tab-craft" class="card hidden">
-  <div class="row" style="align-items:center;gap:10px;">
-    <div class="label">Crafting</div>
-
-    <!-- 1️⃣ Artefact button -->
-    <button id="btn-artefact" class="btn left">
-      <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
-      Craft ARTEFACT (10× distinct T5)
-    </button>
-
-    <!-- 2️⃣ Bonus gold -->
-    <div class="muted">Bonus gold: <span id="artefact-bonus">0</span></div>
-
-    <!-- 3️⃣ Craft fail -->
-    <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
+<div id="tab-shop" class="card">
+  <div class="row" style="justify-content:space-between">
+    <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
+    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
   </div>
 
-  <!-- poruka ispod -->
+  <div style="margin:6px 0">
+    <span id="shop-balance" class="badge hidden">0g 0s</span>
+  </div>
+
+  <div class="row">
+    <button id="btn-buy-t1" class="btn">Buy</button>
+    <div id="shop-msg" class="muted"></div>
+  </div>
+</div>
+<!-- /SHOP -->
+
+<!-- CRAFTING -->
+<div id="tab-craft" class="card hidden">
+  <div class="row">
+    <div class="label">Crafting</div>
+  </div>
+
+  <button id="btn-artefact" class="btn left">
+    <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
+    Craft ARTEFACT (10× distinct T5)
+  </button>
+
+  <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
+
+  <span id="craft-perk" class="badge muted" title="Crafting fail chance" style="display:inline-block;margin-top:6px">10% fail</span>
+
   <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
 
   <div class="grid">
     <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Recipes you own</div>
-        <div class="row">
-          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-        </div>
+      <div class="row" style="gap:8px; margin-bottom:6px">
+        <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+        <button id="btn-refresh-rec" class="btn muted">Refresh</button>
       </div>
       <div id="recipes" class="list">Loading…</div>
     </div>
   </div>
 </div>
+<!-- /CRAFTING -->
 
 
-        <div class="card">
-          <div class="label">Details</div>
-          <div id="rec-details" class="list">Select a recipe on the left.</div>
-        </div>
-      </div>
-    </div>
 
+       
     <!-- MARKET -->
 <div id="tab-market" class="card hidden">
   <div class="label">Marketplace</div>
@@ -1487,6 +1479,7 @@
   </script>
 </body>
 </html>
+
 
 
 
