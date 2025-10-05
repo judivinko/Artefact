@@ -351,23 +351,20 @@
       <div class="chip" data-tab="bonus">Bonus</div>
     </div>
 
-    <!-- SHOP -->
+   <!-- SHOP -->
 <div id="tab-shop" class="card">
   <div class="row" style="justify-content:space-between">
     <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
     <span id="buysToNext" class="muted">Buys to next recipe: —</span>
   </div>
-
   <div style="margin:6px 0">
     <span id="shop-balance" class="badge hidden">0g 0s</span>
   </div>
-
   <div class="row">
     <button id="btn-buy-t1" class="btn">Buy</button>
     <div id="shop-msg" class="muted"></div>
   </div>
 </div>
-<!-- /SHOP -->
 
 <!-- CRAFTING -->
 <div id="tab-craft" class="card hidden">
@@ -375,28 +372,36 @@
     <div class="label">Crafting</div>
   </div>
 
-  <button id="btn-artefact" class="btn left">
-    <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
+  <!-- Artefact button: kompaktno dugme (nije preko cijele širine) -->
+  <button id="btn-artefact" class="btn left" style="display:inline-flex;align-items:center;gap:8px;">
+    <img src="/artefakt.png" alt="Artefact" class="img-cell" style="display:inline-block" onerror="this.onerror=null;this.style.display='none'">
     Craft ARTEFACT (10× distinct T5)
   </button>
 
+  <!-- Bonus gold pa craft fail, jedan ispod drugog -->
   <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-
   <span id="craft-perk" class="badge muted" title="Crafting fail chance" style="display:inline-block;margin-top:6px">10% fail</span>
 
   <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
 
+  <!-- DVO-KOLONSKI CRAFT LAYOUT (VRACENO OTVARANJE RECEPATA) -->
   <div class="grid">
+    <!-- Lijevo: recipes lista (bez podnaslova) -->
     <div class="card">
-      <div class="row" style="gap:8px; margin-bottom:6px">
+      <div class="row" style="gap:8px;margin-bottom:6px">
         <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
         <button id="btn-refresh-rec" class="btn muted">Refresh</button>
       </div>
       <div id="recipes" class="list">Loading…</div>
     </div>
+
+    <!-- Desno: detalji recepta (rec-details) – potrebno za “otvaranje recepata” -->
+    <div class="card">
+      <div id="rec-details" class="list">Select a recipe…</div>
+    </div>
   </div>
 </div>
-<!-- /CRAFTING -->
+
 
 
 
@@ -1479,6 +1484,7 @@
   </script>
 </body>
 </html>
+
 
 
 
