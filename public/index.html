@@ -531,8 +531,8 @@
     }
   </script>
 
-  <!-- ===== Global state + Tabs + PayPal panel ===== -->
-  <script>
+<!-- ===== Global state + Tabs + PayPal panel ===== -->
+<script>
   window.$  ||= (s => document.querySelector(s));
   window.$$ ||= (s => Array.from(document.querySelectorAll(s)));
   window.safeCall ||= (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
@@ -541,18 +541,8 @@
   window.CURRENT_RECIPE_ID = null;
   window.refreshMeLight ||= async () => {};
 
-  function showLanding(){
-    $("#about")?.classList.remove("hidden");
-    $("#how")?.classList.remove("hidden");
-    $("#tips")?.classList.remove("hidden");
-    $("#app")?.classList.add("hidden");
-  }
-  function showApp(){
-    $("#app")?.classList.remove("hidden");
-    $("#about")?.classList.add("hidden");
-    $("#how")?.classList.add("hidden");
-    $("#tips")?.classList.add("hidden");
-  }
+  function showLanding() { $("#app")?.classList.remove("hidden"); }
+  function showApp()     { $("#app")?.classList.remove("hidden"); }
 
   function renderBalance(){
     const v = WHO?.balance_silver || 0;
@@ -612,14 +602,11 @@
 
       window.paypal.Buttons({
         style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-
-        // server-side create order (koristimo tvoju /api/paypal/create-order rutu)
         createOrder: async function(){
           const el = document.getElementById("pp-amount");
           let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
           v = Math.floor(v);
           if (el) el.value = String(v);
-
           const r = await api("/api/paypal/create-order", {
             method:"POST",
             body: JSON.stringify({ amount_usd: v })
@@ -627,7 +614,6 @@
           if (!r?.ok || !r?.id) throw new Error(r?.error || "Create order failed");
           return r.id;
         },
-
         onApprove: async function(data, actions){
           try{
             await actions.order.capture();
@@ -649,7 +635,6 @@
             alert(e?.message || "Payment confirm failed.");
           }
         },
-
         onError: err => {
           console.error("PayPal error:", err);
           alert("PayPal error.");
@@ -679,6 +664,7 @@
     $("#auth")?.classList.add("hidden");
     $("#app")?.classList.remove("hidden");
     renderBalance?.();
+    safeCall("updateShopBalanceBadge");
     const ppBtn = document.getElementById("btn-open-paypal");
     if (ppBtn){
       ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
@@ -696,7 +682,6 @@
     $("#balance")?.classList.add("hidden");
     $("#btn-logout")?.classList.add("hidden");
     const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
-    $("#app")?.classList.add("hidden");
     $("#auth")?.classList.add("hidden");
     $("#card-register") && ($("#card-register").style.display="none");
     $("#card-login") && ($("#card-login").style.display="none");
@@ -704,6 +689,8 @@
     $("#log-msg") && ($("#log-msg").textContent="");
     document.getElementById("paypal-panel")?.classList.add("hidden");
     document.getElementById("btn-open-paypal")?.classList.add("hidden");
+    $("#app")?.classList.remove("hidden");
+    safeCall("updateShopBalanceBadge");
   }
 
   async function loadMe(){
@@ -726,6 +713,7 @@
       $("#app")?.scrollIntoView({behavior:"smooth", block:"start"});
     }catch{
       setLoggedOutUI();
+      setTab("shop");
     }
   }
 
@@ -765,6 +753,7 @@
   async function doLogout(){
     try { await api("/api/logout"); } catch {}
     setLoggedOutUI();
+    setTab("shop");
   }
 
   window.api ||= async (path, opts={}) => {
@@ -778,7 +767,6 @@
     const auth = document.getElementById("auth");
     if (!auth) return;
     auth.classList.remove("hidden");
-    document.getElementById("app")?.classList.add("hidden");
     const reg = document.getElementById("card-register");
     const log = document.getElementById("card-login");
     if (reg) reg.style.display = (mode === "register" ? "block" : "none");
@@ -810,7 +798,8 @@
 
     loadMe();
   });
-  </script>
+</script>
+
 
 
 
@@ -1464,6 +1453,7 @@
   </script>
 </body>
 </html>
+
 
 
 
