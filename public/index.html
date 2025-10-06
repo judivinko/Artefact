@@ -271,53 +271,7 @@
     </div>
   </section>
 
-    <!-- ===== Landing moved under Shop ===== -->
-  <!-- Ovo će se prikazati ispod Shop taba kao opis igre -->
-  <div id="shop-info" class="card" style="margin-top:16px">
-    <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
-    <p class="muted" style="max-width:820px">
-      You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
-      When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
-    </p>
-
-    <div class="grid" style="margin-top:12px">
-      <div class="card">
-        <div class="label">1) Shop</div>
-        <p class="muted">Buy <b>T1 materials</b> and occasionally get <b>recipes</b> to unlock higher tiers.</p>
-        <img src="/t1_bronze.png" class="img-landing" alt="T1" onerror="this.style.display='none'">
-      </div>
-
-      <div class="card">
-        <div class="label">2) Crafting</div>
-        <p class="muted">Use materials and recipes to craft <b>T2–T5</b> items. Crafting can <i>fail</i> and yield <b>Scrap</b>.</p>
-        <img src="/t2_golden_ring.png" class="img-landing" alt="T2" onerror="this.style.display='none'">
-      </div>
-
-      <div class="card">
-        <div class="label">3) Market</div>
-        <p class="muted">Sell or buy items and recipes from other players. <span class="badge">Fee: 1%</span></p>
-      </div>
-
-      <div class="card">
-        <div class="label">4) Artefact</div>
-        <p class="muted">Collect 10 different T5 items to craft the <b>ARTEFACT</b> and unlock permanent bonuses.</p>
-        <img src="/artefakt.png" class="img-landing" alt="Artefact" onerror="this.style.display='none'">
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:16px">
-      <div class="label">Tips</div>
-      <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
-        <li>Shop smart — save your gold for key moments.</li>
-        <li>Craft in order of priority — focus on recipes you already have.</li>
-        <li>Trade to fill gaps in your collection and speed up progress.</li>
-        <li>Collect 10 different T5 items to craft the Artefact.</li>
-      </ul>
-    </div>
-  </div>
-
-
-  <!-- ===== App (tabs) ===== -->
+      <!-- ===== App (tabs) ===== -->
   <section id="app" class="hidden">
     <div class="tabbar row">
       <div class="chip active" data-tab="shop">Shop</div>
@@ -327,20 +281,66 @@
       <div class="chip" data-tab="bonus">Bonus</div>
     </div>
 
-   <!-- SHOP -->
-<div id="tab-shop" class="card">
-  <div class="row" style="justify-content:space-between">
-    <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
-    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-  </div>
-  <div style="margin:6px 0">
-    <span id="shop-balance" class="badge hidden">0g 0s</span>
-  </div>
-  <div class="row">
-    <button id="btn-buy-t1" class="btn">Buy</button>
-    <div id="shop-msg" class="muted"></div>
-  </div>
-</div>
+    <!-- SHOP -->
+    <div id="tab-shop" class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
+        <span id="buysToNext" class="muted">Buys to next recipe: —</span>
+      </div>
+      <div style="margin:6px 0">
+        <span id="shop-balance" class="badge hidden">0g 0s</span>
+      </div>
+      <div class="row">
+        <button id="btn-buy-t1" class="btn">Buy</button>
+        <div id="shop-msg" class="muted"></div>
+      </div>
+    </div>
+
+    <!-- ===== Landing moved under Shop ===== -->
+    <!-- Opis igre sada ispod Shop taba -->
+    <div id="shop-info" class="card" style="margin-top:16px">
+      <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
+      <p class="muted" style="max-width:820px">
+        You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
+        When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
+      </p>
+
+      <div class="grid" style="margin-top:12px">
+        <div class="card">
+          <div class="label">1) Shop</div>
+          <p class="muted">Buy <b>T1 materials</b> and occasionally get <b>recipes</b> to unlock higher tiers.</p>
+          <img src="/t1_bronze.png" class="img-landing" alt="T1" onerror="this.style.display='none'">
+        </div>
+
+        <div class="card">
+          <div class="label">2) Crafting</div>
+          <p class="muted">Use materials and recipes to craft <b>T2–T5</b> items. Crafting can <i>fail</i> and yield <b>Scrap</b>.</p>
+          <img src="/t2_golden_ring.png" class="img-landing" alt="T2" onerror="this.style.display='none'">
+        </div>
+
+        <div class="card">
+          <div class="label">3) Market</div>
+          <p class="muted">Sell or buy items and recipes from other players. <span class="badge">Fee: 1%</span></p>
+        </div>
+
+        <div class="card">
+          <div class="label">4) Artefact</div>
+          <p class="muted">Collect 10 different T5 items to craft the <b>ARTEFACT</b> and unlock permanent bonuses.</p>
+          <img src="/artefakt.png" class="img-landing" alt="Artefact" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="label">Tips</div>
+        <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
+          <li>Shop smart — save your gold for key moments.</li>
+          <li>Craft in order of priority — focus on recipes you already have.</li>
+          <li>Trade to fill gaps in your collection and speed up progress.</li>
+          <li>Collect 10 different T5 items to craft the Artefact.</li>
+        </ul>
+      </div>
+    </div>
+
 
 <!-- CRAFTING -->
 <div id="tab-craft" class="card hidden">
@@ -1464,6 +1464,7 @@
   </script>
 </body>
 </html>
+
 
 
 
