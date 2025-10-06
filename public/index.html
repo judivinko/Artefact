@@ -803,7 +803,7 @@
   });
 </script>
 
-  <!-- ===== Shop (Buy T1) ===== -->
+ <!-- ===== Shop (Buy T1) ===== -->
 <script>
   function updateShopBalanceBadge(){
     const el = $("#shop-balance");
@@ -836,11 +836,25 @@
         <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
       </div>`;
   }
+
+  // ⇩⇩ AŽURIRANO: uvijek poravnaj lijevo i smjesti odmah ispod naslova
   function updateBuysToNextFromWHO(){
-    const b = $("#buysToNext"); if (!b) return;
+    const b = $("#buysToNext");
+    if (!b) return;
+
+    const title = document.querySelector("#tab-shop .label");
+    if (title && title.nextElementSibling !== b) {
+      title.insertAdjacentElement("afterend", b);
+    }
+    b.style.margin = "6px 0 10px";
+    b.style.textAlign = "left";
+    b.classList.remove("right");
+
     b.textContent = (typeof WHO?.buys_to_next === "number")
-      ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
+      ? `Buys to next recipe: ${WHO.buys_to_next}`
+      : "Buys to next recipe: —";
   }
+
   async function refreshMeLight(){
     try{
       const r = await api("/api/me");
@@ -848,7 +862,7 @@
         WHO = r.user;
         renderBalance?.();
         updateShopBalanceBadge();
-        updateBuysToNextFromWHO();
+        updateBuysToNextFromWHO(); // osiguraj poziciju + tekst
         applyPerkIndicators();
       }
     }catch{}
@@ -930,10 +944,8 @@
     // makni shop gold badge (duplikat, već je u headeru)
     $("#shop-balance")?.remove();
 
-    // pomakni "Buys to next recipe" ispod naslova "Buy T1 (…s)"
-    const labelEl = document.querySelector("#tab-shop .label");
-    const nextEl  = document.getElementById("buysToNext");
-    if (labelEl && nextEl) labelEl.insertAdjacentElement("afterend", nextEl);
+    // početno postavi "Buys to next recipe" ispod naslova i lijevo
+    updateBuysToNextFromWHO();
 
     updateShopBalanceBadge();
   });
@@ -977,6 +989,7 @@
 
   document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
+
 
 
   <!-- ===== Crafting ===== -->
@@ -1456,6 +1469,7 @@
   </script>
 </body>
 </html>
+
 
 
 
