@@ -803,7 +803,7 @@
   });
 </script>
 
- <!-- ===== Shop (Buy T1) ===== -->
+<!-- ===== Shop (Buy T1) ===== -->
 <script>
   function updateShopBalanceBadge(){
     const el = $("#shop-balance");
@@ -837,15 +837,15 @@
       </div>`;
   }
 
-  // ⇩⇩ AŽURIRANO: uvijek poravnaj lijevo i smjesti odmah ispod naslova
   function updateBuysToNextFromWHO(){
     const b = $("#buysToNext");
     if (!b) return;
 
     const title = document.querySelector("#tab-shop .label");
     if (title && title.nextElementSibling !== b) {
-      title.insertAdjacentElement("afterend", b);
+      title.after(b);
     }
+    b.style.display = "block";
     b.style.margin = "6px 0 10px";
     b.style.textAlign = "left";
     b.classList.remove("right");
@@ -862,7 +862,7 @@
         WHO = r.user;
         renderBalance?.();
         updateShopBalanceBadge();
-        updateBuysToNextFromWHO(); // osiguraj poziciju + tekst
+        updateBuysToNextFromWHO();
         applyPerkIndicators();
       }
     }catch{}
@@ -941,12 +941,8 @@
       row.appendChild(btn50);
     }
 
-    // makni shop gold badge (duplikat, već je u headeru)
-    $("#shop-balance")?.remove();
-
-    // početno postavi "Buys to next recipe" ispod naslova i lijevo
-    updateBuysToNextFromWHO();
-
+    $("#shop-balance")?.remove();      // duplikat, gold je u headeru
+    updateBuysToNextFromWHO();         // postavi ispod naslova i lijevo
     updateShopBalanceBadge();
   });
 
@@ -1469,6 +1465,7 @@
   </script>
 </body>
 </html>
+
 
 
 
