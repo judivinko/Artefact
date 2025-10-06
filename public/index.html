@@ -435,54 +435,54 @@
       <div id="inv-full" class="list">Loading…</div>
     </div>
 
-    <!-- BONUS -->
-    <div id="tab-bonus" class="card hidden">
+   <!-- BONUS -->
+<div id="tab-bonus" class="card hidden">
+  <div class="row" style="justify-content:space-between">
+    <div class="label">Bonus</div>
+    <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
+  </div>
+
+  <div id="bonus-grid" class="grid" style="margin-top:8px">
+    <div class="card">
       <div class="row" style="justify-content:space-between">
-        <div class="label">Bonus</div>
-        <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
+        <div class="label">T2 Bonus</div>
+        <button id="btn-claim-t2" class="btn" disabled>Claim</button>
       </div>
-
-      <div id="bonus-grid" class="grid" style="margin-top:8px">
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T2 Bonus</div>
-            <button id="btn-claim-t2" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
-          <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T3 Bonus</div>
-            <button id="btn-claim-t3" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
-          <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T4 Bonus</div>
-            <button id="btn-claim-t4" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
-          <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T5 Bonus</div>
-            <button id="btn-claim-t5" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3+ + Craft no-fail </div>
-          <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
-        </div>
-      </div>
+      <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
+      <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
     </div>
-  </section>
 
-  <div id="toast" class="toast hidden"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">T3 Bonus</div>
+        <button id="btn-claim-t3" class="btn" disabled>Claim</button>
+      </div>
+      <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
+      <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">T4 Bonus</div>
+        <button id="btn-claim-t4" class="btn" disabled>Claim</button>
+      </div>
+      <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
+      <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">T5 Bonus</div>
+        <button id="btn-claim-t5" class="btn" disabled>Claim</button>
+      </div>
+      <div class="muted" style="margin:4px 0 6px">
+        Shop price 90s + Recipe drops T3+ + Craft no-fail
+      </div>
+      <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
+    </div>
+  </div>
+</div>
+
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
   <script>
@@ -1456,6 +1456,7 @@
   </script>
 </body>
 </html>
+
 
 
 
