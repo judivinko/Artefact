@@ -1,5 +1,6 @@
 /* =========================================================
    ARTEFACT — FULL CSS (App first, Admin scoped last)
+   (verzija usklađena: crna tema, centriran layout, obojene sekcije)
    ========================================================= */
 
 /* ------------------------------
@@ -17,15 +18,26 @@
   --row-pad-v: 8px;       /* vert. padding itemrow-a */
   --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px); /* slika + padding + border */
 
-  /* Pozadina */
-  --bg0:#0b1220;
-  --bg1:#0e1b2e;
-  --bg2:#0a0f1f;
+  /* Pozadina – CRNA TEMA */
+  --bg0:#000000;
+  --bg1:#070a10;
+  --bg2:#0b0f19;
   --glass:rgba(11,18,32,.66);
+
+  /* Sekcijske boje */
+  --shop:#e05735;   --shop-border:#8a2c1e;   --shop-fill:rgba(224,87,53,.08);
+  --craft:#d9b14d;  --craft-border:#8d6f20;  --craft-fill:rgba(217,177,77,.08);
+  --market:#2fbfa5; --market-border:#1d7a69; --market-fill:rgba(47,191,165,.08);
+  --inv:#845ef7;    --inv-border:#4f34b9;    --inv-fill:rgba(132,94,247,.08);
+  --bonus:#25c06f;  --bonus-border:#197a47;  --bonus-fill:rgba(37,192,111,.08);
+
+  /* Širina sadržaja */
+  --page-max:1080px;
+  --page-pad:16px;
 }
 
 /* ------------------------------
-   Global background (shimmer)
+   Global background (crna + odsjaj)
 ------------------------------ */
 *{ box-sizing:border-box }
 html,body{ height:100% }
@@ -33,14 +45,13 @@ body{
   margin:0;
   color:var(--text);
   background:
-    radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
-    radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
-    radial-gradient(900px 600px at 70% 85%, rgba(234,88,12,0.12), transparent 60%),
+    radial-gradient(1200px 700px at 15% 20%, rgba(255,255,255,.05), transparent 60%),
+    radial-gradient(1200px 700px at 85% 70%, rgba(255,255,255,.04), transparent 70%),
     linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
 }
 body::before{
   content:"";
-  position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
+  position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.35;
   background:
     radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.04), transparent 40%),
     radial-gradient(ellipse at 70% 70%, rgba(255,255,255,0.035), transparent 45%);
@@ -55,18 +66,27 @@ body::before{
 .muted{ opacity:.8 }
 .label{ font-weight:600 }
 .brand{ font-weight:700 }
-.container{ max-width:980px; margin:0 auto; padding:12px }
+.container{ max-width:var(--page-max); margin:0 auto; padding:12px var(--page-pad) }
 .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .right{ margin-left:auto }
+
+/* “unutra” centriranje za glavne blokove */
+#app, .tabbar, #shop-info, .header{
+  max-width:var(--page-max);
+  margin:0 auto;
+  padding-left:var(--page-pad);
+  padding-right:var(--page-pad);
+}
 
 /* ------------------------------
    Header
 ------------------------------ */
 .header{
   display:flex; align-items:center; justify-content:space-between;
-  padding:12px; border-bottom:1px solid var(--line);
+  padding-top:12px; padding-bottom:12px;
+  border-bottom:1px solid rgba(255,255,255,.06);
   position:sticky; top:0; z-index:20;
-  background:rgba(11,18,32,.6); backdrop-filter: blur(8px);
+  background:rgba(0,0,0,.55); backdrop-filter: blur(8px);
 }
 .header.no-border{ border-bottom:0 !important }
 
@@ -99,10 +119,15 @@ body::before{
 }
 .input:focus{ outline:none; border-color:#3a5b8e; box-shadow:0 0 0 3px rgba(70,130,180,.15) }
 
+/* Kartice: sužene, s većim razmacima od ruba stranice */
 .card{
-  background:var(--glass); border:1px solid var(--line); border-radius:12px;
-  padding:12px; margin-top:12px; backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02);
+  background:var(--glass);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  padding:14px;
+  margin-top:14px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 28px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.02);
 }
 .toast{
   position:fixed; bottom:16px; right:16px; background:#0d1b2a; border:1px solid var(--line);
@@ -117,14 +142,14 @@ body::before{
 }
 .itemrow:last-child{ border-bottom:0 }
 .list{
-  max-height:360px; overflow:auto; border:1px solid var(--line); border-radius:10px;
+  max-height:360px; overflow:auto; border:1px solid rgba(255,255,255,.06); border-radius:10px;
   background:rgba(9,19,38,.5);
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
 }
 
 /* Tiles */
-.tile{ display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:6px; background:#0c1728 }
+.tile{ display:flex; gap:6px; align-items:center; border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:6px; background:#0c1728 }
 .tile.ok{ border-color:#165c32; background:#0e3a2f }
 .tile.miss{ opacity:.88 }
 
@@ -146,9 +171,9 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 .img-slot:hover{ opacity:1 }
 
 /* ------------------------------
-   Tabs
+   Tabs (u boji sekcije kad je aktivan)
 ------------------------------ */
-.tabbar{ margin:6px 0 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.tabbar{ margin:10px auto 12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .chip{
   padding:10px 14px; border:1px solid #1c2a44; border-radius:12px;
   background:#0d1b2acc; backdrop-filter: blur(6px);
@@ -158,16 +183,65 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#2a3d63; }
 .chip.active{
-  background:linear-gradient(180deg,#123155,#0f2340);
+  color:#fff;
+  background:linear-gradient(180deg,#1b2a46,#0f2340);
   border-color:#2e4b7a;
-  box-shadow: inset 0 0 0 1px rgba(120,170,255,.15), 0 6px 16px rgba(20,40,80,.45);
+  box-shadow: inset 0 0 0 1px rgba(120,170,255,.18), 0 6px 16px rgba(20,40,80,.45);
 }
 
+/* Aktivni tab dobiva boju ruba prema sekciji (vizualna poveznica) */
+.chip[data-tab="shop"].active{ box-shadow:0 0 0 2px rgba(224,87,53,.35) inset, 0 6px 16px rgba(224,87,53,.25); }
+.chip[data-tab="craft"].active{ box-shadow:0 0 0 2px rgba(217,177,77,.35) inset, 0 6px 16px rgba(217,177,77,.25); }
+.chip[data-tab="market"].active{ box-shadow:0 0 0 2px rgba(47,191,165,.35) inset, 0 6px 16px rgba(47,191,165,.25); }
+.chip[data-tab="inv"].active{ box-shadow:0 0 0 2px rgba(132,94,247,.35) inset, 0 6px 16px rgba(132,94,247,.25); }
+.chip[data-tab="bonus"].active{ box-shadow:0 0 0 2px rgba(37,192,111,.35) inset, 0 6px 16px rgba(37,192,111,.25); }
+
 /* ------------------------------
-   SHOP
+   SEKCIJE — rub/fill i dugmad po boji
+------------------------------ */
+.section-colored{ /* helper klasa ako ti zatreba ručno */
+  position:relative;
+  overflow:hidden;
+}
+
+/* SHOP */
+#tab-shop .card{ border-color:var(--shop-border); background:linear-gradient(180deg, var(--shop-fill), transparent 45%) }
+#tab-shop .btn{ background:rgba(224,87,53,.12); border-color:rgba(224,87,53,.35) }
+#tab-shop .btn:hover{ background:rgba(224,87,53,.18); border-color:rgba(224,87,53,.55); box-shadow:0 0 0 3px rgba(224,87,53,.16) }
+
+/* CRAFT */
+#tab-craft .card{ border-color:var(--craft-border); background:linear-gradient(180deg, var(--craft-fill), transparent 45%) }
+#tab-craft .btn{ background:rgba(217,177,77,.12); border-color:rgba(217,177,77,.35) }
+#tab-craft .btn:hover{ background:rgba(217,177,77,.18); border-color:rgba(217,177,77,.55); box-shadow:0 0 0 3px rgba(217,177,77,.16) }
+
+/* MARKET */
+#tab-market .card{ border-color:var(--market-border); background:linear-gradient(180deg, var(--market-fill), transparent 45%) }
+#tab-market .btn{ background:rgba(47,191,165,.12); border-color:rgba(47,191,165,.35) }
+#tab-market .btn:hover{ background:rgba(47,191,165,.18); border-color:rgba(47,191,165,.55); box-shadow:0 0 0 3px rgba(47,191,165,.16) }
+
+/* INVENTORY */
+#tab-inv .card{ border-color:var(--inv-border); background:linear-gradient(180deg, var(--inv-fill), transparent 45%) }
+#tab-inv .btn{ background:rgba(132,94,247,.12); border-color:rgba(132,94,247,.35) }
+#tab-inv .btn:hover{ background:rgba(132,94,247,.18); border-color:rgba(132,94,247,.55); box-shadow:0 0 0 3px rgba(132,94,247,.16) }
+
+/* BONUS */
+#tab-bonus .card{ border-color:var(--bonus-border); background:linear-gradient(180deg, var(--bonus-fill), transparent 45%) }
+#tab-bonus .btn{ background:rgba(37,192,111,.12); border-color:rgba(37,192,111,.35) }
+#tab-bonus .btn:hover{ background:rgba(37,192,111,.18); border-color:rgba(37,192,111,.55); box-shadow:0 0 0 3px rgba(37,192,111,.16) }
+
+/* ------------------------------
+   SHOP specifično
 ------------------------------ */
 #tab-shop .buy-block{ width:10cm; max-width:100% }
 #shop-balance.badge{ font-weight:700 }
+
+/* “Buys to next recipe” — tipografija/razmak kad ga JS spusti ispod naslova */
+#buysToNext{
+  display:block;
+  margin:6px 0 10px;
+  text-align:left;
+  opacity:.9;
+}
 
 /* ------------------------------
    CRAFTING — fiksne liste i bez preljeva
@@ -216,7 +290,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
 /* ------------------------------
-   PayPal panel / button (DODANO)
+   PayPal panel / button
 ------------------------------ */
 #btn-open-paypal.hidden{ display:none }
 #paypal-panel.hidden{ display:none }
@@ -235,7 +309,7 @@ body.admin{
   font-size:14px;
   line-height:1.45;
 }
-body.admin .container{ max-width:1100px; margin:0 auto; padding:12px; }
+body.admin .container{ max-width:1100px; margin:0 auto; padding:12px var(--page-pad); }
 body.admin .header{ background:#0f172acc; border-bottom:1px solid #1f2937; }
 body.admin .card{ background:#111827cc; border:1px solid #1f2937; border-radius:12px; padding:12px; margin-top:12px; }
 body.admin .label{ color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; }
