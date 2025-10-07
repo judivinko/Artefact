@@ -1074,7 +1074,7 @@ async function loadBonus(){
 
 
 
-<!-- ===== Crafting (FIX: Craft button) ===== -->
+<!-- ===== Crafting (FINAL — fixed Craft button) ===== -->
 <script>
   function rowRecipe(r){
     return `
@@ -1128,13 +1128,20 @@ async function loadBonus(){
       ? "No fail (server checks ingredients)"
       : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
 
-    // type="button" da nikakav form submit ne prekine klik
+    /* KEY: dugme nosi data-recipe i tip je button */
     return `
       <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
       <div class="itemrow"><div class="muted">Ingredients</div></div>
       ${parts}
       <div class="itemrow">
-        <button id="btn-craft" class="btn" type="button" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
+        <button
+          class="btn"
+          id="btn-craft"
+          data-action="craft"
+          data-recipe="${esc(details.recipe.id)}"
+          type="button"
+          ${canCraft ? "" : "disabled"}
+        >${canCraft ? "Craft" : "Missing materials"}</button>
         <span class="muted" style="margin-left:8px">${craftNote}</span>
       </div>`;
   }
@@ -1146,32 +1153,37 @@ async function loadBonus(){
       const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
       box.innerHTML = renderIngredients(details);
 
-      // zapamti trenutni recept za delegirani klik
-      window.CURRENT_RECIPE_ID = details.recipe.id;
+      // spremi na kontejner (fallback)
+      box.dataset.currentRecipe = details.recipe.id;
 
-      // (NE vežemo više direktno #btn-craft ovde – delegacija dolje)
+      // osiguraj da je delegirani klik spojen samo jednom
+      if (!box.dataset.bound) {
+        box.addEventListener("click", onRecDetailsClick);
+        box.dataset.bound = "1";
+      }
     }catch(e){
       box.textContent = e?.message || "Failed to load recipe.";
     }
   }
 
-  // ✅ DELEGIRANI HANDLER — radi i nakon svakog re-rendera #rec-details
-  //   (rješava slučaj kad se listener izgubi i gumb ne reaguje)
-  document.addEventListener("click", async (ev)=>{
-    const craftBtn = ev.target.closest("#btn-craft");
+  // Delegirani handler SAMO na #rec-details (stabilno i čisto)
+  async function onRecDetailsClick(ev){
+    const craftBtn = ev.target.closest?.('#btn-craft,[data-action="craft"]');
     if (!craftBtn) return;
+    if (craftBtn.disabled || craftBtn.hasAttribute("disabled")) return;
 
-    // ako je disabled, nema akcije
-    if (craftBtn.hasAttribute("disabled") || craftBtn.disabled) return;
-
-    const recipeId = window.CURRENT_RECIPE_ID;
+    const container = $("#rec-details");
+    const recipeId = craftBtn.getAttribute("data-recipe") || container?.dataset.currentRecipe;
     if (!recipeId) { toast("Pick a recipe first."); return; }
 
     const prev = craftBtn.textContent;
-    craftBtn.disabled = true;
-    craftBtn.textContent = "Crafting…";
+    craftBtn.disabled = true; craftBtn.textContent = "Crafting…";
     try{
-      const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: recipeId})});
+      const r2 = await api("/api/craft/do", {
+        method:"POST",
+        body: JSON.stringify({ recipe_id: recipeId })
+      });
+
       if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
       else if (r2.scrap) toast("Failed (got Scrap)");
       else toast("Done");
@@ -1179,24 +1191,27 @@ async function loadBonus(){
       await safeCall("loadInventoryPanel");
       await safeCall("loadRecipes");
       await safeCall("loadInventoryFull");
-      await openRecipe(recipeId);
+      await openRecipe(recipeId);      // re-render detalja
+      await refreshMeLight?.();
     }catch(e){
       if (e?.data?.missing?.length) toast("You are missing: " + e.data.missing.join(", "));
       else toast(e?.message || "Crafting failed.");
     }finally{
-      craftBtn.disabled = false;
-      craftBtn.textContent = prev;
+      craftBtn.disabled = false; craftBtn.textContent = prev;
     }
-  });
+  }
 
   async function refreshArtefactBonus(){
     try{
       const r = await api("/api/inventory");
-      const bonus = (typeof r?.artefactBonusGold === "number") ? r.artefactBonusGold : (parseInt(r?.artefactBonusGold,10) || 0);
+      const bonus = (typeof r?.artefactBonusGold === "number")
+        ? r.artefactBonusGold
+        : (parseInt(r?.artefactBonusGold,10) || 0);
       const el = document.getElementById("artefact-bonus");
       if (el) el.textContent = bonus;
     }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
   }
+  // osvježi bonus kad se tab prikaže
   (() => {
     const craft = document.getElementById("tab-craft");
     if (!craft) return;
@@ -1206,6 +1221,7 @@ async function loadBonus(){
     obs.observe(craft, { attributes:true });
   })();
 
+  // Artefact dugme (ostaje isto)
   const arteBtn = $("#btn-artefact");
   arteBtn?.addEventListener("click", async ()=>{
     if (arteBtn.disabled) return;
@@ -1570,6 +1586,7 @@ async function loadBonus(){
   </script>
 </body>
 </html>
+
 
 
 
