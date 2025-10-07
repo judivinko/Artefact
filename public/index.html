@@ -435,12 +435,17 @@
       <div id="inv-full" class="list">Loading…</div>
     </div>
 
-   <!-- BONUS -->
+   <!-- ===== BONUS (Frontend) ===== -->
 <div id="tab-bonus" class="card hidden">
   <div class="row" style="justify-content:space-between">
     <div class="label">Bonus</div>
     <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
   </div>
+
+  <!-- ✅ VRAĆENO: hint tekst koji si imao -->
+  <p id="bonus-hint" class="muted" style="margin:6px 0 12px;font-size:15px;line-height:1.4;">
+    Buy the <b>ARTEFACT</b> to unlock all bonuses.
+  </p>
 
   <div id="bonus-grid" class="grid" style="margin-top:8px">
     <div class="card">
@@ -482,6 +487,74 @@
     </div>
   </div>
 </div>
+
+<!-- ===== BONUS SCRIPT ===== -->
+<script>
+async function loadBonus(){
+  const lock = $("#bonus-lock");
+  const hint = $("#bonus-hint"); // ✅ povezan s hint tekstom
+  const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+  const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+  Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
+  Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+
+  try{
+    const r = await api("/api/bonus/status");
+    const hasArt = !!r?.has_artefact;
+
+    // ✅ sakriva tekst i badge kad igrač ima artefakt
+    lock?.classList.toggle("hidden", hasArt);
+    hint?.classList.toggle("hidden", hasArt);
+
+    if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+
+    function prettyNameFromCode(code){
+      return String(code)
+        .replace(/^T\d_/, "")
+        .replaceAll("_"," ")
+        .toLowerCase()
+        .replace(/\b\w/g, c=>c.toUpperCase());
+    }
+
+    for (const t of [2,3,4,5]){
+      const box = boxes[t]; if (!box) continue;
+      const info = r.tiers?.[t];
+      if (!info){ box.textContent="No data"; continue; }
+
+      const items = [];
+      for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
+      for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
+      box.innerHTML = items.join("") || "Empty.";
+
+      const btn = btns[t];
+      if (btn){
+        const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+        btn.disabled = !canClaim;
+        btn.textContent = info.claimed ? "Claimed" : "Claim";
+        if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+        btn.onclick = async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent;
+          btn.disabled = true; btn.textContent = "Claiming…";
+          try{
+            await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+            toast(`T${t} bonus claimed.`);
+            await loadBonus();
+            await refreshMeLight();
+          }catch(e){
+            alert(e?.message || "Claim failed.");
+          } finally{
+            btn.textContent = prev;
+          }
+        };
+      }
+    }
+  }catch(e){
+    Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+  }
+}
+</script>
+
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
@@ -1485,6 +1558,7 @@
   </script>
 </body>
 </html>
+
 
 
 
