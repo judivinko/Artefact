@@ -62,7 +62,26 @@ body::before{ content:none !important; } /* ukloni stare overlays */
 .hidden{ display:none !important }
 .muted{ opacity:.8 }
 .label{ font-weight:600 }
-.brand{ font-weight:700 }
+
+/* ✅ Brand naslov: veći + zlatni gradijent */
+.brand{
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: 1px;
+  line-height: 1;
+  background: linear-gradient(180deg, #FFD700 0%, #E6BE00 55%, #C99700 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0 10px rgba(255,215,0,.25),
+    0 0 18px rgba(255,200,0,.18),
+    0 0 28px rgba(255,160,0,.12);
+}
+@media (max-width:520px){
+  .brand{ font-size: 28px; }
+}
+
 .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .right{ margin-left:auto }
 
