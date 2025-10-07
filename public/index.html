@@ -828,6 +828,7 @@
         <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
       </div>`;
   }
+
   function renderShopGotRecipe(rec){
     const msg = $("#shop-msg"); if(!msg) return;
     msg.innerHTML = `
@@ -837,19 +838,24 @@
       </div>`;
   }
 
+  /* ===== FIXED PART: "Buys to next recipe" premješten ispod naslova ===== */
   function updateBuysToNextFromWHO(){
     const b = $("#buysToNext");
     if (!b) return;
 
+    // Pronađi naslov "Buy T1 (...s)" i smjesti b odmah ispod njega
     const title = document.querySelector("#tab-shop .label");
     if (title && title.nextElementSibling !== b) {
       title.after(b);
     }
+
+    // Stil lijevo
     b.style.display = "block";
     b.style.margin = "6px 0 10px";
     b.style.textAlign = "left";
     b.classList.remove("right");
 
+    // Ažuriraj tekst
     b.textContent = (typeof WHO?.buys_to_next === "number")
       ? `Buys to next recipe: ${WHO.buys_to_next}`
       : "Buys to next recipe: —";
@@ -985,6 +991,7 @@
 
   document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
+
 
 
 
@@ -1465,6 +1472,7 @@
   </script>
 </body>
 </html>
+
 
 
 
