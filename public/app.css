@@ -1,12 +1,12 @@
 /* =========================================================
-   ARTEFACT — UI (dark-black + colored sections)
+   ARTEFACT — FULL DARK + COLORED TABS (FINAL)
    ========================================================= */
 
 /* ------------------------------
    Root vars / palette
 ------------------------------ */
 :root{
-  /* Neutral theme (no blue tint) */
+  /* Neutral theme */
   --text:#e5e7eb;
   --line:#2a2a2a;
   --bg-black:#000;
@@ -18,33 +18,37 @@
   --row-pad-v: 8px;
   --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
 
-  /* Section accents */
+  /* Section accents (HUE KEYS) */
   --shop:#38bdf8;      /* sky */
   --craft:#f59e0b;     /* amber */
   --market:#10b981;    /* emerald */
   --inv:#a78bfa;       /* violet */
   --bonus:#22d3ee;     /* cyan */
 
-  /* Section fills (very soft) */
-  --shop-fill:  rgba(56,189,248,.10);
-  --craft-fill: rgba(245,158,11,.10);
-  --market-fill:rgba(16,185,129,.10);
-  --inv-fill:   rgba(167,139,250,.10);
-  --bonus-fill: rgba(34,211,238,.10);
+  /* Fills (used for subtle sheens per tab) */
+  --shop-fill:  rgba(56,189,248,.14);
+  --craft-fill: rgba(245,158,11,.14);
+  --market-fill:rgba(16,185,129,.14);
+  --inv-fill:   rgba(167,139,250,.14);
+  --bonus-fill: rgba(34,211,238,.14);
 }
 
 /* ------------------------------
-   Global reset / background
+   Global reset / background (FULL BLACK + SHEEN)
 ------------------------------ */
 *{ box-sizing:border-box }
 html,body{ height:100% }
 body{
   margin:0;
   color:var(--text);
-  background:#000;             /* čista crna, bez gradijenata */
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000;
+  background-attachment: fixed; /* stabilan sheen */
 }
 
-/* App wrapper — centrirano, nema "glomazno" full width */
+/* App wrapper — centrirano */
 #app, .container{
   max-width: 1160px;
   margin: 0 auto;
@@ -68,7 +72,9 @@ body{
   display:flex; align-items:center; justify-content:space-between;
   padding:12px; border-bottom:1px solid var(--line);
   position:sticky; top:0; z-index:20;
-  background:rgba(0,0,0,.6); backdrop-filter: blur(8px);
+  background:rgba(0,0,0,.65);
+  backdrop-filter: blur(8px);
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
 }
 .header.no-border{ border-bottom:0 !important }
 
@@ -164,32 +170,27 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#3a3a3a; }
 
-/* per-tab boje (i aktivno stanje) */
-.chip[data-tab="shop"]{ border-color:rgba(56,189,248,.35) }
+/* Aktivno stanje po boji taba */
 .chip[data-tab="shop"].active{
   background:linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.10));
   border-color:rgba(56,189,248,.55);
   box-shadow: inset 0 0 0 1px rgba(56,189,248,.35), 0 6px 16px rgba(56,189,248,.18);
 }
-.chip[data-tab="craft"]{ border-color:rgba(245,158,11,.35) }
 .chip[data-tab="craft"].active{
   background:linear-gradient(180deg, rgba(245,158,11,.20), rgba(245,158,11,.10));
   border-color:rgba(245,158,11,.55);
   box-shadow: inset 0 0 0 1px rgba(245,158,11,.35), 0 6px 16px rgba(245,158,11,.18);
 }
-.chip[data-tab="market"]{ border-color:rgba(16,185,129,.35) }
 .chip[data-tab="market"].active{
   background:linear-gradient(180deg, rgba(16,185,129,.20), rgba(16,185,129,.10));
   border-color:rgba(16,185,129,.55);
   box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(16,185,129,.18);
 }
-.chip[data-tab="inv"]{ border-color:rgba(167,139,250,.35) }
 .chip[data-tab="inv"].active{
   background:linear-gradient(180deg, rgba(167,139,250,.20), rgba(167,139,250,.10));
   border-color:rgba(167,139,250,.55);
   box-shadow: inset 0 0 0 1px rgba(167,139,250,.35), 0 6px 16px rgba(167,139,250,.18);
 }
-.chip[data-tab="bonus"]{ border-color:rgba(34,211,238,.35) }
 .chip[data-tab="bonus"].active{
   background:linear-gradient(180deg, rgba(34,211,238,.20), rgba(34,211,238,.10));
   border-color:rgba(34,211,238,.55);
@@ -197,47 +198,87 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 
 /* ------------------------------
-   Section panels (fill inside with color)
+   Section panels — DOMINANT TONES PER TAB
+   + svi .btn unutar taba preuzimaju ton taba
 ------------------------------ */
 #tab-shop{
-  border-color: var(--shop);
+  border-color: rgba(56,189,248,.45);
   background:
-    radial-gradient(120% 120% at 100% 0%, var(--shop-fill), transparent 70%),
-    radial-gradient(120% 120% at 0% 100%, rgba(56,189,248,.08), transparent 70%),
-    #0b0b0b;
-  box-shadow: 0 0 0 1px rgba(56,189,248,.15) inset, 0 8px 24px rgba(0,0,0,.35);
+    radial-gradient(150% 150% at 100% 0%, var(--shop-fill), transparent 70%),
+    #000;
+  box-shadow: inset 0 0 12px rgba(56,189,248,.20), 0 8px 24px rgba(0,0,0,.5);
 }
+#tab-shop .btn{
+  background:rgba(56,189,248,.12);
+  border-color:rgba(56,189,248,.4);
+}
+#tab-shop .btn:hover{
+  background:rgba(56,189,248,.22);
+  border-color:rgba(56,189,248,.7);
+}
+
 #tab-craft{
-  border-color: var(--craft);
+  border-color: rgba(245,158,11,.45);
   background:
-    radial-gradient(120% 120% at 100% 0%, var(--craft-fill), transparent 70%),
-    radial-gradient(120% 120% at 0% 100%, rgba(245,158,11,.08), transparent 70%),
-    #0b0b0b;
-  box-shadow: 0 0 0 1px rgba(245,158,11,.15) inset, 0 8px 24px rgba(0,0,0,.35);
+    radial-gradient(150% 150% at 100% 0%, var(--craft-fill), transparent 70%),
+    #000;
+  box-shadow: inset 0 0 12px rgba(245,158,11,.20), 0 8px 24px rgba(0,0,0,.5);
 }
+#tab-craft .btn{
+  background:rgba(245,158,11,.12);
+  border-color:rgba(245,158,11,.4);
+}
+#tab-craft .btn:hover{
+  background:rgba(245,158,11,.22);
+  border-color:rgba(245,158,11,.7);
+}
+
 #tab-market{
-  border-color: var(--market);
+  border-color: rgba(16,185,129,.45);
   background:
-    radial-gradient(120% 120% at 100% 0%, var(--market-fill), transparent 70%),
-    radial-gradient(120% 120% at 0% 100%, rgba(16,185,129,.08), transparent 70%),
-    #0b0b0b;
-  box-shadow: 0 0 0 1px rgba(16,185,129,.15) inset, 0 8px 24px rgba(0,0,0,.35);
+    radial-gradient(150% 150% at 100% 0%, var(--market-fill), transparent 70%),
+    #000;
+  box-shadow: inset 0 0 12px rgba(16,185,129,.20), 0 8px 24px rgba(0,0,0,.5);
 }
+#tab-market .btn{
+  background:rgba(16,185,129,.12);
+  border-color:rgba(16,185,129,.4);
+}
+#tab-market .btn:hover{
+  background:rgba(16,185,129,.22);
+  border-color:rgba(16,185,129,.7);
+}
+
 #tab-inv{
-  border-color: var(--inv);
+  border-color: rgba(167,139,250,.45);
   background:
-    radial-gradient(120% 120% at 100% 0%, var(--inv-fill), transparent 70%),
-    radial-gradient(120% 120% at 0% 100%, rgba(167,139,250,.08), transparent 70%),
-    #0b0b0b;
-  box-shadow: 0 0 0 1px rgba(167,139,250,.15) inset, 0 8px 24px rgba(0,0,0,.35);
+    radial-gradient(150% 150% at 100% 0%, var(--inv-fill), transparent 70%),
+    #000;
+  box-shadow: inset 0 0 12px rgba(167,139,250,.20), 0 8px 24px rgba(0,0,0,.5);
 }
+#tab-inv .btn{
+  background:rgba(167,139,250,.12);
+  border-color:rgba(167,139,250,.4);
+}
+#tab-inv .btn:hover{
+  background:rgba(167,139,250,.22);
+  border-color:rgba(167,139,250,.7);
+}
+
 #tab-bonus{
-  border-color: var(--bonus);
+  border-color: rgba(34,211,238,.45);
   background:
-    radial-gradient(120% 120% at 100% 0%, var(--bonus-fill), transparent 70%),
-    radial-gradient(120% 120% at 0% 100%, rgba(34,211,238,.08), transparent 70%),
-    #0b0b0b;
-  box-shadow: 0 0 0 1px rgba(34,211,238,.15) inset, 0 8px 24px rgba(0,0,0,.35);
+    radial-gradient(150% 150% at 100% 0%, var(--bonus-fill), transparent 70%),
+    #000;
+  box-shadow: inset 0 0 12px rgba(34,211,238,.20), 0 8px 24px rgba(0,0,0,.5);
+}
+#tab-bonus .btn{
+  background:rgba(34,211,238,.12);
+  border-color:rgba(34,211,238,.4);
+}
+#tab-bonus .btn:hover{
+  background:rgba(34,211,238,.22);
+  border-color:rgba(34,211,238,.7);
 }
 
 /* ------------------------------
