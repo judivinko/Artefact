@@ -1,12 +1,11 @@
 /* =========================================================
-   ARTEFACT — FULL DARK + COLORED TABS (FINAL)
+   ARTEFACT — DARK BLACK THEME + COLORED TABS/BUTTONS
    ========================================================= */
 
 /* ------------------------------
    Root vars / palette
 ------------------------------ */
 :root{
-  /* Neutral theme */
   --text:#e5e7eb;
   --line:#2a2a2a;
   --bg-black:#000;
@@ -18,35 +17,37 @@
   --row-pad-v: 8px;
   --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
 
-  /* Section accents (HUE KEYS) */
+  /* Tab accents */
   --shop:#38bdf8;      /* sky */
   --craft:#f59e0b;     /* amber */
   --market:#10b981;    /* emerald */
   --inv:#a78bfa;       /* violet */
   --bonus:#22d3ee;     /* cyan */
 
-  /* Fills (used for subtle sheens per tab) */
-  --shop-fill:  rgba(56,189,248,.14);
-  --craft-fill: rgba(245,158,11,.14);
-  --market-fill:rgba(16,185,129,.14);
-  --inv-fill:   rgba(167,139,250,.14);
-  --bonus-fill: rgba(34,211,238,.14);
+  /* Optional soft fills (compat) */
+  --shop-fill:  rgba(56,189,248,.10);
+  --craft-fill: rgba(245,158,11,.10);
+  --market-fill:rgba(16,185,129,.10);
+  --inv-fill:   rgba(167,139,250,.10);
+  --bonus-fill: rgba(34,211,238,.10);
 }
 
 /* ------------------------------
-   Global reset / background (FULL BLACK + SHEEN)
+   Global reset / background
 ------------------------------ */
-*{ box-sizing:border-box }
+*{ box-sizing:border-box; margin:0; padding:0; }
 html,body{ height:100% }
 body{
   margin:0;
   color:var(--text);
+  /* ČISTA CRNA s neutralnim “sheen” – bez plave */
   background:
     radial-gradient(160% 160% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
     radial-gradient(160% 160% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
-    #000;
-  background-attachment: fixed; /* stabilan sheen */
+    #000 !important;
+  background-attachment: fixed;
 }
+body::before{ content:none !important; } /* ukloni stare overlays */
 
 /* App wrapper — centrirano */
 #app, .container{
@@ -72,9 +73,8 @@ body{
   display:flex; align-items:center; justify-content:space-between;
   padding:12px; border-bottom:1px solid var(--line);
   position:sticky; top:0; z-index:20;
-  background:rgba(0,0,0,.65);
-  backdrop-filter: blur(8px);
-  box-shadow:0 4px 20px rgba(0,0,0,.6);
+  background:rgba(0,0,0,.75) !important; backdrop-filter: blur(10px);
+  box-shadow:0 2px 12px rgba(0,0,0,.6);
 }
 .header.no-border{ border-bottom:0 !important }
 
@@ -91,8 +91,8 @@ body{
   cursor:pointer; border:1px solid rgba(255,255,255,.08);
   background:#131313; color:var(--text);
   padding:8px 12px; border-radius:10px;
-  transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
 }
 .btn:hover{ transform:translateY(-1px); border-color:#444; background:#171717; }
 .btn:active{ transform:translateY(0); }
@@ -115,7 +115,7 @@ body{
   border-radius:12px;
   padding:12px; margin-top:12px;
   backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.02);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
 }
 
 /* Lists & rows */
@@ -130,7 +130,7 @@ body{
 .list{
   max-height:360px; overflow:auto;
   border:1px solid var(--line); border-radius:10px;
-  background:rgba(20,20,20,.55);
+  background:#111;
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
 }
@@ -158,7 +158,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 .img-slot:hover{ opacity:1 }
 
 /* ------------------------------
-   Tabs (colored buttons)
+   Tabs (chips)
 ------------------------------ */
 .tabbar{ margin:6px 0 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .chip{
@@ -170,7 +170,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#3a3a3a; }
 
-/* Aktivno stanje po boji taba */
+/* Aktivni chip po boji taba */
 .chip[data-tab="shop"].active{
   background:linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.10));
   border-color:rgba(56,189,248,.55);
@@ -198,87 +198,72 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 
 /* ------------------------------
-   Section panels — DOMINANT TONES PER TAB
-   + svi .btn unutar taba preuzimaju ton taba
+   Section panels — BLACK base + tinted per tab
 ------------------------------ */
-#tab-shop{
-  border-color: rgba(56,189,248,.45);
+
+/* Postavi accent var po tabovima */
+#tab-shop  { --accent: var(--shop); }
+#tab-craft { --accent: var(--craft); }
+#tab-market{ --accent: var(--market); }
+#tab-inv   { --accent: var(--inv); }
+#tab-bonus { --accent: var(--bonus); }
+
+/* Panel baza (crna + blag sheen) */
+#tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
+  border-color: color-mix(in srgb, var(--accent) 45%, #2a2a2a);
   background:
-    radial-gradient(150% 150% at 100% 0%, var(--shop-fill), transparent 70%),
-    #000;
-  box-shadow: inset 0 0 12px rgba(56,189,248,.20), 0 8px 24px rgba(0,0,0,.5);
-}
-#tab-shop .btn{
-  background:rgba(56,189,248,.12);
-  border-color:rgba(56,189,248,.4);
-}
-#tab-shop .btn:hover{
-  background:rgba(56,189,248,.22);
-  border-color:rgba(56,189,248,.7);
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000 !important;
+  position:relative;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
 }
 
-#tab-craft{
-  border-color: rgba(245,158,11,.45);
+/* Tinted overlay po akcentu */
+#tab-shop::before, #tab-craft::before, #tab-market::before, #tab-inv::before, #tab-bonus::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
   background:
-    radial-gradient(150% 150% at 100% 0%, var(--craft-fill), transparent 70%),
-    #000;
-  box-shadow: inset 0 0 12px rgba(245,158,11,.20), 0 8px 24px rgba(0,0,0,.5);
-}
-#tab-craft .btn{
-  background:rgba(245,158,11,.12);
-  border-color:rgba(245,158,11,.4);
-}
-#tab-craft .btn:hover{
-  background:rgba(245,158,11,.22);
-  border-color:rgba(245,158,11,.7);
+    radial-gradient(160% 160% at 100% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+  opacity:.9;
 }
 
-#tab-market{
-  border-color: rgba(16,185,129,.45);
-  background:
-    radial-gradient(150% 150% at 100% 0%, var(--market-fill), transparent 70%),
-    #000;
-  box-shadow: inset 0 0 12px rgba(16,185,129,.20), 0 8px 24px rgba(0,0,0,.5);
+/* Dugmad u boji taba (osim .danger) */
+#tab-shop .btn:not(.danger),
+#tab-craft .btn:not(.danger),
+#tab-market .btn:not(.danger),
+#tab-inv .btn:not(.danger),
+#tab-bonus .btn:not(.danger){
+  background: color-mix(in srgb, var(--accent) 20%, #111);
+  border-color: color-mix(in srgb, var(--accent) 55%, #333);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
 }
-#tab-market .btn{
-  background:rgba(16,185,129,.12);
-  border-color:rgba(16,185,129,.4);
-}
-#tab-market .btn:hover{
-  background:rgba(16,185,129,.22);
-  border-color:rgba(16,185,129,.7);
-}
-
-#tab-inv{
-  border-color: rgba(167,139,250,.45);
-  background:
-    radial-gradient(150% 150% at 100% 0%, var(--inv-fill), transparent 70%),
-    #000;
-  box-shadow: inset 0 0 12px rgba(167,139,250,.20), 0 8px 24px rgba(0,0,0,.5);
-}
-#tab-inv .btn{
-  background:rgba(167,139,250,.12);
-  border-color:rgba(167,139,250,.4);
-}
-#tab-inv .btn:hover{
-  background:rgba(167,139,250,.22);
-  border-color:rgba(167,139,250,.7);
+#tab-shop .btn:not(.danger):hover,
+#tab-craft .btn:not(.danger):hover,
+#tab-market .btn:not(.danger):hover,
+#tab-inv .btn:not(.danger):hover,
+#tab-bonus .btn:not(.danger):hover{
+  background: color-mix(in srgb, var(--accent) 34%, #181818);
+  border-color: color-mix(in srgb, var(--accent) 75%, #555);
 }
 
-#tab-bonus{
-  border-color: rgba(34,211,238,.45);
-  background:
-    radial-gradient(150% 150% at 100% 0%, var(--bonus-fill), transparent 70%),
-    #000;
-  box-shadow: inset 0 0 12px rgba(34,211,238,.20), 0 8px 24px rgba(0,0,0,.5);
+/* Badge i liste lagano obojene po tabu */
+#tab-shop .badge, #tab-craft .badge, #tab-market .badge, #tab-inv .badge, #tab-bonus .badge{
+  border-color: color-mix(in srgb, var(--accent) 55%, #2a2a2a);
+  background: color-mix(in srgb, var(--accent) 10%, #0c0c0c);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
-#tab-bonus .btn{
-  background:rgba(34,211,238,.12);
-  border-color:rgba(34,211,238,.4);
+#tab-shop .list, #tab-craft .list, #tab-market .list, #tab-inv .list, #tab-bonus .list{
+  border-color: color-mix(in srgb, var(--accent) 40%, #2a2a2a);
+  background: color-mix(in srgb, var(--accent) 8%, rgba(20,20,20,.55));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, rgba(255,255,255,.02));
 }
-#tab-bonus .btn:hover{
-  background:rgba(34,211,238,.22);
-  border-color:rgba(34,211,238,.7);
+
+/* Naslovi u tabovima – suptilan sjaj */
+#tab-shop .label, #tab-craft .label, #tab-market .label, #tab-inv .label, #tab-bonus .label{
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 /* ------------------------------
@@ -327,3 +312,5 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-panel.hidden{ display:none }
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
+/* (ako se koristi) – sakrij wrap */
+#paypal-wrap{ display:none !important; }
