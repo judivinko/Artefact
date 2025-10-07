@@ -1076,144 +1076,162 @@ async function loadBonus(){
 
 
 
+<!-- ===== Crafting (FIX: Craft button) ===== -->
+<script>
+  function rowRecipe(r){
+    return `
+      <div class="itemrow">
+        <div class="row" style="gap:10px;align-items:center">
+          <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+          <div>
+            <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+            <div class="muted">T${r.tier} · x${r.qty}</div>
+          </div>
+        </div>
+        <button class="btn muted" data-open="${esc(r.id)}" type="button">Open</button>
+      </div>`;
+  }
 
-  <!-- ===== Crafting ===== -->
-  <script>
-    function rowRecipe(r){
+  async function loadRecipes(){
+    const box = $("#recipes"); if (!box) return;
+    box.textContent = "Loading…";
+    try{
+      const list = await api("/api/recipes/list");
+      const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
+      const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
+      if (!rows.length){ box.textContent = "No recipes."; return; }
+      box.innerHTML = rows.map(rowRecipe).join("");
+      box.querySelectorAll("[data-open]").forEach(btn=>{
+        btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
+      });
+    }catch(e){
+      box.textContent = e?.message || "Failed to load recipes.";
+    }
+  }
+  $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
+  $("#filter-recipe")?.addEventListener("input", loadRecipes);
+
+  function renderIngredients(details){
+    const parts = (details.ingredients||[]).map(ing=>{
+      const ok = (ing.have|0) >= (ing.qty|0);
+      const src = iconForByCode(ing.code, ing.tier);
       return `
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-            <div>
-              <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
-              <div class="muted">T${r.tier} · x${r.qty}</div>
-            </div>
+            <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
           </div>
-          <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+          <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
         </div>`;
+    }).join("");
+
+    const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
+    const craftNote = WHO?.perks?.craft_no_fail
+      ? "No fail (server checks ingredients)"
+      : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
+
+    // type="button" da nikakav form submit ne prekine klik
+    return `
+      <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
+      <div class="itemrow"><div class="muted">Ingredients</div></div>
+      ${parts}
+      <div class="itemrow">
+        <button id="btn-craft" class="btn" type="button" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
+        <span class="muted" style="margin-left:8px">${craftNote}</span>
+      </div>`;
+  }
+
+  async function openRecipe(recipeId){
+    const box = $("#rec-details"); if (!box) return;
+    box.textContent = "Loading…";
+    try{
+      const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
+      box.innerHTML = renderIngredients(details);
+
+      // zapamti trenutni recept za delegirani klik
+      window.CURRENT_RECIPE_ID = details.recipe.id;
+
+      // (NE vežemo više direktno #btn-craft ovde – delegacija dolje)
+    }catch(e){
+      box.textContent = e?.message || "Failed to load recipe.";
     }
+  }
 
-    async function loadRecipes(){
-      const box = $("#recipes"); if (!box) return;
-      box.textContent = "Loading…";
-      try{
-        const list = await api("/api/recipes/list");
-        const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-        const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
-        if (!rows.length){ box.textContent = "No recipes."; return; }
-        box.innerHTML = rows.map(rowRecipe).join("");
-        box.querySelectorAll("[data-open]").forEach(btn=>{
-          btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
-        });
-      }catch(e){
-        box.textContent = e?.message || "Failed to load recipes.";
-      }
+  // ✅ DELEGIRANI HANDLER — radi i nakon svakog re-rendera #rec-details
+  //   (rješava slučaj kad se listener izgubi i gumb ne reaguje)
+  document.addEventListener("click", async (ev)=>{
+    const craftBtn = ev.target.closest("#btn-craft");
+    if (!craftBtn) return;
+
+    // ako je disabled, nema akcije
+    if (craftBtn.hasAttribute("disabled") || craftBtn.disabled) return;
+
+    const recipeId = window.CURRENT_RECIPE_ID;
+    if (!recipeId) { toast("Pick a recipe first."); return; }
+
+    const prev = craftBtn.textContent;
+    craftBtn.disabled = true;
+    craftBtn.textContent = "Crafting…";
+    try{
+      const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: recipeId})});
+      if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+      else if (r2.scrap) toast("Failed (got Scrap)");
+      else toast("Done");
+
+      await safeCall("loadInventoryPanel");
+      await safeCall("loadRecipes");
+      await safeCall("loadInventoryFull");
+      await openRecipe(recipeId);
+    }catch(e){
+      if (e?.data?.missing?.length) toast("You are missing: " + e.data.missing.join(", "));
+      else toast(e?.message || "Crafting failed.");
+    }finally{
+      craftBtn.disabled = false;
+      craftBtn.textContent = prev;
     }
-    $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
-    $("#filter-recipe")?.addEventListener("input", loadRecipes);
+  });
 
-    function renderIngredients(details){
-      const parts = (details.ingredients||[]).map(ing=>{
-        const ok = (ing.have|0) >= (ing.qty|0);
-        const src = iconForByCode(ing.code, ing.tier);
-        return `
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-            </div>
-            <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
-          </div>`;
-      }).join("");
-
-      const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
-      const craftNote = WHO?.perks?.craft_no_fail
-        ? "No fail (server checks ingredients)"
-        : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
-
-      return `
-        <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
-        <div class="itemrow"><div class="muted">Ingredients</div></div>
-        ${parts}
-        <div class="itemrow">
-          <button id="btn-craft" class="btn" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
-          <span class="muted" style="margin-left:8px">${craftNote}</span>
-        </div>`;
-    }
-
-    async function openRecipe(recipeId){
-      const box = $("#rec-details"); if (!box) return;
-      box.textContent = "Loading…";
-      try{
-        const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
-        box.innerHTML = renderIngredients(details);
-        window.CURRENT_RECIPE_ID = details.recipe.id;
-        const btn = $("#btn-craft");
-        btn?.addEventListener("click", async ()=>{
-          if (btn.disabled) return;
-          const prev = btn.textContent;
-          btn.disabled = true; btn.textContent = "Crafting…";
-          try{
-            const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
-            if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-            else if (r2.scrap) toast("Failed (got Scrap)");
-            else toast("Done");
-            await safeCall("loadInventoryPanel");
-            await safeCall("loadRecipes");
-            await safeCall("loadInventoryFull");
-            await openRecipe(details.recipe.id);
-          }catch(e){
-            if (e?.data?.missing?.length) toast("You are missing: " + e.data.missing.join(", "));
-            else toast(e?.message || "Crafting failed.");
-          }finally{
-            btn.disabled = false; btn.textContent = prev;
-          }
-        });
-      }catch(e){
-        box.textContent = e?.message || "Failed to load recipe.";
-      }
-    }
-
-    async function refreshArtefactBonus(){
-      try{
-        const r = await api("/api/inventory");
-        const bonus = (typeof r?.artefactBonusGold === "number") ? r.artefactBonusGold : (parseInt(r?.artefactBonusGold,10) || 0);
-        const el = document.getElementById("artefact-bonus");
-        if (el) el.textContent = bonus;
-      }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
-    }
-    (() => {
-      const craft = document.getElementById("tab-craft");
-      if (!craft) return;
-      const obs = new MutationObserver(() => {
-        if (!craft.classList.contains("hidden")) refreshArtefactBonus();
-      });
-      obs.observe(craft, { attributes:true });
-    })();
-
-    const arteBtn = $("#btn-artefact");
-    arteBtn?.addEventListener("click", async ()=>{
-      if (arteBtn.disabled) return;
-      const prev = arteBtn.textContent;
-      arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
-      try{
-        const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-        const name = r.crafted || "Artefact";
-        const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-        $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
-        $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
-        await safeCall("loadInventoryPanel");
-        await safeCall("loadInventoryFull");
-        await safeCall("loadRecipes");
-        await safeCall("loadBonus");
-        await refreshMeLight();
-      }catch(e){
-        $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
-      } finally{
-        arteBtn.disabled = false; arteBtn.textContent = prev;
-      }
+  async function refreshArtefactBonus(){
+    try{
+      const r = await api("/api/inventory");
+      const bonus = (typeof r?.artefactBonusGold === "number") ? r.artefactBonusGold : (parseInt(r?.artefactBonusGold,10) || 0);
+      const el = document.getElementById("artefact-bonus");
+      if (el) el.textContent = bonus;
+    }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
+  }
+  (() => {
+    const craft = document.getElementById("tab-craft");
+    if (!craft) return;
+    const obs = new MutationObserver(() => {
+      if (!craft.classList.contains("hidden")) refreshArtefactBonus();
     });
-  </script>
+    obs.observe(craft, { attributes:true });
+  })();
+
+  const arteBtn = $("#btn-artefact");
+  arteBtn?.addEventListener("click", async ()=>{
+    if (arteBtn.disabled) return;
+    const prev = arteBtn.textContent;
+    arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
+    try{
+      const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
+      const name = r.crafted || "Artefact";
+      const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+      $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
+      $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
+      await safeCall("loadInventoryPanel");
+      await safeCall("loadInventoryFull");
+      await safeCall("loadRecipes");
+      await safeCall("loadBonus");
+      await refreshMeLight?.();
+    }catch(e){
+      $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
+    } finally{
+      arteBtn.disabled = false; arteBtn.textContent = prev;
+    }
+  });
+</script>
+
 
   <!-- ===== Market & Inventory ===== -->
 <script>
@@ -1554,6 +1572,7 @@ async function loadBonus(){
   </script>
 </body>
 </html>
+
 
 
 
