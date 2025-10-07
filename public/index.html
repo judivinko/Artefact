@@ -838,15 +838,15 @@
       </div>`;
   }
 
-  /* ===== FIXED PART: "Buys to next recipe" premješten ispod naslova ===== */
+  /* ===== "Buys to next recipe" ispod naslova Buy T1 (…s) ===== */
   function updateBuysToNextFromWHO(){
     const b = $("#buysToNext");
     if (!b) return;
 
-    // Pronađi naslov "Buy T1 (...s)" i smjesti b odmah ispod njega
+    // Naslov u Shop kartici — prvi .label unutar #tab-shop
     const title = document.querySelector("#tab-shop .label");
     if (title && title.nextElementSibling !== b) {
-      title.after(b);
+      title.after(b); // smjesti odmah ispod naslova
     }
 
     // Stil lijevo
@@ -855,7 +855,7 @@
     b.style.textAlign = "left";
     b.classList.remove("right");
 
-    // Ažuriraj tekst
+    // Tekst iz WHO
     b.textContent = (typeof WHO?.buys_to_next === "number")
       ? `Buys to next recipe: ${WHO.buys_to_next}`
       : "Buys to next recipe: —";
@@ -880,6 +880,7 @@
     $("#btn-buy50")?.toggleAttribute("disabled", !!flag);
   }
 
+  // Glavni Buy T1
   $("#btn-buy-t1")?.addEventListener("click", async ()=>{
     const btn = $("#btn-buy-t1");
     const prevTxt = btn?.textContent;
@@ -916,22 +917,27 @@
 
   document.addEventListener("DOMContentLoaded", ()=>{
     const btn1 = $("#btn-buy-t1");
-    if (btn1){
-      let wrap = document.createElement("div");
+    if (btn1 && !document.getElementById("btn-buy10") && !document.getElementById("btn-buy50")){
+      // Napravi wrap kontejner i jedan red sa sva 3 dugmeta
+      const wrap = document.createElement("div");
       wrap.style.display = "flex";
       wrap.style.flexDirection = "column";
       wrap.style.alignItems = "flex-start";
       wrap.style.gap = "6px";
 
+      // Ubaci wrap na mjesto gdje je bio originalni btn
       btn1.parentNode.insertBefore(wrap, btn1);
-      wrap.appendChild(btn1);
 
-      let row = document.createElement("div");
+      // Jedan red za dugmad
+      const row = document.createElement("div");
       row.className = "row";
       row.style.gap = "8px";
       wrap.appendChild(row);
+
+      // Premjesti originalni Buy u red
       row.appendChild(btn1);
 
+      // ×10
       const btn10 = document.createElement("button");
       btn10.id = "btn-buy10";
       btn10.className = "btn secondary";
@@ -939,6 +945,7 @@
       btn10.addEventListener("click", ()=> shopBuyTimes(10));
       row.appendChild(btn10);
 
+      // ×50
       const btn50 = document.createElement("button");
       btn50.id = "btn-buy50";
       btn50.className = "btn secondary";
@@ -947,8 +954,13 @@
       row.appendChild(btn50);
     }
 
-    $("#shop-balance")?.remove();      // duplikat, gold je u headeru
-    updateBuysToNextFromWHO();         // postavi ispod naslova i lijevo
+    // Ukloni duplikat shop-balance (gold je već u headeru)
+    $("#shop-balance")?.remove();
+
+    // Pozicioniraj i ažuriraj "Buys to next…"
+    updateBuysToNextFromWHO();
+
+    // Početni prikaz stanja zlata/srebra
     updateShopBalanceBadge();
   });
 
@@ -970,7 +982,7 @@
       }
       renderBalance?.();
       updateShopBalanceBadge();
-      await refreshMeLight();
+      await refreshMeLight();           // osvježi i "Buys to next…" nakon batch kupovine
       await safeCall("loadInventoryPanel");
       safeCall("loadRecipes");
       safeCall("loadInventoryFull");
@@ -991,6 +1003,7 @@
 
   document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
 </script>
+
 
 
 
@@ -1472,6 +1485,7 @@
   </script>
 </body>
 </html>
+
 
 
 
