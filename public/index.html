@@ -1,1605 +1,314 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ARTEFACT</title>
-  <link rel="stylesheet" href="/app.css" />
-  <script>
-    (async function loadPayPalSDK(){
-      try{
-        const r = await fetch("/api/paypal/config", { credentials:"include" });
-        const j = await r.json().catch(()=>null);
-        if (!r.ok || !j?.ok || !j?.client_id) {
-          console.warn("PayPal not configured:", j?.error || r.status);
-          window.__PAYPAL_DISABLED__ = true;
-          return;
-        }
-        const qs = new URLSearchParams({
-          "client-id": j.client_id,
-          "currency": j.currency || "USD",
-          "intent": "capture",
-          "components": "buttons"
-        });
-        const s = document.createElement("script");
-        s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
-        s.async = true;
-        // __PAYPAL_READY__ je uklonjen (bio suvišan)
-        document.head.appendChild(s);
-        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
-      }catch(e){
-        console.warn("PayPal SDK load failed:", e);
-        window.__PAYPAL_DISABLED__ = true;
-      }
-    })();
-  </script>
-
-<style>
-  :root{
-    --line:#233047;
-    --text:#e5e7eb;
-    --bg0:#0b1220;
-    --bg1:#0e1b2e;
-    --bg2:#0a0f1f;
-    --glass:rgba(11,18,32,.66);
-  }
-</style>
-
-
-    /* ===== Global / Background (shimmer) ===== */
-    html,body{ height:100% }
-    body{
-      margin:0;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.16), transparent 60%),
-        radial-gradient(900px 500px at 80% 20%, rgba(34,211,238,0.18), transparent 65%),
-        radial-gradient(900px 600px at 70% 85%, rgba(234,88,12,0.12), transparent 60%),
-        linear-gradient(160deg, var(--bg0) 0%, var(--bg1) 45%, var(--bg2) 100%);
-    }
-    body::before{
-      content:"";
-      position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
-      background:
-        radial-gradient(ellipse at 30% 30%, rgba(255,255,255,0.04), transparent 40%),
-        radial-gradient(ellipse at 70% 70%, rgba(255,255,255,0.035), transparent 45%);
-      mask-image: radial-gradient(circle at 50% 50%, black 55%, transparent 75%);
-    }
-
-    .hidden{display:none}
-
-    /* Badges */
-    .badge{
-      border:1px solid var(--line);
-      padding:4px 8px;
-      border-radius:999px;
-      background:#071021;
-      font-size:12px;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
-    }
-
-    /* Lists / rows */
-    .list{
-      max-height:360px;
-      overflow:auto;
-      border:1px solid var(--line);
-      border-radius:10px;
-      background:rgba(9,19,38,.5);
-      backdrop-filter: blur(6px);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-    }
-    .itemrow{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:8px 10px;border-bottom:1px solid #13223a;
-      transition: background .15s ease;
-    }
-    .itemrow:last-child{border-bottom:0}
-    .itemrow:hover{ background:rgba(255,255,255,.03) }
-
-    /* Chips (tabs) */
-    .chip{
-      padding:10px 14px;border:1px solid #1c2a44;border-radius:12px;
-      background:#0d1b2acc;backdrop-filter: blur(6px);
-      cursor:pointer;
-      transition:transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 2px 10px rgba(0,0,0,.25);
-    }
-    .chip:hover{ transform:translateY(-1px); border-color:#2a3d63; }
-    .chip.active{
-      background:linear-gradient(180deg,#123155,#0f2340);
-      border-color:#2e4b7a;
-      box-shadow: inset 0 0 0 1px rgba(120,170,255,.15), 0 6px 16px rgba(20,40,80,.45);
-    }
-
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .right{margin-left:auto}
-
-    /* Toast */
-    .toast{
-      position:fixed;bottom:16px;right:16px;background:#0d1b2a;border:1px solid #233047;border-radius:8px;padding:10px 12px;
-      box-shadow:0 10px 24px rgba(0,0,0,.35);
-    }
-
-    /* Buttons */
-    .btn{
-      cursor:pointer; border:1px solid #1c2a44; background:#0f1c30; color:#e5e7eb;
-      border-radius:10px; padding:8px 12px;
-      transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,.25), inset 0 0 0 1px rgba(255,255,255,.03);
-    }
-    .btn:hover{ transform:translateY(-1px); border-color:#2a3d63; background:#12233e; }
-    .btn:active{ transform:translateY(0); }
-    .btn.muted{opacity:.9}
-    .btn.secondary{background:#0b2236}
-    .btn.secondary:hover{ background:#0e2a44 }
-    .btn.danger{background:#3a0d14;border-color:#5a1a22}
-    .btn.danger:hover{ background:#4a131b; border-color:#7a2933 }
-
-    /* Inputs */
-    .input{
-      background:#0b1220;border:1px solid #233047;border-radius:8px;padding:8px 10px;color:#e5e7eb;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
-    }
-    .input:focus{ outline:none; border-color:#3a5b8e; box-shadow:0 0 0 3px rgba(70,130,180,.15) }
-
-    /* Cards */
-    .card{
-      background:var(--glass);border:1px solid #233047;border-radius:12px;
-      padding:12px;margin-top:12px; backdrop-filter: blur(8px);
-      box-shadow: 0 8px 24px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.02);
-    }
-
-    /* Grids / tiles */
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-    .grid-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
-    .tile{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px;background:#0c1728}
-    .tile.ok{border-color:#165c32;background:#0e3a2f}
-    .tile.miss{opacity:.88}
-    .tabbar{margin:6px 0 4px}
-
-    /* Header */
-    .header{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:12px;border-bottom:1px solid #233047;
-      position:sticky;top:0;z-index:10;background:rgba(11,18,32,.7);backdrop-filter: blur(10px)
-    }
-    .brand{font-weight:700; letter-spacing:.3px}
-    .container{max-width:980px;margin:0 auto;padding:12px}
-    .label{font-weight:600}
-    .muted{opacity:.8}
-
-    /* Balance pulse (grafički samo) */
-    @keyframes pulseTw{
-      0%{ box-shadow:0 0 0 0 rgba(120,170,255,.35) }
-      70%{ box-shadow:0 0 0 8px rgba(120,170,255,0) }
-      100%{ box-shadow:0 0 0 0 rgba(120,170,255,0) }
-    }
-    #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
-
-    /* Paypal/Sec */
-    #balance { font-size:14px; padding:6px 10px; font-weight:700; letter-spacing:.2px }
-    #btn-open-paypal.hidden{ display:none; }
-    #paypal-panel.hidden{ display:none; }
-    #paypal-button-container{ transform:scale(.95); transform-origin:left center; }
-    @media (max-width:520px){ #paypal-button-container{ transform:scale(.9); } }
-    #paypal-wrap{ display:none !important; }
-
-    /* Landing text sizes */
-    .header.no-border{ border-bottom:0!important }
-    #about p, #how p, #tips li { font-size:16px; line-height:1.6 }
-    #how .label, #tips .label { font-size:20px }
-
-    /* Images */
-    img{ max-width:512px; max-height:512px; width:auto; height:auto }
-    .item-img{ display:block; width:100%; max-width:512px; max-height:512px; object-fit:contain; border-radius:10px; margin-top:8px }
-    .img-slot{ margin-top:10px; width:100%; min-height:96px; border:1px dashed #233047; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:12px; opacity:.85 }
-    .img-slot:hover{ opacity:1 }
-
-    /* Fixed image dimensions used u appu i na landing-u */
-    :root{
-      --cell: 1.5cm;   /* slot/crafting/inv/market/bonus */
-      --landing: 4cm;  /* HOW slike */
-    }
-    .img-cell{
-      width: var(--cell);
-      height: var(--cell);
-      object-fit: contain;
-      border-radius: 6px;
-      display: block;
-    }
-    .img-landing{
-      width: var(--landing);
-      height: var(--landing);
-      object-fit: contain;
-      border-radius: 10px;
-      display: block;
-      margin-top: 8px;
-    }
-
-    /* Responsive */
-    @media (max-width:900px){
-      .grid{grid-template-columns:1fr}
-      .grid-4{grid-template-columns:repeat(2,1fr)}
-      .grid-5{grid-template-columns:repeat(3,1fr)}
-    }
-
-    /* (postojeci selektor) zadrzavam radi kompatibilnosti) */
-    img.icon{width:28px;height:28px;object-fit:contain;border-radius:6px;display:block}
-  </style>
-</head>
-<body>
-  <!-- ===== Header ===== -->
-  <header class="header no-border">
-    <div class="brand">ARTEFACT</div>
-    <div class="row" style="gap:8px">
-      <span id="balance" class="badge hidden">0g 0s</span>
-      <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
-      <button id="btn-open-register" class="btn secondary">Register</button>
-      <button id="btn-open-login" class="btn">Log in</button>
-      <button id="btn-logout" class="btn muted hidden">Log out</button>
-    </div>
-  </header>
-
-  <!-- ===== PayPal panel ===== -->
-  <section id="paypal-panel" class="card hidden">
-    <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
-      <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
-      <input id="pp-amount" class="input" type="number" min="10" step="1" value="10" placeholder="USD" style="width:120px" />
-      <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
-      <input id="pp-bonus" class="input" type="text" maxlength="32" placeholder="optional" style="width:240px" />
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div id="paypal-button-container"></div>
-    </div>
-    <div id="pp-msg" class="muted" style="margin-top:8px"></div>
-  </section>
-
-  <!-- ===== Auth ===== -->
-  <section id="auth" class="card hidden" style="margin-top:12px">
-    <div id="card-register" style="display:none">
-      <div class="label">Register</div>
-      <input id="reg-email" class="input" placeholder="email@example.com" type="email" />
-      <input id="reg-pass" class="input" placeholder="password (min 6)" type="password" style="margin-top:8px" />
-      <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-      <div id="reg-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-    <div id="card-login" style="display:none">
-      <div class="label">Log in</div>
-      <input id="log-email" class="input" placeholder="email@example.com" type="email" />
-      <input id="log-pass" class="input" placeholder="password" type="password" style="margin-top:8px" />
-      <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-      <div id="log-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-  </section>
-
-      <!-- ===== App (tabs) ===== -->
-  <section id="app" class="hidden">
-    <div class="tabbar row">
-      <div class="chip active" data-tab="shop">Shop</div>
-      <div class="chip" data-tab="craft">Crafting</div>
-      <div class="chip" data-tab="market">Market</div>
-      <div class="chip" data-tab="inv">Inventory</div>
-      <div class="chip" data-tab="bonus">Bonus</div>
-    </div>
-
-    <!-- SHOP -->
-    <div id="tab-shop" class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
-        <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-      </div>
-      <div style="margin:6px 0">
-        <span id="shop-balance" class="badge hidden">0g 0s</span>
-      </div>
-      <div class="row">
-        <button id="btn-buy-t1" class="btn">Buy</button>
-        <div id="shop-msg" class="muted"></div>
-      </div>
-    </div>
-
-    <!-- ===== Landing moved under Shop ===== -->
-    <!-- Opis igre sada ispod Shop taba -->
-    <div id="shop-info" class="card" style="margin-top:16px">
-      <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
-      <p class="muted" style="max-width:820px">
-        You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
-        When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
-      </p>
-
-      <div class="grid" style="margin-top:12px">
-        <div class="card">
-          <div class="label">1) Shop</div>
-          <p class="muted">Buy <b>T1 materials</b> and occasionally get <b>recipes</b> to unlock higher tiers.</p>
-          <img src="/t1_bronze.png" class="img-landing" alt="T1" onerror="this.style.display='none'">
-        </div>
-
-        <div class="card">
-          <div class="label">2) Crafting</div>
-          <p class="muted">Use materials and recipes to craft <b>T2–T5</b> items. Crafting can <i>fail</i> and yield <b>Scrap</b>.</p>
-          <img src="/t2_golden_ring.png" class="img-landing" alt="T2" onerror="this.style.display='none'">
-        </div>
-
-        <div class="card">
-          <div class="label">3) Market</div>
-          <p class="muted">Sell or buy items and recipes from other players. <span class="badge">Fee: 1%</span></p>
-        </div>
-
-        <div class="card">
-          <div class="label">4) Artefact</div>
-          <p class="muted">Collect 10 different T5 items to craft the <b>ARTEFACT</b> and unlock permanent bonuses.</p>
-          <img src="/artefakt.png" class="img-landing" alt="Artefact" onerror="this.style.display='none'">
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:16px">
-        <div class="label">Tips</div>
-        <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
-          <li>Shop smart — save your gold for key moments.</li>
-          <li>Craft in order of priority — focus on recipes you already have.</li>
-          <li>Trade to fill gaps in your collection and speed up progress.</li>
-          <li>Collect 10 different T5 items to craft the Artefact.</li>
-        </ul>
-      </div>
-    </div>
-
-
-<!-- CRAFTING -->
-<div id="tab-craft" class="card hidden">
-  <div class="row">
-    <div class="label">Crafting</div>
-  </div>
-
-  <!-- 1) Artefact dugme (kompaktno, lijevo) -->
-<button id="btn-artefact" class="btn left" 
-  style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font-size:14px;width:auto;max-width:4cm;">
-  <img src="/artefakt.png" alt="Artefact" class="img-cell" 
-    style="width:22px;height:22px;object-fit:contain;" 
-    onerror="this.onerror=null;this.style.display='none'">
-  Craft
-</button>
-
-
-  <!-- 2) Bonus gold ispod -->
-  <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-
-  <!-- 3) Craft fail ispod -->
- <span id="craft-perk" class="badge muted" title="Crafting fail chance" style="display:inline-block;margin-top:6px;width:auto;">10% fail</span>
-
-  <!-- Poruka (netaknuto) -->
-  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
-
-  <!-- DVO-KOLONSKI CRAFT: lijevo recipes, desno details (otvaranje recepata ostaje) -->
-  <div class="grid">
-    <div class="card">
-      <div class="row" style="gap:8px;margin-bottom:6px">
-        <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-        <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-      </div>
-      <div id="recipes" class="list">Loading…</div>
-    </div>
-    <div class="card">
-      <div id="rec-details" class="list">Select a recipe…</div>
-    </div>
-  </div>
-</div>
-
-
-
-
-       
-    <!-- MARKET -->
-<div id="tab-market" class="card hidden">
-  <div class="label">Marketplace</div>
-  <div class="grid">
-    <!-- LEFT CARD – CREATE SALE -->
-    <div class="card">
-      <div class="label">Create Sale</div>
-      <input id="inv-search" class="input" placeholder="Search your inventory..." />
-      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-
-      <div class="row" style="margin-top:8px">
-        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-        <button id="btn-list" class="btn">List for sale</button>
-      </div>
-
-      <div class="row muted" style="margin-top:6px">
-        <span id="market-fee-inline" class="badge">Fee: 1%</span>
-      </div>
-
-      <div id="list-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-
-    <!-- RIGHT CARD – MARKETPLACE + MY LISTINGS -->
-    <div class="card">
-
-      <!-- MARKETPLACE -->
-      <div class="label">Marketplace</div>
-      <input id="market-q" class="input" placeholder="Search by name..." style="width:100%;max-width:10cm;margin:6px 0 8px" />
-      <div id="market" class="list">Loading…</div>
-
-      <!-- MY LISTINGS -->
-      <div class="label" style="margin-top:12px;">My listings</div>
-      <input id="mine-q" class="input" placeholder="Search your listings..." style="width:100%;max-width:10cm;margin:6px 0 8px" />
-      <div id="mine" class="list">Loading…</div>
-      <button id="btn-mine" class="btn muted" style="margin-top:8px;">Reload</button>
-
-    </div>
-  </div>
-</div>
-
-
-    <!-- INVENTORY -->
-    <div id="tab-inv" class="card hidden">
-      <div class="label">Inventory</div>
-      <div id="inv-full" class="list">Loading…</div>
-    </div>
-
-   <!-- ===== BONUS (Frontend) ===== -->
-<div id="tab-bonus" class="card hidden">
-  <div class="row" style="justify-content:space-between">
-    <div class="label">Bonus</div>
-    <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
-  </div>
-
-  
-  <div id="bonus-grid" class="grid" style="margin-top:8px">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">T2 Bonus</div>
-        <button id="btn-claim-t2" class="btn" disabled>Claim</button>
-      </div>
-      <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
-      <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">T3 Bonus</div>
-        <button id="btn-claim-t3" class="btn" disabled>Claim</button>
-      </div>
-      <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
-      <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">T4 Bonus</div>
-        <button id="btn-claim-t4" class="btn" disabled>Claim</button>
-      </div>
-      <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
-      <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">T5 Bonus</div>
-        <button id="btn-claim-t5" class="btn" disabled>Claim</button>
-      </div>
-      <div class="muted" style="margin:4px 0 6px">
-        Shop price 90s + Recipe drops T3+ + Craft no-fail
-      </div>
-      <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ===== BONUS SCRIPT ===== -->
-<script>
-async function loadBonus(){
-  const lock = $("#bonus-lock");
-  const hint = $("#bonus-hint"); // ✅ povezan s hint tekstom
-  const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-  const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-  Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
-  Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
-
-  try{
-    const r = await api("/api/bonus/status");
-    const hasArt = !!r?.has_artefact;
-
-    // ✅ sakriva tekst i badge kad igrač ima artefakt
-    lock?.classList.toggle("hidden", hasArt);
-    hint?.classList.toggle("hidden", hasArt);
-
-    if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
-
-    function prettyNameFromCode(code){
-      return String(code)
-        .replace(/^T\d_/, "")
-        .replaceAll("_"," ")
-        .toLowerCase()
-        .replace(/\b\w/g, c=>c.toUpperCase());
-    }
-
-    for (const t of [2,3,4,5]){
-      const box = boxes[t]; if (!box) continue;
-      const info = r.tiers?.[t];
-      if (!info){ box.textContent="No data"; continue; }
-
-      const items = [];
-      for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-      for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
-      box.innerHTML = items.join("") || "Empty.";
-
-      const btn = btns[t];
-      if (btn){
-        const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-        btn.disabled = !canClaim;
-        btn.textContent = info.claimed ? "Claimed" : "Claim";
-        if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-        btn.onclick = async ()=>{
-          if (btn.disabled) return;
-          const prev = btn.textContent;
-          btn.disabled = true; btn.textContent = "Claiming…";
-          try{
-            await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
-            toast(`T${t} bonus claimed.`);
-            await loadBonus();
-            await refreshMeLight();
-          }catch(e){
-            alert(e?.message || "Claim failed.");
-          } finally{
-            btn.textContent = prev;
-          }
-        };
-      }
-    }
-  }catch(e){
-    Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
-  }
+/* =========================================================
+   ARTEFACT — BLACK & BLUE THEME (ONLY TWO COLORS)
+   Entire stylesheet: black/gray + blue accents everywhere
+   ========================================================= */
+
+/* ------------------------------
+   Root palette / sizes
+------------------------------ */
+:root{
+  /* Base text/lines */
+  --text:#e5e7eb;
+  --muted:#bfc4cd;
+  --line:#2a2f3a;
+
+  /* Blues (one family) */
+  --blue-50:#ebf8ff;
+  --blue-100:#d6f1ff;
+  --blue-200:#aee3ff;
+  --blue-300:#7fd0ff;
+  --blue-400:#4fbaff;
+  --blue-500:#2aa7fb;  /* primary accent */
+  --blue-600:#168fdf;
+  --blue-700:#0c6fb0;
+  --blue-800:#0a5a8d;
+  --blue-900:#0a476e;
+
+  /* Backgrounds (black/neutral) */
+  --bg0:#000;
+  --bg1:#0a0b0e;
+  --bg2:#0f1116;
+  --glass:rgba(10,12,18,.72);
+
+  /* Layout sizes */
+  --cell:1.5cm;
+  --landing:4cm;
+  --row-pad-v:8px;
+  --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
 }
-</script>
 
-
-
-  <!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
-  <script>
-    const $ = (s,root=document)=>root.querySelector(s);
-    const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-    function toast(t){
-      const box=$("#toast");
-      box.innerHTML=t;
-      box.classList.remove("hidden");
-      setTimeout(()=>box.classList.add("hidden"),2600);
-    }
-    async function api(p,opts={}){
-      const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
-      let data=null; try{data=await r.json()}catch{}
-      if(!r.ok){
-        const err = new Error((data&&data.error)||("HTTP "+r.status));
-        err.status = r.status; err.data = data; throw err;
-      }
-      return data;
-    }
-    async function safeCall(fnName, ...args){
-      const fn = window[fnName];
-      if (typeof fn === "function") {
-        try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
-      }
-    }
-  </script>
-
-  <!-- ===== Icons & mapping ===== -->
-  <script>
-    const RECIPE_ICON = "/recipe.png";
-    const FALLBACK_ITEM_ICON = "/t1_bronze.png";
-    const esc = s => String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
-    function fileNameFromCodeTier(code, tier){
-      if(!code) return null;
-      const m = String(code).match(/^T([1-6])_(.*)$/);
-      if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
-      if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
-      return null;
-    }
-    function iconForByCode(code, tier){
-      const file = fileNameFromCodeTier(code, tier);
-      return file ? `/${file}` : FALLBACK_ITEM_ICON;
-    }
-  </script>
-
-<!-- ===== Global state + Tabs + PayPal panel ===== -->
-<script>
-  window.$  ||= (s => document.querySelector(s));
-  window.$$ ||= (s => Array.from(document.querySelectorAll(s)));
-  window.safeCall ||= (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
-
-  let WHO = null;
-  window.CURRENT_RECIPE_ID = null;
-  window.refreshMeLight ||= async () => {};
-
-  function showLanding() { $("#app")?.classList.remove("hidden"); }
-  function showApp()     { $("#app")?.classList.remove("hidden"); }
-
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v%100;
-    const el = $("#balance");
-    if (el) {
-      el.textContent = `${g}g ${s}s`;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
-  }
-
-  function applyPerkIndicators(){
-    const price = WHO?.perks?.shop_price_s ?? 100;
-    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-    $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
-
-    const noFail = !!WHO?.perks?.craft_no_fail;
-    $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
-    $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
-
-    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
-    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
-
-    const minNote = !!WHO?.perks?.min_list_price_s;
-    $("#market-min-note")?.classList.toggle("hidden", !minNote);
-    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
-  }
-
-  async function setTab(tab){
-    showApp();
-    $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
-    $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
-    $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
-    $("#tab-market")?.classList.toggle("hidden", tab !== "market");
-    $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
-    $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-
-    // SHOP-info (GAME opis) vidi se samo na Shop tabu
-    $("#shop-info")?.classList.toggle("hidden", tab !== "shop");
-
-    if (tab === "market") {
-      safeCall("loadInventoryPanel");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-    }
-    if (tab === "inv")   safeCall("loadInventoryFull");
-    if (tab === "bonus") { try { await loadBonus(); } catch(e){ console.warn(e); } }
-  }
-
-  function initPayPalPanelButtons(){
-    try{
-      if (window.__PAYPAL_DISABLED__) return;
-      const host = document.getElementById("paypal-button-container");
-      if (!window.paypal || !host) return;
-      if (host.dataset.rendered === "1") return;
-
-      const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
-
-      window.paypal.Buttons({
-        style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-        createOrder: async function(){
-          const el = document.getElementById("pp-amount");
-          let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
-          v = Math.floor(v);
-          if (el) el.value = String(v);
-          const r = await api("/api/paypal/create-order", {
-            method:"POST",
-            body: JSON.stringify({ amount_usd: v })
-          });
-          if (!r?.ok || !r?.id) throw new Error(r?.error || "Create order failed");
-          return r.id;
-        },
-        onApprove: async function(data, actions){
-          try{
-            await actions.order.capture();
-            const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
-            const r = await api("/api/paypal/confirm", {
-              method:"POST",
-              body: JSON.stringify({ orderId: data.orderID, bonus_code })
-            });
-            if (WHO) WHO.balance_silver = (r.balance_silver|0);
-            renderBalance();
-            await refreshMeLight();
-            const msg = document.getElementById("pp-msg");
-            if (msg){
-              msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
-            } else {
-              (window.toast||alert)(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
-            }
-          }catch(e){
-            alert(e?.message || "Payment confirm failed.");
-          }
-        },
-        onError: err => {
-          console.error("PayPal error:", err);
-          alert("PayPal error.");
-        }
-      }).render("#paypal-button-container");
-
-      host.dataset.rendered = "1";
-    }catch(e){
-      console.warn("initPayPalPanelButtons failed:", e);
-    }
-  }
-
-  function togglePaypalPanel(forceOpen){
-    if (window.__PAYPAL_DISABLED__) return;
-    const panel = document.getElementById("paypal-panel");
-    if (!panel) return;
-    const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
-    panel.classList.toggle("hidden", !open);
-    if (open) initPayPalPanelButtons();
-  }
-
-  function setLoggedInUI(){
-    $("#btn-open-register")?.classList.add("hidden");
-    $("#btn-open-login")?.classList.add("hidden");
-    $("#balance")?.classList.remove("hidden");
-    $("#btn-logout")?.classList.remove("hidden");
-    $("#auth")?.classList.add("hidden");
-    $("#app")?.classList.remove("hidden");
-    renderBalance?.();
-    safeCall("updateShopBalanceBadge");
-    const ppBtn = document.getElementById("btn-open-paypal");
-    if (ppBtn){
-      ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
-      if (!ppBtn.dataset.bound){
-        ppBtn.addEventListener("click", ()=> togglePaypalPanel());
-        ppBtn.dataset.bound = "1";
-      }
-    }
-  }
-
-  function setLoggedOutUI(){
-    WHO = null;
-    $("#btn-open-register")?.classList.remove("hidden");
-    $("#btn-open-login")?.classList.remove("hidden");
-    $("#balance")?.classList.add("hidden");
-    $("#btn-logout")?.classList.add("hidden");
-    const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
-    $("#auth")?.classList.add("hidden");
-    $("#card-register") && ($("#card-register").style.display="none");
-    $("#card-login") && ($("#card-login").style.display="none");
-    $("#reg-msg") && ($("#reg-msg").textContent="");
-    $("#log-msg") && ($("#log-msg").textContent="");
-    document.getElementById("paypal-panel")?.classList.add("hidden");
-    document.getElementById("btn-open-paypal")?.classList.add("hidden");
-    $("#app")?.classList.remove("hidden");
-    safeCall("updateShopBalanceBadge");
-  }
-
-  async function loadMe(){
-    try{
-      const r = await api("/api/me");
-      if (!r || !r.user) throw new Error("no session");
-      WHO = r.user;
-      setLoggedInUI();
-      const b = $("#buysToNext");
-      if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
-        ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
-      applyPerkIndicators();
-      await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-      safeCall("loadInventoryFull");
-      safeCall("loadBonus");
-      setTab("shop");
-      $("#app")?.scrollIntoView({behavior:"smooth", block:"start"});
-    }catch{
-      setLoggedOutUI();
-      setTab("shop");
-    }
-  }
-
-  async function doRegister(){
-    const msg = $("#reg-msg");
-    try{
-      const email = $("#reg-email")?.value.trim();
-      const pass = $("#reg-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      if (pass.length < 6) throw new Error("Password too short (min 6).");
-      msg && (msg.textContent = "…");
-      await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK — now log in.");
-      $("#card-register") && ($("#card-register").style.display="none");
-      $("#card-login") && ($("#card-login").style.display="block");
-      $("#log-email")?.focus();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Register failed.");
-    }
-  }
-
-  async function doLogin(){
-    const msg = $("#log-msg");
-    try{
-      const email = $("#log-email")?.value.trim();
-      const pass = $("#log-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      msg && (msg.textContent = "…");
-      await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK");
-      await loadMe();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Login failed.");
-    }
-  }
-
-  async function doLogout(){
-    try { await api("/api/logout"); } catch {}
-    setLoggedOutUI();
-    setTab("shop");
-  }
-
-  window.api ||= async (path, opts={}) => {
-    const res = await fetch(path, { credentials:"include", headers:{ "Content-Type":"application/json" }, ...opts });
-    const data = await res.json().catch(()=> ({}));
-    if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-    return data;
-  };
-
-  function openAuth(mode){
-    const auth = document.getElementById("auth");
-    if (!auth) return;
-    auth.classList.remove("hidden");
-    const reg = document.getElementById("card-register");
-    const log = document.getElementById("card-login");
-    if (reg) reg.style.display = (mode === "register" ? "block" : "none");
-    if (log) log.style.display = (mode === "login"    ? "block" : "none");
-    if (mode === "register") document.getElementById("reg-email")?.focus();
-    if (mode === "login")    document.getElementById("log-email")?.focus();
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const header = document.querySelector("header.header");
-    const auth = document.getElementById("auth");
-    if (header && auth && auth.previousElementSibling !== header) {
-      header.insertAdjacentElement("afterend", auth);
-    }
-
-    document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
-    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
-
-    document.getElementById("btn-register")?.addEventListener("click", doRegister);
-    document.getElementById("btn-login")?.addEventListener("click", doLogin);
-    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
-
-    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-    $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
-
-    loadMe();
-  });
-</script>
-
-<!-- ===== Shop (Buy T1) ===== -->
-<script>
-  function updateShopBalanceBadge(){
-    const el = $("#shop-balance");
-    if (!el) return;
-    const s = WHO?.balance_silver | 0;
-    const g = Math.floor(s/100), ss = s%100;
-    if (WHO) {
-      el.textContent = `${g}g ${ss}s`;
-      el.classList.remove("hidden");
-    } else {
-      el.textContent = "0g 0s";
-      el.classList.add("hidden");
-    }
-  }
-
-  function renderShopGotItem(obj){
-    const msg = $("#shop-msg"); if(!msg) return;
-    const icon = iconForByCode(obj.code, obj.tier);
-    msg.innerHTML = `
-      <div class="row" style="gap:10px;align-items:center">
-        <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-        <div>Got item: ${esc(obj.name)} <span class="badge">T${obj.tier}</span></div>
-      </div>`;
-  }
-
-  function renderShopGotRecipe(rec){
-    const msg = $("#shop-msg"); if(!msg) return;
-    msg.innerHTML = `
-      <div class="row" style="gap:10px;align-items:center">
-        <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-        <div>Got recipe: ${esc(rec.name)} <span class="badge">T${rec.tier}</span></div>
-      </div>`;
-  }
-
-  /* ===== FIX: "Buys to next recipe" ispod Buy T1 (lijevo) ===== */
-  function updateBuysToNextFromWHO(){
-    const b = document.getElementById("buysToNext");
-    if (!b) return;
-
-    // prvi header red unutar #tab-shop (red s naslovom "Buy T1 (…s)")
-    const shop = document.getElementById("tab-shop");
-    const headerRow = shop ? shop.querySelector(":scope > .row") : null;
-
-    // premjesti <span id="buysToNext"> ispod header reda (ne poslije .label)
-    if (headerRow && headerRow.nextElementSibling !== b) {
-      headerRow.after(b);
-    }
-
-    b.style.display = "block";
-    b.style.margin = "6px 0 10px";
-    b.style.textAlign = "left";
-    b.classList.remove("right");
-
-    b.textContent = (typeof WHO?.buys_to_next === "number")
-      ? `Buys to next recipe: ${WHO.buys_to_next}`
-      : "Buys to next recipe: —";
-  }
-
-  async function refreshMeLight(){
-    try{
-      const r = await api("/api/me");
-      if (r?.user) {
-        WHO = r.user;
-        renderBalance?.();
-        updateShopBalanceBadge();
-        updateBuysToNextFromWHO();
-        applyPerkIndicators?.();
-      }
-    }catch{}
-  }
-
-  function setShopButtonsDisabled(flag){
-    $("#btn-buy-t1")?.toggleAttribute("disabled", !!flag);
-    $("#btn-buy10")?.toggleAttribute("disabled", !!flag);
-    $("#btn-buy50")?.toggleAttribute("disabled", !!flag);
-  }
-
-  // ——— Buy T1 (glavno dugme) ———
-  $("#btn-buy-t1")?.addEventListener("click", async ()=>{
-    const btn = $("#btn-buy-t1");
-    const prevTxt = btn?.textContent;
-    const msg = $("#shop-msg");
-    try{
-      msg && (msg.textContent = "");
-      setShopButtonsDisabled(true);
-      if (btn){ btn.textContent = "Buying…"; }
-      const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-      if (WHO) WHO.balance_silver = (r.balance_silver | 0);
-      renderBalance?.();
-      updateShopBalanceBadge();
-      if (r.gotRecipe) renderShopGotRecipe(r.gotRecipe);
-      else if (r.gotItem) renderShopGotItem(r.gotItem);
-      else msg && (msg.textContent = "OK");
-      await refreshMeLight();
-      await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadInventoryFull");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-    }catch(e){
-      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none");
-      }
-      if (msg) msg.textContent = e?.message || "Buy failed.";
-    }finally{
-      setShopButtonsDisabled(false);
-      if (btn){ btn.textContent = prevTxt || "Buy"; }
-    }
-  });
-
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const btn1 = $("#btn-buy-t1");
-    if (btn1 && !document.getElementById("btn-buy10") && !document.getElementById("btn-buy50")){
-      // wrap + red sa 3 dugmeta
-      const wrap = document.createElement("div");
-      wrap.style.display = "flex";
-      wrap.style.flexDirection = "column";
-      wrap.style.alignItems = "flex-start";
-      wrap.style.gap = "6px";
-
-      btn1.parentNode.insertBefore(wrap, btn1);
-
-      const row = document.createElement("div");
-      row.className = "row";
-      row.style.gap = "8px";
-      wrap.appendChild(row);
-
-      row.appendChild(btn1);
-
-      const btn10 = document.createElement("button");
-      btn10.id = "btn-buy10";
-      btn10.className = "btn secondary";
-      btn10.type = "button";
-      btn10.textContent = "Buy ×10";
-      btn10.addEventListener("click", ()=> shopBuyTimes(10));
-      row.appendChild(btn10);
-
-      const btn50 = document.createElement("button");
-      btn50.id = "btn-buy50";
-      btn50.className = "btn secondary";
-      btn50.type = "button";
-      btn50.textContent = "Buy ×50";
-      btn50.addEventListener("click", ()=> shopBuyTimes(50));
-      row.appendChild(btn50);
-    }
-
-    // ukloni duplikat (gold je u headeru)
-    $("#shop-balance")?.remove();
-
-    // postavi i prikaži "Buys to next…"
-    updateBuysToNextFromWHO();
-
-    // početni prikaz stanja
-    updateShopBalanceBadge();
-  });
-
-  async function shopBuyTimes(times=1){
-    const msg = $("#shop-msg");
-    let ok=0, fail=0, lastErr=null;
-    msg && (msg.textContent = "");
-    setShopButtonsDisabled(true);
-    try{
-      for(let i=0;i<times;i++){
-        try{
-          const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
-          if (WHO) WHO.balance_silver = (r.balance_silver | 0);
-          ok++;
-        }catch(e){
-          fail++; lastErr = e?.message || "Failed";
-          if (String(lastErr).toLowerCase().includes("insufficient")) break;
-        }
-      }
-      renderBalance?.();
-      updateShopBalanceBadge();
-      await refreshMeLight();           // osvježi i "Buys to next…"
-      await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadInventoryFull");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-      if (msg) {
-        let txt = `Bought: ${ok}`;
-        if (fail) txt += `, failed: ${fail}`;
-        if (lastErr) txt += ` (${lastErr})`;
-        msg.textContent = txt;
-      }
-    }catch(e){
-      if (msg) msg.textContent = e?.message || "Buy failed.";
-    }finally{
-      setShopButtonsDisabled(false);
-    }
-  }
-
-  document.addEventListener("DOMContentLoaded", updateShopBalanceBadge);
-</script>
-
-
-
-
-<!-- ===== Crafting (FIX: Craft button works reliably) ===== -->
-<script>
-  function rowRecipe(r){
-    return `
-      <div class="itemrow">
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-          <div>
-            <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
-            <div class="muted">T${r.tier} · x${r.qty}</div>
-          </div>
-        </div>
-        <button class="btn muted" data-open="${esc(r.id)}" type="button">Open</button>
-      </div>`;
-  }
-
-  async function loadRecipes(){
-    const box = $("#recipes"); if (!box) return;
-    box.textContent = "Loading…";
-    try{
-      const list = await api("/api/recipes/list");
-      const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-      const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
-      if (!rows.length){ box.textContent = "No recipes."; return; }
-      box.innerHTML = rows.map(rowRecipe).join("");
-      box.querySelectorAll("[data-open]").forEach(btn=>{
-        btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
-      });
-    }catch(e){
-      box.textContent = e?.message || "Failed to load recipes.";
-    }
-  }
-  $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
-  $("#filter-recipe")?.addEventListener("input", loadRecipes);
-
-  function renderIngredients(details){
-    const parts = (details.ingredients||[]).map(ing=>{
-      const ok = (ing.have|0) >= (ing.qty|0);
-      const src = iconForByCode(ing.code, ing.tier);
-      return `
-        <div class="itemrow">
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-          </div>
-          <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
-        </div>`;
-    }).join("");
-
-    const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
-    const craftNote = WHO?.perks?.craft_no_fail
-      ? "No fail (server checks ingredients)"
-      : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
-
-    return `
-      <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
-      <div class="itemrow"><div class="muted">Ingredients</div></div>
-      ${parts}
-      <div class="itemrow">
-        <button id="btn-craft" class="btn" type="button" ${canCraft ? "" : "disabled"}>${canCraft ? "Craft" : "Missing materials"}</button>
-        <span class="muted" style="margin-left:8px">${craftNote}</span>
-      </div>`;
-  }
-
-  async function openRecipe(recipeId){
-    const box = $("#rec-details"); if (!box) return;
-    box.textContent = "Loading…";
-    try{
-      const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
-      box.innerHTML = renderIngredients(details);
-      window.CURRENT_RECIPE_ID = details.recipe.id; // zapamti aktivni recept
-      // ne vežemo direktno #btn-craft ovdje — delegacija ispod
-    }catch(e){
-      box.textContent = e?.message || "Failed to load recipe.";
-    }
-  }
-
-  // ✅ Delegirani handler — vežemo JEDNOM i preživljava re-render
-  if (!window.__CRAFT_LISTENER_BOUND__){
-    document.addEventListener("click", async (ev)=>{
-      const craftBtn = ev.target.closest("#btn-craft");
-      if (!craftBtn) return;
-      if (craftBtn.disabled || craftBtn.hasAttribute("disabled")) return;
-
-      const recipeId = window.CURRENT_RECIPE_ID;
-      if (!recipeId){ toast("Pick a recipe first."); return; }
-
-      const prev = craftBtn.textContent;
-      craftBtn.disabled = true;
-      craftBtn.textContent = "Crafting…";
-      try{
-        const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: recipeId})});
-        if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-        else if (r2.scrap) toast("Failed (got Scrap)");
-        else toast("Done");
-
-        await safeCall("loadInventoryPanel");
-        await safeCall("loadRecipes");
-        await safeCall("loadInventoryFull");
-        await openRecipe(recipeId); // refresh detalja
-      }catch(e){
-        if (e?.data?.missing?.length) toast("You are missing: " + e.data.missing.join(", "));
-        else toast(e?.message || "Crafting failed.");
-      }finally{
-        craftBtn.disabled = false;
-        craftBtn.textContent = prev;
-      }
-    });
-    window.__CRAFT_LISTENER_BOUND__ = true;
-  }
-
-  async function refreshArtefactBonus(){
-    try{
-      const r = await api("/api/inventory");
-      const bonus = (typeof r?.artefactBonusGold === "number") ? r.artefactBonusGold : (parseInt(r?.artefactBonusGold,10) || 0);
-      const el = document.getElementById("artefact-bonus");
-      if (el) el.textContent = bonus;
-    }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
-  }
-  (() => {
-    const craft = document.getElementById("tab-craft");
-    if (!craft) return;
-    const obs = new MutationObserver(() => {
-      if (!craft.classList.contains("hidden")) refreshArtefactBonus();
-    });
-    obs.observe(craft, { attributes:true });
-  })();
-
-  const arteBtn = $("#btn-artefact");
-  arteBtn?.addEventListener("click", async ()=>{
-    if (arteBtn.disabled) return;
-    const prev = arteBtn.textContent;
-    arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
-    try{
-      const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
-      const name = r.crafted || "Artefact";
-      const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-      $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
-      $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
-      await safeCall("loadInventoryPanel");
-      await safeCall("loadInventoryFull");
-      await safeCall("loadRecipes");
-      await safeCall("loadBonus");
-      await refreshMeLight?.();
-    }catch(e){
-      $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
-    } finally{
-      arteBtn.disabled = false; arteBtn.textContent = prev;
-    }
-  });
-</script>
-
-
-
-  <!-- ===== Market & Inventory ===== -->
-<script>
-  window.SEL_INV = null;
-
-  async function loadInventoryPanel(){
-    const box = $("#inv-list"); if(!box) return;
-    box.textContent = "Loading…";
-    try{
-      const r = await api("/api/inventory");
-      const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-      const itemsAll = Array.isArray(r.items) ? r.items : [];
-      const items = itemsAll.filter(x => !q || (x.name||"").toLowerCase().includes(q));
-      const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
-      const recipes = (Array.isArray(r.recipes) ? r.recipes : [])
-        .filter(x => !q || (x.name||"").toLowerCase().includes(q));
-      box.innerHTML = "";
-      const add = (arr, kind) => {
-        for (const it of arr){
-          const icon = (kind==="item") ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-          const row = document.createElement("div");
-          row.className = "itemrow";
-          row.innerHTML = `
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
-            </div>
-            <button class="btn muted">Pick</button>`;
-          row.querySelector("button").addEventListener("click", ()=>{
-            window.SEL_INV = { kind, id: it.id, name: it.name };
-            const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
-          });
-          box.appendChild(row);
-        }
-      };
-      add(itemsFiltered,"item");
-      add(recipes,"recipe");
-      if (!box.children.length) box.textContent = "Empty.";
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
-    }
-  }
-  $("#inv-search")?.addEventListener("input", loadInventoryPanel);
-
-  async function loadMarket(){
-    const box = $("#market"); if(!box) return;
-    box.textContent = "Loading…";
-    try{
-      const qRaw = $("#market-q")?.value || "";
-      const q = qRaw.trim();
-      const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
-      const rows = (r?.listings || []).filter(Boolean);
-      const rowsFiltered = rows.filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-      if (!rowsFiltered.length){ box.textContent="No listings."; return; }
-      box.innerHTML = "";
-      for (const s of rowsFiltered){
-        const priceS = s?.price_s | 0;
-        const g = Math.floor(priceS/100), ss = priceS%100;
-        const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-        const mine = !!(WHO?.id && s?.seller_user_id === WHO.id);
-        const row = document.createElement("div");
-        row.className = "itemrow";
-        row.innerHTML = `
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div><span class="badge">${mine ? "N" : "Y"}</span> ${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
-          </div>
-          <div class="row">
-            <span class="badge">${g}g ${ss}s</span>
-            ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
-          </div>`;
-        const btn = row.querySelector("button");
-        if (!mine) {
-          btn.addEventListener("click", async ()=>{
-            if (btn.disabled) return;
-            const prev = btn.textContent;
-            btn.disabled = true; btn.textContent = "Buying…";
-            try{
-              const res = await api("/api/sales/buy", {
-                method:"POST",
-                body: JSON.stringify({ id: s.id })
-              });
-
-              if (res && typeof res.balance_silver === "number" && WHO) {
-                WHO.balance_silver = res.balance_silver | 0;
-              }
-
-              await refreshMeLight();
-
-              await loadMarket();
-              await loadMine();
-              await loadInventoryPanel();
-              await safeCall("loadInventoryFull");
-
-              if (res?.purchased?.name) {
-                const qty = res?.purchased?.qty ?? 1;
-                toast(`Purchased: ${res.purchased.name}${qty>1?` (x${qty})`:""}`);
-              } else {
-                toast("Purchased.");
-              }
-            }catch(e){
-              const msg = e?.data?.error || e?.message || e?.error || "Purchase failed.";
-              toast(msg);
-            }finally{
-              btn.disabled = false; btn.textContent = prev;
-            }
-          });
-        } else {
-          btn?.addEventListener?.("click", ()=> toast("To je tvoj oglas."));
-        }
-        box.appendChild(row);
-      }
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
-    }
-  }
-  $("#market-q")?.addEventListener("input", loadMarket);
-
-  async function loadMine(){
-    const box = $("#mine"); if(!box) return;
-    box.textContent = "Loading…";
-    try{
-      const qMine = ($("#mine-q")?.value || "").trim().toLowerCase();
-
-      const r = await api("/api/sales/mine");
-      const rowsBase = (r?.listings || [])
-        .filter(Boolean)
-        .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-
-      const rows = rowsBase.filter(s => {
-        if (!qMine) return true;
-        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-        return (title||"").toLowerCase().includes(qMine);
-      });
-
-      if (!rows.length){
-        box.textContent = "No live listings.";
-        return;
-      }
-      box.innerHTML = "";
-      for (const s of rows){
-        const priceS = s?.price_s | 0;
-        const g = Math.floor(priceS/100), ss = priceS%100;
-        const ico = (s && s.kind==="item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : (RECIPE_ICON || "/recipe.png");
-        const title = s?.name || (s?.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
-        const row = document.createElement("div");
-        row.className = "itemrow";
-        row.innerHTML = `
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
-          </div>
-          <div class="row">
-            <span class="badge">${g}g ${ss}s</span>
-            <button class="btn danger">Cancel</button>
-          </div>
-        `;
-        const btn = row.querySelector("button");
-        btn.addEventListener("click", async ()=>{
-          if (btn.disabled) return;
-          const prev = btn.textContent;
-          btn.disabled = true; btn.textContent = "Cancel…";
-          try{
-            await api("/api/sales/cancel",{method:"POST",body:JSON.stringify({id:s.id})});
-            await loadMarket();
-            await loadMine();
-            await loadInventoryPanel();
-            await safeCall("loadInventoryFull");
-            await refreshMeLight();
-          }catch(e){
-            toast(e?.message || "Cancel failed.");
-          }finally{
-            btn.disabled = false; btn.textContent = prev;
-          }
-        });
-        box.appendChild(row);
-      }
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
-    }
-  }
-
-  $("#mine-q")?.addEventListener("input", loadMine);
-  $("#btn-mine")?.addEventListener("click", loadMine);
-
-  $("#btn-list")?.addEventListener("click", async ()=>{
-    try{
-      const sel = window.SEL_INV;
-      if (!sel){ toast("Pick an item/recipe first."); return; }
-      const gold = parseInt($("#price-g")?.value || "0", 10) || 0;
-      let silver = parseInt($("#price-s")?.value || "0", 10) || 0;
-      const qty = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
-      if (silver < 0) silver = 0;
-      if (silver > 99) silver = 99;
-      await api("/api/sales/list", {
-        method: "POST",
-        body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
-      });
-      const msg = $("#list-msg"); if (msg) msg.textContent = "Listed.";
-      window.SEL_INV = null;
-      await loadMarket();
-      await loadMine();
-      await loadInventoryPanel();
-      await safeCall("loadInventoryFull");
-      await refreshMeLight();
-    }catch(e){
-      const msg = e?.message || "Listing failed.";
-      ( $("#list-msg") ? ($("#list-msg").textContent = msg) : toast(msg) );
-    }
-  });
-
-  async function loadInventoryFull(){
-    const box=$("#inv-full"); if(!box) return;
-    box.textContent="Loading…";
-    try{
-      const r = await api("/api/inventory");
-      const items   = Array.isArray(r.items)   ? r.items   : [];
-      const recipes = Array.isArray(r.recipes) ? r.recipes : [];
-      const lines=[];
-      for(const it of items){
-        const icon = (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON);
-        lines.push(`
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
-            </div>
-            <div class="muted">x${it.qty}</div>
-          </div>`);
-      }
-      for(const rc of recipes){
-        lines.push(`
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
-              <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
-            </div>
-            <div class="muted">x${rc.qty}</div>
-          </div>`);
-      }
-      box.innerHTML = lines.join("") || "Empty.";
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
-    }
-  }
-</script>
-
-
-  <!-- ===== BONUS (frontend) ===== -->
-  <script>
-    function withTimeout(promise, ms=8000){
-      return new Promise((resolve, reject)=>{
-        const t = setTimeout(()=> reject(new Error("Timeout")), ms);
-        promise.then(v=>{clearTimeout(t); resolve(v);})
-               .catch(e=>{clearTimeout(t); reject(e);});
-      });
-    }
-
-    function tile(name, code, ok, tier){
-      const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
-      return `
-        <div class="tile ${ok?'ok':'miss'}">
-          <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(name)}</div>
-        </div>`;
-    }
-
-    async function loadBonus(){
-      const lock = $("#bonus-lock");
-      const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-      const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-      Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
-      let cleared = false;
-      setTimeout(()=>{
-        if (cleared) return;
-        Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
-      }, 3000);
-
-      try{
-        const r = await withTimeout(api("/api/bonus/status"), 8000);
-        cleared = true;
-        const hasArt = !!r?.has_artefact;
-        lock?.classList.toggle("hidden", hasArt);
-        if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
-
-        function prettyNameFromCode(code){
-          return String(code)
-            .replace(/^T\d_/, "")
-            .replaceAll("_"," ")
-            .toLowerCase()
-            .replace(/\b\w/g, c=>c.toUpperCase());
-        }
-
-        for (const t of [2,3,4,5]){
-          const box = boxes[t]; if (!box) continue;
-          const info = r.tiers?.[t];
-          if (!info){ box.textContent="No data"; continue; }
-          const items = [];
-          for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-          for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
-          box.innerHTML = items.join("") || "Empty.";
-
-          const btn = btns[t];
-          if (btn){
-            const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-            btn.disabled = !canClaim;
-            btn.textContent = info.claimed ? "Claimed" : "Claim";
-            if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-            btn.onclick = async ()=>{
-              if (btn.disabled) return;
-              const prev = btn.textContent;
-              btn.disabled = true; btn.textContent = "Claiming…";
-              try{
-                await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
-                toast(`T${t} bonus claimed.`);
-                await loadBonus();
-                await refreshMeLight();
-              }catch(e){
-                alert(e?.message || "Claim failed.");
-              } finally{
-                btn.textContent = prev;
-              }
-            };
-          }
-        }
-      }catch(e){
-        cleared = true;
-        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-          $("#auth")?.classList.remove("hidden");
-          $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none");
-        }
-        Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
-      }
-    }
-  </script>
-<div id="toast" class="toast hidden"></div>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ------------------------------
+   Reset / base
+------------------------------ */
+*{ box-sizing:border-box; margin:0; padding:0 }
+html,body{ height:100% }
+body{
+  color:var(--text);
+  background:
+    radial-gradient(140% 140% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(140% 140% at 0% 100%, rgba(255,255,255,.035), transparent 70%),
+    linear-gradient(180deg, var(--bg1), var(--bg2));
+  background-attachment: fixed;
+}
+.hidden{ display:none !important }
+.muted{ color:var(--muted) }
+.label{ font-weight:600 }
+
+/* App wrapper */
+#app, .container{ max-width:1160px; margin:0 auto; padding:12px }
+
+/* ------------------------------
+   Brand
+------------------------------ */
+.brand{
+  font-weight:800; font-size:34px; letter-spacing:1px; line-height:1;
+  color: var(--blue-100);
+  text-shadow:
+    0 0 10px rgba(42,167,251,.25),
+    0 0 22px rgba(42,167,251,.18),
+    0 0 36px rgba(42,167,251,.12);
+}
+@media (max-width:520px){ .brand{ font-size:28px } }
+
+/* ------------------------------
+   Layout helpers
+------------------------------ */
+.row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.right{ margin-left:auto }
+
+/* ------------------------------
+   Header
+------------------------------ */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px; border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:20;
+  background:rgba(6,10,16,.8); backdrop-filter: blur(10px);
+  box-shadow:0 2px 12px rgba(0,0,0,.6);
+}
+.header.no-border{ border-bottom:0 !important }
+
+/* ------------------------------
+   Core components
+------------------------------ */
+.badge{
+  border:1px solid var(--line);
+  padding:4px 8px; border-radius:999px; font-size:12px;
+  background:#0b1118;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+  color:var(--text);
+}
+
+.btn{
+  cursor:pointer;
+  border:1px solid rgba(255,255,255,.08);
+  background:#131720; color:var(--text);
+  padding:8px 12px; border-radius:10px;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.btn:hover{ transform:translateY(-1px); border-color:#2d3441; background:#171c27; }
+.btn:active{ transform:translateY(0) }
+.btn.muted{ opacity:.9 }
+.btn.secondary{
+  background:#0f1420; border-color:#1b2331;
+}
+.btn.secondary:hover{ background:#141a28; border-color:#283346 }
+.btn.danger{
+  background:#131720; border-color:var(--blue-700);
+  box-shadow: inset 0 0 0 1px rgba(42,167,251,.08);
+}
+.btn.danger:hover{ background:#0f1420; border-color:var(--blue-600) }
+
+.input{
+  background:#0c0f16; border:1px solid var(--line); border-radius:8px;
+  padding:8px 10px; color:#e5e7eb;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
+}
+.input:focus{
+  outline:none; border-color:var(--blue-600);
+  box-shadow:0 0 0 3px rgba(42,167,251,.20)
+}
+
+.card{
+  background:var(--glass);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px; margin-top:12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+
+.list{
+  max-height:360px; overflow:auto;
+  border:1px solid var(--line); border-radius:10px;
+  background:#0d1320;
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+
+/* Rows / tiles */
+.itemrow{
+  display:flex; align-items:center; justify-content:space-between;
+  padding: var(--row-pad-v) 10px;
+  border-bottom:1px solid #161c28;
+  min-height: var(--rowH);
+}
+.itemrow:last-child{ border-bottom:0 }
+
+.tile{
+  display:flex; gap:6px; align-items:center;
+  border:1px solid var(--line); border-radius:10px; padding:6px;
+  background:#0f1624;
+}
+.tile.ok{ border-color:#1f2e41; background:#0d1a2a }
+.tile.miss{ opacity:.92 }
+
+/* Grid */
+.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px }
+.grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px }
+@media (max-width:900px){
+  .grid{ grid-template-columns:1fr }
+  .grid-4{ grid-template-columns:repeat(2,1fr) }
+  .grid-5{ grid-template-columns:repeat(3,1fr) }
+}
+
+/* Images / slots */
+img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; display:block }
+.img-cell{ width:var(--cell); height:var(--cell); object-fit:contain; border-radius:6px; display:block }
+.img-landing{ width:var(--landing); height:var(--landing); object-fit:contain; border-radius:10px; display:block; margin-top:8px }
+.img-slot{
+  margin-top:10px; width:100%; min-height:96px; border:1px dashed var(--line); border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--muted);
+  background:#0a0f18; opacity:.9
+}
+.img-slot:hover{ opacity:1 }
+
+/* ------------------------------
+   Tabs (chips) – blue accents
+------------------------------ */
+.tabbar{ margin:6px 0 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.chip{
+  padding:10px 14px; border:1px solid #242c39; border-radius:12px;
+  background:#0c121c; backdrop-filter: blur(6px);
+  cursor:pointer;
+  transition:transform .08s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 2px 10px rgba(0,0,0,.25);
+  color:var(--text);
+}
+.chip:hover{ transform:translateY(-1px); border-color:#2d3646; background:#0f1622; }
+
+/* Active chip – same look for all tabs */
+.chip.active{
+  background:linear-gradient(180deg, rgba(42,167,251,.22), rgba(20,120,190,.16));
+  border-color:rgba(20,120,190,.70);
+  box-shadow: inset 0 0 0 1px rgba(42,167,251,.35), 0 6px 16px rgba(42,167,251,.18);
+}
+
+/* ------------------------------
+   Section panels – shared blue accent
+------------------------------ */
+#tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
+  border:1px solid rgba(20,120,190,.6);
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    var(--bg0) !important;
+  position:relative; border-radius:12px;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
+}
+
+/* Subtle blue tint overlay */
+#tab-shop::before, #tab-craft::before, #tab-market::before, #tab-inv::before, #tab-bonus::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(42,167,251,.16), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(16,96,150,.12), transparent 70%);
+  opacity:.9;
+}
+
+/* Buttons inside sections – always blue */
+#tab-shop .btn:not(.danger),
+#tab-craft .btn:not(.danger),
+#tab-market .btn:not(.danger),
+#tab-inv .btn:not(.danger),
+#tab-bonus .btn:not(.danger){
+  background:#0f1826;
+  border-color: rgba(42,167,251,.70);
+  color:#e7f4ff;
+  box-shadow:
+    0 0 10px rgba(42,167,251,.18),
+    inset 0 0 2px rgba(42,167,251,.22);
+}
+#tab-shop .btn:not(.danger):hover,
+#tab-craft .btn:not(.danger):hover,
+#tab-market .btn:not(.danger):hover,
+#tab-inv .btn:not(.danger):hover,
+#tab-bonus .btn:not(.danger):hover{
+  background:#132035;
+  border-color: rgba(42,167,251,.85);
+}
+
+/* Badge/list/label inside sections – blue-tinted */
+#tab-shop .badge, #tab-craft .badge, #tab-market .badge, #tab-inv .badge, #tab-bonus .badge{
+  border-color: rgba(42,167,251,.55);
+  background: rgba(42,167,251,.10);
+  box-shadow: inset 0 0 0 1px rgba(42,167,251,.16);
+}
+#tab-shop .list, #tab-craft .list, #tab-market .list, #tab-inv .list, #tab-bonus .list{
+  border-color: rgba(20,120,190,.50);
+  background: rgba(16,40,68,.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+}
+#tab-shop .label, #tab-craft .label, #tab-market .label, #tab-inv .label, #tab-bonus .label{
+  text-shadow: 0 0 8px rgba(42,167,251,.24);
+}
+
+/* ------------------------------
+   SHOP specific tweaks
+------------------------------ */
+#tab-shop .buy-block{ width:10cm; max-width:100% }
+#shop-balance.badge{ font-weight:700 }
+
+/* ------------------------------
+   CRAFTING layout specifics
+------------------------------ */
+#tab-craft{ display:flex; flex-direction:column; gap:12px; }
+#tab-craft .grid{ align-items:stretch; }
+#recipes.list, #rec-details.list{
+  min-height: calc(var(--rowH) * 8 + 2px);
+  max-height: calc(var(--rowH) * 8 + 2px);
+  overflow:auto;
+}
+#rec-details .itemrow:last-child{
+  position:sticky; bottom:0;
+  background:rgba(10,14,22,.95); backdrop-filter: blur(6px);
+}
+
+/* ------------------------------
+   INVENTORY / MARKET / BONUS lists
+------------------------------ */
+#tab-inv .list{ max-height: 520px; overflow:auto }
+#tab-market .list{ max-height: 520px; overflow:auto }
+#tab-bonus .grid > .card{ min-height:auto }
+#bonus-grid .list{ max-height: 360px }
+
+/* ------------------------------
+   Balance pulse (blue)
+------------------------------ */
+@keyframes pulseTw{
+  0%{   box-shadow:0 0 0 0 rgba(42,167,251,.35) }
+  70%{  box-shadow:0 0 0 8px rgba(42,167,251,0) }
+  100%{ box-shadow:0 0 0 0 rgba(42,167,251,0) }
+}
+#balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
+
+/* ------------------------------
+   PayPal helpers (layout only)
+------------------------------ */
+#btn-open-paypal.hidden{ display:none }
+#paypal-panel.hidden{ display:none }
+#paypal-button-container{ transform:scale(.95); transform-origin:left center }
+@media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
+#paypal-wrap{ display:none !important; }
