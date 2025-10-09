@@ -1,5 +1,5 @@
 /* =========================================================
-   ARTEFACT — DARK BLACK THEME + STRICT PER-TAB COLORS
+   ARTEFACT — PER-TAB COLORS (as requested)
    ========================================================= */
 
 /* ------------------------------
@@ -17,19 +17,19 @@
   --row-pad-v: 8px;
   --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
 
-  /* Jedna boja po sekciji */
-  --shop:#38bdf8;     /* SHOP = PLAVA (samo u SHOP) */
-  --craft:#f59e0b;    /* CRAFT = ŽUTA */
-  --market:#10b981;   /* MARKET = ZELENA */
-  --inv:#ec4899;      /* INVENTORY = ROZA */
-  --bonus:#ef4444;    /* BONUS = CRVENA */
+  /* ACCENTS (tab base colors) */
+  --shop:#38bdf8;        /* SHOP  = blue (ostaje) */
+  --craft:#f59e0b;       /* CRAFT = yellow (fix) */
+  --market:#f97316;      /* MARKET = orange (zeleno -> narančasto) */
+  --inv:#ec4899;         /* INVENTORY = pink (NE DIRAMO) */
+  --bonus:#065f46;       /* BONUS = dark-green (plavo -> tamno zeleno) */
 
-  /* Soft fills */
-  --shop-fill:  rgba(56,189,248,.10);
-  --craft-fill: rgba(245,158,11,.10);
-  --market-fill:rgba(16,185,129,.10);
-  --inv-fill:   rgba(236,72,153,.10);
-  --bonus-fill: rgba(239,68,68,.10);
+  /* Soft fills (vizualna dubina) */
+  --shop-fill:   rgba(56,189,248,.10);
+  --craft-fill:  rgba(245,158,11,.10);
+  --market-fill: rgba(249,115,22,.10);
+  --inv-fill:    rgba(236,72,153,.10);
+  --bonus-fill:  rgba(6,95,70,.12);
 }
 
 /* ------------------------------
@@ -40,20 +40,19 @@ html,body{ height:100% }
 body{
   margin:0;
   color:var(--text);
-  /* Čista crna pozadina bez plavih upliva */
   background:
     radial-gradient(160% 160% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
     radial-gradient(160% 160% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
     #000 !important;
   background-attachment: fixed;
 }
-body::before{ content:none !important; } /* ukloni overlays */
+body::before{ content:none !important; }
 
-/* App wrapper — centrirano */
+/* App wrapper */
 #app, .container{
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 12px;
+  max-width:1160px;
+  margin:0 auto;
+  padding:12px;
 }
 
 /* ------------------------------
@@ -64,20 +63,12 @@ body::before{ content:none !important; } /* ukloni overlays */
 .label{ font-weight:600 }
 
 .brand{
-  font-weight: 800;
-  font-size: 34px;
-  letter-spacing: 1px;
-  line-height: 1;
-  background: linear-gradient(180deg, #FFD700 0%, #E6BE00 55%, #C99700 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow:
-    0 0 10px rgba(255,215,0,.25),
-    0 0 18px rgba(255,200,0,.18),
-    0 0 28px rgba(255,160,0,.12);
+  font-weight:800; font-size:34px; letter-spacing:1px; line-height:1;
+  background:linear-gradient(180deg,#FFD700 0%,#E6BE00 55%,#C99700 100%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  text-shadow:0 0 10px rgba(255,215,0,.25),0 0 18px rgba(255,200,0,.18),0 0 28px rgba(255,160,0,.12);
 }
-@media (max-width:520px){ .brand{ font-size: 28px } }
+@media (max-width:520px){ .brand{ font-size:28px } }
 
 .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .right{ margin-left:auto }
@@ -102,16 +93,15 @@ body::before{ content:none !important; } /* ukloni overlays */
   padding:4px 8px; border-radius:999px; font-size:12px;
   background:#0c0c0c; box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
 }
-
 .btn{
   cursor:pointer; border:1px solid rgba(255,255,255,.08);
   background:#131313; color:var(--text);
   padding:8px 12px; border-radius:10px;
-  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
+  transition:transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  box-shadow:0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
 }
 .btn:hover{ transform:translateY(-1px); border-color:#444; background:#171717; }
-.btn:active{ transform:translateY(0); }
+.btn:active{ transform:translateY(0) }
 .btn.muted{ opacity:.9 }
 .btn.secondary{ background:#0f0f0f }
 .btn.secondary:hover{ background:#141414 }
@@ -131,7 +121,7 @@ body::before{ content:none !important; } /* ukloni overlays */
   border-radius:12px;
   padding:12px; margin-top:12px;
   backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
 }
 
 /* Lists & rows */
@@ -186,7 +176,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#3a3a3a; }
 
-/* CHIP ACTIVE — eksplicitno po tabu (izbjegava oslanjanje na --accent izvan sekcije) */
+/* Eksplicitne ACTIVE boje chipova u headeru */
 .chip[data-tab="shop"].active{
   background:linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.10));
   border-color:rgba(56,189,248,.55);
@@ -198,9 +188,9 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   box-shadow: inset 0 0 0 1px rgba(245,158,11,.35), 0 6px 16px rgba(245,158,11,.18);
 }
 .chip[data-tab="market"].active{
-  background:linear-gradient(180deg, rgba(16,185,129,.20), rgba(16,185,129,.10));
-  border-color:rgba(16,185,129,.55);
-  box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(16,185,129,.18);
+  background:linear-gradient(180deg, rgba(249,115,22,.22), rgba(249,115,22,.10));
+  border-color:rgba(249,115,22,.55);
+  box-shadow: inset 0 0 0 1px rgba(249,115,22,.35), 0 6px 16px rgba(249,115,22,.18);
 }
 .chip[data-tab="inv"].active{
   background:linear-gradient(180deg, rgba(236,72,153,.20), rgba(236,72,153,.10));
@@ -208,23 +198,20 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   box-shadow: inset 0 0 0 1px rgba(236,72,153,.35), 0 6px 16px rgba(236,72,153,.18);
 }
 .chip[data-tab="bonus"].active{
-  background:linear-gradient(180deg, rgba(239,68,68,.20), rgba(239,68,68,.10));
-  border-color:rgba(239,68,68,.55);
-  box-shadow: inset 0 0 0 1px rgba(239,68,68,.35), 0 6px 16px rgba(239,68,68,.18);
+  background:linear-gradient(180deg, rgba(6,95,70,.22), rgba(6,95,70,.10));
+  border-color:rgba(6,95,70,.55);
+  box-shadow: inset 0 0 0 1px rgba(6,95,70,.35), 0 6px 16px rgba(6,95,70,.18);
 }
 
 /* ------------------------------
-   Section panels — BLACK base + tinted per tab
+   Section panels — base + accent
 ------------------------------ */
-
-/* Postavi accent var po tabovima (izolira boje po sekciji) */
 #tab-shop  { --accent: var(--shop); }
 #tab-craft { --accent: var(--craft); }
 #tab-market{ --accent: var(--market); }
-#tab-inv   { --accent: var(--inv); }
+#tab-inv   { --accent: var(--inv); }    /* INVENTORY NE DIRAMO */
 #tab-bonus { --accent: var(--bonus); }
 
-/* Panel baza (crna + blag sheen) */
 #tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
   border:1px solid color-mix(in srgb, var(--accent) 45%, #2a2a2a);
   background:
@@ -235,8 +222,6 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   border-radius:12px;
   box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
 }
-
-/* Tinted overlay po akcentu (ostaje unutar taba) */
 #tab-shop::before, #tab-craft::before, #tab-market::before, #tab-inv::before, #tab-bonus::before{
   content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
   background:
@@ -245,7 +230,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   opacity:.9;
 }
 
-/* Dugmad u boji AKO su unutar određenog taba (scoped) */
+/* Buttons/Badges/Lists scoped po tabu (osnovni accent) */
 #tab-shop .btn:not(.danger),
 #tab-craft .btn:not(.danger),
 #tab-market .btn:not(.danger),
@@ -253,9 +238,8 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #tab-bonus .btn:not(.danger){
   background: color-mix(in srgb, var(--accent) 20%, #111);
   border-color: color-mix(in srgb, var(--accent) 55%, #333);
-  box-shadow:
-    0 0 10px color-mix(in srgb, var(--accent) 22%, transparent),
-    inset 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent),
+             inset 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 #tab-shop .btn:not(.danger):hover,
 #tab-craft .btn:not(.danger):hover,
@@ -265,8 +249,6 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   background: color-mix(in srgb, var(--accent) 34%, #181818);
   border-color: color-mix(in srgb, var(--accent) 75%, #555);
 }
-
-/* Badge i liste suptilno obojene po tabu (scoped) */
 #tab-shop .badge, #tab-craft .badge, #tab-market .badge, #tab-inv .badge, #tab-bonus .badge{
   border-color: color-mix(in srgb, var(--accent) 55%, #2a2a2a);
   background: color-mix(in srgb, var(--accent) 10%, #0c0c0c);
@@ -277,20 +259,55 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   background: color-mix(in srgb, var(--accent) 8%, rgba(20,20,20,.55));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, rgba(255,255,255,.02));
 }
-
-/* Naslovi u tabovima – suptilan sjaj (scoped) */
 #tab-shop .label, #tab-craft .label, #tab-market .label, #tab-inv .label, #tab-bonus .label{
-  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 28%, transparent);
+  text-shadow:0 0 8px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 /* ------------------------------
-   SHOP small tweaks
+   HARD REMAPS per your request
+   - MARKET: "plavo -> crveno", "zeleno -> narančasto"
+   - BONUS:  "plavo -> tamno zelena"
+   (targetiramo generičke util klase i nazive)
 ------------------------------ */
-#tab-shop .buy-block{ width:10cm; max-width:100% } /* trajna postavka */
+
+/* MARKET — sve što je tipično "blue" postaje crveno */
+#tab-market :is(.blue, .primary, [data-color="blue"], [class*="blue"], [class*="primary"]){
+  --accent: #ef4444 !important;
+  color: #ef4444 !important;
+  border-color: color-mix(in srgb, #ef4444 60%, #333) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, #ef4444 22%, transparent) !important;
+  background: color-mix(in srgb, #ef4444 18%, #131313) !important;
+}
+
+/* MARKET — sve što je "green" prelazi na narančasto (osnovni accent je već orange) */
+#tab-market :is(.green, .success, [data-color="green"], [class*="green"], [class*="success"]){
+  --accent: #f97316 !important;
+  color: #f97316 !important;
+  border-color: color-mix(in srgb, #f97316 60%, #333) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, #f97316 22%, transparent) !important;
+  background: color-mix(in srgb, #f97316 18%, #131313) !important;
+}
+
+/* BONUS — sve što je "blue" prelazi u TAMNO ZELENU */
+#tab-bonus :is(.blue, .primary, [data-color="blue"], [class*="blue"], [class*="primary"]){
+  --accent: #065f46 !important;
+  color: #34d399 !important; /* svjetliji tekst na tamno zelenoj */
+  border-color: color-mix(in srgb, #065f46 65%, #2a2a2a) !important;
+  background: color-mix(in srgb, #065f46 22%, #0e1513) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, #065f46 22%, transparent) !important;
+}
+
+/* INVENTORY — NAMJERNO NE DIRAMO NIŠTA */
+
+
+/* ------------------------------
+   SHOP tweak (tvoja stalna postavka)
+------------------------------ */
+#tab-shop .buy-block{ width:10cm; max-width:100% }
 #shop-balance.badge{ font-weight:700 }
 
 /* ------------------------------
-   CRAFTING lists: fixed height
+   CRAFT lists (full-height columns)
 ------------------------------ */
 #tab-craft{ display:flex; flex-direction:column; gap:12px; }
 #tab-craft .grid{ align-items:stretch; }
@@ -307,13 +324,13 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 /* ------------------------------
    INVENTORY / MARKET / BONUS lists
 ------------------------------ */
-#tab-inv .list{ max-height: 520px; overflow:auto }
-#tab-market .list{ max-height: 520px; overflow:auto }
+#tab-inv .list{ max-height:520px; overflow:auto }
+#tab-market .list{ max-height:520px; overflow:auto }
 #tab-bonus .grid > .card{ min-height:auto }
-#bonus-grid .list{ max-height: 360px }
+#bonus-grid .list{ max-height:360px }
 
 /* ------------------------------
-   Balance pulse (vezan za lokalni --accent)
+   Pulse (vezan uz lokalni --accent)
 ------------------------------ */
 @keyframes pulseTw{
   0%{   box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent) }
@@ -323,10 +340,10 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
 /* ------------------------------
-   PayPal panel helpers
+   PayPal helpers
 ------------------------------ */
 #btn-open-paypal.hidden{ display:none }
 #paypal-panel.hidden{ display:none }
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
-#paypal-wrap{ display:none !important; } /* (ako se koristi) – sakrij wrap */
+#paypal-wrap{ display:none !important; }
