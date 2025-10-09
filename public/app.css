@@ -1,5 +1,5 @@
 /* =========================================================
-   ARTEFACT — PER-TAB COLORS (as requested)
+   ARTEFACT — HARD ISOLATED PER-TAB COLORS (FINAL)
    ========================================================= */
 
 /* ------------------------------
@@ -19,12 +19,12 @@
 
   /* ACCENTS (tab base colors) */
   --shop:#38bdf8;        /* SHOP  = blue (ostaje) */
-  --craft:#f59e0b;       /* CRAFT = yellow (fix) */
+  --craft:#f59e0b;       /* CRAFT = yellow (fiks) */
   --market:#f97316;      /* MARKET = orange (zeleno -> narančasto) */
   --inv:#ec4899;         /* INVENTORY = pink (NE DIRAMO) */
   --bonus:#065f46;       /* BONUS = dark-green (plavo -> tamno zeleno) */
 
-  /* Soft fills (vizualna dubina) */
+  /* Soft fills */
   --shop-fill:   rgba(56,189,248,.10);
   --craft-fill:  rgba(245,158,11,.10);
   --market-fill: rgba(249,115,22,.10);
@@ -176,7 +176,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#3a3a3a; }
 
-/* Eksplicitne ACTIVE boje chipova u headeru */
+/* Eksplicitne ACTIVE boje chipova u headeru (bez oslanjanja na --accent) */
 .chip[data-tab="shop"].active{
   background:linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.10));
   border-color:rgba(56,189,248,.55);
@@ -209,8 +209,18 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #tab-shop  { --accent: var(--shop); }
 #tab-craft { --accent: var(--craft); }
 #tab-market{ --accent: var(--market); }
-#tab-inv   { --accent: var(--inv); }    /* INVENTORY NE DIRAMO */
+#tab-inv   { --accent: var(--inv); }     /* INVENTORY NE DIRAMO */
 #tab-bonus { --accent: var(--bonus); }
+
+/* Anti-leak: premapiraj sve varijable na lokalni --accent unutar taba */
+#tab-craft, #tab-market, #tab-bonus{
+  /* ako je negdje slučajno korištena tuđa var (npr. --shop), preveži je na lokalni --accent */
+  --shop: var(--accent);
+  --market: var(--accent);
+  --craft: var(--accent);
+  --inv: var(--accent);
+  --bonus: var(--accent);
+}
 
 #tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
   border:1px solid color-mix(in srgb, var(--accent) 45%, #2a2a2a);
@@ -264,37 +274,42 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 
 /* ------------------------------
-   HARD REMAPS per your request
-   - MARKET: "plavo -> crveno", "zeleno -> narančasto"
-   - BONUS:  "plavo -> tamno zelena"
-   (targetiramo generičke util klase i nazive)
+   HARD REMAPS (anti-blue & spec. zahtjevi)
 ------------------------------ */
 
-/* MARKET — sve što je tipično "blue" postaje crveno */
-#tab-market :is(.blue, .primary, [data-color="blue"], [class*="blue"], [class*="primary"]){
-  --accent: #ef4444 !important;
-  color: #ef4444 !important;
-  border-color: color-mix(in srgb, #ef4444 60%, #333) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, #ef4444 22%, transparent) !important;
-  background: color-mix(in srgb, #ef4444 18%, #131313) !important;
+/* CRAFTING — ukloni bilo kakvu plavu: sve klase/atributi povezani s "blue" -> žuta */
+#tab-craft :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
+  --accent:#f59e0b !important;
+  color:#f59e0b !important;
+  border-color:color-mix(in srgb, #f59e0b 60%, #333) !important;
+  background:color-mix(in srgb, #f59e0b 18%, #131313) !important;
+  box-shadow:0 0 10px color-mix(in srgb, #f59e0b 22%, transparent) !important;
 }
 
-/* MARKET — sve što je "green" prelazi na narančasto (osnovni accent je već orange) */
+/* MARKET — plavo -> crveno */
+#tab-market :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
+  --accent:#ef4444 !important;
+  color:#ef4444 !important;
+  border-color:color-mix(in srgb, #ef4444 60%, #333) !important;
+  background:color-mix(in srgb, #ef4444 18%, #131313) !important;
+  box-shadow:0 0 10px color-mix(in srgb, #ef4444 22%, transparent) !important;
+}
+/* MARKET — zeleno -> narančasto (naglašeno) */
 #tab-market :is(.green, .success, [data-color="green"], [class*="green"], [class*="success"]){
-  --accent: #f97316 !important;
-  color: #f97316 !important;
-  border-color: color-mix(in srgb, #f97316 60%, #333) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, #f97316 22%, transparent) !important;
-  background: color-mix(in srgb, #f97316 18%, #131313) !important;
+  --accent:#f97316 !important;
+  color:#f97316 !important;
+  border-color:color-mix(in srgb, #f97316 60%, #333) !important;
+  background:color-mix(in srgb, #f97316 18%, #131313) !important;
+  box-shadow:0 0 10px color-mix(in srgb, #f97316 22%, transparent) !important;
 }
 
-/* BONUS — sve što je "blue" prelazi u TAMNO ZELENU */
-#tab-bonus :is(.blue, .primary, [data-color="blue"], [class*="blue"], [class*="primary"]){
-  --accent: #065f46 !important;
-  color: #34d399 !important; /* svjetliji tekst na tamno zelenoj */
-  border-color: color-mix(in srgb, #065f46 65%, #2a2a2a) !important;
-  background: color-mix(in srgb, #065f46 22%, #0e1513) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, #065f46 22%, transparent) !important;
+/* BONUS — plavo -> TAMNO ZELENA (bez izuzetaka) */
+#tab-bonus :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
+  --accent:#065f46 !important;
+  color:#34d399 !important; /* čitljiv kontrast na tamno zelenoj */
+  border-color:color-mix(in srgb, #065f46 65%, #2a2a2a) !important;
+  background:color-mix(in srgb, #065f46 22%, #0e1513) !important;
+  box-shadow:0 0 10px color-mix(in srgb, #065f46 22%, transparent) !important;
 }
 
 /* INVENTORY — NAMJERNO NE DIRAMO NIŠTA */
