@@ -398,3 +398,40 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important; }
+
+
+/* =========================================================
+   TEXT GLASS "FILM" — premaz preko SLOVA (ne boji sekcije)
+   Primijenjeno na .brand, .label i .badge koji već postoje u HTML-u
+   ========================================================= */
+.brand, .label, .badge{
+  position: relative;
+  isolation: isolate; /* spriječi blendanje s pozadinom sekcije */
+}
+
+.brand::after, .label::after, .badge::after{
+  content:"";
+  position:absolute;
+  inset:-2px -4px;            /* malo šire od teksta */
+  border-radius:8px;
+  pointer-events:none;
+  z-index: 1;
+
+  /* staklasti premaz: highlight + tanki film */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 55%),
+    radial-gradient(60% 45% at 50% 0%, rgba(255,255,255,.14), transparent 65%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.03),       /* tanka "lak" linija */
+    inset 0 -8px 16px rgba(0,0,0,.12);           /* blago zatamnjenje ispod */
+
+  /* Ako želiš jači stakleni osjećaj, odkomentiraj: */
+  /* backdrop-filter: blur(1px); */
+  /* -webkit-backdrop-filter: blur(1px); */
+}
+
+/* malo veći radijus samo za .badge da prati pilulu */
+.badge::after{ border-radius:999px; }
+
+/* dodatna čitljivost */
+.brand, .label, .badge{ text-shadow: 0 1px 1px rgba(0,0,0,.35); }
