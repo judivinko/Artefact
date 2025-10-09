@@ -1,9 +1,9 @@
 /* =========================================================
-   ARTEFACT — HARD ISOLATED PER-TAB COLORS (FINAL)
+   ARTEFACT — STRICT PER-TAB COLORS (NO BLUE OUTSIDE SHOP)
    ========================================================= */
 
 /* ------------------------------
-   Root vars / palette
+   Root vars / base
 ------------------------------ */
 :root{
   --text:#e5e7eb;
@@ -16,20 +16,6 @@
   --landing: 4cm;
   --row-pad-v: 8px;
   --rowH: calc(var(--cell) + (var(--row-pad-v) * 2) + 2px);
-
-  /* ACCENTS (tab base colors) */
-  --shop:#38bdf8;        /* SHOP  = blue (ostaje) */
-  --craft:#f59e0b;       /* CRAFT = yellow (fiks) */
-  --market:#f97316;      /* MARKET = orange (zeleno -> narančasto) */
-  --inv:#ec4899;         /* INVENTORY = pink (NE DIRAMO) */
-  --bonus:#065f46;       /* BONUS = dark-green (plavo -> tamno zeleno) */
-
-  /* Soft fills */
-  --shop-fill:   rgba(56,189,248,.10);
-  --craft-fill:  rgba(245,158,11,.10);
-  --market-fill: rgba(249,115,22,.10);
-  --inv-fill:    rgba(236,72,153,.10);
-  --bonus-fill:  rgba(6,95,70,.12);
 }
 
 /* ------------------------------
@@ -46,22 +32,18 @@ body{
     #000 !important;
   background-attachment: fixed;
 }
-body::before{ content:none !important; }
 
 /* App wrapper */
-#app, .container{
-  max-width:1160px;
-  margin:0 auto;
-  padding:12px;
-}
+#app, .container{ max-width:1160px; margin:0 auto; padding:12px; }
 
 /* ------------------------------
-   Utilities / layout / text
+   Utilities / text
 ------------------------------ */
 .hidden{ display:none !important }
 .muted{ opacity:.8 }
 .label{ font-weight:600 }
 
+/* Brand */
 .brand{
   font-weight:800; font-size:34px; letter-spacing:1px; line-height:1;
   background:linear-gradient(180deg,#FFD700 0%,#E6BE00 55%,#C99700 100%);
@@ -86,7 +68,7 @@ body::before{ content:none !important; }
 .header.no-border{ border-bottom:0 !important }
 
 /* ------------------------------
-   Core components
+   Core components (neutral)
 ------------------------------ */
 .badge{
   border:1px solid var(--line);
@@ -97,7 +79,7 @@ body::before{ content:none !important; }
   cursor:pointer; border:1px solid rgba(255,255,255,.08);
   background:#131313; color:var(--text);
   padding:8px 12px; border-radius:10px;
-  transition:transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, opacity .2s ease;
   box-shadow:0 2px 8px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
 }
 .btn:hover{ transform:translateY(-1px); border-color:#444; background:#171717; }
@@ -132,28 +114,12 @@ body::before{ content:none !important; }
   min-height: var(--rowH);
 }
 .itemrow:last-child{ border-bottom:0 }
-
 .list{
   max-height:360px; overflow:auto;
   border:1px solid var(--line); border-radius:10px;
   background:#111;
   backdrop-filter: blur(6px);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-}
-
-/* Tiles */
-.tile{ display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:10px; padding:6px; background:#121212 }
-.tile.ok{ border-color:#165c32; background:#0f2a21 }
-.tile.miss{ opacity:.9 }
-
-/* Grid */
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
-.grid-4{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px }
-.grid-5{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px }
-@media (max-width:900px){
-  .grid{ grid-template-columns:1fr }
-  .grid-4{ grid-template-columns:repeat(2,1fr) }
-  .grid-5{ grid-template-columns:repeat(3,1fr) }
 }
 
 /* Images / slots */
@@ -164,7 +130,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 .img-slot:hover{ opacity:1 }
 
 /* ------------------------------
-   Tabs (chips)
+   Tabs (chips) — explicit per tab
 ------------------------------ */
 .tabbar{ margin:6px 0 10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap }
 .chip{
@@ -176,156 +142,106 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 .chip:hover{ transform:translateY(-1px); border-color:#3a3a3a; }
 
-/* Eksplicitne ACTIVE boje chipova u headeru (bez oslanjanja na --accent) */
+/* ACTIVE chips — bez plave izvan SHOP-a */
 .chip[data-tab="shop"].active{
-  background:linear-gradient(180deg, rgba(56,189,248,.20), rgba(56,189,248,.10));
+  background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.12)); /* blue */
   border-color:rgba(56,189,248,.55);
   box-shadow: inset 0 0 0 1px rgba(56,189,248,.35), 0 6px 16px rgba(56,189,248,.18);
 }
 .chip[data-tab="craft"].active{
-  background:linear-gradient(180deg, rgba(245,158,11,.20), rgba(245,158,11,.10));
+  background:linear-gradient(180deg, rgba(245,158,11,.28), rgba(245,158,11,.12)); /* yellow */
   border-color:rgba(245,158,11,.55);
   box-shadow: inset 0 0 0 1px rgba(245,158,11,.35), 0 6px 16px rgba(245,158,11,.18);
 }
 .chip[data-tab="market"].active{
-  background:linear-gradient(180deg, rgba(249,115,22,.22), rgba(249,115,22,.10));
-  border-color:rgba(249,115,22,.55);
-  box-shadow: inset 0 0 0 1px rgba(249,115,22,.35), 0 6px 16px rgba(249,115,22,.18);
+  background:linear-gradient(180deg, rgba(239,68,68,.28), rgba(239,68,68,.12)); /* red */
+  border-color:rgba(239,68,68,.55);
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,.35), 0 6px 16px rgba(239,68,68,.18);
 }
 .chip[data-tab="inv"].active{
-  background:linear-gradient(180deg, rgba(236,72,153,.20), rgba(236,72,153,.10));
+  background:linear-gradient(180deg, rgba(236,72,153,.28), rgba(236,72,153,.12)); /* pink */
   border-color:rgba(236,72,153,.55);
   box-shadow: inset 0 0 0 1px rgba(236,72,153,.35), 0 6px 16px rgba(236,72,153,.18);
 }
 .chip[data-tab="bonus"].active{
-  background:linear-gradient(180deg, rgba(6,95,70,.22), rgba(6,95,70,.10));
-  border-color:rgba(6,95,70,.55);
-  box-shadow: inset 0 0 0 1px rgba(6,95,70,.35), 0 6px 16px rgba(6,95,70,.18);
+  background:linear-gradient(180deg, rgba(16,185,129,.28), rgba(16,185,129,.12)); /* green */
+  border-color:rgba(16,185,129,.55);
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(16,185,129,.18);
 }
 
 /* ------------------------------
-   Section panels — base + accent
+   SECTION PANELS — explicit per tab (NO shared blue)
 ------------------------------ */
-#tab-shop  { --accent: var(--shop); }
-#tab-craft { --accent: var(--craft); }
-#tab-market{ --accent: var(--market); }
-#tab-inv   { --accent: var(--inv); }     /* INVENTORY NE DIRAMO */
-#tab-bonus { --accent: var(--bonus); }
 
-/* Anti-leak: premapiraj sve varijable na lokalni --accent unutar taba */
-#tab-craft, #tab-market, #tab-bonus{
-  /* ako je negdje slučajno korištena tuđa var (npr. --shop), preveži je na lokalni --accent */
-  --shop: var(--accent);
-  --market: var(--accent);
-  --craft: var(--accent);
-  --inv: var(--accent);
-  --bonus: var(--accent);
-}
-
-#tab-shop, #tab-craft, #tab-market, #tab-inv, #tab-bonus{
-  border:1px solid color-mix(in srgb, var(--accent) 45%, #2a2a2a);
+/* SHOP (jedino mjesto gdje smije biti plava) */
+#tab-shop{
+  border:1px solid rgba(56,189,248,.55);
   background:
     radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
     radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
     #000 !important;
-  position:relative;
-  border-radius:12px;
+  position:relative; border-radius:12px;
   box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
 }
-#tab-shop::before, #tab-craft::before, #tab-market::before, #tab-inv::before, #tab-bonus::before{
+#tab-shop::before{
   content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
   background:
-    radial-gradient(160% 160% at 100% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
-    radial-gradient(160% 160% at 0% 100%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%);
+    radial-gradient(160% 160% at 100% 0%, rgba(56,189,248,.18), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(56,189,248,.12), transparent 70%);
   opacity:.9;
 }
-
-/* Buttons/Badges/Lists scoped po tabu (osnovni accent) */
-#tab-shop .btn:not(.danger),
-#tab-craft .btn:not(.danger),
-#tab-market .btn:not(.danger),
-#tab-inv .btn:not(.danger),
-#tab-bonus .btn:not(.danger){
-  background: color-mix(in srgb, var(--accent) 20%, #111);
-  border-color: color-mix(in srgb, var(--accent) 55%, #333);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 22%, transparent),
-             inset 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+#tab-shop .btn:not(.danger){
+  background: #0f1920; /* deep blue-black */
+  border-color: rgba(56,189,248,.55);
+  box-shadow: 0 0 10px rgba(56,189,248,.22), inset 0 0 2px rgba(56,189,248,.22);
 }
-#tab-shop .btn:not(.danger):hover,
-#tab-craft .btn:not(.danger):hover,
-#tab-market .btn:not(.danger):hover,
-#tab-inv .btn:not(.danger):hover,
-#tab-bonus .btn:not(.danger):hover{
-  background: color-mix(in srgb, var(--accent) 34%, #181818);
-  border-color: color-mix(in srgb, var(--accent) 75%, #555);
+#tab-shop .btn:not(.danger):hover{ background:#13212a; border-color:rgba(56,189,248,.75) }
+#tab-shop .badge{
+  border-color: rgba(56,189,248,.55);
+  background: rgba(56,189,248,.10);
 }
-#tab-shop .badge, #tab-craft .badge, #tab-market .badge, #tab-inv .badge, #tab-bonus .badge{
-  border-color: color-mix(in srgb, var(--accent) 55%, #2a2a2a);
-  background: color-mix(in srgb, var(--accent) 10%, #0c0c0c);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+#tab-shop .list{
+  border-color: rgba(56,189,248,.40);
+  background: rgba(56,189,248,.08);
 }
-#tab-shop .list, #tab-craft .list, #tab-market .list, #tab-inv .list, #tab-bonus .list{
-  border-color: color-mix(in srgb, var(--accent) 40%, #2a2a2a);
-  background: color-mix(in srgb, var(--accent) 8%, rgba(20,20,20,.55));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, rgba(255,255,255,.02));
-}
-#tab-shop .label, #tab-craft .label, #tab-market .label, #tab-inv .label, #tab-bonus .label{
-  text-shadow:0 0 8px color-mix(in srgb, var(--accent) 28%, transparent);
-}
-
-/* ------------------------------
-   HARD REMAPS (anti-blue & spec. zahtjevi)
------------------------------- */
-
-/* CRAFTING — ukloni bilo kakvu plavu: sve klase/atributi povezani s "blue" -> žuta */
-#tab-craft :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
-  --accent:#f59e0b !important;
-  color:#f59e0b !important;
-  border-color:color-mix(in srgb, #f59e0b 60%, #333) !important;
-  background:color-mix(in srgb, #f59e0b 18%, #131313) !important;
-  box-shadow:0 0 10px color-mix(in srgb, #f59e0b 22%, transparent) !important;
-}
-
-/* MARKET — plavo -> crveno */
-#tab-market :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
-  --accent:#ef4444 !important;
-  color:#ef4444 !important;
-  border-color:color-mix(in srgb, #ef4444 60%, #333) !important;
-  background:color-mix(in srgb, #ef4444 18%, #131313) !important;
-  box-shadow:0 0 10px color-mix(in srgb, #ef4444 22%, transparent) !important;
-}
-/* MARKET — zeleno -> narančasto (naglašeno) */
-#tab-market :is(.green, .success, [data-color="green"], [class*="green"], [class*="success"]){
-  --accent:#f97316 !important;
-  color:#f97316 !important;
-  border-color:color-mix(in srgb, #f97316 60%, #333) !important;
-  background:color-mix(in srgb, #f97316 18%, #131313) !important;
-  box-shadow:0 0 10px color-mix(in srgb, #f97316 22%, transparent) !important;
-}
-
-/* BONUS — plavo -> TAMNO ZELENA (bez izuzetaka) */
-#tab-bonus :is(.blue, .primary, .info, [data-color="blue"], [data-variant="primary"], [class*="blue"], [class*="primary"], [class*="info"]){
-  --accent:#065f46 !important;
-  color:#34d399 !important; /* čitljiv kontrast na tamno zelenoj */
-  border-color:color-mix(in srgb, #065f46 65%, #2a2a2a) !important;
-  background:color-mix(in srgb, #065f46 22%, #0e1513) !important;
-  box-shadow:0 0 10px color-mix(in srgb, #065f46 22%, transparent) !important;
-}
-
-/* INVENTORY — NAMJERNO NE DIRAMO NIŠTA */
-
-
-/* ------------------------------
-   SHOP tweak (tvoja stalna postavka)
------------------------------- */
-#tab-shop .buy-block{ width:10cm; max-width:100% }
+#tab-shop .label{ text-shadow:0 0 8px rgba(56,189,248,.28) }
+#tab-shop .buy-block{ width:10cm; max-width:100% } /* tvoja trajna postavka */
 #shop-balance.badge{ font-weight:700 }
 
-/* ------------------------------
-   CRAFT lists (full-height columns)
------------------------------- */
-#tab-craft{ display:flex; flex-direction:column; gap:12px; }
-#tab-craft .grid{ align-items:stretch; }
+/* CRAFTING (ŽUTA — bez ijedne plave) */
+#tab-craft{
+  border:1px solid rgba(245,158,11,.55);
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000 !important;
+  position:relative; border-radius:12px;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
+}
+#tab-craft::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(245,158,11,.18), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(245,158,11,.12), transparent 70%);
+  opacity:.9;
+}
+#tab-craft .btn:not(.danger){
+  background:#221a0a;
+  border-color: rgba(245,158,11,.55);
+  box-shadow: 0 0 10px rgba(245,158,11,.22), inset 0 0 2px rgba(245,158,11,.22);
+}
+#tab-craft .btn:not(.danger):hover{ background:#2a200c; border-color:rgba(245,158,11,.75) }
+#tab-craft .badge{
+  border-color: rgba(245,158,11,.55);
+  background: rgba(245,158,11,.10);
+}
+#tab-craft .list{
+  border-color: rgba(245,158,11,.40);
+  background: rgba(245,158,11,.08);
+}
+#tab-craft .label{ text-shadow:0 0 8px rgba(245,158,11,.28) }
+#tab-craft{ display:flex; flex-direction:column; gap:12px }
+#tab-craft .grid{ align-items:stretch }
 #recipes.list, #rec-details.list{
   min-height: calc(var(--rowH) * 8 + 2px);
   max-height: calc(var(--rowH) * 8 + 2px);
@@ -336,21 +252,120 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   background:rgba(18,18,18,.95); backdrop-filter: blur(6px);
 }
 
-/* ------------------------------
-   INVENTORY / MARKET / BONUS lists
------------------------------- */
+/* MARKET (CRVENA — bez ijedne plave) */
+#tab-market{
+  border:1px solid rgba(239,68,68,.55);
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000 !important;
+  position:relative; border-radius:12px;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
+}
+#tab-market::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(239,68,68,.18), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(239,68,68,.12), transparent 70%);
+  opacity:.9;
+}
+#tab-market .btn:not(.danger){
+  background:#2a0f10;
+  border-color: rgba(239,68,68,.55);
+  box-shadow: 0 0 10px rgba(239,68,68,.22), inset 0 0 2px rgba(239,68,68,.22);
+}
+#tab-market .btn:not(.danger):hover{ background:#351315; border-color:rgba(239,68,68,.75) }
+#tab-market .badge{
+  border-color: rgba(239,68,68,.55);
+  background: rgba(239,68,68,.10);
+}
+#tab-market .list{
+  border-color: rgba(239,68,68,.40);
+  background: rgba(239,68,68,.08);
+}
+#tab-market .label{ text-shadow:0 0 8px rgba(239,68,68,.28) }
+
+/* INVENTORY (ROZA — kako je; bez plave) */
+#tab-inv{
+  border:1px solid rgba(236,72,153,.55);
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000 !important;
+  position:relative; border-radius:12px;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
+}
+#tab-inv::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(236,72,153,.18), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(236,72,153,.12), transparent 70%);
+  opacity:.9;
+}
+#tab-inv .btn:not(.danger){
+  background:#24101d;
+  border-color: rgba(236,72,153,.55);
+  box-shadow: 0 0 10px rgba(236,72,153,.22), inset 0 0 2px rgba(236,72,153,.22);
+}
+#tab-inv .btn:not(.danger):hover{ background:#2c1323; border-color:rgba(236,72,153,.75) }
+#tab-inv .badge{
+  border-color: rgba(236,72,153,.55);
+  background: rgba(236,72,153,.10);
+}
+#tab-inv .list{
+  border-color: rgba(236,72,153,.40);
+  background: rgba(236,72,153,.08);
+}
+#tab-inv .label{ text-shadow:0 0 8px rgba(236,72,153,.28) }
 #tab-inv .list{ max-height:520px; overflow:auto }
-#tab-market .list{ max-height:520px; overflow:auto }
+
+/* BONUS (ZELENA — bez ijedne plave) */
+#tab-bonus{
+  border:1px solid rgba(16,185,129,.55);
+  background:
+    radial-gradient(150% 150% at 100% 0%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(150% 150% at 0% 100%, rgba(255,255,255,.04), transparent 70%),
+    #000 !important;
+  position:relative; border-radius:12px;
+  box-shadow: inset 0 0 12px rgba(255,255,255,.05), 0 8px 24px rgba(0,0,0,.6);
+}
+#tab-bonus::before{
+  content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+  background:
+    radial-gradient(160% 160% at 100% 0%, rgba(16,185,129,.18), transparent 70%),
+    radial-gradient(160% 160% at 0% 100%, rgba(16,185,129,.12), transparent 70%);
+  opacity:.9;
+}
+#tab-bonus .btn:not(.danger){
+  background:#0f1f1a;
+  border-color: rgba(16,185,129,.55);
+  box-shadow: 0 0 10px rgba(16,185,129,.22), inset 0 0 2px rgba(16,185,129,.22);
+}
+#tab-bonus .btn:not(.danger):hover{ background:#12261f; border-color:rgba(16,185,129,.75) }
+#tab-bonus .badge{
+  border-color: rgba(16,185,129,.55);
+  background: rgba(16,185,129,.10);
+}
+#tab-bonus .list{
+  border-color: rgba(16,185,129,.40);
+  background: rgba(16,185,129,.08);
+}
+#tab-bonus .label{ text-shadow:0 0 8px rgba(16,185,129,.28) }
 #tab-bonus .grid > .card{ min-height:auto }
 #bonus-grid .list{ max-height:360px }
 
 /* ------------------------------
-   Pulse (vezan uz lokalni --accent)
+   Shared heights
+------------------------------ */
+#tab-market .list{ max-height:520px; overflow:auto }
+
+/* ------------------------------
+   Pulse (scoped per section color with neutral alpha)
 ------------------------------ */
 @keyframes pulseTw{
-  0%{   box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent) }
-  70%{  box-shadow:0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent) }
-  100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent) }
+  0%{   box-shadow:0 0 0 0 rgba(255,255,255,.0) }
+  70%{  box-shadow:0 0 0 8px rgba(255,255,255,0) }
+  100%{ box-shadow:0 0 0 0 rgba(255,255,255,0) }
 }
 #balance.pulse{ animation:pulseTw 1.2s ease-out 1 }
 
