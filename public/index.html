@@ -916,8 +916,107 @@
   });
 </script>
 
-<!-- ===== Market & Inventory ===== -->
+    <!-- MARKET -->
+    <div id="tab-market" class="card hidden">
+      <div class="label">Marketplace</div>
+      <div class="grid">
+        <div class="card">
+          <div class="label">Create Sale</div>
+          <input id="inv-search" class="input" placeholder="Search your inventory..." />
+          <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
+          <div class="row" style="margin-top:8px">
+            <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
+            <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+            <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+            <button id="btn-list" class="btn">List for sale</button>
+          </div>
+          <div class="row muted" style="margin-top:6px">
+            <span id="market-fee-inline" class="badge">Fee: 1%</span>
+          </div>
+          <div id="list-msg" class="muted" style="margin-top:6px"></div>
+        </div>
+
+        <div class="card">
+          <!-- Lijevo poravnat naslov + search -->
+          <div class="row market-header">
+            <div class="label">Marketplace</div>
+            <input id="market-q" class="input grow" placeholder="Search by name..." autocomplete="off" />
+          </div>
+          <div id="market" class="list">Loading…</div>
+
+          <!-- My listings: naslov + search + reload -->
+          <div class="row market-header" style="margin-top:12px">
+            <div class="label">My listings</div>
+            <input id="mine-q" class="input grow" placeholder="Search my listings..." autocomplete="off" />
+            <button id="btn-mine" class="btn muted">Reload</button>
+          </div>
+          <div id="mine" class="list">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="tab-inv" class="card hidden">
+      <div class="label">Inventory</div>
+      <div id="inv-full" class="list">Loading…</div>
+    </div>
+
+    <!-- BONUS -->
+    <div id="tab-bonus" class="card hidden">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Bonus</div>
+        <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
+      </div>
+
+      <div id="bonus-grid" class="grid" style="margin-top:8px">
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <div class="label">T2 Bonus</div>
+            <button id="btn-claim-t2" class="btn" disabled>Claim</button>
+          </div>
+          <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
+          <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <div class="label">T3 Bonus</div>
+            <button id="btn-claim-t3" class="btn" disabled>Claim</button>
+          </div>
+          <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
+          <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <div class="label">T4 Bonus</div>
+            <button id="btn-claim-t4" class="btn" disabled>Claim</button>
+          </div>
+          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
+          <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <div class="label">T5 Bonus</div>
+            <button id="btn-claim-t5" class="btn" disabled>Claim</button>
+          </div>
+          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3+ + Craft no-fail </div>
+          <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ===== Market & Inventory ===== -->
 <script>
+  // Debounce helper za search inpute
+  function debounce(fn, wait=180){
+    let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), wait); };
+  }
+
   window.SEL_INV = null;
 
   async function loadInventoryPanel(){
@@ -957,7 +1056,7 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  $("#inv-search")?.addEventListener("input", loadInventoryPanel);
+  $("#inv-search")?.addEventListener("input", debounce(loadInventoryPanel,180));
 
   async function loadMarket(){
     const box = $("#market"); if(!box) return;
@@ -999,12 +1098,13 @@
                 body: JSON.stringify({ id: s.id })
               });
 
-              if (res && typeof res.balance_silver === "number" && WHO) {
+              if (res && typeof res.buyer_balance_silver === "number" && WHO) {
+                WHO.balance_silver = res.buyer_balance_silver | 0;
+              } else if (res && typeof res.balance_silver === "number" && WHO) {
                 WHO.balance_silver = res.balance_silver | 0;
               }
 
               await refreshMeLight();
-
               await loadMarket();
               await loadMine();
               await loadInventoryPanel();
@@ -1012,8 +1112,7 @@
 
               if (res?.purchased?.name) {
                 const qty = res?.purchased?.qty ?? 1;
-                /* FIX: nema backticka unutar template stringa */
-                toast(`Purchased: ${res.purchased.name}${qty > 1 ? " (x" + qty + ")" : ""}`);
+                toast(`Purchased: ${res.purchased.name}${qty>1?` (x${qty})`:""}`);
               } else {
                 toast("Purchased.");
               }
@@ -1033,7 +1132,8 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  $("#market-q")?.addEventListener("input", loadMarket);
+  // debounce search inputa
+  document.getElementById("market-q")?.addEventListener("input", debounce(loadMarket,180));
 
   async function loadMine(){
     const box = $("#mine"); if(!box) return;
@@ -1044,7 +1144,6 @@
         .filter(Boolean)
         .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
 
-      /* filtriranje po my listings */
       const q = ($("#mine-q")?.value || "").trim().toLowerCase();
       if (q) rows = rows.filter(s => (s?.name || "").toLowerCase().includes(q));
 
@@ -1095,8 +1194,8 @@
     }
   }
 
-  $("#btn-mine")?.addEventListener("click", loadMine);
-  document.getElementById("mine-q")?.addEventListener("input", loadMine);
+  document.getElementById("btn-mine")?.addEventListener("click", loadMine);
+  document.getElementById("mine-q")?.addEventListener("input", debounce(loadMine,180));
 
   async function loadInventoryFull(){
     const box=$("#inv-full"); if(!box) return;
@@ -1134,93 +1233,95 @@
   }
 </script>
 
-<!-- ===== BONUS (frontend) ===== -->
-<script>
-  function withTimeout(promise, ms=8000){
-    return new Promise((resolve, reject)=>{
-      const t = setTimeout(()=> reject(new Error("Timeout")), ms);
-      promise.then(v=>{clearTimeout(t); resolve(v);})
-             .catch(e=>{clearTimeout(t); reject(e);});
-    });
-  }
-
-  function tile(name, code, ok, tier){
-    const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
-    return `
-      <div class="tile ${ok?'ok':'miss'}">
-        <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-        <div>${esc(name)}</div>
-      </div>`;
-  }
-
-  async function loadBonus(){
-    const lock = $("#bonus-lock");
-    const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-    const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-    Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
-    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
-
-    let cleared = false;
-    setTimeout(()=>{
-      if (cleared) return;
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
-    }, 3000);
-
-    try{
-      const r = await withTimeout(api("/api/bonus/status"), 8000);
-      cleared = true;
-      const hasArt = !!r?.has_artefact;
-      lock?.classList.toggle("hidden", hasArt);
-      if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
-
-      function prettyNameFromCode(code){
-        return String(code)
-          .replace(/^T\d_/, "")
-          .replaceAll("_"," ")
-          .toLowerCase()
-          .replace(/\b\w/g, c=>c.toUpperCase());
-      }
-
-      for (const t of [2,3,4,5]){
-        const box = boxes[t]; if (!box) continue;
-        const info = r.tiers?.[t];
-        if (!info){ box.textContent="No data"; continue; }
-        const items = [];
-        for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-        for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
-        box.innerHTML = items.join("") || "Empty.";
-
-        const btn = btns[t];
-        if (btn){
-          const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-          btn.disabled = !canClaim;
-          btn.textContent = info.claimed ? "Claimed" : "Claim";
-          if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-          btn.onclick = async ()=>{
-            if (btn.disabled) return;
-            const prev = btn.textContent;
-            btn.disabled = true; btn.textContent = "Claiming…";
-            try{
-              await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
-              toast(`T${t} bonus claimed.`);
-              await loadBonus();
-              await refreshMeLight();
-            }catch(e){
-              alert(e?.message || "Claim failed.");
-            } finally{
-              btn.textContent = prev;
-            }
-          };
-        }
-      }
-    }catch(e){
-      cleared = true;
-      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"));
-      }
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+  <!-- ===== BONUS (frontend) ===== -->
+  <script>
+    function withTimeout(promise, ms=8000){
+      return new Promise((resolve, reject)=>{
+        const t = setTimeout(()=> reject(new Error("Timeout")), ms);
+        promise.then(v=>{clearTimeout(t); resolve(v);})
+               .catch(e=>{clearTimeout(t); reject(e);});
+      });
     }
-  }
-</script>
+
+    function tile(name, code, ok, tier){
+      const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
+      return `
+        <div class="tile ${ok?'ok':'miss'}">
+          <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>${esc(name)}</div>
+        </div>`;
+    }
+
+    async function loadBonus(){
+      const lock = $("#bonus-lock");
+      const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+      const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+      Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
+      Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+
+      let cleared = false;
+      setTimeout(()=>{
+        if (cleared) return;
+        Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
+      }, 3000);
+
+      try{
+        const r = await withTimeout(api("/api/bonus/status"), 8000);
+        cleared = true;
+        const hasArt = !!r?.has_artefact;
+        lock?.classList.toggle("hidden", hasArt);
+        if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+
+        function prettyNameFromCode(code){
+          return String(code)
+            .replace(/^T\d_/, "")
+            .replaceAll("_"," ")
+            .toLowerCase()
+            .replace(/\b\w/g, c=>c.toUpperCase());
+        }
+
+        for (const t of [2,3,4,5]){
+          const box = boxes[t]; if (!box) continue;
+          const info = r.tiers?.[t];
+          if (!info){ box.textContent="No data"; continue; }
+          const items = [];
+          for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
+          for (const c of (info.missing||[])) items.push(tile(prettyNameFromCode(c), c, false, t));
+          box.innerHTML = items.join("") || "Empty.";
+
+          const btn = btns[t];
+          if (btn){
+            const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+            btn.disabled = !canClaim;
+            btn.textContent = info.claimed ? "Claimed" : "Claim";
+            if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+            btn.onclick = async ()=>{
+              if (btn.disabled) return;
+              const prev = btn.textContent;
+              btn.disabled = true; btn.textContent = "Claiming…";
+              try{
+                await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+                toast(`T${t} bonus claimed.`);
+                await loadBonus();
+                await refreshMeLight();
+              }catch(e){
+                alert(e?.message || "Claim failed.");
+              } finally{
+                btn.textContent = prev;
+              }
+            };
+          }
+        }
+      }catch(e){
+        cleared = true;
+        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+          $("#auth")?.classList.remove("hidden");
+          $("#card-login") && ($("#card-login").style.display="block");
+          $("#card-register") && ($("#card-register").style.display="none");
+        }
+        Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+      }
+    }
+  </script>
+</body>
+</html>
