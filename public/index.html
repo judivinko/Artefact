@@ -32,7 +32,7 @@
         s.async = true;
         s.onload = () => { window.__PAYPAL_READY__ = true; };
         document.head.appendChild(s);
-        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
+        window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
       }catch(e){
         console.warn("PayPal SDK load failed:", e);
         window.__PAYPAL_DISABLED__ = true;
@@ -1325,3 +1325,4 @@
   </script>
 </body>
 </html>
+
