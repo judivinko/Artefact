@@ -21,8 +21,8 @@ const DB_FILE = process.env.DB_PATH || path.join(__dirname, "data", "artefact.db
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
 // ----------------- PAYPAL -----------------
-const USD_TO_GOLD = 100; // 1 USD = 100 gold
-const MIN_USD = 10; // minimalna uplata
+const USD_TO_GOLD = 1000; 
+const MIN_USD = 1; 
 const PAYPAL_MODE = (process.env.PAYPAL_MODE || "sandbox").toLowerCase(); // "live" | "sandbox"
 const PAYPAL_BASE = PAYPAL_MODE === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || "";
@@ -1656,6 +1656,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
