@@ -920,31 +920,33 @@
 </script>
 
   
-  //market
-<script>
+ <script>
 (() => {
-  // --- SHIMS / GLOBALS ---
-  const $  = window.$  || (s => document.querySelector(s));
+  // --- Reuse global helpers (već postoje u tvojem kodu) ---
+  const $     = window.$     || (s => document.querySelector(s));
   const api   = window.api   || (async()=>{ throw new Error("api() missing"); });
   const toast = window.toast || (t=>alert(t));
   const esc   = window.esc   || (s=>String(s)
     .replaceAll("&","&amp;").replaceAll("<","&lt;")
     .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"));
-  const RECIPE_ICON = (typeof window.RECIPE_ICON!=="undefined" && window.RECIPE_ICON) ? window.RECIPE_ICON : "/recipe.png";
-  const FALLBACK_ITEM_ICON = (typeof window.FALLBACK_ITEM_ICON!=="undefined" && window.FALLBACK_ITEM_ICON) ? window.FALLBACK_ITEM_ICON : "/t1_bronze.png";
-  const iconForByCode = (typeof window.iconForByCode==="function") ? window.iconForByCode : ((_c,_t)=>FALLBACK_ITEM_ICON);
-  const debounce = (fn, wait=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
-  const toInt = (v,d=0)=>{ const n = Number.parseInt(v,10); return Number.isFinite(n)?n:d; };
 
-  // Global state (bez ??= da ne ovisimo o novijim engine-ima)
+  const RECIPE_ICON        = (typeof window.RECIPE_ICON!=="undefined" && window.RECIPE_ICON) ? window.RECIPE_ICON : "/recipe.png";
+  const FALLBACK_ITEM_ICON = (typeof window.FALLBACK_ITEM_ICON!=="undefined" && window.FALLBACK_ITEM_ICON) ? window.FALLBACK_ITEM_ICON : "/t1_bronze.png";
+  const iconForByCode      = (typeof window.iconForByCode==="function") ? window.iconForByCode : ((_c,_t)=>FALLBACK_ITEM_ICON);
+
+  // --- Utils ---
+  const debounce   = (fn, wait=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
+  const toInt      = (v,d=0)=>{ const n = Number.parseInt(v,10); return Number.isFinite(n)?n:d; };
+  const clampSilver= v => { let n = toInt(v,0); if (n<0) n=0; if (n>99) n=99; return n; };
+  const fmtPrice   = s => { const v = (s|0); return `${Math.floor(v/100)}g ${v%100}s`; };
+  const bindOnce   = (el, type, handler)=>{ if(!el || el.dataset.bound) return; el.addEventListener(type,handler); el.dataset.bound="1"; };
+
+  // --- Global safe defaults (bez ??= radi kompatibilnosti) ---
   if (typeof window.SEL_INV === "undefined") window.SEL_INV = null;
   if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
+  if (typeof window.safeCall === "undefined") window.safeCall = () => {};
 
-  // ---------- Helpers ----------
-  function fmtPrice(s){
-    const v = (s|0); const g = Math.floor(v/100), ss = v%100;
-    return `${g}g ${ss}s`;
-  }
+  // --- Normalizacija listinga (tolerantno na server shape) ---
   function normalizeListing(s){
     const kind = s?.kind || (s?.type==='recipe' || s?.recipe_id ? 'recipe' : 'item');
     const code = s?.code ?? null;
@@ -959,18 +961,11 @@
       code, name, tier, qty, price_s, status: s?.status || 'live'
     };
   }
-  function clampSilver(v){ let n = toInt(v,0); if (n<0) n=0; if (n>99) n=99; return n; }
 
-  function bindOnce(el, type, handler){
-    if (!el || el.dataset.bound) return;
-    el.addEventListener(type, handler);
-    el.dataset.bound = "1";
-  }
-
-  // ==== Bind (once) ====
+  // ---------- UI BIND ----------
   function bindMarketUI(){
-    bindOnce($("#price-s"), "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
-    bindOnce($("#price-g"), "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
+    bindOnce($("#price-s"),   "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
+    bindOnce($("#price-g"),   "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
     bindOnce($("#price-qty"), "input", e=>{ const n = Math.max(1, toInt(e.target.value,1)); e.target.value = String(n); });
 
     bindOnce($("#market-q"), "input", debounce(loadMarket, 180));
@@ -980,7 +975,7 @@
     bindOnce($("#inv-search"), "input", debounce(loadInventoryPanel, 180));
   }
 
-  // ==== Create Sale: inventory panel ====
+  // ---------- INVENTORY (Create Sale panel) ----------
   async function loadInventoryPanel(){
     const box = $("#inv-list"); if(!box) return;
     box.textContent = "Loading…";
@@ -1032,7 +1027,7 @@
     }
   }
 
-  // ==== Market (live) ====
+  // ---------- MARKET (live listings) ----------
   async function loadMarket(){
     const box = $("#market"); if(!box) return;
     box.textContent = "Loading…";
@@ -1094,7 +1089,7 @@
     }
   }
 
-  // ==== My listings ====
+  // ---------- MY LISTINGS ----------
   async function loadMine(){
     const box = $("#mine"); if(!box) return;
     box.textContent = "Loading…";
@@ -1152,7 +1147,7 @@
     }
   }
 
-  // ==== List for sale ====
+  // ---------- LIST FOR SALE ----------
   async function doListForSale(){
     const msg = $("#list-msg"); if (msg) msg.textContent = "";
     if (!window.WHO?.id){ toast("Not logged in."); return; }
@@ -1185,7 +1180,7 @@
     }
   }
 
-  // ==== Full inventory tab ====
+  // ---------- INVENTORY (Full tab) ----------
   async function loadInventoryFull(){
     const box = $("#inv-full"); if(!box) return;
     box.textContent = "Loading…";
@@ -1228,7 +1223,7 @@
     }
   }
 
-  // ==== EXPORT & INIT ====
+  // ---------- EXPORT & INIT ----------
   window.loadInventoryPanel = loadInventoryPanel;
   window.loadMarket        = loadMarket;
   window.loadMine          = loadMine;
@@ -1237,14 +1232,15 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindMarketUI();
-    // inicijalna učitavanja
-    loadMarket();         // radi i bez login-a
-    loadMine();           // ako 401 → poruka
-    loadInventoryPanel(); // ako 401 → pokaže login
-    loadInventoryFull();  // ako 401 → pokaže login
+    // inicijalna učitavanja (rade i bez logina gdje je moguće)
+    loadMarket();
+    loadMine();
+    loadInventoryPanel();
+    loadInventoryFull();
   });
 })();
 </script>
+
 
 
   <!-- ===== BONUS (frontend) ===== -->
@@ -1339,6 +1335,7 @@
   </script>
 </body>
 </html>
+
 
 
 
