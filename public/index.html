@@ -312,7 +312,6 @@
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
   <script>
-    // Jedna istinita definicija – bez duplikata u drugim blokovima
     (function(){
       const w = window;
 
@@ -333,15 +332,11 @@
       // Ako je window.toast DOM element zbog id="toast", prepiši ga funkcijom
       try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
 
-      // FIX: api() ne postavlja Content-Type za GET i tolerira 204/loš JSON
+      // api helper (GET bez Content-Type; tolerira 204/loš JSON)
       w.api = w.api || (async function api(path, opts={}){
         const method = (opts.method || "GET").toUpperCase();
         const headers = Object.assign({}, opts.headers || {});
-        const init = {
-          credentials: "include",
-          ...opts,
-          method
-        };
+        const init = { credentials: "include", ...opts, method };
         if (method !== "GET" && method !== "HEAD") {
           headers["Content-Type"] = headers["Content-Type"] || "application/json";
         }
@@ -355,9 +350,7 @@
         try {
           res = await fetch(path, init);
         } catch (e) {
-          const err = new Error("Network error");
-          err.cause = e;
-          throw err;
+          const err = new Error("Network error"); err.cause = e; throw err;
         }
 
         let data = null;
@@ -497,7 +490,7 @@
               if (msg){
                 msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
               } else {
-                (window.toast||alert)(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
+                showToast(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
               }
             }catch(e){
               alert(e?.message || "Payment confirm failed.");
@@ -653,7 +646,7 @@
     }
   </script>
 
-   <!-- ===== Shop (Buy T1) ===== -->
+  <!-- ===== Shop (Buy T1) ===== -->
   <script>
     function updateShopBalanceBadge(){
       const el = $("#shop-balance");
@@ -857,7 +850,7 @@
     $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
     $("#filter-recipe")?.addEventListener("input", loadRecipes);
 
-    // ==== FIX: dugme je uvijek aktivno; status stoji u data-can
+    // Render + canCraft flag
     function renderIngredients(details){
       const parts = (details.ingredients||[]).map(ing=>{
         const ok = (ing.have|0) >= (ing.qty|0);
@@ -894,7 +887,7 @@
         const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
         box.innerHTML = renderIngredients(details);
         window.CURRENT_RECIPE_ID = details.recipe.id;
-        window.CURRENT_RECIPE_DETAILS = details; // za delegirani handler
+        window.CURRENT_RECIPE_DETAILS = details;
       }catch(e){
         box.textContent = e?.message || "Failed to load recipe.";
       }
@@ -1351,14 +1344,7 @@
           const box = boxes[t]; if (!box) continue;
           const info = r.tiers?.[t];
           if (!info){ box.textContent="No data"; continue; }
-          const items = [];
-          for (const c of (info.owned||[]))   items.push(tile(prettyNameFromCode(c), c, true,  t));
-          for (const c of (info.missing||[])) items.push(tile(pretyNameFromCode(c), c, false, t)); // NOTE: typo fixed below
-          // Fix tipfelera:
-          if ((info.missing||[]).length && items[items.length-1]?.includes('pretyNameFromCode')) {
-            // no-op, left for safety
-          }
-          // Realno: ponovno generiraj items ispravno
+
           const tiles = [];
           for (const c of (info.owned||[]))   tiles.push(tile(prettyNameFromCode(c), c, true,  t));
           for (const c of (info.missing||[])) tiles.push(tile(prettyNameFromCode(c), c, false, t));
