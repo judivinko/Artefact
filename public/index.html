@@ -1004,27 +1004,22 @@
 
   // ---------- SAFE LOAD (uvijek gasi loader) ----------
   async function safeLoad(boxSel, loader){
-    const box = $(boxSel); if (!box) return;
-    box.textContent = "Loading…";
-    try {
-      await loader(box);
-      if (!box.innerHTML || box.innerHTML.trim() === "") box.textContent = "Empty.";
-    } catch(e){
-      if (e && (e.status === 401 || /unauthorized|not logged in/i.test(String(e.message)))) {
-        box.textContent = "Login required.";
-        // prikaži login karticu kao i drugi tabovi
-        const auth = $("#auth"); if (auth) {
-          auth.classList.remove("hidden");
-          const log = $("#card-login"); const reg = $("#card-register");
-          if (log) log.style.display = "block"; if (reg) reg.style.display = "none";
-        }
-      } else if (/Timeout/i.test(String(e && e.message))) {
-        box.textContent = "Still loading… check connection";
-      } else {
-        box.textContent = e?.message || "Failed.";
-      }
+  const box = $(boxSel); if (!box) return;
+  box.setAttribute('data-loading','1');
+  box.innerHTML = "";
+  try{
+    await loader(box);
+  }catch(e){
+    if (e && (e.status===401 || /401|unauthorized|not logged in/i.test(String(e.message||"")))) {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#card-register") && ($("#card-register").style.display="none");
     }
+    console.warn("safeLoad fail:", e);
+  }finally{
+    box.removeAttribute('data-loading');
   }
+}
 
   // ---------- INVENTORY (Create Sale panel) ----------
   async function loadInventoryPanel(){
@@ -1362,6 +1357,7 @@
   </script>
 </body>
 </html>
+
 
 
 
