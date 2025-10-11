@@ -971,11 +971,8 @@
     return {
       id: s?.id,
       seller_user_id: s?.seller_user_id ?? null,
-      kind,
-      item_id: s?.item_id ?? null,
-      recipe_id: s?.recipe_id ?? null,
-      code, name, tier, qty, price_s,
-      status: s?.status || 'live'
+      kind, item_id: s?.item_id ?? null, recipe_id: s?.recipe_id ?? null,
+      code, name, tier, qty, price_s, status: s?.status || 'live'
     };
   }
 
@@ -1400,6 +1397,7 @@
   </script>
 </body>
 </html>
+
 
 
 
