@@ -920,7 +920,7 @@
 </script>
 
   
- <script>
+<script>
 (() => {
   // --- Reuse global helpers (već postoje u tvojem kodu) ---
   const $     = window.$     || (s => document.querySelector(s));
@@ -1036,14 +1036,13 @@
       const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
 
       let rows = (r.listings||[]).map(normalizeListing);
-      // sigurnosni filter — nema ARTEFACT/T6
       rows = rows.filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
       if (!rows.length){ box.textContent="No listings."; return; }
 
       const frag = document.createDocumentFragment();
       for (const s of rows){
         const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
-        const mine = !!(window.WHO?.id && s.seller_user_id === window.WHO.id);
+        const mine = !!(WHO?.id && s.seller_user_id === WHO.id);
 
         const row = document.createElement("div");
         row.className = "itemrow";
@@ -1060,13 +1059,13 @@
         const btn = row.querySelector("button.btn:not(.muted)");
         if (btn) {
           btn.addEventListener("click", async ()=>{
-            if (!window.WHO?.id){ toast("Please log in first."); return; }
+            if (!WHO?.id){ toast("Please log in first."); return; }
             if (btn.disabled) return;
             const prev = btn.textContent; btn.disabled=true; btn.textContent="Buying…";
             try{
               const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
-              if (typeof res?.buyer_balance_silver === "number" && window.WHO) {
-                window.WHO.balance_silver = res.buyer_balance_silver|0;
+              if (typeof res?.buyer_balance_silver === "number" && WHO) {
+                WHO.balance_silver = res.buyer_balance_silver|0;
               }
               await (window.refreshMeLight?.() || Promise.resolve());
               await loadMarket(); await loadMine(); await loadInventoryPanel();
@@ -1150,7 +1149,7 @@
   // ---------- LIST FOR SALE ----------
   async function doListForSale(){
     const msg = $("#list-msg"); if (msg) msg.textContent = "";
-    if (!window.WHO?.id){ toast("Not logged in."); return; }
+    if (!WHO?.id){ toast("Not logged in."); return; }
 
     const sel = window.SEL_INV;
     if (!sel){ msg && (msg.textContent = "Pick an item or recipe first (Pick)."); return; }
@@ -1232,7 +1231,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindMarketUI();
-    // inicijalna učitavanja (rade i bez logina gdje je moguće)
+    // inicijalna učitavanja
     loadMarket();
     loadMine();
     loadInventoryPanel();
@@ -1335,6 +1334,7 @@
   </script>
 </body>
 </html>
+
 
 
 
