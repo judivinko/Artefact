@@ -1194,9 +1194,6 @@
 
       const m = $("#list-msg"); if (m) m.textContent = "Listed.";
       window.SEL_INV = null;
-      $("#price-g")  && ($("#price-g").value = "");
-      $("#price-s")  && ($("#price-s").value = "");
-      $("#price-qty")&& ($("#price-qty").value = "");
       await loadMarket(); await loadMine(); await loadInventoryPanel();
       await (window.refreshMeLight?.() || Promise.resolve());
       (window.toast||alert)("Listing created.");
@@ -1364,5 +1361,6 @@
   </script>
 </body>
 </html>
+
 
 
