@@ -923,70 +923,56 @@
   //market
 <script>
 (() => {
-  // --- SHIMS / GLOBALS (oslanja se na postojeće ako već postoje) ---
+  // --- SHIMS / GLOBALS ---
   const $  = window.$  || (s => document.querySelector(s));
   const api   = window.api   || (async()=>{ throw new Error("api() missing"); });
   const toast = window.toast || (t=>alert(t));
-  const esc   = window.esc   || (s=>String(s).replaceAll("&","&amp;").replaceAll("<","&lt;")
-                                        .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"));
+  const esc   = window.esc   || (s=>String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"));
   const RECIPE_ICON = (typeof window.RECIPE_ICON!=="undefined" && window.RECIPE_ICON) ? window.RECIPE_ICON : "/recipe.png";
   const FALLBACK_ITEM_ICON = (typeof window.FALLBACK_ITEM_ICON!=="undefined" && window.FALLBACK_ITEM_ICON) ? window.FALLBACK_ITEM_ICON : "/t1_bronze.png";
   const iconForByCode = (typeof window.iconForByCode==="function") ? window.iconForByCode : ((_c,_t)=>FALLBACK_ITEM_ICON);
   const debounce = (fn, wait=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
-  const toInt = (v,d=0)=>{ const n=parseInt(v,10); return Number.isFinite(n)?n:d; };
+  const toInt = (v,d=0)=>{ const n = Number.parseInt(v,10); return Number.isFinite(n)?n:d; };
 
-  // Global state used by this panel
-  window.SEL_INV ??= null;
-  window.refreshMeLight ||= async () => {};
+  // Global state (bez ??= da ne ovisimo o novijim engine-ima)
+  if (typeof window.SEL_INV === "undefined") window.SEL_INV = null;
+  if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
 
-  // ---------- Helpers: listing normalizer (otporno na server varijacije) ----------
-  function normalizeListing(sRaw){
-    const s = sRaw || {};
-    // minimalni ključ: kind (derive from s.type ako kind izostane)
-    const kind = (s.kind) ? String(s.kind)
-               : (s.type === "recipe" ? "recipe" : "item");
-
-    // koercije
-    const id = toInt(s.id, 0);
-    const qty = toInt(s.qty, 1);
-    const price_s = toInt(s.price_s, 0);
-    // tier može biti null -> tretiramo kao 0 (radi prikaza i filtera)
-    const tier = Number.isFinite(s.tier|0) ? (s.tier|0) : 0;
-
-    // naziv i kod — koristi eksplicitna polja ako postoje; fallback na title; zadnji fallback je generički
-    let name = (s.name ?? s.title ?? "");
-    if (!name || !String(name).trim()) {
-      name = (kind === "item")
-        ? `Item #${s.item_id ?? "-"}`
-        : `Recipe #${s.recipe_id ?? "-"}`;
-    }
-    const code = s.code ?? null;
-
+  // ---------- Helpers ----------
+  function fmtPrice(s){
+    const v = (s|0); const g = Math.floor(v/100), ss = v%100;
+    return `${g}g ${ss}s`;
+  }
+  function normalizeListing(s){
+    const kind = s?.kind || (s?.type==='recipe' || s?.recipe_id ? 'recipe' : 'item');
+    const code = s?.code ?? null;
+    const tier = Number.isFinite(s?.tier) ? s.tier : ((s?.tier|0) || null);
+    const qty  = (s?.qty|0) || 1;
+    const price_s = (s?.price_s|0) || 0;
+    let name = (s?.name || s?.title || '').trim();
+    if (!name) name = kind==='item' ? `Item #${s?.item_id ?? '-'}` : `Recipe #${s?.recipe_id ?? '-'}`;
     return {
-      id,
-      seller_user_id: s.seller_user_id ?? null,
-      kind: (kind === "recipe" ? "recipe" : "item"),
-      item_id: s.item_id ?? null,
-      recipe_id: s.recipe_id ?? null,
-      code,
-      name: String(name),
-      tier,
-      qty,
-      price_s,
-      status: s.status || "live"
+      id: s?.id, seller_user_id: s?.seller_user_id ?? null,
+      kind, item_id: s?.item_id ?? null, recipe_id: s?.recipe_id ?? null,
+      code, name, tier, qty, price_s, status: s?.status || 'live'
     };
+  }
+  function clampSilver(v){ let n = toInt(v,0); if (n<0) n=0; if (n>99) n=99; return n; }
+
+  function bindOnce(el, type, handler){
+    if (!el || el.dataset.bound) return;
+    el.addEventListener(type, handler);
+    el.dataset.bound = "1";
   }
 
   // ==== Bind (once) ====
   function bindMarketUI(){
-    const bindOnce = (el, type, handler) => {
-      if (!el || el.dataset.bound) return;
-      el.addEventListener(type, handler);
-      el.dataset.bound = "1";
-    };
-    bindOnce($("#price-s"), "input", e=>{
-      let v = toInt(e.target.value,0); if (v<0) v=0; if (v>99) v=99; e.target.value=String(v);
-    });
+    bindOnce($("#price-s"), "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
+    bindOnce($("#price-g"), "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
+    bindOnce($("#price-qty"), "input", e=>{ const n = Math.max(1, toInt(e.target.value,1)); e.target.value = String(n); });
+
     bindOnce($("#market-q"), "input", debounce(loadMarket, 180));
     bindOnce($("#mine-q"),   "input", debounce(loadMine,   180));
     bindOnce($("#btn-mine"), "click", loadMine);
@@ -1001,12 +987,17 @@
     try{
       const r = await api("/api/inventory");
       const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-      const items   = (r.items||[]).filter(x => x.code!=="ARTEFACT" && (x.tier|0)<6)
-                                   .filter(x => !q || (x.name||"").toLowerCase().includes(q));
-      const recipes = (r.recipes||[]).filter(x => !q || (x.name||"").toLowerCase().includes(q));
+
+      const items = (r.items||[])
+        .filter(x => x.code!=="ARTEFACT" && (x.tier|0)<6)
+        .filter(x => !q || (x.name||"").toLowerCase().includes(q));
+
+      const recipes = (r.recipes||[])
+        .filter(x => !q || (x.name||"").toLowerCase().includes(q));
+
       const frag = document.createDocumentFragment();
 
-      const add = (arr, kind) => {
+      const addRows = (arr, kind) => {
         for (const it of arr){
           const icon = (kind==="item") ? (iconForByCode(it.code,it.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
           const row = document.createElement("div");
@@ -1024,7 +1015,8 @@
           frag.appendChild(row);
         }
       };
-      add(items,"item"); add(recipes,"recipe");
+      addRows(items,"item"); addRows(recipes,"recipe");
+
       box.innerHTML = "";
       box.appendChild(frag);
       if (!box.children.length) box.textContent = "Empty.";
@@ -1047,17 +1039,15 @@
     try{
       const q = ($("#market-q")?.value || "").trim();
       const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
-      // normaliziraj sve listinge
-      let rows = Array.isArray(r.listings) ? r.listings.map(normalizeListing) : [];
-      // filtriraj artefakt/t6 i više
+
+      let rows = (r.listings||[]).map(normalizeListing);
+      // sigurnosni filter — nema ARTEFACT/T6
       rows = rows.filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
       if (!rows.length){ box.textContent="No listings."; return; }
 
       const frag = document.createDocumentFragment();
       for (const s of rows){
-        const priceS = s.price_s|0, g=Math.floor(priceS/100), ss=priceS%100;
         const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
-        const title = s.name || (s.kind==="item" ? `Item #${s.item_id??"-"}` : `Recipe #${s.recipe_id??"-"}`);
         const mine = !!(window.WHO?.id && s.seller_user_id === window.WHO.id);
 
         const row = document.createElement("div");
@@ -1065,27 +1055,31 @@
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
             <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(title)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
+            <div>${esc(s.name)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
           </div>
           <div class="row">
-            <span class="badge">${g}g ${ss}s</span>
+            <span class="badge">${fmtPrice(s.price_s)}</span>
             ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
           </div>`;
 
         const btn = row.querySelector("button.btn:not(.muted)");
         if (btn) {
           btn.addEventListener("click", async ()=>{
+            if (!window.WHO?.id){ toast("Please log in first."); return; }
             if (btn.disabled) return;
             const prev = btn.textContent; btn.disabled=true; btn.textContent="Buying…";
             try{
               const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
-              if (typeof res?.buyer_balance_silver === "number" && window.WHO) window.WHO.balance_silver = res.buyer_balance_silver|0;
+              if (typeof res?.buyer_balance_silver === "number" && window.WHO) {
+                window.WHO.balance_silver = res.buyer_balance_silver|0;
+              }
               await (window.refreshMeLight?.() || Promise.resolve());
               await loadMarket(); await loadMine(); await loadInventoryPanel();
               await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
+              window.applyPerkIndicators?.();
               toast("Purchased.");
-            }catch(e){
-              toast(e?.data?.error || e?.message || "Purchase failed.");
+            }catch(err){
+              toast(err?.data?.error || err?.message || "Purchase failed.");
             }finally{
               btn.disabled=false; btn.textContent=prev;
             }
@@ -1106,27 +1100,26 @@
     box.textContent = "Loading…";
     try{
       const r = await api("/api/sales/mine");
-      let rows = Array.isArray(r.listings) ? r.listings.map(normalizeListing) : [];
-      rows = rows.filter(s => s.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+      let rows = (r.listings||[]).map(normalizeListing)
+        .filter(s => s.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+
       const q = ($("#mine-q")?.value || "").trim().toLowerCase();
       if (q) rows = rows.filter(s => (s.name||"").toLowerCase().includes(q));
       if (!rows.length){ box.textContent="No live listings."; return; }
 
       const frag = document.createDocumentFragment();
       for (const s of rows){
-        const priceS = s.price_s|0, g=Math.floor(priceS/100), ss=priceS%100;
         const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
-        const title = s.name || (s.kind==="item" ? `Item #${s.item_id??"-"}` : `Recipe #${s.recipe_id??"-"}`);
 
         const row = document.createElement("div");
         row.className = "itemrow";
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
             <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(title)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
+            <div>${esc(s.name)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
           </div>
           <div class="row">
-            <span class="badge">${g}g ${ss}s</span>
+            <span class="badge">${fmtPrice(s.price_s)}</span>
             <button class="btn danger">Cancel</button>
           </div>`;
 
@@ -1138,8 +1131,9 @@
             await loadMarket(); await loadMine(); await loadInventoryPanel();
             await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
             await (window.refreshMeLight?.() || Promise.resolve());
-          }catch(e){
-            toast(e?.message || "Cancel failed.");
+            window.applyPerkIndicators?.();
+          }catch(err){
+            toast(err?.message || "Cancel failed.");
           }finally{
             btn.disabled=false; btn.textContent=prev;
           }
@@ -1167,7 +1161,7 @@
     if (!sel){ msg && (msg.textContent = "Pick an item or recipe first (Pick)."); return; }
 
     const gold = Math.max(0, toInt($("#price-g")?.value,0));
-    let silver = Math.max(0, toInt($("#price-s")?.value,0)); if (silver>99) silver=99;
+    let silver = clampSilver($("#price-s")?.value);
     const qty   = Math.max(1, toInt($("#price-qty")?.value,1));
     if (gold===0 && silver===0){ msg && (msg.textContent="Set a price."); return; }
 
@@ -1183,6 +1177,7 @@
       await loadMarket(); await loadMine(); await loadInventoryPanel();
       await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
       await (window.refreshMeLight?.() || Promise.resolve());
+      window.applyPerkIndicators?.();
     }catch(e){
       msg && (msg.textContent = e?.data?.error || e?.message || "List failed.");
     }finally{
@@ -1344,6 +1339,7 @@
   </script>
 </body>
 </html>
+
 
 
 
