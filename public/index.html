@@ -958,7 +958,6 @@
   </div>
 </div>
 
-
 <!-- INVENTORY -->
 <div id="tab-inv" class="card hidden">
   <div class="label">Inventory</div>
@@ -967,10 +966,8 @@
 
 <!-- ===== Market & Inventory (JS) ===== -->
 <script>
-  // Debounce helper za search inpute
-  function debounce(fn, wait=180){
-    let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), wait); };
-  }
+  // Debounce helper (samo za inv-search lokalno)
+  function debounce(fn, wait=180){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; }
 
   window.SEL_INV = null;
 
@@ -984,8 +981,8 @@
       const itemsAll = Array.isArray(r.items) ? r.items : [];
       const items = itemsAll.filter(x => !q || (x.name||"").toLowerCase().includes(q));
       const itemsFiltered = items.filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6);
-      const recipes = (Array.isArray(r.recipes) ? r.recipes : [])
-        .filter(x => !q || (x.name||"").toLowerCase().includes(q));
+      const recipes = (Array.isArray(r.recipes) ? r.recipes : []).filter(x => !q || (x.name||"").toLowerCase().includes(q));
+
       box.innerHTML = "";
       const add = (arr, kind) => {
         for (const it of arr){
@@ -1012,6 +1009,7 @@
       box.textContent = e?.message || "Failed.";
     }
   }
+  // samo inv-search koristi debounce
   $("#inv-search")?.addEventListener("input", debounce(loadInventoryPanel,180));
 
   /* ---------- MARKET (live listings) ---------- */
@@ -1050,16 +1048,9 @@
             const prev = btn.textContent;
             btn.disabled = true; btn.textContent = "Buying…";
             try{
-              const res = await api("/api/sales/buy", {
-                method:"POST",
-                body: JSON.stringify({ id: s.id })
-              });
-
-              if (res && typeof res.buyer_balance_silver === "number" && WHO) {
-                WHO.balance_silver = res.buyer_balance_silver | 0;
-              } else if (res && typeof res.balance_silver === "number" && WHO) {
-                WHO.balance_silver = res.balance_silver | 0;
-              }
+              const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
+              if (res && typeof res.buyer_balance_silver === "number" && WHO) WHO.balance_silver = res.buyer_balance_silver | 0;
+              else if (res && typeof res.balance_silver === "number" && WHO) WHO.balance_silver = res.balance_silver | 0;
 
               await refreshMeLight();
               await loadMarket();
@@ -1070,9 +1061,7 @@
               if (res?.purchased?.name) {
                 const qty = res?.purchased?.qty ?? 1;
                 toast(`Purchased: ${res.purchased.name}${qty>1?` (x${qty})`:""}`);
-              } else {
-                toast("Purchased.");
-              }
+              } else { toast("Purchased."); }
             }catch(e){
               const msg = e?.data?.error || e?.message || e?.error || "Purchase failed.";
               toast(msg);
@@ -1089,7 +1078,6 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  document.getElementById("market-q")?.addEventListener("input", debounce(loadMarket,180));
 
   /* ---------- MOJI OGLASI ---------- */
   async function loadMine(){
@@ -1097,17 +1085,13 @@
     box.textContent = "Loading…";
     try{
       const r = await api("/api/sales/mine");
-      let rows = (r?.listings || [])
-        .filter(Boolean)
+      let rows = (r?.listings || []).filter(Boolean)
         .filter(s => s?.status === "live" && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
 
       const q = ($("#mine-q")?.value || "").trim().toLowerCase();
       if (q) rows = rows.filter(s => (s?.name || "").toLowerCase().includes(q));
 
-      if (!rows.length){
-        box.textContent = "No live listings.";
-        return;
-      }
+      if (!rows.length){ box.textContent = "No live listings."; return; }
       box.innerHTML = "";
       for (const s of rows){
         const priceS = s?.price_s | 0;
@@ -1124,8 +1108,7 @@
           <div class="row">
             <span class="badge">${g}g ${ss}s</span>
             <button class="btn danger">Cancel</button>
-          </div>
-        `;
+          </div>`;
         const btn = row.querySelector("button");
         btn.addEventListener("click", async ()=>{
           if (btn.disabled) return;
@@ -1150,8 +1133,6 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  document.getElementById("btn-mine")?.addEventListener("click", loadMine);
-  document.getElementById("mine-q")?.addEventListener("input", debounce(loadMine,180));
 
   /* ---------- INVENTORY FULL (tab) ---------- */
   async function loadInventoryFull(){
@@ -1189,24 +1170,19 @@
     }
   }
 
-  /* ---------- LIST FOR SALE (FIX) ---------- */
-  function parseIntSafe(v, d=0){ const n = parseInt(v,10); return Number.isFinite(n) ? n : d; }
+  /* ---------- LIST FOR SALE (konačna) ---------- */
+  function int(v, d=0){ const n = parseInt(v,10); return Number.isFinite(n) ? n : d; }
 
   async function doListForSale(){
-    const msg = document.getElementById("list-msg");
-    if (msg) msg.textContent = "";
-
-    if (!WHO?.id){ toast("Log in first."); return; }
+    const msg = document.getElementById("list-msg"); if (msg) msg.textContent = "";
+    if (!window.WHO?.id){ toast("Log in first."); return; }
 
     const sel = window.SEL_INV;
-    if (!sel){
-      if (msg) msg.textContent = "Pick an item or recipe first (button Pick).";
-      return;
-    }
+    if (!sel){ if (msg) msg.textContent = "Pick an item or recipe first (Pick)."; return; }
 
-    const g   = parseIntSafe(document.getElementById("price-g")?.value || "0", 0);
-    const s   = parseIntSafe(document.getElementById("price-s")?.value || "0", 0);
-    const qty = parseIntSafe(document.getElementById("price-qty")?.value || "1", 1);
+    const g   = int(document.getElementById("price-g")?.value || "0", 0);
+    const s   = int(document.getElementById("price-s")?.value || "0", 0);
+    const qty = int(document.getElementById("price-qty")?.value || "1", 1);
 
     if (g < 0){ if (msg) msg.textContent = "Gold must be ≥ 0."; return; }
     if (s < 0 || s > 99){ if (msg) msg.textContent = "Silver must be 0–99."; return; }
@@ -1215,12 +1191,10 @@
     const price_s = g*100 + s;
     if (price_s <= 0){ if (msg) msg.textContent = "Set a price."; return; }
 
-    // Poštuj perk minimalne cijene ako postoji
-    const minS = WHO?.perks?.min_list_price_s | 0;
+    const minS = window.WHO?.perks?.min_list_price_s | 0;
     if (minS && price_s < minS){
       const mg = Math.floor(minS/100), ms = minS%100;
-      if (msg) msg.textContent = `Min price is ${mg}g ${ms}s.`;
-      return;
+      if (msg) msg.textContent = `Min price is ${mg}g ${ms}s.`; return;
     }
 
     const btn = document.getElementById("btn-list");
@@ -1228,43 +1202,32 @@
     if (btn){ btn.disabled = true; btn.textContent = "Listing…"; }
 
     try{
-      await api("/api/sales/list", {
-        method: "POST",
-        body: JSON.stringify({
-          kind: sel.kind,   // "item" ili "recipe"
-          id: sel.id,       // ID iz inventara
-          qty: qty,
-          price_s: price_s  // cijena u silveru (100 = 1g)
-        })
-      });
-
-      await loadMarket();
-      await loadMine();
-      await loadInventoryPanel();
-      await safeCall("loadInventoryFull");
-      await refreshMeLight();
-
-      // Reset forme
+      await api("/api/sales/list", { method:"POST", body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, price_s }) });
       window.SEL_INV = null;
       const f1 = document.getElementById("price-g");   if (f1) f1.value = "";
       const f2 = document.getElementById("price-s");   if (f2) f2.value = "";
       const f3 = document.getElementById("price-qty"); if (f3) f3.value = "";
       if (msg) msg.textContent = "Listed.";
       toast("Listing created.");
+      await loadMarket(); await loadMine(); await loadInventoryPanel(); await safeCall("loadInventoryFull"); await refreshMeLight();
     }catch(e){
       if (msg) msg.textContent = e?.data?.error || e?.message || "List failed.";
     }finally{
       if (btn){ btn.disabled = false; btn.textContent = prev || "List for sale"; }
     }
   }
-  document.getElementById("btn-list")?.addEventListener("click", doListForSale);
 
-  // Normalizacija silver polja 0–99 dok tipkaš
-  document.getElementById("price-s")?.addEventListener("input", e=>{
-    let v = parseIntSafe(e.target.value,0);
-    if (v < 0) v = 0;
-    if (v > 99) v = 99;
-    e.target.value = String(v);
+  /* --- Eksponuj funkcije koje zovemo iz HTML-a --- */
+  window.loadMarket = loadMarket;
+  window.loadMine = loadMine;
+  window.doListForSale = doListForSale;
+
+  /* --- Inicijalni load (kad je DOM spreman) --- */
+  document.addEventListener("DOMContentLoaded", ()=>{
+    loadInventoryPanel();
+    loadMarket();
+    loadMine();
+    loadInventoryFull();
   });
 </script>
 
@@ -1361,6 +1324,7 @@
   </script>
 </body>
 </html>
+
 
 
 
