@@ -966,9 +966,8 @@
 
 <script>
 (() => {
-  // --- SHIMS / GLOBALS (koristi postojeće ako su već definirani) ---
+  // ---- SHIMS / GLOBALS ----
   const $  = window.$  || (s => document.querySelector(s));
-  const $$ = window.$$ || (s => Array.from(document.querySelectorAll(s)));
   const api   = window.api   || (async()=>{ throw new Error("api() missing"); });
   const toast = window.toast || (t=>alert(t));
   const esc   = window.esc   || (s=>String(s).replaceAll("&","&amp;").replaceAll("<","&lt;")
@@ -979,11 +978,10 @@
   const debounce = (fn, wait=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
   const toInt = (v,d=0)=>{ const n=parseInt(v,10); return Number.isFinite(n)?n:d; };
 
-  // Fallbacki za globalne koje koristi ostatak app-a
   window.refreshMeLight ||= async () => {};
   window.SEL_INV ??= null;
 
-  // ==== BIND UI (samo jednom) ====
+  // ---- UI BIND (once) ----
   function bindMarketUI(){
     const bindOnce = (el, type, handler) => {
       if (!el || el.dataset.bound) return;
@@ -1000,7 +998,7 @@
     bindOnce($("#inv-search"), "input", debounce(loadInventoryPanel, 180));
   }
 
-  // ==== CREATE SALE: INVENTORY PANEL (desni gornji box) ====
+  // ---- Create Sale: inventory panel ----
   async function loadInventoryPanel(){
     const box = $("#inv-list"); if(!box) return;
     box.textContent = "Loading…";
@@ -1035,7 +1033,6 @@
       box.appendChild(frag);
       if (!box.children.length) box.textContent = "Empty.";
     }catch(e){
-      // Ako 401: pokaži login karticu umjesto vječnog 'Loading…'
       if (e?.status === 401) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
@@ -1047,7 +1044,7 @@
     }
   }
 
-  // ==== MARKET (LIVE) ====
+  // ---- Market (live) ----
   async function loadMarket(){
     const box = $("#market"); if(!box) return;
     box.textContent = "Loading…";
@@ -1076,7 +1073,6 @@
             ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
           </div>`;
 
-        // BUY
         const btn = row.querySelector("button.btn:not(.muted)");
         if (btn) {
           btn.addEventListener("click", async ()=>{
@@ -1086,9 +1082,7 @@
               const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
               if (typeof res?.buyer_balance_silver === "number" && window.WHO) window.WHO.balance_silver = res.buyer_balance_silver|0;
               await (window.refreshMeLight?.() || Promise.resolve());
-              await loadMarket();
-              await loadMine();
-              await loadInventoryPanel();
+              await loadMarket(); await loadMine(); await loadInventoryPanel();
               await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
               toast("Purchased.");
             }catch(e){
@@ -1107,7 +1101,7 @@
     }
   }
 
-  // ==== MY LISTINGS ====
+  // ---- My listings ----
   async function loadMine(){
     const box = $("#mine"); if(!box) return;
     box.textContent = "Loading…";
@@ -1136,15 +1130,12 @@
             <button class="btn danger">Cancel</button>
           </div>`;
 
-        // CANCEL
         row.querySelector("button.btn.danger").addEventListener("click", async ()=>{
           const btn = row.querySelector("button.btn.danger"); if (!btn || btn.disabled) return;
           const prev = btn.textContent; btn.disabled=true; btn.textContent="Cancel…";
           try{
             await api("/api/sales/cancel", { method:"POST", body: JSON.stringify({ id: s.id }) });
-            await loadMarket();
-            await loadMine();
-            await loadInventoryPanel();
+            await loadMarket(); await loadMine(); await loadInventoryPanel();
             await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
             await (window.refreshMeLight?.() || Promise.resolve());
           }catch(e){
@@ -1160,7 +1151,6 @@
       box.appendChild(frag);
     }catch(e){
       if (e?.status === 401) {
-        // Ako nije logovan, uredno reci — nema beskonačnog "Loading…"
         box.textContent = "Login to view your listings.";
       } else {
         box.textContent = e?.message || "Failed.";
@@ -1168,41 +1158,7 @@
     }
   }
 
-  // ==== LIST FOR SALE ====
-  async function doListForSale(){
-    const msg = $("#list-msg"); if (msg) msg.textContent = "";
-    if (!window.WHO?.id){ toast("Not logged in."); return; }
-
-    const sel = window.SEL_INV;
-    if (!sel){ msg && (msg.textContent = "Pick an item or recipe first (Pick)."); return; }
-
-    const gold = Math.max(0, toInt($("#price-g")?.value,0));
-    let silver = Math.max(0, toInt($("#price-s")?.value,0)); if (silver>99) silver=99;
-    const qty   = Math.max(1, toInt($("#price-qty")?.value,1));
-    if (gold===0 && silver===0){ msg && (msg.textContent="Set a price."); return; }
-
-    const btn = $("#btn-list"); const prev = btn?.textContent;
-    if (btn){ btn.disabled=true; btn.textContent="Listing…"; }
-
-    try{
-      await api("/api/sales/list", { method:"POST", body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver }) });
-      window.SEL_INV = null;
-      $("#price-g")?.value = ""; $("#price-s")?.value = ""; $("#price-qty")?.value = "";
-      msg && (msg.textContent = "Listed.");
-      toast("Listing created.");
-      await loadMarket();
-      await loadMine();
-      await loadInventoryPanel();
-      await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
-      await (window.refreshMeLight?.() || Promise.resolve());
-    }catch(e){
-      msg && (msg.textContent = e?.data?.error || e?.message || "List failed.");
-    }finally{
-      if (btn){ btn.disabled=false; btn.textContent=prev || "List for sale"; }
-    }
-  }
-
-  // ==== FULL INVENTORY TAB ====
+  // ---- Full inventory tab ----
   async function loadInventoryFull(){
     const box = $("#inv-full"); if(!box) return;
     box.textContent = "Loading…";
@@ -1245,7 +1201,7 @@
     }
   }
 
-  // ==== EXPORT & INIT ====
+  // ---- EXPORT & INIT ----
   window.loadInventoryPanel = loadInventoryPanel;
   window.loadMarket        = loadMarket;
   window.loadMine          = loadMine;
@@ -1254,14 +1210,14 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindMarketUI();
-    // Na prvom loadu:
-    loadMarket();           // javni endpoint → radi i bez login-a
-    loadMine();             // ako 401 → poruka "Login to view your listings."
-    loadInventoryPanel();   // ako 401 → otvorit će login panel
-    loadInventoryFull();    // ako 401 → otvorit će login panel
+    loadMarket();         // radi i bez login-a
+    loadMine();           // ako 401 → poruka
+    loadInventoryPanel(); // ako 401 → otvara login msg
+    loadInventoryFull();  // ako 401 → otvara login msg
   });
 })();
 </script>
+
 
 
 
@@ -1357,6 +1313,7 @@
   </script>
 </body>
 </html>
+
 
 
 
