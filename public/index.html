@@ -926,9 +926,10 @@
       <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
       <div class="row" style="margin-top:8px">
         <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"
+               oninput="this.value=Math.max(0,Math.min(99,parseInt(this.value||0,10)))"/>
         <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-        <button id="btn-list" class="btn">List for sale</button>
+        <button id="btn-list" class="btn" onclick="doListForSale()">List for sale</button>
       </div>
       <div class="row muted" style="margin-top:6px">
         <span id="market-fee-inline" class="badge">Fee: 1%</span>
@@ -940,20 +941,23 @@
       <!-- Ujednačen naslov + search -->
       <div class="row market-header">
         <div class="label">Marketplace</div>
-        <input id="market-q" class="input grow" placeholder="Search by name..." autocomplete="off" />
+        <input id="market-q" class="input grow" placeholder="Search by name..." autocomplete="off"
+               oninput="loadMarket()" />
       </div>
       <div id="market" class="list">Loading…</div>
 
       <!-- My listings: naslov + search + reload -->
       <div class="row market-header" style="margin-top:12px">
         <div class="label">My listings</div>
-        <input id="mine-q" class="input grow" placeholder="Search my listings..." autocomplete="off" />
-        <button id="btn-mine" class="btn muted">Reload</button>
+        <input id="mine-q" class="input grow" placeholder="Search my listings..." autocomplete="off"
+               oninput="loadMine()" />
+        <button id="btn-mine" class="btn muted" onclick="loadMine()">Reload</button>
       </div>
       <div id="mine" class="list">Loading…</div>
     </div>
   </div>
 </div>
+
 
 <!-- INVENTORY -->
 <div id="tab-inv" class="card hidden">
@@ -1357,6 +1361,7 @@
   </script>
 </body>
 </html>
+
 
 
 
