@@ -919,135 +919,76 @@
   });
 </script>
 
-<!-- //market (FIXED) -->
+<!-- ===== Market & Inventory (NEW, FIXED) ===== -->
 <script>
 (() => {
-  // --- Reuse global helpers ---
-  const $     = window.$     || (s => document.querySelector(s));
-  const api   = window.api   || (async()=>{ throw new Error("api() missing"); });
+  // ——— Reuse global helpers (mora već postojati u stranici) ———
+  const $   = window.$   || (s => document.querySelector(s));
+  const api = window.api || (async()=>{ throw new Error("api() missing"); });
+  const esc = window.esc || (s=>String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;"));
   const toast = window.toast || (t=>alert(t));
-  const esc   = window.esc   || (s=>String(s)
-    .replaceAll("&","&amp;").replaceAll("<","&lt;")
-    .replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;"));
 
-  const RECIPE_ICON        = (typeof window.RECIPE_ICON!=="undefined" && window.RECIPE_ICON) ? window.RECIPE_ICON : "/recipe.png";
-  const FALLBACK_ITEM_ICON = (typeof window.FALLBACK_ITEM_ICON!=="undefined" && window.FALLBACK_ITEM_ICON) ? window.FALLBACK_ITEM_ICON : "/t1_bronze.png";
-  const iconForByCode      = (typeof window.iconForByCode==="function") ? window.iconForByCode : ((_c,_t)=>FALLBACK_ITEM_ICON);
+  // Ikone (oslanja se na postojeće definicije u stranici)
+  const RECIPE_ICON        = (typeof window.RECIPE_ICON!=="undefined" ? window.RECIPE_ICON : "/recipe.png");
+  const FALLBACK_ITEM_ICON = (typeof window.FALLBACK_ITEM_ICON!=="undefined" ? window.FALLBACK_ITEM_ICON : "/t1_bronze.png");
+  const iconForByCode      = (typeof window.iconForByCode==="function" ? window.iconForByCode : ((_c,_t)=>FALLBACK_ITEM_ICON));
 
-  // --- Utils ---
-  const debounce   = (fn, wait=200)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; };
-  const toInt      = (v,d=0)=>{ const n = Number.parseInt(v,10); return Number.isFinite(n)?n:d; };
-  const clampSilver= v => { let n = toInt(v,0); if (n<0) n=0; if (n>99) n=99; return n; };
-  const fmtPrice   = s => { const v = (s|0); return `${Math.floor(v/100)}g ${v%100}s`; };
-  const bindOnce   = (el, type, handler)=>{ if(!el || el.dataset.bound) return; el.addEventListener(type,handler); el.dataset.bound="1"; };
-
-  // --- Global safe defaults ---
-  if (typeof window.SEL_INV === "undefined") window.SEL_INV = null;
-  if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
-  if (typeof window.safeCall === "undefined") window.safeCall = () => {};
-
-  // --- Concurrency locks (sprječavanje duplih fetch-eva) ---
-  let _loadingMarket   = false;
-  let _loadingMine     = false;
-  let _loadingInvPanel = false;
-  let _loadingInvFull  = false;
-
-  // --- Pretty name iz code-a ---
-  const prettyFromCode = (code) => {
-    if (!code) return "";
-    return String(code).replace(/^T\d_/, "").replaceAll("_"," ")
-      .toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+  // Timeout helper (ako već postoji globalni, koristi njega)
+  const withTimeout = window.withTimeout || function(promise, ms=8000){
+    return new Promise((resolve, reject)=>{
+      const t = setTimeout(()=>reject(new Error("Timeout")), ms);
+      promise.then(v=>{clearTimeout(t); resolve(v);})
+             .catch(e=>{clearTimeout(t); reject(e);});
+    });
   };
 
-  // --- Normalize listing ---
-  function normalizeListing(s){
-    const kind = s?.kind || (s?.type==='recipe' || s?.recipe_id ? 'recipe' : 'item');
-    const code = s?.code ?? null;
-    const tier = Number.isFinite(s?.tier) ? s.tier : ((s?.tier|0) || null);
-    const qty  = (s?.qty|0) || 1;
-    const price_s = (s?.price_s|0) || 0;
-    let name = (s?.name || s?.title || '').trim();
-    if (!name) name = kind==='item' ? `Item #${s?.item_id ?? '-'}` : `Recipe #${s?.recipe_id ?? '-'}`;
-    return {
-      id: s?.id,
-      seller_user_id: s?.seller_user_id ?? null,
-      kind, item_id: s?.item_id ?? null, recipe_id: s?.recipe_id ?? null,
-      code, name, tier, qty, price_s, status: s?.status || 'live'
-    };
-  }
+  // ——— STATE ———
+  window.SEL_INV = null;   // { kind: 'item'|'recipe', id, name }
 
-  // ---------- UI BIND ----------
-  function bindMarketUI(){
-    // kozmetika
-    const headers = document.querySelectorAll('#tab-market .label');
-    headers.forEach(h=>{ if (h && /market/i.test(h.textContent)) h.textContent = 'Market'; });
-
-    bindOnce($("#price-s"),   "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
-    bindOnce($("#price-g"),   "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
-    bindOnce($("#price-qty"), "input", e=>{ const n = Math.max(1, toInt(e.target.value,1)); e.target.value = String(n); });
-
-    bindOnce($("#market-q"), "input", debounce(loadMarket, 180));
-    bindOnce($("#mine-q"),   "input", debounce(loadMine,   180));
-    bindOnce($("#btn-mine"), "click", loadMine);
-    bindOnce($("#btn-list"), "click", doListForSale);
-    bindOnce($("#inv-search"), "input", debounce(loadInventoryPanel, 180));
-  }
-
-  // ---------- INVENTORY (Create Sale panel) ----------
+  // ——— INVENTORY: Create Sale panel ———
   async function loadInventoryPanel(){
-    if (_loadingInvPanel) return;
-    _loadingInvPanel = true;
-    const box = $("#inv-list"); if(!box){ _loadingInvPanel=false; return; }
+    const box = $("#inv-list"); if (!box) return;
     box.textContent = "Loading…";
     try{
-      const r = await api("/api/inventory");
+      const r = await withTimeout(api("/api/inventory"), 8000);
       const q = ($("#inv-search")?.value || "").trim().toLowerCase();
 
-      const items = (r.items||[])
-        .filter(x => x.code!=="ARTEFACT" && (x.tier|0)<6)
+      const items = (Array.isArray(r.items)?r.items:[])
+        .filter(x => x.code!=="ARTEFACT" && (x.tier|0) < 6)
         .filter(x => !q || (x.name||"").toLowerCase().includes(q));
 
-      const recipes = (r.recipes||[])
+      const recipes = (Array.isArray(r.recipes)?r.recipes:[])
         .filter(x => !q || (x.name||"").toLowerCase().includes(q));
 
       const frag = document.createDocumentFragment();
-
       const addRows = (arr, kind) => {
         for (const it of arr){
-          const icon = (kind==="item") ? (iconForByCode(it.code,it.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
+          const icon = kind==="item" ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON) : RECIPE_ICON;
           const row = document.createElement("div");
           row.className = "itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
               <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(it.name || prettyFromCode(it.code) || (kind==='item'?'Item':'Recipe'))}
-                <span class="badge">T${it.tier ?? "-"}</span> <span class="muted">x${it.qty ?? 1}</span>
-              </div>
+              <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
             </div>
             <button class="btn muted">Pick</button>`;
           row.querySelector("button").addEventListener("click", ()=>{
-            const chosenId =
-              it.id ??
-              it.item_id ??
-              it.recipe_id ??
-              it.inv_id ??
-              null;
-            const chosenName = (it.name || prettyFromCode(it.code) || (kind==='item'?'Item':'Recipe')).trim();
-
-            window.SEL_INV = { kind, id: chosenId, name: chosenName, code: it.code || null, tier: it.tier ?? null };
-            const m = $("#list-msg"); if (m) m.textContent = chosenId ? ("Selected: " + chosenName) : "Selected, but ID missing";
+            window.SEL_INV = { kind, id: it.id, name: it.name };
+            const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
             $("#price-g")?.focus();
           });
           frag.appendChild(row);
         }
       };
-      addRows(items,"item"); addRows(recipes,"recipe");
+      addRows(items, "item"); addRows(recipes, "recipe");
 
       box.innerHTML = "";
       box.appendChild(frag);
       if (!box.children.length) box.textContent = "Empty.";
     }catch(e){
-      if (e?.status === 401) {
+      if (e?.status===401) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
         $("#card-register") && ($("#card-register").style.display="none");
@@ -1055,57 +996,53 @@
       } else {
         box.textContent = e?.message || "Failed.";
       }
-    } finally {
-      _loadingInvPanel = false;
     }
   }
+  $("#inv-search")?.addEventListener("input", debounce(loadInventoryPanel, 180));
 
-  // ---------- MARKET (live listings) ----------
+  // ——— MARKET: Live listings ———
   async function loadMarket(){
-    if (_loadingMarket) return;
-    _loadingMarket = true;
-    const box = $("#market"); if(!box){ _loadingMarket=false; return; }
+    const box = $("#market"); if (!box) return;
     box.textContent = "Loading…";
     try{
-      const qRaw = ($("#market-q")?.value || "").trim();
-      const r = await api("/api/sales/live" + (qRaw?("?q="+encodeURIComponent(qRaw)):""));
+      const q = ($("#market-q")?.value || "").trim();
+      const r = await withTimeout(api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):"")), 8000);
 
-      let rows = (r.listings||[]).map(normalizeListing);
-      // izbacujemo ARTEFACT i T6+ iteme iz prikaza
+      let rows = (r?.listings || []).filter(Boolean);
       rows = rows.filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
-
-      // lokalni filter (case-insensitive), dodatno uz backend
-      const q = qRaw.toLowerCase();
-      if (q) rows = rows.filter(s => (s.name||"").toLowerCase().includes(q));
-
-      if (!rows.length){ box.textContent="No listings."; return; }
+      if (!rows.length){ box.textContent = "No listings."; return; }
 
       const frag = document.createDocumentFragment();
       for (const s of rows){
-        const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
-        const mine = !!(window.WHO?.id && s.seller_user_id === window.WHO.id);
+        const priceS = s?.price_s|0, g=Math.floor(priceS/100), ss=priceS%100;
+        const ico = s.kind==="item" ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : RECIPE_ICON;
+        const title = s?.name || (s.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
+        const mine = !!(window.WHO?.id && s?.seller_user_id === window.WHO.id);
 
         const row = document.createElement("div");
         row.className = "itemrow";
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
             <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(s.name)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
+            <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
           </div>
           <div class="row">
-            <span class="badge">${fmtPrice(s.price_s)}</span>
+            <span class="badge">${g}g ${ss}s</span>
             ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
           </div>`;
 
         const btn = row.querySelector("button.btn:not(.muted)");
-        if (btn) {
+        if (btn){
           btn.addEventListener("click", async ()=>{
             if (!window.WHO?.id){ toast("Please log in first."); return; }
             if (btn.disabled) return;
-            const prev = btn.textContent; btn.disabled=true; btn.textContent="Buying…";
+            const prev = btn.textContent; btn.disabled = true; btn.textContent = "Buying…";
             try{
-              const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
-              if (typeof res?.buyer_balance_silver === "number" && window.WHO) {
+              const res = await withTimeout(api("/api/sales/buy", {
+                method:"POST", body: JSON.stringify({ id: s.id })
+              }), 8000);
+
+              if (typeof res?.buyer_balance_silver === "number" && window.WHO){
                 window.WHO.balance_silver = res.buyer_balance_silver|0;
               }
               await (window.refreshMeLight?.() || Promise.resolve());
@@ -1116,7 +1053,7 @@
             }catch(err){
               toast(err?.data?.error || err?.message || "Purchase failed.");
             }finally{
-              btn.disabled=false; btn.textContent=prev;
+              btn.disabled = false; btn.textContent = prev;
             }
           });
         }
@@ -1126,47 +1063,47 @@
       box.appendChild(frag);
     }catch(e){
       box.textContent = e?.message || "Failed.";
-    } finally {
-      _loadingMarket = false;
     }
   }
+  $("#market-q")?.addEventListener("input", debounce(loadMarket, 180));
 
-  // ---------- MY LISTINGS ----------
+  // ——— MY LISTINGS ———
   async function loadMine(){
-    if (_loadingMine) return;
-    _loadingMine = true;
-    const box = $("#mine"); if(!box){ _loadingMine=false; return; }
+    const box = $("#mine"); if (!box) return;
     box.textContent = "Loading…";
     try{
-      const r = await api("/api/sales/mine");
-      let rows = (r.listings||[]).map(normalizeListing)
-        .filter(s => s.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+      const r = await withTimeout(api("/api/sales/mine"), 8000);
+      let rows = (r?.listings || []).filter(Boolean)
+        .filter(s => s?.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
 
-      const q = ($("#mine-q")?.value || "").trim().toLowerCase();
-      if (q) rows = rows.filter(s => (s.name||"").toLowerCase().includes(q));
-      if (!rows.length){ box.textContent="No live listings."; return; }
+      if (!rows.length){ box.textContent = "No live listings."; return; }
 
       const frag = document.createDocumentFragment();
       for (const s of rows){
-        const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
+        const priceS = s?.price_s|0, g=Math.floor(priceS/100), ss=priceS%100;
+        const ico = s.kind==="item" ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : RECIPE_ICON;
+        const title = s?.name || (s.kind==="item" ? `Item #${s?.item_id??"-"}` : `Recipe #${s?.recipe_id??"-"}`);
 
         const row = document.createElement("div");
         row.className = "itemrow";
         row.innerHTML = `
           <div class="row" style="gap:10px;align-items:center">
             <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(s.name)} <span class="badge">T${s.tier ?? "-"}</span> <span class="muted">x${s.qty ?? 1}</span></div>
+            <div>${esc(title)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
           </div>
           <div class="row">
-            <span class="badge">${fmtPrice(s.price_s)}</span>
+            <span class="badge">${g}g ${ss}s</span>
             <button class="btn danger">Cancel</button>
           </div>`;
 
-        row.querySelector("button.btn.danger").addEventListener("click", async ()=>{
-          const btn = row.querySelector("button.btn.danger"); if (!btn || btn.disabled) return;
-          const prev = btn.textContent; btn.disabled=true; btn.textContent="Cancel…";
+        const btn = row.querySelector("button.btn.danger");
+        btn.addEventListener("click", async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent; btn.disabled = true; btn.textContent = "Cancel…";
           try{
-            await api("/api/sales/cancel", { method:"POST", body: JSON.stringify({ id: s.id }) });
+            await withTimeout(api("/api/sales/cancel", {
+              method:"POST", body: JSON.stringify({ id: s.id })
+            }), 8000);
             await loadMarket(); await loadMine(); await loadInventoryPanel();
             await (window.safeCall?.("loadInventoryFull") || Promise.resolve());
             await (window.refreshMeLight?.() || Promise.resolve());
@@ -1174,7 +1111,7 @@
           }catch(err){
             toast(err?.message || "Cancel failed.");
           }finally{
-            btn.disabled=false; btn.textContent=prev;
+            btn.disabled = false; btn.textContent = prev;
           }
         });
 
@@ -1183,47 +1120,36 @@
       box.innerHTML = "";
       box.appendChild(frag);
     }catch(e){
-      if (e?.status === 401) {
+      if (e?.status===401){
         box.textContent = "Login to view your listings.";
       } else {
         box.textContent = e?.message || "Failed.";
       }
-    } finally {
-      _loadingMine = false;
     }
   }
+  $("#btn-mine")?.addEventListener("click", loadMine);
 
-  // ---------- LIST FOR SALE ----------
+  // ——— LIST FOR SALE ———
   async function doListForSale(){
+    const sel = window.SEL_INV;
     const msg = $("#list-msg"); if (msg) msg.textContent = "";
     if (!window.WHO?.id){ toast("Not logged in."); return; }
+    if (!sel){ msg && (msg.textContent="Pick an item/recipe first."); return; }
 
-    const sel = window.SEL_INV;
-    if (!sel || !sel.id){
-      msg && (msg.textContent = "Pick an item or recipe first (Pick).");
-      return;
-    }
-
-    const goldInput   = $("#price-g")?.value;
-    const silverInput = $("#price-s")?.value;
-    const qtyInput    = $("#price-qty")?.value;
-
-    const gold   = Math.max(0, Number.parseInt(goldInput,10)   || 0);
-    const silver = Math.max(0, Math.min(99, Number.parseInt(silverInput,10) || 0));
-    const qty    = Math.max(1, Number.parseInt(qtyInput,10)    || 1);
-
-    if (gold===0 && silver===0){ msg && (msg.textContent="Set a price."); return; }
-
-    const price_s = gold*100 + silver;
+    const gold = Math.max(0, parseInt($("#price-g")?.value||"0",10) || 0);
+    let silver = Math.max(0, parseInt($("#price-s")?.value||"0",10) || 0);
+    const qty = Math.max(1, parseInt($("#price-qty")?.value||"1",10) || 1);
+    if (silver>99) silver = 99;
+    if (gold===0 && silver===0){ msg && (msg.textContent = "Set a price."); return; }
 
     const btn = $("#btn-list"); const prev = btn?.textContent;
-    if (btn){ btn.disabled=true; btn.textContent="Listing…"; }
+    if (btn){ btn.disabled = true; btn.textContent = "Listing…"; }
 
     try{
-      await api("/api/sales/list", {
+      await withTimeout(api("/api/sales/list", {
         method:"POST",
-        body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, price_s, gold, silver })
-      });
+        body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
+      }), 8000);
       window.SEL_INV = null;
       $("#price-g")?.value = ""; $("#price-s")?.value = ""; $("#price-qty")?.value = "";
       msg && (msg.textContent = "Listed.");
@@ -1233,23 +1159,23 @@
       await (window.refreshMeLight?.() || Promise.resolve());
       window.applyPerkIndicators?.();
     }catch(e){
-      msg && (msg.textContent = e?.data?.error || e?.message || "List failed.");
+      msg && (msg.textContent = e?.data?.error || e?.message || "Listing failed.");
     }finally{
-      if (btn){ btn.disabled=false; btn.textContent=prev || "List for sale"; }
+      if (btn){ btn.disabled = false; btn.textContent = prev || "List for sale"; }
     }
   }
+  $("#btn-list")?.addEventListener("click", doListForSale);
 
-  // ---------- INVENTORY (Full tab) ----------
+  // ——— INVENTORY: Full tab ———
   async function loadInventoryFull(){
-    if (_loadingInvFull) return;
-    _loadingInvFull = true;
-    const box = $("#inv-full"); if(!box){ _loadingInvFull=false; return; }
+    const box = $("#inv-full"); if (!box) return;
     box.textContent = "Loading…";
     try{
-      const r = await api("/api/inventory");
-      const items   = r.items   || [];
-      const recipes = r.recipes || [];
+      const r = await withTimeout(api("/api/inventory"), 8000);
+      const items   = Array.isArray(r.items)   ? r.items   : [];
+      const recipes = Array.isArray(r.recipes) ? r.recipes : [];
       const out = [];
+
       for (const it of items){
         const icon = iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON;
         out.push(`
@@ -1273,7 +1199,7 @@
       }
       box.innerHTML = out.join("") || "Empty.";
     }catch(e){
-      if (e?.status === 401) {
+      if (e?.status===401){
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
         $("#card-register") && ($("#card-register").style.display="none");
@@ -1281,25 +1207,23 @@
       } else {
         box.textContent = e?.message || "Failed.";
       }
-    } finally {
-      _loadingInvFull = false;
     }
   }
 
-  // ---------- EXPORT & INIT ----------
+  // ——— Util: debounce ———
+  function debounce(fn, wait=200){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), wait); }; }
+
+  // ——— EXPORT: da ih setTab i ostatak app-a mogu zvati ———
   window.loadInventoryPanel = loadInventoryPanel;
   window.loadMarket        = loadMarket;
   window.loadMine          = loadMine;
   window.doListForSale     = doListForSale;
   window.loadInventoryFull = loadInventoryFull;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    bindMarketUI();
-    loadMarket();
-    loadMine();
-    loadInventoryPanel();
-    loadInventoryFull();
-  });
+  // NEMA automatskog učitavanja ovdje.
+  // Ove funkcije se pozivaju tek:
+  //  - nakon uspješnog loadMe() (kako već radiš), i/ili
+  //  - kad korisnik otvori tab "market" / "inv" kroz setTab().
 })();
 </script>
 
@@ -1397,6 +1321,7 @@
   </script>
 </body>
 </html>
+
 
 
 
