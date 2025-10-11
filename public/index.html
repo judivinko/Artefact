@@ -917,100 +917,51 @@
 </script>
 
     <!-- MARKET -->
-    <div id="tab-market" class="card hidden">
-      <div class="label">Marketplace</div>
-      <div class="grid">
-        <div class="card">
-          <div class="label">Create Sale</div>
-          <input id="inv-search" class="input" placeholder="Search your inventory..." />
-          <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
-          <div class="row" style="margin-top:8px">
-            <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
-            <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
-            <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-            <button id="btn-list" class="btn">List for sale</button>
-          </div>
-          <div class="row muted" style="margin-top:6px">
-            <span id="market-fee-inline" class="badge">Fee: 1%</span>
-          </div>
-          <div id="list-msg" class="muted" style="margin-top:6px"></div>
-        </div>
-
-        <div class="card">
-          <!-- Lijevo poravnat naslov + search -->
-          <div class="row market-header">
-            <div class="label">Marketplace</div>
-            <input id="market-q" class="input grow" placeholder="Search by name..." autocomplete="off" />
-          </div>
-          <div id="market" class="list">Loading…</div>
-
-          <!-- My listings: naslov + search + reload -->
-          <div class="row market-header" style="margin-top:12px">
-            <div class="label">My listings</div>
-            <input id="mine-q" class="input grow" placeholder="Search my listings..." autocomplete="off" />
-            <button id="btn-mine" class="btn muted">Reload</button>
-          </div>
-          <div id="mine" class="list">Loading…</div>
-        </div>
+<div id="tab-market" class="card hidden">
+  <div class="label">Marketplace</div>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Create Sale</div>
+      <input id="inv-search" class="input" placeholder="Search your inventory..." />
+      <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
+      <div class="row" style="margin-top:8px">
+        <input id="price-g" class="input" style="width:100px" placeholder="Gold"/>
+        <input id="price-s" class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+        <button id="btn-list" class="btn">List for sale</button>
       </div>
+      <div class="row muted" style="margin-top:6px">
+        <span id="market-fee-inline" class="badge">Fee: 1%</span>
+      </div>
+      <div id="list-msg" class="muted" style="margin-top:6px"></div>
     </div>
 
-    <!-- INVENTORY -->
-    <div id="tab-inv" class="card hidden">
-      <div class="label">Inventory</div>
-      <div id="inv-full" class="list">Loading…</div>
-    </div>
-
-    <!-- BONUS -->
-    <div id="tab-bonus" class="card hidden">
-      <div class="row" style="justify-content:space-between">
-        <div class="label">Bonus</div>
-        <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
+    <div class="card">
+      <!-- Ujednačen naslov + search -->
+      <div class="row market-header">
+        <div class="label">Marketplace</div>
+        <input id="market-q" class="input grow" placeholder="Search by name..." autocomplete="off" />
       </div>
+      <div id="market" class="list">Loading…</div>
 
-      <div id="bonus-grid" class="grid" style="margin-top:8px">
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T2 Bonus</div>
-            <button id="btn-claim-t2" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 98s (was 100s)</div>
-          <div id="bonus-t2" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T3 Bonus</div>
-            <button id="btn-claim-t3" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Market fee 0% (was 1%)</div>
-          <div id="bonus-t3" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T4 Bonus</div>
-            <button id="btn-claim-t4" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Craft no-fail</div>
-          <div id="bonus-t4" class="list" style="max-height:240px">Loading…</div>
-        </div>
-
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">T5 Bonus</div>
-            <button id="btn-claim-t5" class="btn" disabled>Claim</button>
-          </div>
-          <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3+ + Craft no-fail </div>
-          <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
-        </div>
+      <!-- My listings: naslov + search + reload -->
+      <div class="row market-header" style="margin-top:12px">
+        <div class="label">My listings</div>
+        <input id="mine-q" class="input grow" placeholder="Search my listings..." autocomplete="off" />
+        <button id="btn-mine" class="btn muted">Reload</button>
       </div>
+      <div id="mine" class="list">Loading…</div>
     </div>
-  </section>
+  </div>
+</div>
 
-  <div id="toast" class="toast hidden"></div>
+<!-- INVENTORY -->
+<div id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div id="inv-full" class="list">Loading…</div>
+</div>
 
-  <!-- ===== Market & Inventory ===== -->
+<!-- ===== Market & Inventory (JS) ===== -->
 <script>
   // Debounce helper za search inpute
   function debounce(fn, wait=180){
@@ -1019,6 +970,7 @@
 
   window.SEL_INV = null;
 
+  /* ---------- INVENTORY PANEL (za Create Sale) ---------- */
   async function loadInventoryPanel(){
     const box = $("#inv-list"); if(!box) return;
     box.textContent = "Loading…";
@@ -1058,6 +1010,7 @@
   }
   $("#inv-search")?.addEventListener("input", debounce(loadInventoryPanel,180));
 
+  /* ---------- MARKET (live listings) ---------- */
   async function loadMarket(){
     const box = $("#market"); if(!box) return;
     box.textContent = "Loading…";
@@ -1132,9 +1085,9 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  // debounce search inputa
   document.getElementById("market-q")?.addEventListener("input", debounce(loadMarket,180));
 
+  /* ---------- MOJI OGLASI ---------- */
   async function loadMine(){
     const box = $("#mine"); if(!box) return;
     box.textContent = "Loading…";
@@ -1193,10 +1146,10 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-
   document.getElementById("btn-mine")?.addEventListener("click", loadMine);
   document.getElementById("mine-q")?.addEventListener("input", debounce(loadMine,180));
 
+  /* ---------- INVENTORY FULL (tab) ---------- */
   async function loadInventoryFull(){
     const box=$("#inv-full"); if(!box) return;
     box.textContent="Loading…";
@@ -1220,7 +1173,7 @@
         lines.push(`
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
+              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'}">
               <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
             </div>
             <div class="muted">x${rc.qty}</div>
@@ -1231,7 +1184,86 @@
       box.textContent = e?.message || "Failed.";
     }
   }
+
+  /* ---------- LIST FOR SALE (FIX) ---------- */
+  function parseIntSafe(v, d=0){ const n = parseInt(v,10); return Number.isFinite(n) ? n : d; }
+
+  async function doListForSale(){
+    const msg = document.getElementById("list-msg");
+    if (msg) msg.textContent = "";
+
+    if (!WHO?.id){ toast("Log in first."); return; }
+
+    const sel = window.SEL_INV;
+    if (!sel){
+      if (msg) msg.textContent = "Pick an item or recipe first (button Pick).";
+      return;
+    }
+
+    const g   = parseIntSafe(document.getElementById("price-g")?.value || "0", 0);
+    const s   = parseIntSafe(document.getElementById("price-s")?.value || "0", 0);
+    const qty = parseIntSafe(document.getElementById("price-qty")?.value || "1", 1);
+
+    if (g < 0){ if (msg) msg.textContent = "Gold must be ≥ 0."; return; }
+    if (s < 0 || s > 99){ if (msg) msg.textContent = "Silver must be 0–99."; return; }
+    if (qty <= 0){ if (msg) msg.textContent = "Qty must be ≥ 1."; return; }
+
+    const price_s = g*100 + s;
+    if (price_s <= 0){ if (msg) msg.textContent = "Set a price."; return; }
+
+    // Poštuj perk minimalne cijene ako postoji
+    const minS = WHO?.perks?.min_list_price_s | 0;
+    if (minS && price_s < minS){
+      const mg = Math.floor(minS/100), ms = minS%100;
+      if (msg) msg.textContent = `Min price is ${mg}g ${ms}s.`;
+      return;
+    }
+
+    const btn = document.getElementById("btn-list");
+    const prev = btn?.textContent;
+    if (btn){ btn.disabled = true; btn.textContent = "Listing…"; }
+
+    try{
+      await api("/api/sales/list", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: sel.kind,   // "item" ili "recipe"
+          id: sel.id,       // ID iz inventara
+          qty: qty,
+          price_s: price_s  // cijena u silveru (100 = 1g)
+        })
+      });
+
+      await loadMarket();
+      await loadMine();
+      await loadInventoryPanel();
+      await safeCall("loadInventoryFull");
+      await refreshMeLight();
+
+      // Reset forme
+      window.SEL_INV = null;
+      const f1 = document.getElementById("price-g");   if (f1) f1.value = "";
+      const f2 = document.getElementById("price-s");   if (f2) f2.value = "";
+      const f3 = document.getElementById("price-qty"); if (f3) f3.value = "";
+      if (msg) msg.textContent = "Listed.";
+      toast("Listing created.");
+    }catch(e){
+      if (msg) msg.textContent = e?.data?.error || e?.message || "List failed.";
+    }finally{
+      if (btn){ btn.disabled = false; btn.textContent = prev || "List for sale"; }
+    }
+  }
+  document.getElementById("btn-list")?.addEventListener("click", doListForSale);
+
+  // Normalizacija silver polja 0–99 dok tipkaš
+  document.getElementById("price-s")?.addEventListener("input", e=>{
+    let v = parseIntSafe(e.target.value,0);
+    if (v < 0) v = 0;
+    if (v > 99) v = 99;
+    e.target.value = String(v);
+  });
 </script>
+
 
   <!-- ===== BONUS (frontend) ===== -->
   <script>
@@ -1325,5 +1357,6 @@
   </script>
 </body>
 </html>
+
 
 
