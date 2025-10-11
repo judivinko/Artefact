@@ -322,7 +322,13 @@
       setTimeout(()=>box.classList.add("hidden"),2600);
     }
     async function api(p,opts={}){
-      const r = await fetch(p,{credentials:"include",headers:{"Content-Type":"application/json"},...opts});
+      const isGet = !opts.method || String(opts.method).toUpperCase()==="GET";
+      const baseHeaders = isGet ? {} : {"Content-Type":"application/json"};
+      const r = await fetch(p,{
+        credentials:"include",
+        headers:{ ...baseHeaders, ...(opts.headers||{}) },
+        ...opts
+      });
       let data=null; try{data=await r.json()}catch{}
       if(!r.ok){
         const err = new Error((data&&data.error)||("HTTP "+r.status));
@@ -342,9 +348,9 @@
   <script>
     const RECIPE_ICON = "/recipe.png";
     const FALLBACK_ITEM_ICON = "/t1_bronze.png";
-    const esc = s => String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    const esc = (s) => String(s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
     function fileNameFromCodeTier(code, tier){
       if(!code) return null;
       const m = String(code).match(/^T([1-6])_(.*)$/);
@@ -360,9 +366,10 @@
 
   <!-- ===== Global state + Tabs + PayPal panel ===== -->
   <script>
-  window.$  ||= (s => document.querySelector(s));
-  window.$$ ||= (s => Array.from(document.querySelectorAll(s)));
-  window.safeCall ||= (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
+  if (!window.$)  window.$  = (s) => document.querySelector(s);
+  if (!window.$$) window.$$ = (s) => Array.from(document.querySelectorAll(s));
+  if (!window.safeCall) window.safeCall = (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
+  if (!window.refreshMeLight) window.refreshMeLight = async () => {};
 
   let WHO = window.WHO || null;       /* FIX: držimo u window i lokalno */
   window.CURRENT_RECIPE_ID = null;
@@ -917,11 +924,13 @@
   <!-- ===== Market & Inventory ===== -->
   <script>
   (() => {
-    const $ = window.$;
-    const api = window.api;
-    const esc = window.esc || (s=>String(s));
-    const toast = window.toast || (t=>alert(t));
+    const $   = window.$  || ((sel)=>document.querySelector(sel));
+    const api = window.api || (async()=>{ throw new Error("api helper missing"); });
+    const esc = window.esc || ((s)=>String(s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;"));
 
+    const toast = window.toast || (t=>alert(t));
     const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
     const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
     const iconForByCode = window.iconForByCode || ((_c,_t)=>FALLBACK_ITEM_ICON);
