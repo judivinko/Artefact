@@ -919,7 +919,6 @@
   });
 </script>
 
-  
 <script>
 (() => {
   // --- Reuse global helpers ---
@@ -946,6 +945,12 @@
   if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
   if (typeof window.safeCall === "undefined") window.safeCall = () => {};
 
+  // --- Concurrency locks (sprječavaju duple fetch-eve) ---
+  let _loadingMarket   = false;
+  let _loadingMine     = false;
+  let _loadingInvPanel = false;
+  let _loadingInvFull  = false;
+
   // --- Normalize listing ---
   function normalizeListing(s){
     const kind = s?.kind || (s?.type==='recipe' || s?.recipe_id ? 'recipe' : 'item');
@@ -964,11 +969,9 @@
 
   // ---------- UI BIND ----------
   function bindMarketUI(){
-    // ispravi naslove u DOM-u (ako su bili "Marketplace")
+    // kozmetika (Market umjesto Marketplace)
     const headers = document.querySelectorAll('#tab-market .label');
-    headers.forEach(h=>{
-      if (h && /market/i.test(h.textContent)) h.textContent = 'Market';
-    });
+    headers.forEach(h=>{ if (h && /market/i.test(h.textContent)) h.textContent = 'Market'; });
 
     bindOnce($("#price-s"),   "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
     bindOnce($("#price-g"),   "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
@@ -981,9 +984,18 @@
     bindOnce($("#inv-search"), "input", debounce(loadInventoryPanel, 180));
   }
 
+  // pomoćno: lijepo ime iz code-a
+  const prettyFromCode = (code) => {
+    if (!code) return "";
+    return String(code).replace(/^T\d_/, "").replaceAll("_"," ")
+      .toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+  };
+
   // ---------- INVENTORY (Create Sale panel) ----------
   async function loadInventoryPanel(){
-    const box = $("#inv-list"); if(!box) return;
+    if (_loadingInvPanel) return;
+    _loadingInvPanel = true;
+    const box = $("#inv-list"); if(!box){ _loadingInvPanel=false; return; }
     box.textContent = "Loading…";
     try{
       const r = await api("/api/inventory");
@@ -1006,12 +1018,24 @@
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
               <img class="img-cell" src="${esc(icon)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
+              <div>${esc(it.name || prettyFromCode(it.code) || (kind==='item'?'Item':'Recipe'))}
+                <span class="badge">T${it.tier ?? "-"}</span> <span class="muted">x${it.qty ?? 1}</span>
+              </div>
             </div>
             <button class="btn muted">Pick</button>`;
           row.querySelector("button").addEventListener("click", ()=>{
-            window.SEL_INV = { kind, id: it.id, name: it.name };
-            const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
+            // robustan ID (bilo id, item_id ili recipe_id)
+            const chosenId =
+              it.id ??
+              it.item_id ??
+              it.recipe_id ??
+              it.inv_id ??
+              null;
+            const chosenName = (it.name || prettyFromCode(it.code) || (kind==='item'?'Item':'Recipe')).trim();
+
+            window.SEL_INV = { kind, id: chosenId, name: chosenName, code: it.code || null, tier: it.tier ?? null };
+            const m = $("#list-msg"); if (m) m.textContent = chosenId ? ("Selected: " + chosenName) : "Selected, but ID missing";
+            $("#price-g")?.focus();
           });
           frag.appendChild(row);
         }
@@ -1030,19 +1054,29 @@
       } else {
         box.textContent = e?.message || "Failed.";
       }
+    } finally {
+      _loadingInvPanel = false;
     }
   }
 
   // ---------- MARKET (live listings) ----------
   async function loadMarket(){
-    const box = $("#market"); if(!box) return;
+    if (_loadingMarket) return;
+    _loadingMarket = true;
+    const box = $("#market"); if(!box){ _loadingMarket=false; return; }
     box.textContent = "Loading…";
     try{
-      const q = ($("#market-q")?.value || "").trim();
-      const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
+      const qRaw = ($("#market-q")?.value || "").trim();
+      const r = await api("/api/sales/live" + (qRaw?("?q="+encodeURIComponent(qRaw)):""));
 
       let rows = (r.listings||[]).map(normalizeListing);
+      // izbacujemo ARTEFACT i T6+ iteme iz prikaza
       rows = rows.filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+
+      // lokalni filter (case-insensitive), dodatno uz backend
+      const q = qRaw.toLowerCase();
+      if (q) rows = rows.filter(s => (s.name||"").toLowerCase().includes(q));
+
       if (!rows.length){ box.textContent="No listings."; return; }
 
       const frag = document.createDocumentFragment();
@@ -1091,12 +1125,16 @@
       box.appendChild(frag);
     }catch(e){
       box.textContent = e?.message || "Failed.";
+    } finally {
+      _loadingMarket = false;
     }
   }
 
   // ---------- MY LISTINGS ----------
   async function loadMine(){
-    const box = $("#mine"); if(!box) return;
+    if (_loadingMine) return;
+    _loadingMine = true;
+    const box = $("#mine"); if(!box){ _loadingMine=false; return; }
     box.textContent = "Loading…";
     try{
       const r = await api("/api/sales/mine");
@@ -1149,6 +1187,8 @@
       } else {
         box.textContent = e?.message || "Failed.";
       }
+    } finally {
+      _loadingMine = false;
     }
   }
 
@@ -1158,11 +1198,19 @@
     if (!window.WHO?.id){ toast("Not logged in."); return; }
 
     const sel = window.SEL_INV;
-    if (!sel){ msg && (msg.textContent = "Pick an item or recipe first (Pick)."); return; }
+    if (!sel || !sel.id){
+      msg && (msg.textContent = "Pick an item or recipe first (Pick)."); 
+      return;
+    }
 
-    const gold = Math.max(0, toInt($("#price-g")?.value,0));
-    const silver = clampSilver($("#price-s")?.value);
-    const qty   = Math.max(1, toInt($("#price-qty")?.value,1));
+    const goldInput   = $("#price-g")?.value;
+    const silverInput = $("#price-s")?.value;
+    const qtyInput    = $("#price-qty")?.value;
+
+    const gold   = Math.max(0, Number.parseInt(goldInput,10)   || 0);
+    const silver = Math.max(0, Math.min(99, Number.parseInt(silverInput,10) || 0));
+    const qty    = Math.max(1, Number.parseInt(qtyInput,10)    || 1);
+
     if (gold===0 && silver===0){ msg && (msg.textContent="Set a price."); return; }
 
     const price_s = gold*100 + silver;
@@ -1171,7 +1219,6 @@
     if (btn){ btn.disabled=true; btn.textContent="Listing…"; }
 
     try{
-      // tolerantno: šaljemo price_s + gold/silver (server može uzeti što očekuje)
       await api("/api/sales/list", {
         method:"POST",
         body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, price_s, gold, silver })
@@ -1193,7 +1240,9 @@
 
   // ---------- INVENTORY (Full tab) ----------
   async function loadInventoryFull(){
-    const box = $("#inv-full"); if(!box) return;
+    if (_loadingInvFull) return;
+    _loadingInvFull = true;
+    const box = $("#inv-full"); if(!box){ _loadingInvFull=false; return; }
     box.textContent = "Loading…";
     try{
       const r = await api("/api/inventory");
@@ -1226,11 +1275,13 @@
       if (e?.status === 401) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none");
+        $("#card-register") && ($("#card-register").style.display="none"));
         box.textContent = "Login required.";
       } else {
         box.textContent = e?.message || "Failed.";
       }
+    } finally {
+      _loadingInvFull = false;
     }
   }
 
@@ -1345,6 +1396,7 @@
   </script>
 </body>
 </html>
+
 
 
 
