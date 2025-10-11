@@ -30,7 +30,7 @@
         s.async = true;
         s.onload = () => { window.__PAYPAL_READY__ = true; };
         document.head.appendChild(s);
-        window.__PAYPAL_MIN_USD__ = j.min_usd || 10;
+        window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
       }catch(e){
         console.warn("PayPal SDK load failed:", e);
         window.__PAYPAL_DISABLED__ = true;
@@ -54,18 +54,19 @@
   </header>
 
   <!-- ===== PayPal panel ===== -->
-  <section id="paypal-panel" class="card hidden">
-    <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
-      <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
-      <input id="pp-amount" class="input" type="number" min="10" step="1" value="10" placeholder="USD" style="width:120px" />
-      <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
-      <input id="pp-bonus" class="input" type="text" maxlength="32" placeholder="optional" style="width:240px" />
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div id="paypal-button-container"></div>
-    </div>
-    <div id="pp-msg" class="muted" style="margin-top:8px"></div>
-  </section>
+<section id="paypal-panel" class="card hidden">
+  <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
+    <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
+    <input id="pp-amount" class="input" type="number" min="1" step="1" value="1" placeholder="USD" style="width:120px" />
+    <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
+    <input id="pp-bonus" class="input" type="text" maxlength="32" placeholder="optional" style="width:240px" />
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div id="paypal-button-container"></div>
+  </div>
+  <div id="pp-msg" class="muted" style="margin-top:8px"></div>
+</section>
+
 
   <!-- ===== Auth ===== -->
   <section id="auth" class="card hidden" style="margin-top:12px">
@@ -1386,3 +1387,4 @@
   </script>
 </body>
 </html>
+
