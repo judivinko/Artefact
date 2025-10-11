@@ -919,6 +919,7 @@
   });
 </script>
 
+<!-- //market (FIXED) -->
 <script>
 (() => {
   // --- Reuse global helpers ---
@@ -945,11 +946,18 @@
   if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
   if (typeof window.safeCall === "undefined") window.safeCall = () => {};
 
-  // --- Concurrency locks (sprječavaju duple fetch-eve) ---
+  // --- Concurrency locks (sprječavanje duplih fetch-eva) ---
   let _loadingMarket   = false;
   let _loadingMine     = false;
   let _loadingInvPanel = false;
   let _loadingInvFull  = false;
+
+  // --- Pretty name iz code-a ---
+  const prettyFromCode = (code) => {
+    if (!code) return "";
+    return String(code).replace(/^T\d_/, "").replaceAll("_"," ")
+      .toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
+  };
 
   // --- Normalize listing ---
   function normalizeListing(s){
@@ -961,15 +969,19 @@
     let name = (s?.name || s?.title || '').trim();
     if (!name) name = kind==='item' ? `Item #${s?.item_id ?? '-'}` : `Recipe #${s?.recipe_id ?? '-'}`;
     return {
-      id: s?.id, seller_user_id: s?.seller_user_id ?? null,
-      kind, item_id: s?.item_id ?? null, recipe_id: s?.recipe_id ?? null,
-      code, name, tier, qty, price_s, status: s?.status || 'live'
+      id: s?.id,
+      seller_user_id: s?.seller_user_id ?? null,
+      kind,
+      item_id: s?.item_id ?? null,
+      recipe_id: s?.recipe_id ?? null,
+      code, name, tier, qty, price_s,
+      status: s?.status || 'live'
     };
   }
 
   // ---------- UI BIND ----------
   function bindMarketUI(){
-    // kozmetika (Market umjesto Marketplace)
+    // kozmetika
     const headers = document.querySelectorAll('#tab-market .label');
     headers.forEach(h=>{ if (h && /market/i.test(h.textContent)) h.textContent = 'Market'; });
 
@@ -983,13 +995,6 @@
     bindOnce($("#btn-list"), "click", doListForSale);
     bindOnce($("#inv-search"), "input", debounce(loadInventoryPanel, 180));
   }
-
-  // pomoćno: lijepo ime iz code-a
-  const prettyFromCode = (code) => {
-    if (!code) return "";
-    return String(code).replace(/^T\d_/, "").replaceAll("_"," ")
-      .toLowerCase().replace(/\b\w/g, c=>c.toUpperCase());
-  };
 
   // ---------- INVENTORY (Create Sale panel) ----------
   async function loadInventoryPanel(){
@@ -1024,7 +1029,6 @@
             </div>
             <button class="btn muted">Pick</button>`;
           row.querySelector("button").addEventListener("click", ()=>{
-            // robustan ID (bilo id, item_id ili recipe_id)
             const chosenId =
               it.id ??
               it.item_id ??
@@ -1199,7 +1203,7 @@
 
     const sel = window.SEL_INV;
     if (!sel || !sel.id){
-      msg && (msg.textContent = "Pick an item or recipe first (Pick)."); 
+      msg && (msg.textContent = "Pick an item or recipe first (Pick).");
       return;
     }
 
@@ -1275,7 +1279,7 @@
       if (e?.status === 401) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"));
+        $("#card-register") && ($("#card-register").style.display="none");
         box.textContent = "Login required.";
       } else {
         box.textContent = e?.message || "Failed.";
@@ -1396,6 +1400,7 @@
   </script>
 </body>
 </html>
+
 
 
 
