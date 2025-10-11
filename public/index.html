@@ -955,14 +955,13 @@
   </script>
 
   <!-- ===== Market & Inventory (CLEAN) ===== -->
-<script>
-(() => {
-  // ---------- UTIL (lokalni, bez api() helpera) ----------
   const $  = window.$  || (s => document.querySelector(s));
   const esc = window.esc || (s => String(s));
   const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
   const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
   const iconForByCode = window.iconForByCode || ((_c,_t)=>FALLBACK_ITEM_ICON);
+
+  window.toast = (typeof window.toast === "function") ? window.toast : (msg => alert(msg));
 
   const TIMEOUT_MS = 8000;
 
@@ -1000,6 +999,7 @@
     }
     return data || {};
   }
+
 
   // ---------- SAFE LOAD (uvijek gasi loader) ----------
   async function safeLoad(boxSel, loader){
@@ -1361,6 +1361,7 @@
   </script>
 </body>
 </html>
+
 
 
 
