@@ -922,7 +922,7 @@
   
 <script>
 (() => {
-  // --- Reuse global helpers (već postoje u tvojem kodu) ---
+  // --- Reuse global helpers ---
   const $     = window.$     || (s => document.querySelector(s));
   const api   = window.api   || (async()=>{ throw new Error("api() missing"); });
   const toast = window.toast || (t=>alert(t));
@@ -941,12 +941,12 @@
   const fmtPrice   = s => { const v = (s|0); return `${Math.floor(v/100)}g ${v%100}s`; };
   const bindOnce   = (el, type, handler)=>{ if(!el || el.dataset.bound) return; el.addEventListener(type,handler); el.dataset.bound="1"; };
 
-  // --- Global safe defaults (bez ??= radi kompatibilnosti) ---
+  // --- Global safe defaults ---
   if (typeof window.SEL_INV === "undefined") window.SEL_INV = null;
   if (typeof window.refreshMeLight === "undefined") window.refreshMeLight = async () => {};
   if (typeof window.safeCall === "undefined") window.safeCall = () => {};
 
-  // --- Normalizacija listinga (tolerantno na server shape) ---
+  // --- Normalize listing ---
   function normalizeListing(s){
     const kind = s?.kind || (s?.type==='recipe' || s?.recipe_id ? 'recipe' : 'item');
     const code = s?.code ?? null;
@@ -964,6 +964,12 @@
 
   // ---------- UI BIND ----------
   function bindMarketUI(){
+    // ispravi naslove u DOM-u (ako su bili "Marketplace")
+    const headers = document.querySelectorAll('#tab-market .label');
+    headers.forEach(h=>{
+      if (h && /market/i.test(h.textContent)) h.textContent = 'Market';
+    });
+
     bindOnce($("#price-s"),   "input", e=>{ e.target.value = String(clampSilver(e.target.value)); });
     bindOnce($("#price-g"),   "input", e=>{ const n = Math.max(0, toInt(e.target.value,0)); e.target.value = String(n); });
     bindOnce($("#price-qty"), "input", e=>{ const n = Math.max(1, toInt(e.target.value,1)); e.target.value = String(n); });
@@ -1042,7 +1048,7 @@
       const frag = document.createDocumentFragment();
       for (const s of rows){
         const ico = (s.kind==="item") ? (iconForByCode(s.code,s.tier)||FALLBACK_ITEM_ICON) : RECIPE_ICON;
-        const mine = !!(WHO?.id && s.seller_user_id === WHO.id);
+        const mine = !!(window.WHO?.id && s.seller_user_id === window.WHO.id);
 
         const row = document.createElement("div");
         row.className = "itemrow";
@@ -1059,13 +1065,13 @@
         const btn = row.querySelector("button.btn:not(.muted)");
         if (btn) {
           btn.addEventListener("click", async ()=>{
-            if (!WHO?.id){ toast("Please log in first."); return; }
+            if (!window.WHO?.id){ toast("Please log in first."); return; }
             if (btn.disabled) return;
             const prev = btn.textContent; btn.disabled=true; btn.textContent="Buying…";
             try{
               const res = await api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) });
-              if (typeof res?.buyer_balance_silver === "number" && WHO) {
-                WHO.balance_silver = res.buyer_balance_silver|0;
+              if (typeof res?.buyer_balance_silver === "number" && window.WHO) {
+                window.WHO.balance_silver = res.buyer_balance_silver|0;
               }
               await (window.refreshMeLight?.() || Promise.resolve());
               await loadMarket(); await loadMine(); await loadInventoryPanel();
@@ -1149,21 +1155,27 @@
   // ---------- LIST FOR SALE ----------
   async function doListForSale(){
     const msg = $("#list-msg"); if (msg) msg.textContent = "";
-    if (!WHO?.id){ toast("Not logged in."); return; }
+    if (!window.WHO?.id){ toast("Not logged in."); return; }
 
     const sel = window.SEL_INV;
     if (!sel){ msg && (msg.textContent = "Pick an item or recipe first (Pick)."); return; }
 
     const gold = Math.max(0, toInt($("#price-g")?.value,0));
-    let silver = clampSilver($("#price-s")?.value);
+    const silver = clampSilver($("#price-s")?.value);
     const qty   = Math.max(1, toInt($("#price-qty")?.value,1));
     if (gold===0 && silver===0){ msg && (msg.textContent="Set a price."); return; }
+
+    const price_s = gold*100 + silver;
 
     const btn = $("#btn-list"); const prev = btn?.textContent;
     if (btn){ btn.disabled=true; btn.textContent="Listing…"; }
 
     try{
-      await api("/api/sales/list", { method:"POST", body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver }) });
+      // tolerantno: šaljemo price_s + gold/silver (server može uzeti što očekuje)
+      await api("/api/sales/list", {
+        method:"POST",
+        body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, price_s, gold, silver })
+      });
       window.SEL_INV = null;
       $("#price-g")?.value = ""; $("#price-s")?.value = ""; $("#price-qty")?.value = "";
       msg && (msg.textContent = "Listed.");
@@ -1231,7 +1243,6 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindMarketUI();
-    // inicijalna učitavanja
     loadMarket();
     loadMine();
     loadInventoryPanel();
@@ -1334,6 +1345,7 @@
   </script>
 </body>
 </html>
+
 
 
 
