@@ -919,6 +919,8 @@
   });
 </script>
 
+  
+  //market
 <script>
 (() => {
   // --- SHIMS / GLOBALS (oslanja se na postojeće ako već postoje) ---
@@ -936,6 +938,44 @@
   // Global state used by this panel
   window.SEL_INV ??= null;
   window.refreshMeLight ||= async () => {};
+
+  // ---------- Helpers: listing normalizer (otporno na server varijacije) ----------
+  function normalizeListing(sRaw){
+    const s = sRaw || {};
+    // minimalni ključ: kind (derive from s.type ako kind izostane)
+    const kind = (s.kind) ? String(s.kind)
+               : (s.type === "recipe" ? "recipe" : "item");
+
+    // koercije
+    const id = toInt(s.id, 0);
+    const qty = toInt(s.qty, 1);
+    const price_s = toInt(s.price_s, 0);
+    // tier može biti null -> tretiramo kao 0 (radi prikaza i filtera)
+    const tier = Number.isFinite(s.tier|0) ? (s.tier|0) : 0;
+
+    // naziv i kod — koristi eksplicitna polja ako postoje; fallback na title; zadnji fallback je generički
+    let name = (s.name ?? s.title ?? "");
+    if (!name || !String(name).trim()) {
+      name = (kind === "item")
+        ? `Item #${s.item_id ?? "-"}`
+        : `Recipe #${s.recipe_id ?? "-"}`;
+    }
+    const code = s.code ?? null;
+
+    return {
+      id,
+      seller_user_id: s.seller_user_id ?? null,
+      kind: (kind === "recipe" ? "recipe" : "item"),
+      item_id: s.item_id ?? null,
+      recipe_id: s.recipe_id ?? null,
+      code,
+      name: String(name),
+      tier,
+      qty,
+      price_s,
+      status: s.status || "live"
+    };
+  }
 
   // ==== Bind (once) ====
   function bindMarketUI(){
@@ -1007,7 +1047,10 @@
     try{
       const q = ($("#market-q")?.value || "").trim();
       const r = await api("/api/sales/live" + (q?("?q="+encodeURIComponent(q)):""));
-      const rows = (r.listings||[]).filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+      // normaliziraj sve listinge
+      let rows = Array.isArray(r.listings) ? r.listings.map(normalizeListing) : [];
+      // filtriraj artefakt/t6 i više
+      rows = rows.filter(s => !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
       if (!rows.length){ box.textContent="No listings."; return; }
 
       const frag = document.createDocumentFragment();
@@ -1063,7 +1106,8 @@
     box.textContent = "Loading…";
     try{
       const r = await api("/api/sales/mine");
-      let rows = (r.listings||[]).filter(s => s.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
+      let rows = Array.isArray(r.listings) ? r.listings.map(normalizeListing) : [];
+      rows = rows.filter(s => s.status==="live" && !(s.kind==="item" && (s.code==="ARTEFACT" || (s.tier|0)>=6)));
       const q = ($("#mine-q")?.value || "").trim().toLowerCase();
       if (q) rows = rows.filter(s => (s.name||"").toLowerCase().includes(q));
       if (!rows.length){ box.textContent="No live listings."; return; }
@@ -1300,6 +1344,7 @@
   </script>
 </body>
 </html>
+
 
 
 
