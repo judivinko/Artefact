@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
 
-  <!-- Minimal fallback da nikad ne vidiš "golu" stranicu -->
-  <style>html,body{background:#000;color:#e5e7eb;}</style>
+  <!-- Minimal fallback -->
+  <style>html,body{background:#000;color:#e5e7eb;margin:0}</style>
 
-  <!-- PayPal SDK lazy loader -->
+  <!-- PayPal SDK lazy loader (isto) -->
   <script>
     (async function loadPayPalSDK(){
       try{
@@ -38,7 +38,6 @@
     })();
   </script>
 
-  <!-- Glavni stilovi -->
   <link rel="stylesheet" href="/app.css" />
 </head>
 <body>
@@ -68,7 +67,7 @@
     <div id="pp-msg" class="muted" style="margin-top:8px"></div>
   </section>
 
-  <!-- ===== Auth (po potrebi) ===== -->
+  <!-- ===== Auth ===== -->
   <section id="auth" class="card hidden" style="margin-top:12px">
     <div id="card-register" style="display:none">
       <div class="label">Register</div>
@@ -86,7 +85,7 @@
     </div>
   </section>
 
-  <!-- ===== App (tabs) — vidljiv je odmah ===== -->
+  <!-- ===== App (tabs) ===== -->
   <section id="app">
     <div class="tabbar row">
       <div class="chip active" data-tab="shop">Shop</div>
@@ -115,7 +114,7 @@
         <div id="shop-msg" class="muted"></div>
       </div>
 
-      <!-- Uvod prebačen u Shop -->
+      <!-- Uvod -->
       <div id="shop-intro" class="card" style="margin-top:12px">
         <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
         <p class="muted" style="max-width:820px">
@@ -214,7 +213,7 @@
       </div>
     </div>
 
-    <!-- ===== MARKET ===== -->
+    <!-- MARKET -->
     <section id="tab-market" class="card hidden">
       <div class="label">Marketplace</div>
       <div class="grid">
@@ -311,46 +310,85 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <!-- ===== Helpers: $, $$, toast, api, safeCall ===== -->
+  <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
   <script>
-    const $  = (s,root=document)=>root.querySelector(s);
-    const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-    function toast(t){
-      const box=$("#toast");
-      box.innerHTML=t;
-      box.classList.remove("hidden");
-      setTimeout(()=>box.classList.add("hidden"),2600);
-    }
-    async function api(p,opts={}){
-      const isGet = !opts.method || String(opts.method).toUpperCase()==="GET";
-      const baseHeaders = isGet ? {} : {"Content-Type":"application/json"};
-      const r = await fetch(p,{
-        credentials:"include",
-        headers:{ ...baseHeaders, ...(opts.headers||{}) },
-        ...opts
+    // Jedna istinita definicija – bez duplikata u drugim blokovima
+    (function(){
+      const w = window;
+
+      w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
+      w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
+
+      w.toast = w.toast || function(t){
+        const box = $("#toast"); if (!box) return alert(t);
+        box.textContent = t;
+        box.classList.remove("hidden");
+        setTimeout(()=>box.classList.add("hidden"), 2600);
+      };
+
+      // FIX: api() ne postavlja Content-Type za GET i tolerira 204/loš JSON
+      w.api = w.api || (async function api(path, opts={}){
+        const method = (opts.method || "GET").toUpperCase();
+        const headers = Object.assign({}, opts.headers || {});
+        const init = {
+          credentials: "include",
+          ...opts,
+          method
+        };
+        if (method !== "GET" && method !== "HEAD") {
+          headers["Content-Type"] = headers["Content-Type"] || "application/json";
+        }
+        init.headers = headers;
+
+        // Ako je tijelo objekt, stringificiraj (za POST/PUT)
+        if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
+          init.body = JSON.stringify(init.body);
+        }
+
+        let res;
+        try {
+          res = await fetch(path, init);
+        } catch (e) {
+          const err = new Error("Network error");
+          err.cause = e;
+          throw err;
+        }
+
+        let data = null;
+        const text = await res.text().catch(()=>null);
+        if (text && text.trim().length) {
+          try { data = JSON.parse(text); } catch { data = { ok:false, error:"Invalid JSON" }; }
+        } else {
+          data = (res.status===204) ? { ok:true } : (data || {});
+        }
+
+        if (!res.ok) {
+          const err = new Error((data && data.error) || ("HTTP " + res.status));
+          err.status = res.status; err.data = data; throw err;
+        }
+        return data;
       });
-      let data=null; try{data=await r.json()}catch{}
-      if(!r.ok){
-        const err = new Error((data&&data.error)||("HTTP "+r.status));
-        err.status = r.status; err.data = data; throw err;
-      }
-      return data;
-    }
-    async function safeCall(fnName, ...args){
-      const fn = window[fnName];
-      if (typeof fn === "function") {
-        try { return await fn(...args); } catch (e) { console.warn(fnName, "failed:", e); }
-      }
-    }
+
+      w.safeCall = w.safeCall || (async function(fnName, ...args){
+        const fn = w[fnName];
+        if (typeof fn === "function") {
+          try { return await fn(...args); }
+          catch (e) { console.warn(fnName, "failed:", e); }
+        }
+      });
+    })();
   </script>
 
   <!-- ===== Icons & mapping ===== -->
   <script>
-    const RECIPE_ICON = "/recipe.png";
-    const FALLBACK_ITEM_ICON = "/t1_bronze.png";
-    const esc = (s) => String(s)
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    const IMG_PREFIX = "/"; // promijeni u "/images/" ako su slike u /public/images
+    const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
+    const FALLBACK_ITEM_ICON = `${IMG_PREFIX}t1_bronze.png`;
+
+    const esc = s => String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
     function fileNameFromCodeTier(code, tier){
       if(!code) return null;
       const m = String(code).match(/^T([1-6])_(.*)$/);
@@ -360,258 +398,253 @@
     }
     function iconForByCode(code, tier){
       const file = fileNameFromCodeTier(code, tier);
-      return file ? `/${file}` : FALLBACK_ITEM_ICON;
+      return file ? `${IMG_PREFIX}${file}` : FALLBACK_ITEM_ICON;
     }
   </script>
 
   <!-- ===== Global state + Tabs + PayPal panel ===== -->
   <script>
-  if (!window.$)  window.$  = (s) => document.querySelector(s);
-  if (!window.$$) window.$$ = (s) => Array.from(document.querySelectorAll(s));
-  if (!window.safeCall) window.safeCall = (fnName, ...args) => { try{ const fn = window[fnName]; if (typeof fn === "function") return fn(...args); }catch(e){ console.warn(fnName,"failed:",e); } };
-  if (!window.refreshMeLight) window.refreshMeLight = async () => {};
+    let WHO = window.WHO || null;
+    window.CURRENT_RECIPE_ID = null;
+    window.refreshMeLight ||= async () => {};
 
-  let WHO = window.WHO || null;       /* FIX: držimo u window i lokalno */
-  window.CURRENT_RECIPE_ID = null;
-  window.refreshMeLight ||= async () => {};
+    function showApp(){ $("#app")?.classList.remove("hidden"); }
 
-  function showApp(){ $("#app")?.classList.remove("hidden"); }
-
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v%100;
-    const el = $("#balance");
-    if (el) {
-      el.textContent = `${g}g ${s}s`;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
-  }
-
-  function applyPerkIndicators(){
-    const price = WHO?.perks?.shop_price_s ?? 100;
-    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-    $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
-
-    const noFail = !!WHO?.perks?.craft_no_fail;
-    $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
-    $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
-
-    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
-    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
-
-    const minNote = !!WHO?.perks?.min_list_price_s;
-    $("#market-min-note")?.classList.toggle("hidden", !minNote);
-    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
-  }
-
-  async function setTab(tab){
-    showApp();
-    $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
-    $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
-    $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
-    $("#tab-market")?.classList.toggle("hidden", tab !== "market");
-    $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
-    $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-
-    if (tab === "market") {
-      safeCall("loadInventoryPanel");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-    }
-    if (tab === "inv")   safeCall("loadInventoryFull");
-    if (tab === "bonus") { try { await loadBonus(); } catch(e){ console.warn(e); } }
-  }
-
-  function initPayPalPanelButtons(){
-    try{
-      if (window.__PAYPAL_DISABLED__) return;
-      const host = document.getElementById("paypal-button-container");
-      if (!window.paypal || !host) return;
-      if (host.dataset.rendered === "1") return;
-      const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
-      window.paypal.Buttons({
-        style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-        createOrder: function(_data, actions){
-          const el = document.getElementById("pp-amount");
-          let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
-          v = Math.floor(v);
-          if (el) el.value = String(v);
-          return actions.order.create({
-            purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
-          });
-        },
-        onApprove: async function(data, actions){
-          try{
-            await actions.order.capture();
-            const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
-            const r = await api("/api/paypal/confirm", {
-              method:"POST",
-              body: JSON.stringify({ orderId: data.orderID, bonus_code })
-            });
-            if (WHO) WHO.balance_silver = (r.balance_silver|0);
-            window.WHO = WHO;
-            renderBalance();
-            await refreshMeLight();
-            const msg = document.getElementById("pp-msg");
-            if (msg){
-              msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
-            } else {
-              (window.toast||alert)(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
-            }
-          }catch(e){
-            alert(e?.message || "Payment confirm failed.");
-          }
-        },
-        onError: err => {
-          console.error("PayPal error:", err);
-          alert("PayPal error.");
-        }
-      }).render("#paypal-button-container");
-      host.dataset.rendered = "1";
-    }catch(e){
-      console.warn("initPayPalPanelButtons failed:", e);
-    }
-  }
-
-  function togglePaypalPanel(forceOpen){
-    if (window.__PAYPAL_DISABLED__) return;
-    const panel = document.getElementById("paypal-panel");
-    if (!panel) return;
-    const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
-    panel.classList.toggle("hidden", !open);
-    if (open) initPayPalPanelButtons();
-  }
-
-  function setLoggedInUI(){
-    $("#btn-open-register")?.classList.add("hidden");
-    $("#btn-open-login")?.classList.add("hidden");
-    $("#balance")?.classList.remove("hidden");
-    $("#btn-logout")?.classList.remove("hidden");
-    $("#auth")?.classList.add("hidden");
-    $("#app")?.classList.remove("hidden");
-    renderBalance?.();
-    const ppBtn = document.getElementById("btn-open-paypal");
-    if (ppBtn){
-      ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
-      if (!ppBtn.dataset.bound){
-        ppBtn.addEventListener("click", ()=> togglePaypalPanel());
-        ppBtn.dataset.bound = "1";
+    function renderBalance(){
+      const v = WHO?.balance_silver || 0;
+      const g = Math.floor(v/100), s = v%100;
+      const el = $("#balance");
+      if (el) {
+        el.textContent = `${g}g ${s}s`;
+        el.classList.add("pulse");
+        setTimeout(()=> el.classList.remove("pulse"), 1300);
       }
     }
-  }
 
-  function setLoggedOutUI(){
-    WHO = null;
-    window.WHO = null;                 /* FIX: sinkronizacija */
-    $("#btn-open-register")?.classList.remove("hidden");
-    $("#btn-open-login")?.classList.remove("hidden");
-    $("#balance")?.classList.add("hidden");
-    $("#btn-logout")?.classList.add("hidden");
-    const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
-    $("#app")?.classList.remove("hidden");
-    $("#auth")?.classList.add("hidden");
-    document.getElementById("paypal-panel")?.classList.add("hidden");
-    document.getElementById("btn-open-paypal")?.classList.add("hidden");
-  }
+    function applyPerkIndicators(){
+      const price = WHO?.perks?.shop_price_s ?? 100;
+      $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
+      $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
 
-  async function loadMe(){
-    try{
-      const r = await api("/api/me");
-      if (!r || !r.user) throw new Error("no session");
-      WHO = r.user;
-      window.WHO = WHO;                /* FIX: sinkronizacija */
-      setLoggedInUI();
-      const b = $("#buysToNext");
-      if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
-        ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
-      applyPerkIndicators();
-      await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-      safeCall("loadInventoryFull");
-      setTab("shop");
-    }catch{
+      const noFail = !!WHO?.perks?.craft_no_fail;
+      $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
+      $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
+
+      const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
+      $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
+      $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+
+      const minNote = !!WHO?.perks?.min_list_price_s;
+      $("#market-min-note")?.classList.toggle("hidden", !minNote);
+      $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+    }
+
+    async function setTab(tab){
+      showApp();
+      $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
+      $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
+      $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
+      $("#tab-market")?.classList.toggle("hidden", tab !== "market");
+      $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
+      $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
+
+      if (tab === "market") {
+        safeCall("loadInventoryPanel");
+        safeCall("loadMarket");
+        safeCall("loadMine");
+      }
+      if (tab === "inv")   safeCall("loadInventoryFull");
+      if (tab === "bonus") { try { await loadBonus(); } catch(e){ console.warn(e); } }
+    }
+
+    function initPayPalPanelButtons(){
+      try{
+        if (window.__PAYPAL_DISABLED__) return;
+        const host = document.getElementById("paypal-button-container");
+        if (!window.paypal || !host) return;
+        if (host.dataset.rendered === "1") return;
+        const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
+        window.paypal.Buttons({
+          style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
+          createOrder: function(_data, actions){
+            const el = document.getElementById("pp-amount");
+            let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
+            v = Math.floor(v);
+            if (el) el.value = String(v);
+            return actions.order.create({
+              purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
+            });
+          },
+          onApprove: async function(data, actions){
+            try{
+              await actions.order.capture();
+              const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
+              const r = await api("/api/paypal/confirm", {
+                method:"POST",
+                body: { orderId: data.orderID, bonus_code }
+              });
+              if (WHO) WHO.balance_silver = (r.balance_silver|0);
+              window.WHO = WHO;
+              renderBalance();
+              await refreshMeLight();
+              const msg = document.getElementById("pp-msg");
+              if (msg){
+                msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
+              } else {
+                (window.toast||alert)(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
+              }
+            }catch(e){
+              alert(e?.message || "Payment confirm failed.");
+            }
+          },
+          onError: err => {
+            console.error("PayPal error:", err);
+            alert("PayPal error.");
+          }
+        }).render("#paypal-button-container");
+        host.dataset.rendered = "1";
+      }catch(e){
+        console.warn("initPayPalPanelButtons failed:", e);
+      }
+    }
+
+    function togglePaypalPanel(forceOpen){
+      if (window.__PAYPAL_DISABLED__) return;
+      const panel = document.getElementById("paypal-panel");
+      if (!panel) return;
+      const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !open);
+      if (open) initPayPalPanelButtons();
+    }
+
+    function setLoggedInUI(){
+      $("#btn-open-register")?.classList.add("hidden");
+      $("#btn-open-login")?.classList.add("hidden");
+      $("#balance")?.classList.remove("hidden");
+      $("#btn-logout")?.classList.remove("hidden");
+      $("#auth")?.classList.add("hidden");
+      $("#app")?.classList.remove("hidden");
+      renderBalance?.();
+      const ppBtn = document.getElementById("btn-open-paypal");
+      if (ppBtn){
+        ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
+        if (!ppBtn.dataset.bound){
+          ppBtn.addEventListener("click", ()=> togglePaypalPanel());
+          ppBtn.dataset.bound = "1";
+        }
+      }
+    }
+
+    function setLoggedOutUI(){
+      WHO = null;
+      window.WHO = null;
+      $("#btn-open-register")?.classList.remove("hidden");
+      $("#btn-open-login")?.classList.remove("hidden");
+      $("#balance")?.classList.add("hidden");
+      $("#btn-logout")?.classList.add("hidden");
+      const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
+      $("#app")?.classList.remove("hidden");
+      $("#auth")?.classList.add("hidden");
+      document.getElementById("paypal-panel")?.classList.add("hidden");
+      document.getElementById("btn-open-paypal")?.classList.add("hidden");
+    }
+
+    async function loadMe(){
+      try{
+        const r = await api("/api/me");
+        if (!r || !r.user) throw new Error("no session");
+        WHO = r.user;
+        window.WHO = WHO;
+        setLoggedInUI();
+        const b = $("#buysToNext");
+        if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
+          ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
+        applyPerkIndicators();
+        await safeCall("loadInventoryPanel");
+        safeCall("loadRecipes");
+        safeCall("loadMarket");
+        safeCall("loadMine");
+        safeCall("loadInventoryFull");
+        setTab("shop");
+      }catch{
+        setLoggedOutUI();
+        setTab("shop");
+      }
+    }
+
+    function openAuth(mode){
+      const auth = document.getElementById("auth");
+      if (!auth) return;
+      auth.classList.remove("hidden");
+      const reg = document.getElementById("card-register");
+      const log = document.getElementById("card-login");
+      if (reg) reg.style.display = (mode === "register" ? "block" : "none");
+      if (log) log.style.display = (mode === "login"    ? "block" : "none");
+      if (mode === "register") document.getElementById("reg-email")?.focus();
+      if (mode === "login")    document.getElementById("log-email")?.focus();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const header = document.querySelector("header.header");
+      const auth = document.getElementById("auth");
+      if (header && auth && auth.previousElementSibling !== header) {
+        header.insertAdjacentElement("afterend", auth);
+      }
+
+      document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
+      document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
+
+      document.getElementById("btn-register")?.addEventListener("click", doRegister);
+      document.getElementById("btn-login")?.addEventListener("click", doLogin);
+      document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+
+      document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+      document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+      document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+      document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+      $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
+
+      loadMe();
+    });
+
+    async function doRegister(){
+      const msg = $("#reg-msg");
+      try{
+        const email = $("#reg-email")?.value.trim();
+        const pass = $("#reg-pass")?.value || "";
+        if (!email || !pass) throw new Error("Enter email & password.");
+        if (pass.length < 6) throw new Error("Password too short (min 6).");
+        msg && (msg.textContent = "…");
+        await api("/api/register", { method:"POST", body: { email, password: pass } });
+        msg && (msg.textContent = "OK — now log in.");
+        $("#card-register") && ($("#card-register").style.display="none");
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#log-email")?.focus();
+      }catch(e){
+        msg && (msg.textContent = e?.message || "Register failed.");
+      }
+    }
+
+    async function doLogin(){
+      const msg = $("#log-msg");
+      try{
+        const email = $("#log-email")?.value.trim();
+        const pass = $("#log-pass")?.value || "";
+        if (!email || !pass) throw new Error("Enter email & password.");
+        msg && (msg.textContent = "…");
+        await api("/api/login", { method:"POST", body: { email, password: pass } });
+        msg && (msg.textContent = "OK");
+        await loadMe();
+      }catch(e){
+        msg && (msg.textContent = e?.message || "Login failed.");
+      }
+    }
+
+    async function doLogout(){
+      try { await api("/api/logout"); } catch {}
       setLoggedOutUI();
-      setTab("shop");
     }
-  }
-
-  function openAuth(mode){
-    const auth = document.getElementById("auth");
-    if (!auth) return;
-    auth.classList.remove("hidden");
-    const reg = document.getElementById("card-register");
-    const log = document.getElementById("card-login");
-    if (reg) reg.style.display = (mode === "register" ? "block" : "none");
-    if (log) log.style.display = (mode === "login"    ? "block" : "none");
-    if (mode === "register") document.getElementById("reg-email")?.focus();
-    if (mode === "login")    document.getElementById("log-email")?.focus();
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const header = document.querySelector("header.header");
-    const auth = document.getElementById("auth");
-    if (header && auth && auth.previousElementSibling !== header) {
-      header.insertAdjacentElement("afterend", auth);
-    }
-
-    document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
-    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
-
-    document.getElementById("btn-register")?.addEventListener("click", doRegister);
-    document.getElementById("btn-login")?.addEventListener("click", doLogin);
-    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
-
-    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-    $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
-
-    loadMe();
-  });
-
-  async function doRegister(){
-    const msg = $("#reg-msg");
-    try{
-      const email = $("#reg-email")?.value.trim();
-      const pass = $("#reg-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      if (pass.length < 6) throw new Error("Password too short (min 6).");
-      msg && (msg.textContent = "…");
-      await api("/api/register", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK — now log in.");
-      $("#card-register") && ($("#card-register").style.display="none");
-      $("#card-login") && ($("#card-login").style.display="block");
-      $("#log-email")?.focus();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Register failed.");
-    }
-  }
-
-  async function doLogin(){
-    const msg = $("#log-msg");
-    try{
-      const email = $("#log-email")?.value.trim();
-      const pass = $("#log-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      msg && (msg.textContent = "…");
-      await api("/api/login", { method:"POST", body: JSON.stringify({ email, password: pass }) });
-      msg && (msg.textContent = "OK");
-      await loadMe();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Login failed.");
-    }
-  }
-
-  async function doLogout(){
-    try { await api("/api/logout"); } catch {}
-    setLoggedOutUI();
-  }
   </script>
 
   <!-- ===== Shop (Buy T1) ===== -->
@@ -657,7 +690,7 @@
         const r = await api("/api/me");
         if (r?.user) {
           WHO = r.user;
-          window.WHO = WHO;               /* FIX: sinkronizacija */
+          window.WHO = WHO;
           renderBalance?.();
           updateShopBalanceBadge();
           updateBuysToNextFromWHO();
@@ -680,7 +713,7 @@
         msg && (msg.textContent = "");
         setShopButtonsDisabled(true);
         if (btn){ btn.textContent = "Buying…"; }
-        const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+        const r = await api("/api/shop/buy-t1",{method:"POST",body:{}});
         if (WHO) WHO.balance_silver = (r.balance_silver | 0);
         window.WHO = WHO;
         renderBalance?.();
@@ -750,7 +783,7 @@
       try{
         for(let i=0;i<times;i++){
           try{
-            const r = await api("/api/shop/buy-t1",{method:"POST",body:JSON.stringify({})});
+            const r = await api("/api/shop/buy-t1",{method:"POST",body:{}});
             if (WHO) WHO.balance_silver = (r.balance_silver | 0);
             window.WHO = WHO;
             ok++;
@@ -860,7 +893,7 @@
           const prev = btn.textContent;
           btn.disabled = true; btn.textContent = "Crafting…";
           try{
-            const r2 = await api("/api/craft/do",{method:"POST",body:JSON.stringify({recipe_id: details.recipe.id})});
+            const r2 = await api("/api/craft/do",{method:"POST",body:{recipe_id: details.recipe.id}});
             if (r2.crafted) toast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
             else if (r2.scrap) toast("Failed (got Scrap)");
             else toast("Done");
@@ -903,7 +936,7 @@
       const prev = arteBtn.textContent;
       arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
       try{
-        const r = await api("/api/craft/artefact",{method:"POST",body:JSON.stringify({})});
+        const r = await api("/api/craft/artefact",{method:"POST",body:{}});
         const name = r.crafted || "Artefact";
         const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
         $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
@@ -924,18 +957,18 @@
   <!-- ===== Market & Inventory ===== -->
   <script>
   (() => {
-    const $   = window.$  || ((sel)=>document.querySelector(sel));
-    const api = window.api || (async()=>{ throw new Error("api helper missing"); });
-    const esc = window.esc || ((s)=>String(s)
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#39;"));
-
+    const $ = window.$;
+    const api = window.api;
+    const esc = window.esc || (s=>String(s));
     const toast = window.toast || (t=>alert(t));
+
     const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
     const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
     const iconForByCode = window.iconForByCode || ((_c,_t)=>FALLBACK_ITEM_ICON);
 
     function debounce(fn, wait=200){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait);} }
+
+    // FIX: zajednički timeout za sve loadere
     async function withTimeout(promise, ms=8000){
       return await Promise.race([
         promise,
@@ -943,13 +976,18 @@
       ]);
     }
 
+    // FIX: safeLoad – *uvijek* skida "Loading…" i hendla 401/timeoute kao Shop/Crafting
     async function safeLoad(boxSel, loader){
       const box = $(boxSel); if (!box) return;
       box.textContent = "Loading…";
+      let cleared=false;
+      const fallback = setTimeout(()=>{ if (!cleared) box.textContent="Still loading… check connection"; }, 3000);
       try{
         await loader(box);
+        cleared = true;
         if (!box.innerHTML || box.innerHTML.trim()==="") box.textContent = "Empty.";
       }catch(e){
+        cleared = true;
         if (e && (e.status===401 || /401|unauthorized|not logged in/i.test(String(e.message)))) {
           box.textContent = "Login required.";
           $("#auth")?.classList.remove("hidden");
@@ -960,6 +998,8 @@
         } else {
           box.textContent = e?.message || "Failed.";
         }
+      } finally {
+        clearTimeout(fallback);
       }
     }
 
@@ -1044,9 +1084,9 @@
               if (btn.disabled) return;
               const prev = btn.textContent; btn.disabled=true; btn.textContent="Buying…";
               try{
-                const res = await withTimeout(api("/api/sales/buy", { method:"POST", body: JSON.stringify({ id: s.id }) }), 8000);
+                const res = await withTimeout(api("/api/sales/buy", { method:"POST", body:{ id: s.id } }), 8000);
 
-                // FIX: backend može vratiti buyer_balance_silver ILI balance_silver
+                // FIX: backend vraća buyer_balance_silver ILI balance_silver
                 const newBal = (typeof res?.buyer_balance_silver === "number")
                   ? res.buyer_balance_silver
                   : (typeof res?.balance_silver === "number")
@@ -1055,7 +1095,7 @@
                 if (newBal != null && window.WHO) {
                   window.WHO.balance_silver = newBal|0;
                 }
-                await refreshMeLight(); // uskladi badge/perkove
+                await refreshMeLight();
 
                 await loadMarket(); await loadMine(); await loadInventoryPanel();
                 toast("Purchased.");
@@ -1074,7 +1114,7 @@
     }
     $("#market-q")?.addEventListener("input", debounce(loadMarket,180));
 
-    // ===== MY LISTINGS (sa pretragom) =====
+    // ===== MY LISTINGS =====
     async function loadMine(){
       await safeLoad("#mine", async (box)=>{
         const rq = await withTimeout(api("/api/sales/mine"), 8000);
@@ -1109,9 +1149,9 @@
             const btn = row.querySelector("button.btn.danger"); if (!btn || btn.disabled) return;
             const prev = btn.textContent; btn.disabled=true; btn.textContent="Cancel…";
             try{
-              await withTimeout(api("/api/sales/cancel", { method:"POST", body: JSON.stringify({ id: s.id }) }), 8000);
+              await withTimeout(api("/api/sales/cancel", { method:"POST", body:{ id: s.id } }), 8000);
               await loadMarket(); await loadMine(); await loadInventoryPanel();
-              await refreshMeLight(); // FIX: odmah osvježi saldo/WHO
+              await refreshMeLight();
             }catch(err){
               toast(err?.message || "Cancel failed.");
             }finally{
@@ -1140,7 +1180,7 @@
 
         await withTimeout(api("/api/sales/list", {
           method:"POST",
-          body: JSON.stringify({ kind: sel.kind, id: sel.id, qty, gold, silver })
+          body: { kind: sel.kind, id: sel.id, qty, gold, silver }
         }), 8000);
 
         $("#list-msg")?.textContent = "Listed.";
@@ -1148,7 +1188,7 @@
         $("#price-g")?.value = ""; $("#price-s")?.value = ""; $("#price-qty")?.value = "";
 
         await loadMarket(); await loadMine(); await loadInventoryPanel();
-        await refreshMeLight(); // FIX: uskladi balans/WHO nakon listanja
+        await refreshMeLight();
         toast("Listing created.");
       }catch(e){
         const msg = e?.data?.error || e?.message || "Listing failed.";
@@ -1194,7 +1234,7 @@
     window.loadMine          = loadMine;
     window.loadInventoryFull = loadInventoryFull;
 
-    // INIT
+    // INIT – isto kao Shop/Crafting: inicijalno učitavanje
     document.addEventListener("DOMContentLoaded", () => {
       loadMarket();
       loadMine();
@@ -1271,7 +1311,7 @@
               const prev = btn.textContent;
               btn.disabled = true; btn.textContent = "Claiming…";
               try{
-                await api("/api/bonus/claim",{method:"POST",body:JSON.stringify({tier:t})});
+                await api("/api/bonus/claim",{method:"POST",body:{tier:t}});
                 toast(`T${t} bonus claimed.`);
                 await loadBonus();
                 await refreshMeLight();
