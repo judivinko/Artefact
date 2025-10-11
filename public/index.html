@@ -1185,8 +1185,7 @@
 
         $("#list-msg")?.textContent = "Listed.";
         window.SEL_INV = null;
-        $("#price-g")?.value = ""; $("#price-s")?.value = ""; $("#price-qty")?.value = "";
-
+        
         await loadMarket(); await loadMine(); await loadInventoryPanel();
         await refreshMeLight();
         toast("Listing created.");
@@ -1336,3 +1335,4 @@
   </script>
 </body>
 </html>
+
