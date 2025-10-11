@@ -916,7 +916,7 @@
   });
 </script>
 
-    <!-- MARKET -->
+   <!-- MARKET -->
 <div id="tab-market" class="card hidden">
   <div class="label">Marketplace</div>
   <div class="grid">
@@ -966,7 +966,11 @@
 
 <!-- ===== Market & Inventory (JS) ===== -->
 <script>
-  // Debounce helper (samo za inv-search lokalno)
+  /* Helpers – osiguraj da postoje */
+  window.$  ||= (s,root=document)=>root.querySelector(s);
+  window.$$ ||= (s,root=document)=>Array.from(root.querySelectorAll(s));
+  window.toast ||= (t)=>{ try{ const x=document.getElementById('toast'); if(x){ x.textContent=t; x.classList.remove('hidden'); setTimeout(()=>x.classList.add('hidden'),2600);} else alert(t);}catch{ alert(t); } };
+
   function debounce(fn, wait=180){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),wait); }; }
 
   window.SEL_INV = null;
@@ -1009,7 +1013,6 @@
       box.textContent = e?.message || "Failed.";
     }
   }
-  // samo inv-search koristi debounce
   $("#inv-search")?.addEventListener("input", debounce(loadInventoryPanel,180));
 
   /* ---------- MARKET (live listings) ---------- */
@@ -1158,7 +1161,7 @@
         lines.push(`
           <div class="itemrow">
             <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'}">
+              <img class="img-cell" src="${RECIPE_ICON || "/recipe.png"}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON || "/recipe.png"}'">
               <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
             </div>
             <div class="muted">x${rc.qty}</div>
@@ -1217,12 +1220,14 @@
     }
   }
 
-  /* --- Eksponuj funkcije koje zovemo iz HTML-a --- */
+  /* --- Export u globalni scope za inline handlere --- */
+  window.loadInventoryPanel = loadInventoryPanel;
   window.loadMarket = loadMarket;
   window.loadMine = loadMine;
+  window.loadInventoryFull = loadInventoryFull;
   window.doListForSale = doListForSale;
 
-  /* --- Inicijalni load (kad je DOM spreman) --- */
+  /* --- Inicijalni load --- */
   document.addEventListener("DOMContentLoaded", ()=>{
     loadInventoryPanel();
     loadMarket();
@@ -1324,6 +1329,7 @@
   </script>
 </body>
 </html>
+
 
 
 
