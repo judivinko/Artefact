@@ -319,72 +319,71 @@
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
-  <script>
-    (function(){
-      const w = window;
+<script>
+  (function(){
+    const w = window;
 
-      w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
-      w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
+    w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
+    w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
 
-      // Sigurni toast bez kolizije s #toast elementom
-      w.showToast = w.showToast || function(t){
-        const box = document.getElementById("toast");
-        if (box && box.classList) {
-          box.textContent = t;
-          box.classList.remove("hidden");
-          setTimeout(()=>box.classList.add("hidden"), 2600);
-        } else {
-          alert(t);
-        }
-      };
-      // Ako je window.toast DOM element zbog id="toast", prepiši ga funkcijom
-      try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
+    // Toast: prikaz u #toast; bez alert fallbacka
+    w.showToast = w.showToast || function(t){
+      const box = document.getElementById("toast");
+      if (box && box.classList) {
+        box.textContent = String(t || "");
+        box.classList.remove("hidden");
+        clearTimeout(box._t);
+        box._t = setTimeout(()=>box.classList.add("hidden"), 2600);
+      } else {
+        // Ako nema #toast, samo log – bez alert-a
+        console.warn("TOAST:", t);
+      }
+    };
+    try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
 
-      // api helper (GET bez Content-Type; tolerira 204/loš JSON)
-      w.api = w.api || (async function api(path, opts={}){
-        const method = (opts.method || "GET").toUpperCase();
-        const headers = Object.assign({}, opts.headers || {});
-        const init = { credentials: "include", ...opts, method };
-        if (method !== "GET" && method !== "HEAD") {
-          headers["Content-Type"] = headers["Content-Type"] || "application/json";
-        }
-        init.headers = headers;
+    // api helper
+    w.api = w.api || (async function api(path, opts={}){
+      const method = (opts.method || "GET").toUpperCase();
+      const headers = Object.assign({}, opts.headers || {});
+      const init = { credentials: "include", ...opts, method };
+      if (method !== "GET" && method !== "HEAD") {
+        headers["Content-Type"] = headers["Content-Type"] || "application/json";
+      }
+      init.headers = headers;
 
-        if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
-          init.body = JSON.stringify(init.body);
-        }
+      if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
+        init.body = JSON.stringify(init.body);
+      }
 
-        let res;
-        try {
-          res = await fetch(path, init);
-        } catch (e) {
-          const err = new Error("Network error"); err.cause = e; throw err;
-        }
+      let res;
+      try { res = await fetch(path, init); }
+      catch (e) { const err = new Error("Network error"); err.cause = e; throw err; }
 
-        let data = null;
-        const text = await res.text().catch(()=>null);
-        if (text && text.trim().length) {
-          try { data = JSON.parse(text); } catch { data = { ok:false, error:"Invalid JSON" }; }
-        } else {
-          data = (res.status===204) ? { ok:true } : (data || {});
-        }
+      let data = null;
+      const text = await res.text().catch(()=>null);
+      if (text && text.trim().length) {
+        try { data = JSON.parse(text); } catch { data = { ok:false, error:"Invalid JSON" }; }
+      } else {
+        data = (res.status===204) ? { ok:true } : (data || {});
+      }
 
-        if (!res.ok) {
-          const err = new Error((data && data.error) || ("HTTP " + res.status));
-          err.status = res.status; err.data = data; throw err;
-        }
-        return data;
-      });
+      if (!res.ok) {
+        const err = new Error((data && data.error) || ("HTTP " + res.status));
+        err.status = res.status; err.data = data; throw err;
+      }
+      return data;
+    });
 
-      w.safeCall = w.safeCall || (async function(fnName, ...args){
-        const fn = w[fnName];
-        if (typeof fn === "function") {
-          try { return await fn(...args); }
-          catch (e) { console.warn(fnName, "failed:", e); }
-        }
-      });
-    })();
-  </script>
+    w.safeCall = w.safeCall || (async function(fnName, ...args){
+      const fn = w[fnName];
+      if (typeof fn === "function") {
+        try { return await fn(...args); }
+        catch (e) { console.warn(fnName, "failed:", e); }
+      }
+    });
+  })();
+</script>
+
 
   <!-- ===== Icons & mapping ===== -->
   <script>
@@ -1374,8 +1373,7 @@
               await loadBonus();
               await refreshMeLight();
             }catch(e){
-              // WAS: alert(...)
-              showToast(e?.message || "Claim failed.");
+              alert(e?.message || "Claim failed.");
             } finally{
               btn.textContent = prev;
             }
@@ -1383,26 +1381,21 @@
         }
       }
 
-      /* SEND GOLD handler (toast only, EN) */
+      /* (Opcionalno) SEND GOLD – radi samo ako u DOM-u postoje ta polja */
       const btnT = $("#btn-transfer");
       if (btnT) {
         btnT.onclick = async () => {
-          const email = $("#transfer-email").value.trim();
-          const gold = parseInt($("#transfer-gold").value, 10);
-          if (!email || !Number.isFinite(gold) || gold <= 0) {
-            showToast("Enter recipient email and a positive gold amount.");
-            return;
-          }
+          const email = $("#transfer-email")?.value?.trim();
+          const gold = parseInt($("#transfer-gold")?.value);
+          if (!email || !gold || gold <= 0) return showToast("Enter recipient email and gold amount.");
           btnT.disabled = true;
           btnT.textContent = "Sending…";
           try {
             await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
             showToast("Gold sent!");
-            $("#transfer-gold").value = "";
             await refreshMeLight();
           } catch(e){
-            // WAS: alert(...)
-            showToast(e?.message || "Transfer failed.");
+            alert(e?.message || "Transfer failed");
           } finally {
             btnT.disabled = false;
             btnT.textContent = "Send";
@@ -1414,8 +1407,10 @@
       cleared = true;
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
         $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none");
+        const cardLogin = $("#card-login");
+        const cardReg   = $("#card-register");
+        if (cardLogin) cardLogin.style.display = "block";
+        if (cardReg)   cardReg.style.display   = "none";   // ← ispravljeno, nema viška ')'
       }
       Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
@@ -1423,5 +1418,6 @@
 </script>
 </body>
 </html>
+
 
 
