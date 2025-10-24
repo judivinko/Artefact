@@ -1626,6 +1626,60 @@ app.post("/api/sales/cancel", (req, res) => {
   }
 });
 
+// === TRANSFER GOLD (samo ako korisnik ima ARTEFACT) ===
+// body: { email: string, gold: integer > 0 }
+app.post("/api/transfer-gold", (req, res) => {
+  try {
+    const senderId = requireAuth(req);
+    const { email, gold } = req.body || {};
+
+    if (!isEmail(email)) return res.status(400).json({ ok:false, error:"Bad email" });
+    const g = Math.trunc(gold);
+    if (!(g > 0)) return res.status(400).json({ ok:false, error:"Gold must be > 0" });
+
+    // mora imati ARTEFACT (otključan Bonus)
+    if (!userHasArtefact(senderId)) {
+      return res.status(403).json({ ok:false, error:"Artefact required" });
+    }
+
+    const recipient = db.prepare(
+      "SELECT id, is_disabled FROM users WHERE lower(email)=lower(?)"
+    ).get(String(email).toLowerCase());
+
+    if (!recipient || recipient.is_disabled) {
+      return res.status(404).json({ ok:false, error:"Recipient not found" });
+    }
+    if (recipient.id === senderId) {
+      return res.status(400).json({ ok:false, error:"Cannot send to yourself" });
+    }
+
+    const deltaS = g * 100; // gold -> silver
+
+    const out = db.transaction(() => {
+      const s = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(senderId);
+      if (!s || (s.balance_silver|0) < deltaS) throw new Error("Insufficient funds");
+
+      db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
+        .run(deltaS, senderId);
+      db.prepare("UPDATE users SET balance_silver = balance_silver + ? WHERE id=?")
+        .run(deltaS, recipient.id);
+
+      const now = nowISO();
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(senderId, -deltaS, "TRANSFER_OUT", String(recipient.id), now);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(recipient.id, deltaS, "TRANSFER_IN", String(senderId), now);
+
+      const after = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(senderId).balance_silver;
+      return { balance_silver: after };
+    })();
+
+    res.json({ ok:true, ...out });
+  } catch (e) {
+    res.status(400).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -1656,6 +1710,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
