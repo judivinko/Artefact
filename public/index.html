@@ -1374,7 +1374,8 @@
               await loadBonus();
               await refreshMeLight();
             }catch(e){
-              alert(e?.message || "Claim failed.");
+              // WAS: alert(...)
+              showToast(e?.message || "Claim failed.");
             } finally{
               btn.textContent = prev;
             }
@@ -1382,28 +1383,32 @@
         }
       }
 
-      /* ★★★ DODANO: SEND GOLD (samo handler) ★★★ */
+      /* SEND GOLD handler (toast only, EN) */
       const btnT = $("#btn-transfer");
       if (btnT) {
         btnT.onclick = async () => {
           const email = $("#transfer-email").value.trim();
-          const gold = parseInt($("#transfer-gold").value);
-          if (!email || !gold || gold <= 0) return showToast("Unesi email i količinu golda.");
+          const gold = parseInt($("#transfer-gold").value, 10);
+          if (!email || !Number.isFinite(gold) || gold <= 0) {
+            showToast("Enter recipient email and a positive gold amount.");
+            return;
+          }
           btnT.disabled = true;
           btnT.textContent = "Sending…";
           try {
             await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
-            showToast("Gold poslan!");
+            showToast("Gold sent!");
+            $("#transfer-gold").value = "";
             await refreshMeLight();
           } catch(e){
-            alert(e?.message || "Transfer failed");
+            // WAS: alert(...)
+            showToast(e?.message || "Transfer failed.");
           } finally {
             btnT.disabled = false;
             btnT.textContent = "Send";
           }
         };
       }
-      /* ★★★ KRAJ DODATKA ★★★ */
 
     }catch(e){
       cleared = true;
@@ -1418,4 +1423,5 @@
 </script>
 </body>
 </html>
+
 
