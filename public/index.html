@@ -1382,7 +1382,7 @@
         }
       }
 
-      /* ★★★ DODANO: SEND GOLD ★★★ */
+      /* ★★★ DODANO: SEND GOLD (samo handler) ★★★ */
       const btnT = $("#btn-transfer");
       if (btnT) {
         btnT.onclick = async () => {
@@ -1410,7 +1410,7 @@
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"));
+        $("#card-register") && ($("#card-register").style.display="none");
       }
       Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
@@ -1418,3 +1418,4 @@
 </script>
 </body>
 </html>
+
