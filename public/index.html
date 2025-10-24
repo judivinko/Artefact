@@ -1301,98 +1301,120 @@
   })();
   </script>
 
-  <!-- ===== BONUS (frontend) ===== -->
-  <script>
-    function withTimeout(promise, ms=8000){
-      return new Promise((resolve, reject)=>{
-        const t = setTimeout(()=> reject(new Error("Timeout")), ms);
-        promise.then(v=>{clearTimeout(t); resolve(v);})
-               .catch(e=>{clearTimeout(t); reject(e);});
-      });
-    }
+ <!-- ===== BONUS (frontend) ===== -->
+<script>
+  function withTimeout(promise, ms=8000){
+    return new Promise((resolve, reject)=>{
+      const t = setTimeout(()=> reject(new Error("Timeout")), ms);
+      promise.then(v=>{clearTimeout(t); resolve(v);})
+             .catch(e=>{clearTimeout(t); reject(e);});
+    });
+  }
 
-    function tile(name, code, ok, tier){
-      const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
-      return `
-        <div class="tile ${ok?'ok':'miss'}">
-          <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(name)}</div>
-        </div>`;
-    }
+  function tile(name, code, ok, tier){
+    const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
+    return `
+      <div class="tile ${ok?'ok':'miss'}">
+        <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>${esc(name)}</div>
+      </div>`;
+  }
 
-    async function loadBonus(){
-      const lock = $("#bonus-lock");
-      const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-      const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-      Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+  async function loadBonus(){
+    const lock = $("#bonus-lock");
+    const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
+    const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
+    Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
+    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
 
-      let cleared = false;
-      setTimeout(()=>{
-        if (cleared) return;
-        Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
-      }, 3000);
+    let cleared = false;
+    setTimeout(()=>{
+      if (cleared) return;
+      Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
+    }, 3000);
 
-      try{
-        const r = await withTimeout(api("/api/bonus/status"), 8000);
-        cleared = true;
-        const hasArt = !!r?.has_artefact;
-        lock?.classList.toggle("hidden", hasArt);
-        if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+    try{
+      const r = await withTimeout(api("/api/bonus/status"), 8000);
+      cleared = true;
+      const hasArt = !!r?.has_artefact;
+      lock?.classList.toggle("hidden", hasArt);
+      if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
 
-        function prettyNameFromCode(code){
-          return String(code)
-            .replace(/^T\d_/, "")
-            .replaceAll("_"," ")
-            .toLowerCase()
-            .replace(/\b\w/g, c=>c.toUpperCase());
-        }
-
-        for (const t of [2,3,4,5]){
-          const box = boxes[t]; if (!box) continue;
-          const info = r.tiers?.[t];
-          if (!info){ box.textContent="No data"; continue; }
-
-          const tiles = [];
-          for (const c of (info.owned||[]))   tiles.push(tile(prettyNameFromCode(c), c, true,  t));
-          for (const c of (info.missing||[])) tiles.push(tile(prettyNameFromCode(c), c, false, t));
-          box.innerHTML = tiles.join("") || "Empty.";
-
-          const btn = btns[t];
-          if (btn){
-            const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-            btn.disabled = !canClaim;
-            btn.textContent = info.claimed ? "Claimed" : "Claim";
-            if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-            btn.onclick = async ()=>{
-              if (btn.disabled) return;
-              const prev = btn.textContent;
-              btn.disabled = true; btn.textContent = "Claiming…";
-              try{
-                await api("/api/bonus/claim",{method:"POST",body:{tier:t}});
-                showToast(`T${t} bonus claimed.`);
-                await loadBonus();
-                await refreshMeLight();
-              }catch(e){
-                alert(e?.message || "Claim failed.");
-              } finally{
-                btn.textContent = prev;
-              }
-            };
-          }
-        }
-      }catch(e){
-        cleared = true;
-        if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-          $("#auth")?.classList.remove("hidden");
-          $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none");
-        }
-        Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+      function prettyNameFromCode(code){
+        return String(code)
+          .replace(/^T\d_/, "")
+          .replaceAll("_"," ")
+          .toLowerCase()
+          .replace(/\b\w/g, c=>c.toUpperCase());
       }
+
+      for (const t of [2,3,4,5]){
+        const box = boxes[t]; if (!box) continue;
+        const info = r.tiers?.[t];
+        if (!info){ box.textContent="No data"; continue; }
+
+        const tiles = [];
+        for (const c of (info.owned||[]))   tiles.push(tile(prettyNameFromCode(c), c, true,  t));
+        for (const c of (info.missing||[])) tiles.push(tile(prettyNameFromCode(c), c, false, t));
+        box.innerHTML = tiles.join("") || "Empty.";
+
+        const btn = btns[t];
+        if (btn){
+          const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+          btn.disabled = !canClaim;
+          btn.textContent = info.claimed ? "Claimed" : "Claim";
+          if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
+          btn.onclick = async ()=>{
+            if (btn.disabled) return;
+            const prev = btn.textContent;
+            btn.disabled = true; btn.textContent = "Claiming…";
+            try{
+              await api("/api/bonus/claim",{method:"POST",body:{tier:t}});
+              showToast(`T${t} bonus claimed.`);
+              await loadBonus();
+              await refreshMeLight();
+            }catch(e){
+              alert(e?.message || "Claim failed.");
+            } finally{
+              btn.textContent = prev;
+            }
+          };
+        }
+      }
+
+      /* ★★★ DODANO: SEND GOLD ★★★ */
+      const btnT = $("#btn-transfer");
+      if (btnT) {
+        btnT.onclick = async () => {
+          const email = $("#transfer-email").value.trim();
+          const gold = parseInt($("#transfer-gold").value);
+          if (!email || !gold || gold <= 0) return showToast("Unesi email i količinu golda.");
+          btnT.disabled = true;
+          btnT.textContent = "Sending…";
+          try {
+            await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
+            showToast("Gold poslan!");
+            await refreshMeLight();
+          } catch(e){
+            alert(e?.message || "Transfer failed");
+          } finally {
+            btnT.disabled = false;
+            btnT.textContent = "Send";
+          }
+        };
+      }
+      /* ★★★ KRAJ DODATKA ★★★ */
+
+    }catch(e){
+      cleared = true;
+      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+        $("#auth")?.classList.remove("hidden");
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#card-register") && ($("#card-register").style.display="none"));
+      }
+      Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
-  </script>
+  }
+</script>
 </body>
 </html>
-
-
