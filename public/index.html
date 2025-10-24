@@ -1381,18 +1381,18 @@
         }
       }
 
-      /* (Opcionalno) SEND GOLD – radi samo ako u DOM-u postoje ta polja */
+      /* ===== SEND GOLD (ovaj dio je jedini nov) ===== */
       const btnT = $("#btn-transfer");
       if (btnT) {
         btnT.onclick = async () => {
           const email = $("#transfer-email")?.value?.trim();
           const gold = parseInt($("#transfer-gold")?.value);
-          if (!email || !gold || gold <= 0) return showToast("Enter recipient email and gold amount.");
+          if (!email || !gold || gold <= 0) return showToast("Enter email and gold amount.");
           btnT.disabled = true;
           btnT.textContent = "Sending…";
           try {
             await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
-            showToast("Gold sent!");
+            showToast(`Sent ${gold} gold to ${email}`); // <--- PORUKA KAKO ŽELIŠ
             await refreshMeLight();
           } catch(e){
             alert(e?.message || "Transfer failed");
@@ -1402,15 +1402,14 @@
           }
         };
       }
+      /* ===== END SEND GOLD ===== */
 
     }catch(e){
       cleared = true;
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
         $("#auth")?.classList.remove("hidden");
-        const cardLogin = $("#card-login");
-        const cardReg   = $("#card-register");
-        if (cardLogin) cardLogin.style.display = "block";
-        if (cardReg)   cardReg.style.display   = "none";   // ← ispravljeno, nema viška ')'
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#card-register") && ($("#card-register").style.display="none"));
       }
       Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
@@ -1418,6 +1417,7 @@
 </script>
 </body>
 </html>
+
 
 
 
