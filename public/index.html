@@ -1381,7 +1381,7 @@
         }
       }
 
-      /* ===== SEND GOLD (ovaj dio je jedini nov) ===== */
+      /* ===== SEND GOLD (novi dio) ===== */
       const btnT = $("#btn-transfer");
       if (btnT) {
         btnT.onclick = async () => {
@@ -1392,7 +1392,7 @@
           btnT.textContent = "Sending…";
           try {
             await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
-            showToast(`Sent ${gold} gold to ${email}`); // <--- PORUKA KAKO ŽELIŠ
+            showToast(`Sent ${gold} gold to ${email}`);
             await refreshMeLight();
           } catch(e){
             alert(e?.message || "Transfer failed");
@@ -1409,7 +1409,7 @@
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"));
+        $("#card-register") && ($("#card-register").style.display="none"); /* <- OVDJE JE ISPRAVKA: uklonjen višak ')' */
       }
       Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
@@ -1417,6 +1417,7 @@
 </script>
 </body>
 </html>
+
 
 
 
