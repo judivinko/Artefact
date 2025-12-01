@@ -1104,6 +1104,85 @@ app.post("/api/bonus/claim",(req,res)=>{
   }
 });
 
+
+// ----------------- SHOP (T1) -----------------
+const SHOP_T1_COST_S_BASE = 100;
+const RECIPE_DROP_MIN = 4;
+const RECIPE_DROP_MAX = 8;
+
+function nextRecipeInterval(){
+  const min = RECIPE_DROP_MIN, max = RECIPE_DROP_MAX;
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+function pickWeightedRecipe(minTier=2){
+  const list = db.prepare("SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN ? AND 5").all(minTier|0);
+  if (!list.length) return null;
+  const byTier = {};
+  for (const r of list){ (byTier[r.tier] ||= []).push(r); }
+  const roll = Math.floor(Math.random()*1000)+1;
+  let tier = (roll <= 13 ? 5 : roll <= 50 ? 4 : roll <= 200 ? 3 : 2);
+  if (tier < minTier) tier = minTier;
+  while (tier >= minTier && !byTier[tier]) tier--;
+  const arr = byTier[tier] || byTier[minTier];
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+app.post("/api/shop/buy-t1",(req,res)=>{
+  const uTok = verifyTokenFromCookies(req);
+  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
+  try{
+    const result = db.transaction(()=>{
+      const user = db.prepare("SELECT id,balance_silver,shop_buy_count,next_recipe_at FROM users WHERE id=?").get(uTok.uid);
+      if(!user) throw new Error("Session expired.");
+      const perks = getPerks(user.id);
+      const cost = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
+      if(user.balance_silver < cost) throw new Error("Insufficient funds.");
+      db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(cost,user.id);
+      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
+        .run(user.id,-cost,"SHOP_BUY_T1",null,nowISO());
+
+      let nextAt = user.next_recipe_at;
+      if (nextAt == null){
+        nextAt = user.shop_buy_count + nextRecipeInterval();
+        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(nextAt,user.id);
+      }
+      const newBuyCount = (user.shop_buy_count||0)+1;
+      db.prepare("UPDATE users SET shop_buy_count=? WHERE id=?").run(newBuyCount,user.id);
+      const willDropRecipe = newBuyCount >= nextAt;
+
+      let gotItem = null;
+      let gotRecipe = null;
+      if (willDropRecipe){
+        const pick = pickWeightedRecipe(perks.min_recipe_tier || 2);
+        if (pick){
+          db.prepare(`
+            INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
+            VALUES (?,?,1,0)
+            ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty = qty + 1
+          `).run(user.id, pick.id);
+          gotRecipe = { code: pick.code, name: pick.name, tier: pick.tier };
+        }
+        const next = newBuyCount + nextRecipeInterval();
+        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(next, user.id);
+      } else {
+        const t1 = db.prepare("SELECT id, code, name FROM items WHERE tier=1").all();
+        const pick = t1[Math.floor(Math.random()*t1.length)];
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,1)
+          ON CONFLICT(user_id,item_id) DO UPDATE SET qty = qty + 1
+        `).run(user.id, pick.id);
+        gotItem = { code: pick.code, name: pick.name, tier: 1 };
+      }
+      const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(user.id).balance_silver;
+      return { balance_silver: bal, gotItem, gotRecipe };
+    })();
+    res.json({ ok:true, ...result });
+  }catch(e){
+    res.status(400).json({ok:false,error:String(e.message||e)});
+  }
+});
+
 // =======================================================
 //                     DAILY QUESTS
 // =======================================================
@@ -1237,86 +1316,6 @@ app.post("/api/quests/event", (req,res)=>{
     res.json({ ok:true, reward_g:q.reward_g });
   }catch(e){
     res.status(401).json({ ok:false });
-  }
-});
-
-
-
-// ----------------- SHOP (T1) -----------------
-const SHOP_T1_COST_S_BASE = 100;
-const RECIPE_DROP_MIN = 4;
-const RECIPE_DROP_MAX = 8;
-
-function nextRecipeInterval(){
-  const min = RECIPE_DROP_MIN, max = RECIPE_DROP_MAX;
-  return Math.floor(Math.random()*(max-min+1))+min;
-}
-function pickWeightedRecipe(minTier=2){
-  const list = db.prepare("SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN ? AND 5").all(minTier|0);
-  if (!list.length) return null;
-  const byTier = {};
-  for (const r of list){ (byTier[r.tier] ||= []).push(r); }
-  const roll = Math.floor(Math.random()*1000)+1;
-  let tier = (roll <= 13 ? 5 : roll <= 50 ? 4 : roll <= 200 ? 3 : 2);
-  if (tier < minTier) tier = minTier;
-  while (tier >= minTier && !byTier[tier]) tier--;
-  const arr = byTier[tier] || byTier[minTier];
-  return arr[Math.floor(Math.random()*arr.length)];
-}
-
-app.post("/api/shop/buy-t1",(req,res)=>{
-  const uTok = verifyTokenFromCookies(req);
-  if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
-  try{
-    const result = db.transaction(()=>{
-      const user = db.prepare("SELECT id,balance_silver,shop_buy_count,next_recipe_at FROM users WHERE id=?").get(uTok.uid);
-      if(!user) throw new Error("Session expired.");
-      const perks = getPerks(user.id);
-      const cost = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
-      if(user.balance_silver < cost) throw new Error("Insufficient funds.");
-      db.prepare("UPDATE users SET balance_silver=balance_silver-? WHERE id=?").run(cost,user.id);
-      db.prepare("INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at) VALUES (?,?,?,?,?)")
-        .run(user.id,-cost,"SHOP_BUY_T1",null,nowISO());
-
-      let nextAt = user.next_recipe_at;
-      if (nextAt == null){
-        nextAt = user.shop_buy_count + nextRecipeInterval();
-        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(nextAt,user.id);
-      }
-      const newBuyCount = (user.shop_buy_count||0)+1;
-      db.prepare("UPDATE users SET shop_buy_count=? WHERE id=?").run(newBuyCount,user.id);
-      const willDropRecipe = newBuyCount >= nextAt;
-
-      let gotItem = null;
-      let gotRecipe = null;
-      if (willDropRecipe){
-        const pick = pickWeightedRecipe(perks.min_recipe_tier || 2);
-        if (pick){
-          db.prepare(`
-            INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
-            VALUES (?,?,1,0)
-            ON CONFLICT(user_id,recipe_id) DO UPDATE SET qty = qty + 1
-          `).run(user.id, pick.id);
-          gotRecipe = { code: pick.code, name: pick.name, tier: pick.tier };
-        }
-        const next = newBuyCount + nextRecipeInterval();
-        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(next, user.id);
-      } else {
-        const t1 = db.prepare("SELECT id, code, name FROM items WHERE tier=1").all();
-        const pick = t1[Math.floor(Math.random()*t1.length)];
-        db.prepare(`
-          INSERT INTO user_items(user_id,item_id,qty)
-          VALUES (?,?,1)
-          ON CONFLICT(user_id,item_id) DO UPDATE SET qty = qty + 1
-        `).run(user.id, pick.id);
-        gotItem = { code: pick.code, name: pick.name, tier: 1 };
-      }
-      const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(user.id).balance_silver;
-      return { balance_silver: bal, gotItem, gotRecipe };
-    })();
-    res.json({ ok:true, ...result });
-  }catch(e){
-    res.status(400).json({ok:false,error:String(e.message||e)});
   }
 });
 
@@ -1848,6 +1847,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
