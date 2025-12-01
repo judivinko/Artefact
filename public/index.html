@@ -42,16 +42,44 @@
 </head>
 <body>
   <!-- ===== Header ===== -->
-  <header class="header no-border">
-    <div class="brand">ARTEFACT</div>
-    <div class="row" style="gap:8px">
-      <span id="balance" class="badge hidden">0g 0s</span>
-      <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
-      <button id="btn-open-register" class="btn secondary">Register</button>
-      <button id="btn-open-login" class="btn">Log in</button>
-      <button id="btn-logout" class="btn muted hidden">Log out</button>
-    </div>
-  </header>
+<header class="header no-border" style="padding:14px 20px;">
+
+  <div class="brand" style="font-size:22px; font-weight:700; letter-spacing:1px;">
+    ARTEFACT
+  </div>
+
+  <div class="row" style="gap:12px; align-items:center;">
+
+    <!-- Gold & Dollar prikaz -->
+    <span id="balance"
+          class="badge hidden"
+          style="
+            padding:6px 14px;
+            font-size:16px;
+            background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.15);
+            backdrop-filter:blur(6px);
+          ">0g 0s</span>
+
+    <span id="balance-dollar"
+          class="badge hidden"
+          style="
+            padding:6px 14px;
+            font-size:16px;
+            background:rgba(34,197,94,0.12);
+            border:1px solid rgba(34,197,94,0.25);
+            color:#4ade80;
+            backdrop-filter:blur(6px);
+          ">$0.00</span>
+
+    <!-- Dugmad -->
+    <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
+    <button id="btn-open-register" class="btn secondary">Register</button>
+    <button id="btn-open-login" class="btn">Log in</button>
+    <button id="btn-logout" class="btn muted hidden">Log out</button>
+
+  </div>
+</header>
 
   <!-- ===== PayPal panel ===== -->
 <section id="paypal-panel" class="card hidden">
@@ -97,55 +125,33 @@
 </div>
 
   
-   <!-- ===== SHOP ===== -->
+  <!-- ===== SHOP ===== -->
 <div id="tab-shop" class="card">
 
-  <!-- 🔥 PRIKAZ GOLDA I DOLAR VRIJEDNOST -->
-  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;">
-    <div class="label">Buy Gold</div>
-    <div class="row" style="gap:8px;">
-      <span id="shop-gold" class="badge" style="font-size:18px;">0g</span>
-      <span id="shop-gold-dollar" class="badge">$0.00</span>
-    </div>
-  </div>
+  <!-- 🔥 NASLOV SHOPA -->
+  <div class="label" style="margin-bottom:12px;">Shop</div>
 
-  <!-- 🔥 INPUT ZA GOLD + BUY -->
+  <!-- 🔥 BUY T1 PANEL -->
   <div class="card" style="padding:10px;margin-bottom:16px;">
-    <div class="label" style="margin-bottom:6px;">Količina golda za kupiti</div>
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="label">Buy T1 materials</div>
+      <span id="shop-price-inline" class="badge">100s</span>
+    </div>
 
-    <input id="buy-gold-input"
-           type="number"
-           class="input"
-           placeholder="npr. 1000 (1$)"
-           style="width:100%;margin-bottom:8px;">
+    <div class="muted" style="margin-top:6px;">
+      Buys to next recipe: <span id="buysToNext">—</span>
+    </div>
 
-    <div class="muted" style="margin-bottom:8px;">1000 golda = 1$</div>
-
-    <button id="btn-buy-gold" class="btn" style="width:100%;">Buy</button>
-
-    <div id="buy-gold-msg" class="muted" style="margin-top:8px;"></div>
+    <button id="btn-buy-t1" class="btn" style="width:100%;margin-top:10px;">Buy</button>
+    <div id="shop-msg" class="muted" style="margin-top:8px"></div>
   </div>
 
-  <!-- 🔥 ORIGINALNI SHOP (NE DIRAMO NIŠTA) -->
-  <div class="row">
-    <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
-  </div>
-
-  <div class="row">
-    <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-  </div>
-
-  <div style="margin:6px 0">
+  <!-- (OPCIJSKI) PRIKAZ BALANCA -->
+  <div style="margin:6px 0;">
     <span id="shop-balance" class="badge hidden">0g 0s</span>
   </div>
 
-  <div class="row">
-    <button id="btn-buy-t1" class="btn">Buy</button>
-    <div id="shop-msg" class="muted"></div>
-  </div>
-
-
-  <!-- ===== UVOD — NIŠTA NISAM DIRA0 ===== -->
+  <!-- ===== UVOD — NIŠTA NIJE DIRANO ===== -->
   <div id="shop-intro" class="card" style="margin-top:12px">
 
     <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
@@ -205,7 +211,7 @@
       <div class="label">Tips</div>
       <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
         <li>Shop smart — recipes drop occasionally, so save your gold for key moments.</li>
-        <li>Craft in order of priority—focus on the recipes you have and the materials you can easily replace</li>
+        <li>Craft in order of priority—focus on the recipes you have and the materials you can easily replace.</li>
         <li>The market is the best way to fill gaps in your set and sell what you don’t need.</li>
         <li>Aim to collect 10 <i>different</i> T5 items — duplicates don’t count toward the ARTEFAKT.</li>
       </ul>
@@ -452,253 +458,295 @@
     }
   </script>
 
-  <!-- ===== Global state + Tabs + PayPal panel ===== -->
-  <script>
-    let WHO = window.WHO || null;
-    window.CURRENT_RECIPE_ID = null;
-    window.refreshMeLight ||= async () => {};
-
-    function showApp(){ $("#app")?.classList.remove("hidden"); }
-
-    function renderBalance(){
-      const v = WHO?.balance_silver || 0;
-      const g = Math.floor(v/100), s = v%100;
-      const el = $("#balance");
-      if (el) {
-        el.textContent = `${g}g ${s}s`;
-        el.classList.add("pulse");
-        setTimeout(()=> el.classList.remove("pulse"), 1300);
-      }
-    }
-
-    function applyPerkIndicators(){
-      const price = WHO?.perks?.shop_price_s ?? 100;
-      $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-      $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
-
-      const noFail = !!WHO?.perks?.craft_no_fail;
-      $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
-      $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
-
-      const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-      $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
-      $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
-
-      const minNote = !!WHO?.perks?.min_list_price_s;
-      $("#market-min-note")?.classList.toggle("hidden", !minNote);
-      $("#market-min-inline")?.classList.toggle("hidden", !minNote);
-    }
-
-    async function setTab(tab){
-      showApp();
-      $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
-      $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
-      $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
-      $("#tab-market")?.classList.toggle("hidden", tab !== "market");
-      $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
-      $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-
-      if (tab === "market") {
-        safeCall("loadInventoryPanel");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-      }
-      if (tab === "inv")   safeCall("loadInventoryFull");
-      if (tab === "bonus") { try { await loadBonus(); } catch(e){ console.warn(e); } }
-    }
-
-    function initPayPalPanelButtons(){
-      try{
-        if (window.__PAYPAL_DISABLED__) return;
-        const host = document.getElementById("paypal-button-container");
-        if (!window.paypal || !host) return;
-        if (host.dataset.rendered === "1") return;
-        const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
-        window.paypal.Buttons({
-          style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-          createOrder: function(_data, actions){
-            const el = document.getElementById("pp-amount");
-            let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
-            v = Math.floor(v);
-            if (el) el.value = String(v);
-            return actions.order.create({
-              purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
-            });
-          },
-          onApprove: async function(data, actions){
-            try{
-              await actions.order.capture();
-              const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
-              const r = await api("/api/paypal/confirm", {
-                method:"POST",
-                body: { orderId: data.orderID, bonus_code }
-              });
-              if (WHO) WHO.balance_silver = (r.balance_silver|0);
-              window.WHO = WHO;
-              renderBalance();
-              await refreshMeLight();
-              const msg = document.getElementById("pp-msg");
-              if (msg){
-                msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
-              } else {
-                showToast(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
-              }
-            }catch(e){
-              alert(e?.message || "Payment confirm failed.");
-            }
-          },
-          onError: err => {
-            console.error("PayPal error:", err);
-            alert("PayPal error.");
-          }
-        }).render("#paypal-button-container");
-        host.dataset.rendered = "1";
-      }catch(e){
-        console.warn("initPayPalPanelButtons failed:", e);
-      }
-    }
-
-    function togglePaypalPanel(forceOpen){
-      if (window.__PAYPAL_DISABLED__) return;
-      const panel = document.getElementById("paypal-panel");
-      if (!panel) return;
-      const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
-      panel.classList.toggle("hidden", !open);
-      if (open) initPayPalPanelButtons();
-    }
-
-    function setLoggedInUI(){
-      $("#btn-open-register")?.classList.add("hidden");
-      $("#btn-open-login")?.classList.add("hidden");
-      $("#balance")?.classList.remove("hidden");
-      $("#btn-logout")?.classList.remove("hidden");
-      $("#auth")?.classList.add("hidden");
-      $("#app")?.classList.remove("hidden");
-      renderBalance?.();
-      const ppBtn = document.getElementById("btn-open-paypal");
-      if (ppBtn){
-        ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
-        if (!ppBtn.dataset.bound){
-          ppBtn.addEventListener("click", ()=> togglePaypalPanel());
-          ppBtn.dataset.bound = "1";
-        }
-      }
-    }
-
-    function setLoggedOutUI(){
-      WHO = null;
-      window.WHO = null;
-      $("#btn-open-register")?.classList.remove("hidden");
-      $("#btn-open-login")?.classList.remove("hidden");
-      $("#balance")?.classList.add("hidden");
-      $("#btn-logout")?.classList.add("hidden");
-      const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
-      $("#app")?.classList.remove("hidden");
-      $("#auth")?.classList.add("hidden");
-      document.getElementById("paypal-panel")?.classList.add("hidden");
-      document.getElementById("btn-open-paypal")?.classList.add("hidden");
-    }
-
-    async function loadMe(){
-      try{
-        const r = await api("/api/me");
-        if (!r || !r.user) throw new Error("no session");
-        WHO = r.user;
-        window.WHO = WHO;
-        setLoggedInUI();
-        const b = $("#buysToNext");
-        if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
-          ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
-        applyPerkIndicators();
-        await safeCall("loadInventoryPanel");
-        safeCall("loadRecipes");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-        safeCall("loadInventoryFull");
-        setTab("shop");
-      }catch{
-        setLoggedOutUI();
-        setTab("shop");
-      }
-    }
-
-    function openAuth(mode){
-      const auth = document.getElementById("auth");
-      if (!auth) return;
-      auth.classList.remove("hidden");
-      const reg = document.getElementById("card-register");
-      const log = document.getElementById("card-login");
-      if (reg) reg.style.display = (mode === "register" ? "block" : "none");
-      if (log) log.style.display = (mode === "login"    ? "block" : "none");
-      if (mode === "register") document.getElementById("reg-email")?.focus();
-      if (mode === "login")    document.getElementById("log-email")?.focus();
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const header = document.querySelector("header.header");
-      const auth = document.getElementById("auth");
-      if (header && auth && auth.previousElementSibling !== header) {
-        header.insertAdjacentElement("afterend", auth);
-      }
-
-      document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
-      document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
-
-      document.getElementById("btn-register")?.addEventListener("click", doRegister);
-      document.getElementById("btn-login")?.addEventListener("click", doLogin);
-      document.getElementById("btn-logout")?.addEventListener("click", doLogout);
-
-      document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-      document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-      document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-      document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-      $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
-
-      loadMe();
-    });
-
-    async function doRegister(){
-      const msg = $("#reg-msg");
-      try{
-        const email = $("#reg-email")?.value.trim();
-        const pass = $("#reg-pass")?.value || "";
-        if (!email || !pass) throw new Error("Enter email & password.");
-        if (pass.length < 6) throw new Error("Password too short (min 6).");
-        msg && (msg.textContent = "…");
-        await api("/api/register", { method:"POST", body: { email, password: pass } });
-        msg && (msg.textContent = "OK — now log in.");
-        $("#card-register") && ($("#card-register").style.display="none");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#log-email")?.focus();
-      }catch(e){
-        msg && (msg.textContent = e?.message || "Register failed.");
-      }
-    }
-
-    async function doLogin(){
-      const msg = $("#log-msg");
-      try{
-        const email = $("#log-email")?.value.trim();
-        const pass = $("#log-pass")?.value || "";
-        if (!email || !pass) throw new Error("Enter email & password.");
-        msg && (msg.textContent = "…");
-        await api("/api/login", { method:"POST", body: { email, password: pass } });
-        msg && (msg.textContent = "OK");
-        await loadMe();
-      }catch(e){
-        msg && (msg.textContent = e?.message || "Login failed.");
-      }
-    }
-
-    async function doLogout(){
-      try { await api("/api/logout"); } catch {}
-      setLoggedOutUI();
-    }
-  </script>
-
+ <!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
-(function(){
+  let WHO = window.WHO || null;
+  window.CURRENT_RECIPE_ID = null;
+  window.refreshMeLight ||= async () => {};
+
+  function showApp(){ $("#app")?.classList.remove("hidden"); }
+
+  function renderBalance(){
+    const v = WHO?.balance_silver || 0;
+    const g = Math.floor(v/100), s = v%100;
+
+    // GOLD
+    const el = $("#balance");
+    if (el) {
+      el.textContent = `${g}g ${s}s`;
+      el.classList.add("pulse");
+      setTimeout(()=> el.classList.remove("pulse"), 1300);
+    }
+
+    // USD — NOVO (NIŠTA NE BRIŠE)
+    const usd = document.getElementById("balance-dollar");
+    if (usd) {
+      usd.innerText = `$${(g / 1000).toFixed(2)}`;
+      usd.classList.remove("hidden");
+    }
+  }
+
+  function applyPerkIndicators(){
+    const price = WHO?.perks?.shop_price_s ?? 100;
+    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
+    $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
+
+    const noFail = !!WHO?.perks?.craft_no_fail;
+    $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
+    $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
+
+    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
+    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
+    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+
+    const minNote = !!WHO?.perks?.min_list_price_s;
+    $("#market-min-note")?.classList.toggle("hidden", !minNote);
+    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+  }
+
+async function setTab(tab){
+  showApp();
+
+  $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
+
+  $("#tab-shop")   ?.classList.toggle("hidden", tab !== "shop");
+  $("#tab-quest")  ?.classList.toggle("hidden", tab !== "quest");
+  $("#tab-craft")  ?.classList.toggle("hidden", tab !== "craft");
+  $("#tab-market") ?.classList.toggle("hidden", tab !== "market");
+  $("#tab-inv")    ?.classList.toggle("hidden", tab !== "inv");
+  $("#tab-bonus")  ?.classList.toggle("hidden", tab !== "bonus");
+
+  // === QUEST TAB → automatski prikaz + aktivacija zadataka ===
+  if (tab === "quest") {
+    if (window.showQuestTab) window.showQuestTab();
+    // QUEST: "Klikni na tab Quest"
+    if (window.questTrigger) window.questTrigger("quest-click");
+  }
+
+  // ==== TAB CLICK QUESTOVI ====
+  if (tab === "shop")   window.questTrigger?.("shop-click");
+  if (tab === "craft")  window.questTrigger?.("craft-click");
+  if (tab === "market") window.questTrigger?.("market-click");
+  if (tab === "inv")    window.questTrigger?.("inv-click");
+  if (tab === "bonus")  window.questTrigger?.("bonus-click");
+
+  // ==== ORIGINAL TABS ====
+  if (tab === "market") {
+    safeCall("loadInventoryPanel");
+    safeCall("loadMarket");
+    safeCall("loadMine");
+  }
+
+  if (tab === "inv") safeCall("loadInventoryFull");
+
+  if (tab === "bonus") {
+    try { await loadBonus(); }
+    catch(e){ console.warn(e); }
+  }
+}
+
+
+
+  function initPayPalPanelButtons(){
+    try{
+      if (window.__PAYPAL_DISABLED__) return;
+      const host = document.getElementById("paypal-button-container");
+      if (!window.paypal || !host) return;
+      if (host.dataset.rendered === "1") return;
+      const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
+      window.paypal.Buttons({
+        style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
+        createOrder: function(_data, actions){
+          const el = document.getElementById("pp-amount");
+          let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
+          v = Math.floor(v);
+          if (el) el.value = String(v);
+          return actions.order.create({
+            purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
+          });
+        },
+        onApprove: async function(data, actions){
+          try{
+            await actions.order.capture();
+            const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
+            const r = await api("/api/paypal/confirm", {
+              method:"POST",
+              body: { orderId: data.orderID, bonus_code }
+            });
+            if (WHO) WHO.balance_silver = (r.balance_silver|0);
+            window.WHO = WHO;
+            renderBalance();
+            await refreshMeLight();
+            const msg = document.getElementById("pp-msg");
+            if (msg){
+              msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
+            } else {
+              showToast(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
+            }
+          }catch(e){
+            alert(e?.message || "Payment confirm failed.");
+          }
+        },
+        onError: err => {
+          console.error("PayPal error:", err);
+          alert("PayPal error.");
+        }
+      }).render("#paypal-button-container");
+      host.dataset.rendered = "1";
+    }catch(e){
+      console.warn("initPayPalPanelButtons failed:", e);
+    }
+  }
+
+  function togglePaypalPanel(forceOpen){
+    if (window.__PAYPAL_DISABLED__) return;
+    const panel = document.getElementById("paypal-panel");
+    if (!panel) return;
+    const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !open);
+    if (open) initPayPalPanelButtons();
+  }
+
+  function setLoggedInUI(){
+    $("#btn-open-register")?.classList.add("hidden");
+    $("#btn-open-login")?.classList.add("hidden");
+    $("#balance")?.classList.remove("hidden");
+
+    // USD PRIKAZ – NOVO
+    $("#balance-dollar")?.classList.remove("hidden");
+
+    $("#btn-logout")?.classList.remove("hidden");
+    $("#auth")?.classList.add("hidden");
+    $("#app")?.classList.remove("hidden");
+
+    renderBalance?.();
+
+    const ppBtn = document.getElementById("btn-open-paypal");
+    if (ppBtn){
+      ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
+      if (!ppBtn.dataset.bound){
+        ppBtn.addEventListener("click", ()=> togglePaypalPanel());
+        ppBtn.dataset.bound = "1";
+      }
+    }
+  }
+
+  function setLoggedOutUI(){
+    WHO = null;
+    window.WHO = null;
+    $("#btn-open-register")?.classList.remove("hidden");
+    $("#btn-open-login")?.classList.remove("hidden");
+    $("#balance")?.classList.add("hidden");
+
+    // USD PRIKAZ sakrij kad si odjavljen
+    $("#balance-dollar")?.classList.add("hidden");
+
+    $("#btn-logout")?.classList.add("hidden");
+    const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
+    $("#app")?.classList.remove("hidden");
+    $("#auth")?.classList.add("hidden");
+    document.getElementById("paypal-panel")?.classList.add("hidden");
+    document.getElementById("btn-open-paypal")?.classList.add("hidden");
+  }
+
+  async function loadMe(){
+    try{
+      const r = await api("/api/me");
+      if (!r || !r.user) throw new Error("no session");
+      WHO = r.user;
+      window.WHO = WHO;
+      setLoggedInUI();
+      const b = $("#buysToNext");
+      if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
+        ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
+      applyPerkIndicators();
+      await safeCall("loadInventoryPanel");
+      safeCall("loadRecipes");
+      safeCall("loadMarket");
+      safeCall("loadMine");
+      safeCall("loadInventoryFull");
+      setTab("shop");
+    }catch{
+      setLoggedOutUI();
+      setTab("shop");
+    }
+  }
+
+  function openAuth(mode){
+    const auth = document.getElementById("auth");
+    if (!auth) return;
+    auth.classList.remove("hidden");
+    const reg = document.getElementById("card-register");
+    const log = document.getElementById("card-login");
+    if (reg) reg.style.display = (mode === "register" ? "block" : "none");
+    if (log) log.style.display = (mode === "login"    ? "block" : "none");
+    if (mode === "register") document.getElementById("reg-email")?.focus();
+    if (mode === "login")    document.getElementById("log-email")?.focus();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const header = document.querySelector("header.header");
+    const auth = document.getElementById("auth");
+    if (header && auth && auth.previousElementSibling !== header) {
+      header.insertAdjacentElement("afterend", auth);
+    }
+
+    document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
+    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
+
+    document.getElementById("btn-register")?.addEventListener("click", doRegister);
+    document.getElementById("btn-login")?.addEventListener("click", doLogin);
+    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+
+    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+    $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
+
+    loadMe();
+  });
+
+  async function doRegister(){
+    const msg = $("#reg-msg");
+    try{
+      const email = $("#reg-email")?.value.trim();
+      const pass = $("#reg-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      if (pass.length < 6) throw new Error("Password too short (min 6).");
+      msg && (msg.textContent = "…");
+      await api("/api/register", { method:"POST", body: { email, password: pass } });
+      msg && (msg.textContent = "OK — now log in.");
+      $("#card-register") && ($("#card-register").style.display="none");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#log-email")?.focus();
+    }catch(e){
+      msg && (msg.textContent = e?.message || "Register failed.");
+    }
+  }
+
+  async function doLogin(){
+    const msg = $("#log-msg");
+    try{
+      const email = $("#log-email")?.value.trim();
+      const pass = $("#log-pass")?.value || "";
+      if (!email || !pass) throw new Error("Enter email & password.");
+      msg && (msg.textContent = "…");
+      await api("/api/login", { method:"POST", body: { email, password: pass } });
+      msg && (msg.textContent = "OK");
+      await loadMe();
+    }catch(e){
+      msg && (msg.textContent = e?.message || "Login failed.");
+    }
+  }
+
+  async function doLogout(){
+    try { await api("/api/logout"); } catch {}
+    setLoggedOutUI();
+  }
+</script>
+
 
   
   
@@ -789,54 +837,49 @@
     </div>
 
 // ==========================
+//       QUEST SYSTEM
+// ==========================
+(function(){
+
+  // ==========================
   //   DEFINICIJA SVIH QUESTOVA
   // ==========================
   const QUESTS = [
-
-    // --- TAB CLICK QUESTOVI ---
     { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
     { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
     { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
     { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
     { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
 
-    // --- CRAFT QUESTOVI ---
-    { id:"craft-t2",       text:"Iskraftaj T2 item",        reward:20 },
-    { id:"craft-t3",       text:"Iskraftaj T3 item",        reward:30 },
-    { id:"craft-t4",       text:"Iskraftaj T4 item",        reward:40 },
-    { id:"craft-t5",       text:"Iskraftaj T5 item",        reward:50 },
+    { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
+    { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
+    { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
+    { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
 
-    // --- AUCTION POST QUESTOVI ---
-    { id:"sell-t2",        text:"Postavi T2 item na aukciju", reward:20 },
-    { id:"sell-t3",        text:"Postavi T3 item na aukciju", reward:30 },
-    { id:"sell-t4",        text:"Postavi T4 item na aukciju", reward:40 },
-    { id:"sell-t5",        text:"Postavi T5 item na aukciju", reward:50 },
+    { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
+    { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
+    { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
+    { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
 
-    // --- SHOP / MATERIALS ---
-    { id:"buy-mat",        text:"Kupi bilo koji materijal",  reward:10 },
+    { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
 
-    // --- RECIPE QUESTOVI ---
-    { id:"rec-t2",         text:"Osvoji T2 recept", reward:20 },
-    { id:"rec-t3",         text:"Osvoji T3 recept", reward:30 },
-    { id:"rec-t4",         text:"Osvoji T4 recept", reward:40 },
-    { id:"rec-t5",         text:"Osvoji T5 recept", reward:50 },
+    { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
+    { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
+    { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
+    { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
 
-    // --- ARTEFAKT ---
-    { id:"artifact",       text:"Iskraftaj Artefakt", reward:10000 },
+    { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
 
-    // --- AUCTION BUY QUESTOVI ---
-    { id:"buy-t2",         text:"Kupi T2 item na aukciji", reward:20 },
-    { id:"buy-t3",         text:"Kupi T3 item na aukciji", reward:30 },
-    { id:"buy-t4",         text:"Kupi T4 item na aukciji", reward:40 },
-    { id:"buy-t5",         text:"Kupi T5 item na aukciji", reward:50 },
+    { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
+    { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
+    { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
+    { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
 
-    // --- SHOP SPENDING QUEST ---
-    { id:"shop-spend",     text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
+    { id:"shop-spend", text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
 
-    // --- BUY GOLD (1$, 10$, 50$) ---
-    { id:"buy-gold-1",     text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
-    { id:"buy-gold-10",    text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
-    { id:"buy-gold-50",    text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
+    { id:"buy-gold-1",  text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
+    { id:"buy-gold-10", text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
+    { id:"buy-gold-50", text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
   ];
 
   // ==========================
@@ -845,7 +888,6 @@
   function dailyResetCheck(){
     const today = new Date().toDateString();
     const last  = localStorage.getItem("quests_day") || "";
-
     if(today !== last){
       localStorage.setItem("quests_day", today);
       localStorage.setItem("quests_done", JSON.stringify({}));
@@ -864,17 +906,29 @@
   }
 
   // ==========================
+  // PUBLIC EVENT TRIGGER
+  // ==========================
+  window.questTrigger = function(id){
+    const status = getStatus();
+    if(status[id]) return; // već označen kao završen/claiman
+    status[id] = false;    // označen kao urađen ali NE claiman
+    saveStatus(status);
+    renderQuests();
+  };
+
+  // ==========================
   // CLAIM QUEST
   // ==========================
   window.claimQuest = function(id, reward){
     const status = getStatus();
-    if(status[id]) return; // već urađen
+    if(status[id] === true) return; // već claimano
 
     status[id] = true;
     saveStatus(status);
 
-    // gold local (server kasnije)
-    window.playerGold = (window.playerGold || 0) + reward;
+    // dodaj gold local
+    WHO.balance_silver += reward;
+    renderBalance();
 
     document.getElementById("quest-msg").innerText =
       `Dobio si +${reward} gold!`;
@@ -888,11 +942,11 @@
   function renderQuests(){
     const list   = document.getElementById("quest-list");
     const status = getStatus();
-
     list.innerHTML = "";
 
     QUESTS.forEach(q=>{
-      const done = !!status[q.id];
+      const done = status[q.id] === true;
+      const activated = status[q.id] !== undefined;
 
       const row = document.createElement("div");
       row.className = "card row";
@@ -903,18 +957,17 @@
           <div>${q.text}</div>
           <div class="muted" style="font-size:12px">Nagrada: ${q.reward} gold</div>
         </div>
-        <button class="btn ${done ? "disabled" : ""}"
-                onclick="!${done} && claimQuest('${q.id}', ${q.reward})">
-          ${done ? "Završeno" : "Claim"}
+        <button class="btn ${done ? "disabled" : !activated ? "muted" : ""}"
+                onclick="${done ? "" : activated ? `claimQuest('${q.id}', ${q.reward})` : ""}">
+          ${ done ? "Završeno" : activated ? "Claim" : "U tijeku" }
         </button>
       `;
-
       list.appendChild(row);
     });
   }
 
   // ==========================
-  // PUBLIC: KADA UĐEŠ U QUEST TAB
+  // KADA UĐEŠ U QUEST TAB
   // ==========================
   window.showQuestTab = function(){
     dailyResetCheck();
@@ -922,7 +975,7 @@
   };
 
 })();
-</script>
+
 
 
   
@@ -1521,6 +1574,7 @@
 </script>
 </body>
 </html>
+
 
 
 
