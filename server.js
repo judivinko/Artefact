@@ -1184,62 +1184,97 @@ app.post("/api/shop/buy-t1",(req,res)=>{
 });
 
 // =======================================================
-//                     DAILY QUESTS
+//                     DAILY QUESTS — BACKEND
 // =======================================================
+
 /*
- Svi questovi se resetuju svaki dan u 00:00.
- Korisnik može svaki quest dovršiti samo 1× dnevno.
- Gold se daje u silver-u (1 gold = 100 silver).
+ Sve nagrade su u GOLD, ali backend dodaje SILVER = gold × 100
+ Sve se resetuje svaki dan u 00:00 UTC
 */
 
 const QUESTS = [
-  // Click tab quests
-  { code:"TAB_SHOP",          name:"Klikni tab Shop",          reward_g:20 },
-  { code:"TAB_CRAFT",         name:"Klikni tab Crafting",      reward_g:20 },
-  { code:"TAB_MARKET",        name:"Klikni tab Market",        reward_g:20 },
-  { code:"TAB_INV",           name:"Klikni tab Inventory",     reward_g:20 },
-  { code:"TAB_BONUS",         name:"Klikni tab Bonus",         reward_g:20 },
+  { code:"TAB_SHOP",       reward_g:20 },
+  { code:"TAB_CRAFT",      reward_g:20 },
+  { code:"TAB_MARKET",     reward_g:20 },
+  { code:"TAB_INV",        reward_g:20 },
+  { code:"TAB_BONUS",      reward_g:20 },
 
-  // Craft
-  { code:"CRAFT_T2",          name:"Iskraftaj T2 item",        reward_g:20 },
-  { code:"CRAFT_T3",          name:"Iskraftaj T3 item",        reward_g:30 },
-  { code:"CRAFT_T4",          name:"Iskraftaj T4 item",        reward_g:40 },
-  { code:"CRAFT_T5",          name:"Iskraftaj T5 item",        reward_g:50 },
+  { code:"CRAFT_T2",       reward_g:20 },
+  { code:"CRAFT_T3",       reward_g:30 },
+  { code:"CRAFT_T4",       reward_g:40 },
+  { code:"CRAFT_T5",       reward_g:50 },
 
-  // Auction – postavljanje
-  { code:"AUC_T2",            name:"Postavi T2 item na aukciju", reward_g:20 },
-  { code:"AUC_T3",            name:"Postavi T3 item na aukciju", reward_g:30 },
-  { code:"AUC_T4",            name:"Postavi T4 item na aukciju", reward_g:40 },
-  { code:"AUC_T5",            name:"Postavi T5 item na aukciju", reward_g:50 },
+  { code:"AUC_T2",         reward_g:20 },
+  { code:"AUC_T3",         reward_g:30 },
+  { code:"AUC_T4",         reward_g:40 },
+  { code:"AUC_T5",         reward_g:50 },
 
-  // Auction – kupovina
-  { code:"BUY_AUC_T2",        name:"Kupi T2 sa aukcije",       reward_g:20 },
-  { code:"BUY_AUC_T3",        name:"Kupi T3 sa aukcije",       reward_g:30 },
-  { code:"BUY_AUC_T4",        name:"Kupi T4 sa aukcije",       reward_g:40 },
-  { code:"BUY_AUC_T5",        name:"Kupi T5 sa aukcije",       reward_g:50 },
+  { code:"BUY_AUC_T2",     reward_g:20 },
+  { code:"BUY_AUC_T3",     reward_g:30 },
+  { code:"BUY_AUC_T4",     reward_g:40 },
+  { code:"BUY_AUC_T5",     reward_g:50 },
 
-  // Shop spending
-  { code:"SHOP_SPEND_100",    name:"Potroši 100 golda u shopu", reward_g:50 },
+  { code:"BUY_MATERIAL",   reward_g:10 },
 
-  // Materials
-  { code:"BUY_MATERIAL",      name:"Kupi materijal",           reward_g:10 },
+  { code:"RECIPE_T2",      reward_g:20 },
+  { code:"RECIPE_T3",      reward_g:30 },
+  { code:"RECIPE_T4",      reward_g:40 },
+  { code:"RECIPE_T5",      reward_g:50 },
 
-  // Recipes
-  { code:"RECIPE_T2",         name:"Osvoji T2 recept",         reward_g:20 },
-  { code:"RECIPE_T3",         name:"Osvoji T3 recept",         reward_g:30 },
-  { code:"RECIPE_T4",         name:"Osvoji T4 recept",         reward_g:40 },
-  { code:"RECIPE_T5",         name:"Osvoji T5 recept",         reward_g:50 },
+  { code:"CRAFT_ARTEFACT", reward_g:10000 },
 
-  // Artefact craft
-  { code:"CRAFT_ARTEFACT",    name:"Iskraftaj Artefact",       reward_g:10000 },
+  { code:"SHOP_SPEND_100", reward_g:50 },
 
-  // PayPal daily buy quests
-  { code:"BUY_USD_1",         name:"Kupi 1$ (1000 gold) – Daily ×2",  reward_g:2000 },
-  { code:"BUY_USD_10",        name:"Kupi 10$ – Daily ×2",             reward_g:20000 },
-  { code:"BUY_USD_50",        name:"Kupi 50$ – Daily ×2",             reward_g:100000 },
+  { code:"BUY_USD_1",      reward_g:2000 },
+  { code:"BUY_USD_10",     reward_g:20000 },
+  { code:"BUY_USD_50",     reward_g:100000 }
 ];
 
-// TABLE
+// ===================================================================================
+// MAPA IZMEĐU FRONTEND ID-eva i BACKEND quest code-ova
+// ===================================================================================
+const QUEST_MAP = {
+  "shop-click":   "TAB_SHOP",
+  "craft-click":  "TAB_CRAFT",
+  "market-click": "TAB_MARKET",
+  "inv-click":    "TAB_INV",
+  "bonus-click":  "TAB_BONUS",
+
+  "craft-t2": "CRAFT_T2",
+  "craft-t3": "CRAFT_T3",
+  "craft-t4": "CRAFT_T4",
+  "craft-t5": "CRAFT_T5",
+
+  "sell-t2": "AUC_T2",
+  "sell-t3": "AUC_T3",
+  "sell-t4": "AUC_T4",
+  "sell-t5": "AUC_T5",
+
+  "buy-t2": "BUY_AUC_T2",
+  "buy-t3": "BUY_AUC_T3",
+  "buy-t4": "BUY_AUC_T4",
+  "buy-t5": "BUY_AUC_T5",
+
+  "buy-mat": "BUY_MATERIAL",
+
+  "rec-t2": "RECIPE_T2",
+  "rec-t3": "RECIPE_T3",
+  "rec-t4": "RECIPE_T4",
+  "rec-t5": "RECIPE_T5",
+
+  "artifact": "CRAFT_ARTEFACT",
+
+  "shop-spend": "SHOP_SPEND_100",
+
+  "buy-gold-1":  "BUY_USD_1",
+  "buy-gold-10": "BUY_USD_10",
+  "buy-gold-50": "BUY_USD_50"
+};
+
+
+// =======================================================
+// SQL tabela
+// =======================================================
 ensure(`
   CREATE TABLE IF NOT EXISTS user_quests(
     user_id INTEGER NOT NULL,
@@ -1258,64 +1293,92 @@ function todayKey(){
   return `${y}-${m}-${dd}`;
 }
 
-// GET active quests + status
+
+// =======================================================
+// FRONTEND → GET daily quests (status)
+// =======================================================
 app.get("/api/quests/daily", (req,res)=>{
   try{
     const uid = requireAuth(req);
     const day = todayKey();
-    const doneRows = db.prepare(
-      "SELECT quest_code FROM user_quests WHERE user_id=? AND done_at=?"
-    ).all(uid, day);
-    const doneSet = new Set(doneRows.map(r=>r.quest_code));
+
+    const rows = db.prepare(`
+      SELECT quest_code FROM user_quests
+      WHERE user_id=? AND done_at=?
+    `).all(uid, day);
+
+    const doneSet = new Set(rows.map(r=>r.quest_code));
+
     const list = QUESTS.map(q => ({
       code: q.code,
-      name: q.name,
       reward_g: q.reward_g,
       done: doneSet.has(q.code)
     }));
+
     res.json({ ok:true, day, quests:list });
-  }catch(e){
-    res.status(401).json({ ok:false });
+
+  }catch(err){
+    res.json({ ok:false, error:"not_logged_in" });
   }
 });
 
-// Mark quest as completed (automatic from game events)
+
+// =======================================================
+// FRONTEND → POST /api/quests/event
+// =======================================================
 app.post("/api/quests/event", (req,res)=>{
   try{
     const uid = requireAuth(req);
-    const { code } = req.body || {};
-    if (!code) return res.json({ ok:false, error:"Code missing" });
+    const incoming = req.body?.code;
+
+    if (!incoming)
+      return res.json({ ok:false, error:"missing_code" });
+
+    const code = QUEST_MAP[incoming];
+
+    if (!code)
+      return res.json({ ok:false, error:"unknown_code" });
 
     const q = QUESTS.find(x=>x.code === code);
-    if (!q) return res.json({ ok:false, error:"Invalid quest" });
+    if (!q)
+      return res.json({ ok:false, error:"undefined_quest" });
 
     const day = todayKey();
 
-    // already done?
-    const row = db.prepare(
-      "SELECT 1 FROM user_quests WHERE user_id=? AND quest_code=? AND done_at=?"
-    ).get(uid, code, day);
-    if (row) return res.json({ ok:true, already:true });
+    // već urađen?
+    const row = db.prepare(`
+      SELECT 1 FROM user_quests
+      WHERE user_id=? AND quest_code=? AND done_at=?
+    `).get(uid, code, day);
 
-    // insert
-    db.prepare(
-      "INSERT INTO user_quests(user_id,quest_code,done_at) VALUES (?,?,?)"
-    ).run(uid, code, day);
+    if (row)
+      return res.json({ ok:true, already:true });
 
-    // add gold (silver)
+    // — INSERT quest
+    db.prepare(`
+      INSERT INTO user_quests(user_id,quest_code,done_at)
+      VALUES (?,?,?)
+    `).run(uid, code, day);
+
+    // — ADD GOLD
     const addSilver = q.reward_g * 100;
-    const cur = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid)?.balance_silver || 0;
-    const newBal = cur + addSilver;
-    db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
 
+    const cur = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(uid)?.balance_silver || 0;
+    const newBal = cur + addSilver;
+
+    db.prepare(`UPDATE users SET balance_silver=? WHERE id=?`)
+      .run(newBal, uid);
+
+    // — LEDGER
     db.prepare(`
       INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
       VALUES (?,?,?,?,?)
     `).run(uid, addSilver, "QUEST", code, nowISO());
 
     res.json({ ok:true, reward_g:q.reward_g });
-  }catch(e){
-    res.status(401).json({ ok:false });
+
+  }catch(err){
+    res.json({ ok:false, error:"server_error" });
   }
 });
 
@@ -1847,6 +1910,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
