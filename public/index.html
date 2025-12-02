@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
 
-  <!-- Minimal fallback -->
   <style>html,body{background:#000;color:#e5e7eb;margin:0}</style>
 
-  <!-- PayPal SDK lazy loader (isto) -->
   <script>
     (async function loadPayPalSDK(){
       try{
@@ -48,6 +46,7 @@
 <body>
 
 <!-- ===== Header ===== -->
+  
 <header class="header no-border" style="padding:14px 20px;">
   <div class="brand" style="font-size:22px; font-weight:700; letter-spacing:1px;">
     ARTEFACT
@@ -76,6 +75,7 @@
 </header>
 
 <!-- ===== PayPal panel ===== -->
+  
 <section id="paypal-panel" class="card hidden">
   <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
     <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
@@ -95,6 +95,7 @@
 </section>
 
 <!-- ===== Auth ===== -->
+  
 <section id="auth" class="card hidden" style="margin-top:12px">
   <div id="card-register" style="display:none">
     <div class="label">Register</div>
@@ -116,6 +117,7 @@
 </section>
 
 <!-- ===== App Tabs ===== -->
+  
 <div class="tabbar row">
   <div class="chip active" data-tab="shop">Shop</div>
   <div class="chip" data-tab="quest">Quest</div>
@@ -126,6 +128,7 @@
 </div>
 
 <!-- ===== SHOP ===== -->
+  
 <div id="tab-shop" class="tab card">
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
@@ -185,6 +188,7 @@
 </div>
 
       <!-- CRAFT INFO -->
+  
       <div class="card">
         <div class="label">2) Crafting</div>
         <p class="muted">
@@ -197,6 +201,7 @@
       </div>
 
       <!-- MARKET INFO -->
+  
       <div class="card">
         <div class="label">3) Market</div>
         <p class="muted">
@@ -205,6 +210,7 @@
       </div>
 
       <!-- ARTEFACT -->
+  
       <div class="card">
         <div class="label">4) Artefact</div>
         <p class="muted">
@@ -213,12 +219,12 @@
         <img src="/artefakt.png" class="img-landing">
       </div>
 
-    </div> <!-- END .grid -->
-  </div>   <!-- END #shop-intro -->
-</div>     <!-- END #tab-shop -->
-
+    </div> 
+  </div>   
+</div>    
 
 <!-- ===== QUEST TAB ===== -->
+  
 <div id="tab-quest" class="tab card hidden">
   <div class="label" style="margin-bottom:8px">Daily Quests</div>
   <div id="quest-list" class="column" style="gap:8px"></div>
@@ -227,6 +233,7 @@
 
 
 <!-- ===== CRAFTING TAB ===== -->
+  
 <div id="tab-craft" class="card hidden">
   <div class="row">
     <div class="label">Crafting</div>
@@ -263,6 +270,7 @@
 
 
 <!-- ===== MARKET TAB ===== -->
+  
 <section id="tab-market" class="card hidden">
   <div class="label">Marketplace</div>
 
@@ -293,6 +301,7 @@
     </div>
 
     <!-- Marketplace + My listings -->
+    
     <div class="card">
 
       <div class="row" style="gap:10px; align-items:center">
@@ -312,8 +321,7 @@
 
     </div>
 
-  </div> <!-- END .grid -->
-</section>
+  </div> 
 
 
 <!-- ===== INVENTORY TAB ===== -->
@@ -324,6 +332,7 @@
 
 
 <!-- ===== BONUS TAB ===== -->
+  
 <div id="tab-bonus" class="card hidden">
 
   <div class="row" style="justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap">
@@ -376,12 +385,12 @@
       <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
     </div>
 
-  </div> <!-- END #bonus-grid -->
-</div> <!-- END #tab-bonus -->
-
+  </div>
+</div> 
 
 
  <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
+  
 <script>
 (function(){
   const w = window;
@@ -403,8 +412,7 @@
   };
   try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
 
-  // api helper
-  w.api = w.api || (async function api(path, opts={}){
+    w.api = w.api || (async function api(path, opts={}){
     const method = (opts.method || "GET").toUpperCase();
     const headers = Object.assign({}, opts.headers || {});
     const init = { credentials: "include", ...opts, method };
@@ -453,6 +461,7 @@
 
 
 <!-- ===== Icons & mapping ===== -->
+  
 <script>
 const IMG_PREFIX = "/";
 const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
@@ -476,47 +485,47 @@ function iconForByCode(code, tier){
 </script>
 
 
-<!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
-let WHO = window.WHO || null;
-window.CURRENT_RECIPE_ID = null;
+  let WHO = window.WHO || null;
+  window.CURRENT_RECIPE_ID = null;
 
-window.refreshMeLight = async function(){
-  try{
-    const r = await api("/api/me");
-    if (r && r.user){
-      WHO.balance_silver = r.user.balance_silver | 0;
-      WHO.perks = r.user.perks || {};
-      WHO.buys_to_next = r.user.buys_to_next ?? null;
-      renderBalance();
-      applyPerkIndicators();
+  // ✔️ SIGURNA VERZIJA — radi samo ako si ulogiran
+  window.refreshMeLight = async function(){
+    if (!WHO || !WHO.id) return; // ako nisi ulogiran -> STOP
+
+    try {
+      const r = await api("/api/me-light");
+      if (r && r.user){
+        WHO.balance_silver = r.user.balance_silver | 0;
+        WHO.perks = r.user.perks || {};
+        WHO.buys_to_next = r.user.buys_to_next ?? null;
+        renderBalance();
+        applyPerkIndicators();
+      }
+    } catch(e){
+      console.warn("refreshMeLight fail:", e);
     }
-  }catch(e){
-    console.warn("refreshMeLight fail:", e);
+  };
+
+  function renderBalance(){
+    const v = WHO?.balance_silver || 0;
+    const g = Math.floor(v/100), s = v%100;
+
+    const el = $("#balance");
+    if (el){
+      el.textContent = `${g}g ${s}s`;
+      el.classList.add("pulse");
+      setTimeout(()=> el.classList.remove("pulse"), 1300);
+    }
+
+    const usd = document.getElementById("balance-dollar");
+    if (usd){
+      usd.innerText = `$${(g / 1000).toFixed(2)}`;
+      usd.classList.remove("hidden");
+    }
   }
-};
+</script>
 
-function showApp(){
-  $("#app")?.classList.remove("hidden");
-}
-
-function renderBalance(){
-  const v = WHO?.balance_silver || 0;
-  const g = Math.floor(v/100), s = v%100;
-
-  const el = $("#balance");
-  if (el) {
-    el.textContent = `${g}g ${s}s`;
-    el.classList.add("pulse");
-    setTimeout(()=> el.classList.remove("pulse"), 1300);
-  }
-
-  const usd = document.getElementById("balance-dollar");
-  if (usd) {
-    usd.innerText = `$${(g / 1000).toFixed(2)}`;
-    usd.classList.remove("hidden");
-  }
-}
 
 function applyPerkIndicators(){
   const price = WHO?.perks?.shop_price_s ?? 100;
@@ -1744,3 +1753,4 @@ arteBtn?.addEventListener("click", async ()=>{
 
 </body>
 </html>
+
