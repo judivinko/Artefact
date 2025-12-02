@@ -851,6 +851,7 @@ async function setTab(tab){
   
   
 
+<script>
 // ==========================
 //       QUEST SYSTEM
 // ==========================
@@ -925,8 +926,8 @@ async function setTab(tab){
   // ==========================
   window.questTrigger = function(id){
     const status = getStatus();
-    if(status[id]) return; // već označen kao završen/claiman
-    status[id] = false;    // označen kao urađen ali NE claiman
+    if(status[id]) return;
+    status[id] = false;
     saveStatus(status);
     renderQuests();
   };
@@ -936,12 +937,12 @@ async function setTab(tab){
   // ==========================
   window.claimQuest = function(id, reward){
     const status = getStatus();
-    if(status[id] === true) return; // već claimano
+    if(status[id] === true) return;
 
     status[id] = true;
     saveStatus(status);
 
-    // dodaj gold local
+    // dodaj gold
     WHO.balance_silver += reward;
     renderBalance();
 
@@ -990,6 +991,8 @@ async function setTab(tab){
   };
 
 })();
+</script>
+
 
 
 
@@ -1589,6 +1592,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
