@@ -461,15 +461,19 @@
 
 
 <!-- ===== Icons & mapping ===== -->
-  
 <script>
 const IMG_PREFIX = "/";
 const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
 const FALLBACK_ITEM_ICON = `${IMG_PREFIX}t1_bronze.png`;
 
-const esc = s => String(s)
-  .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-  .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+function esc(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
 
 function fileNameFromCodeTier(code, tier){
   if(!code) return null;
@@ -478,6 +482,7 @@ function fileNameFromCodeTier(code, tier){
   if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
   return null;
 }
+
 function iconForByCode(code, tier){
   const file = fileNameFromCodeTier(code, tier);
   return file ? `${IMG_PREFIX}${file}` : FALLBACK_ITEM_ICON;
@@ -485,48 +490,51 @@ function iconForByCode(code, tier){
 </script>
 
 
+<!-- ===== Global state + refresh ===== -->
 <script>
-  let WHO = window.WHO || null;
-  window.CURRENT_RECIPE_ID = null;
+let WHO = window.WHO || null;
+window.CURRENT_RECIPE_ID = null;
 
-  // ✔️ SIGURNA VERZIJA — radi samo ako si ulogiran
-  window.refreshMeLight = async function(){
-    if (!WHO || !WHO.id) return; // ako nisi ulogiran -> STOP
+/* ✔️ SIGURNA refreshMeLight verzija */
+window.refreshMeLight = async function(){
+  if (!WHO || !WHO.id) return;
 
-    try {
-      const r = await api("/api/me-light");
-      if (r && r.user){
-        WHO.balance_silver = r.user.balance_silver | 0;
-        WHO.perks = r.user.perks || {};
-        WHO.buys_to_next = r.user.buys_to_next ?? null;
-        renderBalance();
-        applyPerkIndicators();
-      }
-    } catch(e){
-      console.warn("refreshMeLight fail:", e);
-    }
-  };
+  try{
+    const r = await api("/api/me-light").catch(()=>null);
+    if (!r || !r.user) return;
 
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v%100;
+    WHO.balance_silver = r.user.balance_silver | 0;
+    WHO.perks = r.user.perks || {};
+    WHO.buys_to_next = r.user.buys_to_next ?? null;
 
-    const el = $("#balance");
-    if (el){
-      el.textContent = `${g}g ${s}s`;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
-
-    const usd = document.getElementById("balance-dollar");
-    if (usd){
-      usd.innerText = `$${(g / 1000).toFixed(2)}`;
-      usd.classList.remove("hidden");
-    }
+    renderBalance();
+    applyPerkIndicators();
+  }catch(e){
+    console.warn("refreshMeLight fail:", e);
   }
-</script>
+};
 
+/* ✔️ Sigurno renderanje gold/silver */
+function renderBalance(){
+  const v = WHO?.balance_silver || 0;
+  const g = Math.floor(v/100);
+  const s = v % 100;
 
+  const el = $("#balance");
+  if (el){
+    el.textContent = `${g}g ${s}s`;
+    el.classList.add("pulse");
+    setTimeout(()=> el.classList.remove("pulse"), 1300);
+  }
+
+  const usd = $("#balance-dollar");
+  if (usd){
+    usd.textContent = `$${(g / 1000).toFixed(2)}`;
+    usd.classList.remove("hidden");
+  }
+}
+
+/* ✔️ UI Perks */
 function applyPerkIndicators(){
   const price = WHO?.perks?.shop_price_s ?? 100;
   $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
@@ -545,6 +553,7 @@ function applyPerkIndicators(){
   $("#market-min-inline")?.classList.toggle("hidden", !minNote);
 }
 
+/* ✔️ Tabs – potpuno ispravno */
 async function setTab(tab){
   showApp();
 
@@ -557,18 +566,14 @@ async function setTab(tab){
   $("#tab-inv")    ?.classList.toggle("hidden", tab !== "inv");
   $("#tab-bonus")  ?.classList.toggle("hidden", tab !== "bonus");
 
-  if (tab === "quest") {
-    if (window.showQuestTab) window.showQuestTab();
-    window.questTrigger?.("quest-click");
-  }
-
-  if (tab === "shop")   window.questTrigger?.("shop-click");
-  if (tab === "craft")  window.questTrigger?.("craft-click");
+  if (tab === "quest"){ window.showQuestTab?.(); window.questTrigger?.("quest-click"); }
+  if (tab === "shop") window.questTrigger?.("shop-click");
+  if (tab === "craft") window.questTrigger?.("craft-click");
   if (tab === "market") window.questTrigger?.("market-click");
-  if (tab === "inv")    window.questTrigger?.("inv-click");
-  if (tab === "bonus")  window.questTrigger?.("bonus-click");
+  if (tab === "inv") window.questTrigger?.("inv-click");
+  if (tab === "bonus") window.questTrigger?.("bonus-click");
 
-  if (tab === "market") {
+  if (tab === "market"){
     safeCall("loadInventoryPanel");
     safeCall("loadMarket");
     safeCall("loadMine");
@@ -576,13 +581,11 @@ async function setTab(tab){
 
   if (tab === "inv") safeCall("loadInventoryFull");
 
-  if (tab === "bonus") {
-    try { await loadBonus(); }
-    catch(e){ console.warn(e); }
+  if (tab === "bonus"){
+    try{ await loadBonus(); }catch(e){ console.warn(e); }
   }
 }
 </script>
-
 
 
 
@@ -1753,4 +1756,5 @@ arteBtn?.addEventListener("click", async ()=>{
 
 </body>
 </html>
+
 
