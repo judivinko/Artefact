@@ -1193,41 +1193,41 @@ app.post("/api/shop/buy-t1",(req,res)=>{
 */
 
 const QUESTS = [
-  { code:"TAB_SHOP",       reward_g:20 },
-  { code:"TAB_CRAFT",      reward_g:20 },
-  { code:"TAB_MARKET",     reward_g:20 },
-  { code:"TAB_INV",        reward_g:20 },
-  { code:"TAB_BONUS",      reward_g:20 },
+  { code:"TAB_SHOP",       reward_g:2000 },
+  { code:"TAB_CRAFT",      reward_g:2000 },
+  { code:"TAB_MARKET",     reward_g:2000 },
+  { code:"TAB_INV",        reward_g:2000 },
+  { code:"TAB_BONUS",      reward_g:2000 },
 
-  { code:"CRAFT_T2",       reward_g:20 },
-  { code:"CRAFT_T3",       reward_g:30 },
-  { code:"CRAFT_T4",       reward_g:40 },
-  { code:"CRAFT_T5",       reward_g:50 },
+  { code:"CRAFT_T2",       reward_g:2000 },
+  { code:"CRAFT_T3",       reward_g:3000 },
+  { code:"CRAFT_T4",       reward_g:4000 },
+  { code:"CRAFT_T5",       reward_g:5000 },
 
-  { code:"AUC_T2",         reward_g:20 },
-  { code:"AUC_T3",         reward_g:30 },
-  { code:"AUC_T4",         reward_g:40 },
-  { code:"AUC_T5",         reward_g:50 },
+  { code:"AUC_T2",         reward_g:2000 },
+  { code:"AUC_T3",         reward_g:3000 },
+  { code:"AUC_T4",         reward_g:4000 },
+  { code:"AUC_T5",         reward_g:5000 },
 
-  { code:"BUY_AUC_T2",     reward_g:20 },
-  { code:"BUY_AUC_T3",     reward_g:30 },
-  { code:"BUY_AUC_T4",     reward_g:40 },
-  { code:"BUY_AUC_T5",     reward_g:50 },
+  { code:"BUY_AUC_T2",     reward_g:2000 },
+  { code:"BUY_AUC_T3",     reward_g:3000 },
+  { code:"BUY_AUC_T4",     reward_g:4000 },
+  { code:"BUY_AUC_T5",     reward_g:5000 },
 
-  { code:"BUY_MATERIAL",   reward_g:10 },
+  { code:"BUY_MATERIAL",   reward_g:1000 },
 
-  { code:"RECIPE_T2",      reward_g:20 },
-  { code:"RECIPE_T3",      reward_g:30 },
-  { code:"RECIPE_T4",      reward_g:40 },
-  { code:"RECIPE_T5",      reward_g:50 },
+  { code:"RECIPE_T2",      reward_g:2000 },
+  { code:"RECIPE_T3",      reward_g:3000 },
+  { code:"RECIPE_T4",      reward_g:4000 },
+  { code:"RECIPE_T5",      reward_g:5000 },
 
-  { code:"CRAFT_ARTEFACT", reward_g:10000 },
+  { code:"CRAFT_ARTEFACT", reward_g:1000000 },
 
-  { code:"SHOP_SPEND_100", reward_g:50 },
+  { code:"SHOP_SPEND_100", reward_g:5000 },
 
-  { code:"BUY_USD_1",      reward_g:2000 },
-  { code:"BUY_USD_10",     reward_g:20000 },
-  { code:"BUY_USD_50",     reward_g:100000 }
+  { code:"BUY_USD_1",      reward_g:100000 },
+  { code:"BUY_USD_10",     reward_g:1000000 },
+  { code:"BUY_USD_50",     reward_g:5000000 }
 ];
 
 // ===================================================================================
@@ -1910,6 +1910,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
