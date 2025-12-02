@@ -141,6 +141,7 @@
         <div id="codes-msg" class="muted" style="margin-top:6px"></div>
       </div>
 
+
       <!-- Users + Inventory -->
       
       <div class="card">
@@ -163,7 +164,7 @@
     </section>
   </main>
   
-  // Helpers
+  <!-- Helpers -->
   
   <script>  
     const $ = s => document.querySelector(s);
@@ -207,7 +208,6 @@
         if (el) el.disabled = LOCKED;
       });
 
-      // 3) input polja (code + percent) – onemogući unos kad je LOCK
       for (let i = 0; i < 5; i++){
         const codeEl = document.getElementById(`bonus-code-${i}`);
         const pctEl  = document.getElementById(`bonus-percent-${i}`);
@@ -270,7 +270,7 @@
       if (!selected){ box.textContent="Select a user from the list →"; return; }
       box.textContent="Loading…";
       try{
-        const r = await api(`/api/admin/user/${selected.id}/inventory`);
+        const r = await api(`/api/admin/inventory/${selected.id}`);
         const lines = [];
         lines.push("ITEMS:");
         if (!(r.items||[]).length) lines.push("(none)");
@@ -283,215 +283,216 @@
       }catch(e){ box.textContent = e.message; }
     }
 
+
     // ----------------- Bonus codes -----------------
     
-    function sanitizeCode(raw){
-      const s = String(raw||"").trim().toUpperCase();
-      return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
-    }
-    
-    async function loadBonusCodes(){
-      try{
-        const r = await api("/api/admin/bonus-codes");
-        const rows = r?.slots || [];
-        for (let i=0;i<5;i++){
-          const entry = rows[i] || { code:"", percent:0, total_credited_silver:0 };
-          const codeEl = document.getElementById(`bonus-code-${i}`);
-          const pctEl  = document.getElementById(`bonus-percent-${i}`);
-          const usedEl = document.getElementById(`bonus-used-${i}`);
-          if (codeEl) codeEl.value = entry.code || "";
-          if (pctEl)  pctEl.value  = Number(entry.percent||0);
-          if (usedEl) usedEl.value = Math.floor((entry.total_credited_silver||0)/100);
-        }
-        
-        msg("#codes-msg", "Loaded.", true);
-      }catch(e){
-        for (let i=0;i<5;i++){
-          const usedEl = document.getElementById(`bonus-used-${i}`);
-          if (usedEl) usedEl.value = 0;
-        }
-        msg("#codes-msg", e.message || "Failed to load.", false);
-      }
-      applyRowLocksFromStorage();
-    }
-    
-    async function saveBonusRow(i){
+function sanitizeCode(raw){
+  const s = String(raw||"").trim().toUpperCase();
+  return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
+}
+
+async function loadBonusCodes(){
+  try{
+    const r = await api("/api/admin/bonus-codes");
+    const rows = r?.slots || [];
+    for (let i=0;i<5;i++){
+      const entry = rows[i] || { code:"", percent:0, total_used_silver:0 };
       const codeEl = document.getElementById(`bonus-code-${i}`);
       const pctEl  = document.getElementById(`bonus-percent-${i}`);
       const usedEl = document.getElementById(`bonus-used-${i}`);
-      const code = sanitizeCode(codeEl?.value || "");
-      const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
-      try{
-        const r = await api("/api/admin/bonus-codes", {
-          method:"POST",
-          body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
-        });
-        if (usedEl && typeof r.total_credited_silver === "number") {
-          usedEl.value = Math.floor(r.total_credited_silver / 100);
-        }
-        msg("#codes-msg", `Saved row ${i+1}.`, true);
-      }catch(e){
-        msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
-      }
-    }
-    async function saveAllBonusRows(){
-      for (let i=0;i<5;i++){ try{ await saveBonusRow(i); }catch{} }
+      if (codeEl) codeEl.value = entry.code || "";
+      if (pctEl)  pctEl.value  = Number(entry.percent||0);
+      if (usedEl) usedEl.value = Math.floor((entry.total_used_silver||0)/100);
     }
 
-    const ROW_LOCK_KEY = "admin.bonus.rowlocks"; 
-    function getRowLocks(){
-      try { return JSON.parse(localStorage.getItem(ROW_LOCK_KEY) || "{}") || {}; } catch { return {}; }
+    msg("#codes-msg", "Loaded.", true);
+  }catch(e){
+    for (let i=0;i<5;i++){
+      const usedEl = document.getElementById(`bonus-used-${i}`);
+      if (usedEl) usedEl.value = 0;
     }
-    function setRowLocks(map){
-      try { localStorage.setItem(ROW_LOCK_KEY, JSON.stringify(map||{})); } catch {}
-    }
-    function isRowLocked(i){ return !!getRowLocks()[i]; }
-    function setRowLocked(i, locked){
-      const map = getRowLocks(); map[i] = !!locked; setRowLocks(map);
-      const codeEl = document.getElementById(`bonus-code-${i}`);
-      const pctEl  = document.getElementById(`bonus-percent-${i}`);
-      const btn    = document.getElementById(`btn-save-${i+1}`);
-      if (codeEl) codeEl.disabled = locked;
-      if (pctEl)  pctEl.disabled  = locked;
-      if (btn){
-        const base = `Save ${i+1}`;
-        btn.textContent = locked ? `${base} 🔒` : base;
-        btn.classList.toggle("muted", locked);
-        btn.style.cursor = locked ? "not-allowed" : "";
-      }
-      updateSaveAllVisual();
-    }
-    
-    function applyRowLocksFromStorage(){ for (let i=0;i<5;i++) setRowLocked(i, isRowLocked(i)); }
-    function toggleRowLock(i){ setRowLocked(i, !isRowLocked(i)); }
-    function setAllRowLocks(locked){ for (let i=0;i<5;i++) setRowLocked(i, !!locked); }
-    function toggleAllRowLocks(){
-      let anyUnlocked=false; for (let i=0;i<5;i++) if (!isRowLocked(i)) { anyUnlocked=true; break; }
-      setAllRowLocks(anyUnlocked); // ako ima otključanih -> zaključa sve; inače otključa sve
-    }
-    
-    function updateSaveAllVisual(){
-      const btnAll = document.getElementById("btn-codes-save-all");
-      if (!btnAll) return;
-      let allLocked = true; for (let i=0;i<5;i++) if (!isRowLocked(i)) { allLocked=false; break; }
-      btnAll.textContent = allLocked ? "Save all 🔒" : "Save all";
-      btnAll.classList.toggle("muted", allLocked);
-      btnAll.style.cursor = allLocked ? "not-allowed" : "";
-    }
+    msg("#codes-msg", e.message || "Failed to load.", false);
+  }
+  applyRowLocksFromStorage();
+}
 
-    $("#btn-key-set").addEventListener("click", async ()=>{
-      ADMIN_KEY = $("#admin-key").value.trim();
-      REMEMBER = $("#key-remember").checked;
-      LOCKED = $("#key-lock").checked;
-      savePrefs(); applyLock();
-      await checkAdmin(); await loadUsers(); await loadBonusCodes();
+async function saveBonusRow(i){
+  const codeEl = document.getElementById(`bonus-code-${i}`);
+  const pctEl  = document.getElementById(`bonus-percent-${i}`);
+  const usedEl = document.getElementById(`bonus-used-${i}`);
+  const code = sanitizeCode(codeEl?.value || "");
+  const percent = Math.max(0, Math.min(100, parseInt(pctEl?.value||"0",10) || 0));
+  try{
+    const r = await api("/api/admin/bonus-codes", {
+      method:"POST",
+      body: JSON.stringify({ slot: i+1, code, percent, is_active:true })
     });
-    
-    $("#btn-key-clear").addEventListener("click", ()=>{ ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared."); });
-    $("#key-lock").addEventListener("change", ()=>{ LOCKED=$("#key-lock").checked; savePrefs(); applyLock(); });
-    $("#key-remember").addEventListener("change", ()=>{ REMEMBER=$("#key-remember").checked; savePrefs(); });
+    if (usedEl && typeof r.total_used_silver === "number") {
+      usedEl.value = Math.floor(r.total_used_silver / 100);
+    }
+    msg("#codes-msg", `Saved row ${i+1}.`, true);
+  }catch(e){
+    msg("#codes-msg", e.message || `Save row ${i+1} failed.`, false);
+  }
+}
 
-    $("#btn-refresh-users").addEventListener("click", loadUsers);
-    $("#btn-refresh-inv").addEventListener("click", loadInventory);
-    $("#search").addEventListener("input", renderUsers);
+async function saveAllBonusRows(){
+  for (let i=0;i<5;i++){ try{ await saveBonusRow(i); }catch{} }
+}
 
-    $("#btn-give").addEventListener("click", ()=> changeGold(+1));
-    $("#btn-take").addEventListener("click", ()=> changeGold(-1));
-    $("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-    $("#btn-enable").addEventListener("click", ()=> setDisabled(false));
-    $("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+const ROW_LOCK_KEY = "admin.bonus.rowlocks"; 
+function getRowLocks(){
+  try { return JSON.parse(localStorage.getItem(ROW_LOCK_KEY) || "{}") || {}; } catch { return {}; }
+}
+function setRowLocks(map){
+  try { localStorage.setItem(ROW_LOCK_KEY, JSON.stringify(map||{})); } catch {}
+}
+function isRowLocked(i){ return !!getRowLocks()[i]; }
+function setRowLocked(i, locked){
+  const map = getRowLocks(); map[i] = !!locked; setRowLocks(map);
+  const codeEl = document.getElementById(`bonus-code-${i}`);
+  const pctEl  = document.getElementById(`bonus-percent-${i}`);
+  const btn    = document.getElementById(`btn-save-${i+1}`);
+  if (codeEl) codeEl.disabled = locked;
+  if (pctEl)  pctEl.disabled  = locked;
+  if (btn){
+    const base = `Save ${i+1}`;
+    btn.textContent = locked ? `${base} 🔒` : base;
+    btn.classList.toggle("muted", locked);
+    btn.style.cursor = locked ? "not-allowed" : "";
+  }
+  updateSaveAllVisual();
+}
 
-    document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
+function applyRowLocksFromStorage(){ for (let i=0;i<5;i++) setRowLocked(i, isRowLocked(i)); }
+function toggleRowLock(i){ setRowLocked(i, !isRowLocked(i)); }
+function setAllRowLocks(locked){ for (let i=0;i<5;i++) setRowLocked(i, !!locked); }
+function toggleAllRowLocks(){
+  let anyUnlocked=false; for (let i=0;i<5;i++) if (!isRowLocked(i)) { anyUnlocked=true; break; }
+  setAllRowLocks(anyUnlocked);
+}
 
-    (function wireSaveAll(){
-      const btnAll = document.getElementById("btn-codes-save-all");
-      if (!btnAll) return;
-      updateSaveAllVisual();
-      btnAll.addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        if (ev.shiftKey){
-          toggleAllRowLocks();
-          return;
-        }
-        // spremi samo otključane redove
-        for (let i=0;i<5;i++){ if (!isRowLocked(i)) { try{ await saveBonusRow(i); }catch{} } }
-        msg("#codes-msg","Saved all (locked rows skipped).", true);
-      });
-    })();
+function updateSaveAllVisual(){
+  const btnAll = document.getElementById("btn-codes-save-all");
+  if (!btnAll) return;
+  let allLocked = true; for (let i=0;i<5;i++) if (!isRowLocked(i)) { allLocked=false; break; }
+  btnAll.textContent = allLocked ? "Save all 🔒" : "Save all";
+  btnAll.classList.toggle("muted", allLocked);
+  btnAll.style.cursor = allLocked ? "not-allowed" : "";
+}
 
-    ["1","2","3","4","5"].forEach((n, i) => {
-      const btn = document.getElementById(`btn-save-${n}`);
-      if (btn) {
-        btn.addEventListener("click", async (ev) => {
-          ev.preventDefault();
-          if (ev.shiftKey){
-            toggleRowLock(i);
-            return;
-          }
-          if (isRowLocked(i)){
-            msg("#codes-msg", `Row ${i+1} is locked. Hold Shift and click to unlock.`, false);
-            return;
-          }
-          await saveBonusRow(i);
-        });
+$("#btn-key-set").addEventListener("click", async ()=>{
+  ADMIN_KEY = $("#admin-key").value.trim();
+  REMEMBER = $("#key-remember").checked;
+  LOCKED = $("#key-lock").checked;
+  savePrefs(); applyLock();
+  await checkAdmin(); await loadUsers(); await loadBonusCodes();
+});
+
+$("#btn-key-clear").addEventListener("click", ()=>{ ADMIN_KEY=""; savePrefs(); applyLock(); msg("#key-msg","Cleared."); });
+$("#key-lock").addEventListener("change", ()=>{ LOCKED=$("#key-lock").checked; savePrefs(); applyLock(); });
+$("#key-remember").addEventListener("change", ()=>{ REMEMBER=$("#key-remember").checked; savePrefs(); });
+
+$("#btn-refresh-users").addEventListener("click", loadUsers);
+$("#btn-refresh-inv").addEventListener("click", loadInventory);
+$("#search").addEventListener("input", renderUsers);
+
+$("#btn-give").addEventListener("click", ()=> changeGold(+1));
+$("#btn-take").addEventListener("click", ()=> changeGold(-1));
+$("#btn-disable").addEventListener("click", ()=> setDisabled(true));
+$("#btn-enable").addEventListener("click", ()=> setDisabled(false));
+$("#btn-set-bonus").addEventListener("click", setArtefactBonusGold);
+
+document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
+
+(function wireSaveAll(){
+  const btnAll = document.getElementById("btn-codes-save-all");
+  if (!btnAll) return;
+  updateSaveAllVisual();
+  btnAll.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    if (ev.shiftKey){
+      toggleAllRowLocks();
+      return;
+    }
+    for (let i=0;i<5;i++){ if (!isRowLocked(i)) { try{ await saveBonusRow(i); }catch{} } }
+    msg("#codes-msg","Saved all (locked rows skipped).", true);
+  });
+})();
+
+["1","2","3","4","5"].forEach((n, i) => {
+  const btn = document.getElementById(`btn-save-${n}`);
+  if (btn) {
+    btn.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      if (ev.shiftKey){
+        toggleRowLock(i);
+        return;
       }
+      if (isRowLocked(i)){
+        msg("#codes-msg", `Row ${i+1} is locked. Hold Shift and click to unlock.`, false);
+        return;
+      }
+      await saveBonusRow(i);
     });
+  }
+});
 
-    loadPrefs();
-    (async ()=>{
-      try{
-        const me = await fetch("/api/me", {credentials:"include"}).then(r=>r.ok?r.json():null).catch(()=>null);
-        if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
-        else setWho("Not logged in (key mode).");
-      }catch{ setWho("Not logged in (key mode)."); }
-      // primijeni per-row lock stanja odmah
-      applyRowLocksFromStorage();
-      if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); await loadBonusCodes(); }
-    })();
+loadPrefs();
+(async ()=>{
+  try{
+    const me = await fetch("/api/me", {credentials:"include"}).then(r=>r.ok?r.json():null).catch(()=>null);
+    if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
+    else setWho("Not logged in (key mode).");
+  }catch{ setWho("Not logged in (key mode)."); }
 
-    async function changeGold(sign){
-      if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
-      const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
-      if (amount === 0){ msg("#ops-msg","Enter non-zero gold amount.",false); return; }
-      const gold = sign > 0 ? amount : -amount;
-      try{
-        const r = await api("/api/admin/adjust-balance", {
-          method:"POST",
-          body: JSON.stringify({ email: selected.email, gold })
-        });
-        msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`, true);
-        await loadUsers();
-        const found = users.find(x => x.id === selected.id);
-        if (found) selected = found;
-        await loadInventory();
-      }catch(e){ msg("#ops-msg", e.message, false); }
-    }
-    async function setDisabled(flag){
-      if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
-      try{
-        await api("/api/admin/disable-user", {
-          method:"POST",
-          body: JSON.stringify({ email: selected.email, disabled: flag })
-        });
-        msg("#ops-msg", flag ? "Account disabled." : "Account enabled.", true);
-        await loadUsers();
-        const found = users.find(x => x.id === selected.id);
-        if (found) selected = found;
-        $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
-      }catch(e){ msg("#ops-msg", e.message, false); }
-    }
-    async function setArtefactBonusGold(){
-      const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
-      try{
-        const r = await api("/api/admin/set-bonus-gold", {
-          method:"POST",
-          body: JSON.stringify({ code:"ARTEFACT", bonus_gold })
-        });
-        msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`, true);
-      }catch(e){ msg("#bonus-msg", e.message, false); }
-    }
-  </script>
-</body>
-</html>
+  applyRowLocksFromStorage();
+  if (ADMIN_KEY){ await checkAdmin(); await loadUsers(); await loadBonusCodes(); }
+})();
+
+async function changeGold(sign){
+  if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
+  const amount = parseInt($("#gold-amount").value || "0", 10) || 0;
+  if (amount === 0){ msg("#ops-msg","Enter non-zero gold amount.",false); return; }
+  const gold = sign > 0 ? amount : -amount;
+  try{
+    const r = await api("/api/admin/adjust-balance", {
+      method:"POST",
+      body: JSON.stringify({ email: selected.email, gold })
+    });
+    msg("#ops-msg", `New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`, true);
+    await loadUsers();
+    const found = users.find(x => x.id === selected.id);
+    if (found) selected = found;
+    await loadInventory();
+  }catch(e){ msg("#ops-msg", e.message, false); }
+}
+
+async function setDisabled(flag){
+  if (!selected){ msg("#ops-msg","Select a user first.",false); return; }
+  try{
+    await api("/api/admin/disable-user", {
+      method:"POST",
+      body: JSON.stringify({ email: selected.email, disabled: flag })
+    });
+    msg("#ops-msg", flag ? "Account disabled." : "Account enabled.", true);
+    await loadUsers();
+    const found = users.find(x => x.id === selected.id);
+    if (found) selected = found;
+    $("#sel-user-label").textContent = `Selected user: ${selected.email} (id ${selected.id})`;
+  }catch(e){ msg("#ops-msg", e.message, false); }
+}
+
+async function setArtefactBonusGold(){
+  const bonus_gold = parseInt((document.querySelector("#bonus-gold")?.value || "0"), 10) || 0;
+  try{
+    const r = await api("/api/admin/set-bonus-gold", {
+      method:"POST",
+      body: JSON.stringify({ code:"ARTEFACT", bonus_gold })
+    });
+    msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`, true);
+  }catch(e){ msg("#bonus-msg", e.message, false); }
+}
+
 
 
