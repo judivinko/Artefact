@@ -801,7 +801,8 @@ async function setTab(tab){
     btn.textContent = "Buying…";
 
     try {
-      const r = await api("/api/shop/buy", {
+      // ❗ FIXED ENDPOINT (jedina greška)
+      const r = await api("/api/shop/buy-t1", {
         method:"POST",
         body:{ qty }
       });
@@ -848,9 +849,8 @@ async function setTab(tab){
 })();
 </script>
 
-  
-  
 
+  
 <script>
 // ==========================
 //       QUEST SYSTEM
@@ -1592,6 +1592,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
