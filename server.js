@@ -1150,9 +1150,8 @@ app.get("/api/shop/info", (req, res) => {
   const claimed = getClaimedTiers(tok.uid);
   const perks = perksFromClaimed(claimed);
 
-  // baza iz perkova (npr 10 → osnovna cijena), ali REALNA cijena je ×10 (100s)
   const basePrice = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
-  const finalPrice = basePrice * 10;   // OVDJE dižemo sa 10s na 100s → 1 gold
+  const finalPrice = basePrice * 10;  // 1 gold = 100 silver
 
   const buysToNext = (u.next_recipe_at == null)
     ? null
@@ -1161,13 +1160,11 @@ app.get("/api/shop/info", (req, res) => {
   res.json({
     ok: true,
     balance_silver: u.balance_silver,
-    shop_price_s: finalPrice,          // FRONTEND sada vidi pravu cijenu u silveru
-    shop_buy_count: u.shop_buy_count,
-    next_recipe_at: u.next_recipe_at,
-    buys_to_next: buysToNext,
-    perks
+    price_s: finalPrice,
+    buys_to_next: buysToNext
   });
 });
+
 
 
 // ⭐ OVO JE ISPRAVNA RUTA KOJU FRONTEND OČEKUJE
@@ -2003,6 +2000,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
