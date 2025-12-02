@@ -796,51 +796,55 @@ async function setTab(tab){
   }
 
   // ----------------------------
-  //  BUY T1 MATERIALS
-  // ----------------------------
-  async function doBuyT1(){
-    const inp = $("#buy-t1-qty");
-    let qty = parseInt(inp?.value || "1", 10);
-    if (!qty || qty < 1) qty = 1;
-    if (qty > 99999) qty = 99999;
+//  BUY T1 MATERIALS
+// ----------------------------
+async function doBuyT1(){
+  const inp = $("#buy-t1-qty");
+  let qty = parseInt(inp?.value || "1", 10);
+  if (!qty || qty < 1) qty = 1;
+  if (qty > 99999) qty = 99999;
 
-    const btn = $("#btn-buy-t1");
-    if (!btn) return;
+  const btn = $("#btn-buy-t1");
+  if (!btn) return;
 
-    const prev = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Buying…";
+  const prev = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Buying…";
 
-    try {
-      // FIX: qty se šalje serveru
-      const r = await api("/api/shop/buy-t1", {
-        method:"POST",
-        body:{ qty }
-      });
+  try {
+    // qty ide na server
+    const r = await api("/api/shop/buy-t1", {
+      method:"POST",
+      body:{ qty }
+    });
 
-      // update local balance
-      if (r?.balance_silver != null && window.WHO){
-        WHO.balance_silver = r.balance_silver|0;
-      }
-
-      // refresh UI
-      await loadShop();
-      await safeCall("loadInventoryPanel");
-
-      // TOAST JE ISPRAVAN
-      showToast(`Purchased x${qty}`);
-
-      // quest
-      window.questTrigger?.("buy-mat");
-
-    } catch(e){
-      showToast(e?.message || "Buy failed.");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = prev;
-      inp.value = "";
+    // update local balance
+    if (r?.balance_silver != null && window.WHO){
+      WHO.balance_silver = r.balance_silver | 0;
     }
+
+    // 🔥 OVO POPRAVLJA SVE (WHO refresh)
+    await refreshMeLight();
+
+    // refresh UI
+    await loadShop();
+    await safeCall("loadInventoryPanel");
+
+    // toast
+    showToast(`Purchased x${qty}`);
+
+    // quest
+    window.questTrigger?.("buy-mat");
+
+  } catch(e){
+    showToast(e?.message || "Buy failed.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prev;
+    inp.value = "";
   }
+}
+
 
   // ----------------------------
   //  WHEN TAB OPENS
@@ -1605,6 +1609,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
