@@ -130,14 +130,23 @@
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
   <div class="card" style="padding:10px;margin-bottom:16px;">
+
+    <!-- HEADER -->
     <div class="row" style="justify-content:space-between;align-items:center">
       <div class="label">Buy T1</div>
+
+      <!-- 🔥 DODANO ovo (nedostajalo u tvojoj verziji) -->
+      <span class="badge">
+        Price: <span id="shop-price-inline">100</span>s
+      </span>
     </div>
 
+    <!-- NEXT RECIPE INFO -->
     <div class="muted" style="margin-top:6px;">
       Buys to next recipe: <span id="buysToNext">—</span>
     </div>
 
+    <!-- BUY FORM -->
     <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
       <input id="buy-t1-qty"
              type="number"
@@ -146,6 +155,7 @@
              min="1"
              max="99999"
              style="width:130px;">
+
       <button id="btn-buy-t1"
               class="btn"
               style="padding-left:24px;padding-right:24px;">
@@ -216,6 +226,7 @@
     </div>
   </div>
 </div>
+
 
 
 <!-- ===== QUEST TAB ===== -->
@@ -1592,6 +1603,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
