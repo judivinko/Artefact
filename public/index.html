@@ -19,19 +19,23 @@
           window.__PAYPAL_DISABLED__ = true;
           return;
         }
+
         const qs = new URLSearchParams({
           "client-id": j.client_id,
           "currency": j.currency || "USD",
           "intent": "capture",
           "components": "buttons"
         });
+
         const s = document.createElement("script");
         s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
         s.async = true;
         s.onload = () => { window.__PAYPAL_READY__ = true; };
         document.head.appendChild(s);
+
         window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
-      }catch(e){
+
+      } catch(e){
         console.warn("PayPal SDK load failed:", e);
         window.__PAYPAL_DISABLED__ = true;
       }
@@ -40,82 +44,79 @@
 
   <link rel="stylesheet" href="/app.css" />
 </head>
-<body>
-  <!-- ===== Header ===== -->
-<header class="header no-border" style="padding:14px 20px;">
 
+<body>
+
+<!-- ===== Header ===== -->
+<header class="header no-border" style="padding:14px 20px;">
   <div class="brand" style="font-size:22px; font-weight:700; letter-spacing:1px;">
     ARTEFACT
   </div>
 
   <div class="row" style="gap:12px; align-items:center;">
-
-    <!-- Gold & Dollar prikaz -->
     <span id="balance"
           class="badge hidden"
-          style="
-            padding:6px 14px;
-            font-size:16px;
-            background:rgba(255,255,255,0.08);
-            border:1px solid rgba(255,255,255,0.15);
-            backdrop-filter:blur(6px);
-          ">0g 0s</span>
+          style="padding:6px 14px;font-size:16px;background:rgba(255,255,255,0.08);
+                 border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(6px);">
+      0g 0s
+    </span>
 
     <span id="balance-dollar"
           class="badge hidden"
-          style="
-            padding:6px 14px;
-            font-size:16px;
-            background:rgba(34,197,94,0.12);
-            border:1px solid rgba(34,197,94,0.25);
-            color:#4ade80;
-            backdrop-filter:blur(6px);
-          ">$0.00</span>
+          style="padding:6px 14px;font-size:16px;background:rgba(34,197,94,0.12);
+                 border:1px solid rgba(34,197,94,0.25);color:#4ade80;backdrop-filter:blur(6px);">
+      $0.00
+    </span>
 
-    <!-- Dugmad -->
     <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
     <button id="btn-open-register" class="btn secondary">Register</button>
     <button id="btn-open-login" class="btn">Log in</button>
     <button id="btn-logout" class="btn muted hidden">Log out</button>
-
   </div>
 </header>
 
-  <!-- ===== PayPal panel ===== -->
+<!-- ===== PayPal panel ===== -->
 <section id="paypal-panel" class="card hidden">
   <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
     <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
-    <input id="pp-amount" class="input" type="number" min="1" step="1" value="1" placeholder="USD" style="width:120px" />
+    <input id="pp-amount" class="input" type="number" min="1" step="1" value="1"
+           placeholder="USD" style="width:120px" />
+
     <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
-    <input id="pp-bonus" class="input" type="text" maxlength="32" placeholder="optional" style="width:240px" />
+    <input id="pp-bonus" class="input" type="text" maxlength="32"
+           placeholder="optional" style="width:240px" />
   </div>
+
   <div class="row" style="margin-top:10px">
     <div id="paypal-button-container"></div>
   </div>
+
   <div id="pp-msg" class="muted" style="margin-top:8px"></div>
 </section>
 
+<!-- ===== Auth ===== -->
+<section id="auth" class="card hidden" style="margin-top:12px">
+  <div id="card-register" style="display:none">
+    <div class="label">Register</div>
+    <input id="reg-email" class="input" placeholder="email@example.com" type="email" />
+    <input id="reg-pass" class="input" placeholder="password (min 6)" type="password"
+           style="margin-top:8px" />
+    <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
+    <div id="reg-msg" class="muted" style="margin-top:6px"></div>
+  </div>
 
-  <!-- ===== Auth ===== -->
-  <section id="auth" class="card hidden" style="margin-top:12px">
-    <div id="card-register" style="display:none">
-      <div class="label">Register</div>
-      <input id="reg-email" class="input" placeholder="email@example.com" type="email" />
-      <input id="reg-pass" class="input" placeholder="password (min 6)" type="password" style="margin-top:8px" />
-      <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-      <div id="reg-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-    <div id="card-login" style="display:none">
-      <div class="label">Log in</div>
-      <input id="log-email" class="input" placeholder="email@example.com" type="email" />
-      <input id="log-pass" class="input" placeholder="password" type="password" style="margin-top:8px" />
-      <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-      <div id="log-msg" class="muted" style="margin-top:6px"></div>
-    </div>
-  </section>
+  <div id="card-login" style="display:none">
+    <div class="label">Log in</div>
+    <input id="log-email" class="input" placeholder="email@example.com" type="email" />
+    <input id="log-pass" class="input" placeholder="password" type="password"
+           style="margin-top:8px" />
+    <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
+    <div id="log-msg" class="muted" style="margin-top:6px"></div>
+  </div>
+</section>
 
-  <!-- ===== App (tabs) ===== -->
-<div class="tabbar row">  
+<!-- ===== App Tabs ===== -->
+<div class="tabbar row">
   <div class="chip active" data-tab="shop">Shop</div>
   <div class="chip" data-tab="quest">Quest</div>
   <div class="chip" data-tab="craft">Crafting</div>
@@ -124,41 +125,27 @@
   <div class="chip" data-tab="bonus">Bonus</div>
 </div>
 
-  
 <!-- ===== SHOP ===== -->
 <div id="tab-shop" class="tab card">
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
   <div class="card" style="padding:10px;margin-bottom:16px;">
-
-    <!-- HEADER -->
     <div class="row" style="justify-content:space-between;align-items:center">
       <div class="label">Buy T1</div>
-
-      <!-- 🔥 DODANO ovo (nedostajalo u tvojoj verziji) -->
       <span class="badge">
         Price: <span id="shop-price-inline">100</span>s
       </span>
     </div>
 
-    <!-- NEXT RECIPE INFO -->
     <div class="muted" style="margin-top:6px;">
       Buys to next recipe: <span id="buysToNext">—</span>
     </div>
 
-    <!-- BUY FORM -->
     <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
-      <input id="buy-t1-qty"
-             type="number"
-             class="input"
-             placeholder="qty (1–99999)"
-             min="1"
-             max="99999"
-             style="width:130px;">
+      <input id="buy-t1-qty" type="number" class="input" placeholder="qty (1–99999)"
+             min="1" max="99999" style="width:130px;" />
 
-      <button id="btn-buy-t1"
-              class="btn"
-              style="padding-left:24px;padding-right:24px;">
+      <button id="btn-buy-t1" class="btn" style="padding-left:24px;padding-right:24px;">
         Buy
       </button>
     </div>
@@ -171,28 +158,31 @@
   </div>
 
   <div id="shop-intro" class="card" style="margin-top:12px">
-
     <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
+
     <p class="muted" style="max-width:820px">
       You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
       When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
     </p>
 
-    <div class="grid" style="margin-top:12px">
-
-      <!-- SHOP INFO -->
+    <div class="grid" style="margin-top:12px;">
       <div class="card">
         <div class="row" style="justify-content:space-between;align-items:center">
           <div class="label">1) Shop</div>
           <span class="badge">Price: <span id="shop-price-badge">100s</span></span>
         </div>
+
         <p class="muted">
           In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
           Materials are ingredients for crafting, while recipes unlock higher tiers.
         </p>
-        <img src="/t1_bronze.png" class="img-landing">
-        <img src="/recipe.png" class="img-landing">
+
+        <img src="/t1_bronze.png" class="img-landing" />
+        <img src="/recipe.png" class="img-landing" />
       </div>
+    </div>
+  </div>
+</div>
 
       <!-- CRAFT INFO -->
       <div class="card">
@@ -223,10 +213,9 @@
         <img src="/artefakt.png" class="img-landing">
       </div>
 
-    </div>
-  </div>
-</div>
-
+    </div> <!-- END .grid -->
+  </div>   <!-- END #shop-intro -->
+</div>     <!-- END #tab-shop -->
 
 
 <!-- ===== QUEST TAB ===== -->
@@ -236,104 +225,121 @@
   <div id="quest-msg" class="muted" style="margin-top:12px"></div>
 </div>
 
-    <!-- CRAFTING -->
-    <div id="tab-craft" class="card hidden">
-      <div class="row">
-        <div class="label">Crafting</div>
-        <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
-        <button id="btn-artefact" class="btn right">
-          <img src="/artefakt.png" alt="Artefact" class="img-cell" onerror="this.onerror=null;this.style.display='none'">
-          Craft ARTEFACT (10× distinct T5)
-        </button>
-      </div>
-      <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-      <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
 
-      <div class="grid">
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="label">Recipes you own</div>
-            <div class="row">
-              <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
-              <button id="btn-refresh-rec" class="btn muted">Refresh</button>
-            </div>
-          </div>
-          <div id="recipes" class="list">Loading…</div>
-        </div>
+<!-- ===== CRAFTING TAB ===== -->
+<div id="tab-craft" class="card hidden">
+  <div class="row">
+    <div class="label">Crafting</div>
+    <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
 
-        <div class="card">
-          <div class="label">Details</div>
-          <div id="rec-details" class="list">Select a recipe on the left.</div>
+    <button id="btn-artefact" class="btn right">
+      <img src="/artefakt.png" alt="Artefact" class="img-cell"
+           onerror="this.onerror=null;this.style.display='none'">
+      Craft ARTEFACT (10× distinct T5)
+    </button>
+  </div>
+
+  <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
+  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="label">Recipes you own</div>
+        <div class="row">
+          <input id="filter-recipe" class="input" placeholder="filter by name..." style="width:220px"/>
+          <button id="btn-refresh-rec" class="btn muted">Refresh</button>
         </div>
       </div>
+      <div id="recipes" class="list">Loading…</div>
     </div>
 
-    <!-- MARKET -->
-    <section id="tab-market" class="card hidden">
-      <div class="label">Marketplace</div>
-      <div class="grid">
-        <!-- Create Sale + Inventory (panel) -->
-        <div class="card">
-          <div class="label">Create Sale</div>
-          <input id="inv-search" class="input" placeholder="Search your inventory..." />
-          <div id="inv-list" class="list" style="margin-top:8px;max-height:300px">Loading…</div>
+    <div class="card">
+      <div class="label">Details</div>
+      <div id="rec-details" class="list">Select a recipe on the left.</div>
+    </div>
+  </div>
+</div>
 
-          <div class="row" style="margin-top:8px">
-            <input id="price-g"   class="input" style="width:100px" placeholder="Gold"/>
-            <input id="price-s"   class="input" style="width:120px" placeholder="Silver (0–99)"/>
-            <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
-            <button id="btn-list" class="btn">List for sale</button>
-          </div>
 
-          <div class="row muted" style="margin-top:6px; gap:8px">
-            <span id="market-fee-inline" class="badge">Fee: 1%</span>
-            <span id="market-min-inline" class="badge hidden">Min: 90s</span>
-          </div>
-          <div id="list-msg" class="muted" style="margin-top:6px"></div>
-        </div>
+<!-- ===== MARKET TAB ===== -->
+<section id="tab-market" class="card hidden">
+  <div class="label">Marketplace</div>
 
-        <!-- Marketplace + My listings -->
-        <div class="card">
-          <div class="row" style="gap:10px;align-items:center">
-            <div class="label">Marketplace</div>
-            <input id="market-q" class="input" placeholder="Search by name..." style="width:240px" />
-          </div>
-          <div id="market" class="list">Loading…</div>
+  <div class="grid">
 
-          <div class="row" style="gap:10px;align-items:center;margin-top:12px">
-            <div class="label">My listings</div>
-            <input id="mine-q" class="input" placeholder="Search my listings..." style="width:240px" />
-            <button id="btn-mine" class="btn muted">Reload</button>
-          </div>
-          <div id="mine" class="list">Loading…</div>
-        </div>
+    <!-- Create Sale -->
+    <div class="card">
+
+      <div class="label">Create Sale</div>
+
+      <input id="inv-search" class="input" placeholder="Search your inventory..." />
+      <div id="inv-list" class="list" style="margin-top:8px; max-height:300px">Loading…</div>
+
+      <div class="row" style="margin-top:8px">
+        <input id="price-g"   class="input" style="width:100px" placeholder="Gold"/>
+        <input id="price-s"   class="input" style="width:120px" placeholder="Silver (0–99)"/>
+        <input id="price-qty" class="input" style="width:100px" placeholder="Qty"/>
+        <button id="btn-list" class="btn">List for sale</button>
       </div>
-    </section>
 
-    <!-- INVENTORY (FULL TAB) -->
-    <section id="tab-inv" class="card hidden">
-      <div class="label">Inventory</div>
-      <div id="inv-full" class="list">Loading…</div>
-    </section>
+      <div class="row muted" style="margin-top:6px; gap:8px">
+        <span id="market-fee-inline" class="badge">Fee: 1%</span>
+        <span id="market-min-inline" class="badge hidden">Min: 90s</span>
+      </div>
+
+      <div id="list-msg" class="muted" style="margin-top:6px"></div>
+
+    </div>
+
+    <!-- Marketplace + My listings -->
+    <div class="card">
+
+      <div class="row" style="gap:10px; align-items:center">
+        <div class="label">Marketplace</div>
+        <input id="market-q" class="input" placeholder="Search by name..." style="width:240px" />
+      </div>
+
+      <div id="market" class="list">Loading…</div>
+
+      <div class="row" style="gap:10px; align-items:center; margin-top:12px">
+        <div class="label">My listings</div>
+        <input id="mine-q" class="input" placeholder="Search my listings..." style="width:240px" />
+        <button id="btn-mine" class="btn muted">Reload</button>
+      </div>
+
+      <div id="mine" class="list">Loading…</div>
+
+    </div>
+
+  </div> <!-- END .grid -->
+</section>
 
 
-   <!-- BONUS -->
+<!-- ===== INVENTORY TAB ===== -->
+<section id="tab-inv" class="card hidden">
+  <div class="label">Inventory</div>
+  <div id="inv-full" class="list">Loading…</div>
+</section>
+
+
+<!-- ===== BONUS TAB ===== -->
 <div id="tab-bonus" class="card hidden">
+
   <div class="row" style="justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap">
     <div class="label">Bonus</div>
 
-    <!-- *** NOVA SEKCIJA (EMAIL + GOLD + SEND) *** -->
     <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap">
       <input id="transfer-email" class="input" type="email" placeholder="email@example.com" style="min-width:220px">
       <input id="transfer-gold" class="input" type="number" inputmode="numeric" placeholder="Gold" style="width:120px">
       <button id="btn-transfer" class="btn">Send</button>
     </div>
-    <!-- *** KRAJ NOVIH ELEMENATA *** -->
 
     <span id="bonus-lock" class="badge hidden">Locked — craft ARTEFACT to unlock</span>
   </div>
 
   <div id="bonus-grid" class="grid" style="margin-top:8px">
+
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div class="label">T2 Bonus</div>
@@ -369,163 +375,166 @@
       <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3 + Craft no-fail</div>
       <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
     </div>
-  </div>
-</div>
+
+  </div> <!-- END #bonus-grid -->
+</div> <!-- END #tab-bonus -->
 
 
-  <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
+
+ <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
 <script>
-  (function(){
-    const w = window;
+(function(){
+  const w = window;
 
-    w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
-    w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
+  w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
+  w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
 
-    // Toast: prikaz u #toast; bez alert fallbacka
-    w.showToast = w.showToast || function(t){
-      const box = document.getElementById("toast");
-      if (box && box.classList) {
-        box.textContent = String(t || "");
-        box.classList.remove("hidden");
-        clearTimeout(box._t);
-        box._t = setTimeout(()=>box.classList.add("hidden"), 2600);
-      } else {
-        // Ako nema #toast, samo log – bez alert-a
-        console.warn("TOAST:", t);
-      }
-    };
-    try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
+  // Toast
+  w.showToast = w.showToast || function(t){
+    const box = document.getElementById("toast");
+    if (box && box.classList) {
+      box.textContent = String(t || "");
+      box.classList.remove("hidden");
+      clearTimeout(box._t);
+      box._t = setTimeout(()=>box.classList.add("hidden"), 2600);
+    } else {
+      console.warn("TOAST:", t);
+    }
+  };
+  try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
 
-    // api helper
-    w.api = w.api || (async function api(path, opts={}){
-      const method = (opts.method || "GET").toUpperCase();
-      const headers = Object.assign({}, opts.headers || {});
-      const init = { credentials: "include", ...opts, method };
-      if (method !== "GET" && method !== "HEAD") {
-        headers["Content-Type"] = headers["Content-Type"] || "application/json";
-      }
-      init.headers = headers;
+  // api helper
+  w.api = w.api || (async function api(path, opts={}){
+    const method = (opts.method || "GET").toUpperCase();
+    const headers = Object.assign({}, opts.headers || {});
+    const init = { credentials: "include", ...opts, method };
 
-      if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
-        init.body = JSON.stringify(init.body);
-      }
+    if (method !== "GET" && method !== "HEAD") {
+      headers["Content-Type"] = headers["Content-Type"] || "application/json";
+    }
+    init.headers = headers;
 
-      let res;
-      try { res = await fetch(path, init); }
-      catch (e) { const err = new Error("Network error"); err.cause = e; throw err; }
+    if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
+      init.body = JSON.stringify(init.body);
+    }
 
-      let data = null;
-      const text = await res.text().catch(()=>null);
-      if (text && text.trim().length) {
-        try { data = JSON.parse(text); } catch { data = { ok:false, error:"Invalid JSON" }; }
-      } else {
-        data = (res.status===204) ? { ok:true } : (data || {});
-      }
+    let res;
+    try { res = await fetch(path, init); }
+    catch (e) { const err = new Error("Network error"); err.cause = e; throw err; }
 
-      if (!res.ok) {
-        const err = new Error((data && data.error) || ("HTTP " + res.status));
-        err.status = res.status; err.data = data; throw err;
-      }
-      return data;
-    });
+    let data = null;
+    const text = await res.text().catch(()=>null);
 
-    w.safeCall = w.safeCall || (async function(fnName, ...args){
-      const fn = w[fnName];
-      if (typeof fn === "function") {
-        try { return await fn(...args); }
-        catch (e) { console.warn(fnName, "failed:", e); }
-      }
-    });
-  })();
+    if (text && text.trim().length) {
+      try { data = JSON.parse(text); }
+      catch { data = { ok:false, error:"Invalid JSON" }; }
+    } else {
+      data = (res.status===204) ? { ok:true } : (data || {});
+    }
+
+    if (!res.ok) {
+      const err = new Error((data && data.error) || ("HTTP " + res.status));
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  });
+
+  w.safeCall = w.safeCall || (async function(fnName, ...args){
+    const fn = w[fnName];
+    if (typeof fn === "function") {
+      try { return await fn(...args); }
+      catch (e) { console.warn(fnName, "failed:", e); }
+    }
+  });
+})();
 </script>
 
 
-  <!-- ===== Icons & mapping ===== -->
-  <script>
-    const IMG_PREFIX = "/"; // promijeni u "/images/" ako su slike u /public/images
-    const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
-    const FALLBACK_ITEM_ICON = `${IMG_PREFIX}t1_bronze.png`;
+<!-- ===== Icons & mapping ===== -->
+<script>
+const IMG_PREFIX = "/";
+const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
+const FALLBACK_ITEM_ICON = `${IMG_PREFIX}t1_bronze.png`;
 
-    const esc = s => String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+const esc = s => String(s)
+  .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+  .replaceAll('"',"&quot;").replaceAll("'","&#39;");
 
-    function fileNameFromCodeTier(code, tier){
-      if(!code) return null;
-      const m = String(code).match(/^T([1-6])_(.*)$/);
-      if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
-      if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
-      return null;
-    }
-    function iconForByCode(code, tier){
-      const file = fileNameFromCodeTier(code, tier);
-      return file ? `${IMG_PREFIX}${file}` : FALLBACK_ITEM_ICON;
-    }
-  </script>
+function fileNameFromCodeTier(code, tier){
+  if(!code) return null;
+  const m = String(code).match(/^T([1-6])_(.*)$/);
+  if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
+  if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
+  return null;
+}
+function iconForByCode(code, tier){
+  const file = fileNameFromCodeTier(code, tier);
+  return file ? `${IMG_PREFIX}${file}` : FALLBACK_ITEM_ICON;
+}
+</script>
+
 
 <!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
-  let WHO = window.WHO || null;
-  window.CURRENT_RECIPE_ID = null;
+let WHO = window.WHO || null;
+window.CURRENT_RECIPE_ID = null;
 
-  // ❗️ OVO JE POPRAVLJENO
-  window.refreshMeLight = async function(){
-    try{
-      const r = await api("/api/me");
-      if (r && r.user){
-        WHO.balance_silver = r.user.balance_silver | 0;
-        WHO.perks = r.user.perks || {};
-        WHO.buys_to_next = r.user.buys_to_next ?? null;
-        renderBalance();
-        applyPerkIndicators();
-      }
-    }catch(e){
-      console.warn("refreshMeLight fail:", e);
+window.refreshMeLight = async function(){
+  try{
+    const r = await api("/api/me");
+    if (r && r.user){
+      WHO.balance_silver = r.user.balance_silver | 0;
+      WHO.perks = r.user.perks || {};
+      WHO.buys_to_next = r.user.buys_to_next ?? null;
+      renderBalance();
+      applyPerkIndicators();
     }
-  };
-  // ❗️ KRAJ POPRAVKE
-
-  function showApp(){ $("#app")?.classList.remove("hidden"); }
-
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v%100;
-
-    // GOLD
-    const el = $("#balance");
-    if (el) {
-      el.textContent = `${g}g ${s}s`;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
-
-    // USD — NOVO
-    const usd = document.getElementById("balance-dollar");
-    if (usd) {
-      usd.innerText = `$${(g / 1000).toFixed(2)}`;
-      usd.classList.remove("hidden");
-    }
+  }catch(e){
+    console.warn("refreshMeLight fail:", e);
   }
-</script>
+};
 
+function showApp(){
+  $("#app")?.classList.remove("hidden");
+}
 
-  function applyPerkIndicators(){
-    const price = WHO?.perks?.shop_price_s ?? 100;
-    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-    $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
+function renderBalance(){
+  const v = WHO?.balance_silver || 0;
+  const g = Math.floor(v/100), s = v%100;
 
-    const noFail = !!WHO?.perks?.craft_no_fail;
-    $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
-    $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
-
-    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
-    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
-
-    const minNote = !!WHO?.perks?.min_list_price_s;
-    $("#market-min-note")?.classList.toggle("hidden", !minNote);
-    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+  const el = $("#balance");
+  if (el) {
+    el.textContent = `${g}g ${s}s`;
+    el.classList.add("pulse");
+    setTimeout(()=> el.classList.remove("pulse"), 1300);
   }
+
+  const usd = document.getElementById("balance-dollar");
+  if (usd) {
+    usd.innerText = `$${(g / 1000).toFixed(2)}`;
+    usd.classList.remove("hidden");
+  }
+}
+
+function applyPerkIndicators(){
+  const price = WHO?.perks?.shop_price_s ?? 100;
+  $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
+  $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
+
+  const noFail = !!WHO?.perks?.craft_no_fail;
+  $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
+  $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
+
+  const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
+  $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
+  $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+
+  const minNote = !!WHO?.perks?.min_list_price_s;
+  $("#market-min-note")?.classList.toggle("hidden", !minNote);
+  $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+}
 
 async function setTab(tab){
   showApp();
@@ -539,21 +548,17 @@ async function setTab(tab){
   $("#tab-inv")    ?.classList.toggle("hidden", tab !== "inv");
   $("#tab-bonus")  ?.classList.toggle("hidden", tab !== "bonus");
 
-  // === QUEST TAB → automatski prikaz + aktivacija zadataka ===
   if (tab === "quest") {
     if (window.showQuestTab) window.showQuestTab();
-    // QUEST: "Klikni na tab Quest"
-    if (window.questTrigger) window.questTrigger("quest-click");
+    window.questTrigger?.("quest-click");
   }
 
-  // ==== TAB CLICK QUESTOVI ====
   if (tab === "shop")   window.questTrigger?.("shop-click");
   if (tab === "craft")  window.questTrigger?.("craft-click");
   if (tab === "market") window.questTrigger?.("market-click");
   if (tab === "inv")    window.questTrigger?.("inv-click");
   if (tab === "bonus")  window.questTrigger?.("bonus-click");
 
-  // ==== ORIGINAL TABS ====
   if (tab === "market") {
     safeCall("loadInventoryPanel");
     safeCall("loadMarket");
@@ -567,207 +572,262 @@ async function setTab(tab){
     catch(e){ console.warn(e); }
   }
 }
+</script>
 
 
 
-  function initPayPalPanelButtons(){
-    try{
-      if (window.__PAYPAL_DISABLED__) return;
-      const host = document.getElementById("paypal-button-container");
-      if (!window.paypal || !host) return;
-      if (host.dataset.rendered === "1") return;
-      const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
-      window.paypal.Buttons({
-        style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
-        createOrder: function(_data, actions){
-          const el = document.getElementById("pp-amount");
-          let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
-          v = Math.floor(v);
-          if (el) el.value = String(v);
-          return actions.order.create({
-            purchase_units: [{ amount: { value: v.toFixed(2), currency_code: "USD" } }]
-          });
-        },
-        onApprove: async function(data, actions){
-          try{
-            await actions.order.capture();
-            const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
-            const r = await api("/api/paypal/confirm", {
-              method:"POST",
-              body: { orderId: data.orderID, bonus_code }
-            });
-            if (WHO) WHO.balance_silver = (r.balance_silver|0);
-            window.WHO = WHO;
-            renderBalance();
-            await refreshMeLight();
-            const msg = document.getElementById("pp-msg");
-            if (msg){
-              msg.innerHTML = `Thank you for your payment! Gold has been added.<br>Join our community: <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">https://discord.gg/VABaCc65</a>`;
-            } else {
-              showToast(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
-            }
-          }catch(e){
-            alert(e?.message || "Payment confirm failed.");
-          }
-        },
-        onError: err => {
-          console.error("PayPal error:", err);
-          alert("PayPal error.");
-        }
-      }).render("#paypal-button-container");
-      host.dataset.rendered = "1";
-    }catch(e){
-      console.warn("initPayPalPanelButtons failed:", e);
-    }
-  }
 
-  function togglePaypalPanel(forceOpen){
+  <script>
+function initPayPalPanelButtons(){
+  try{
     if (window.__PAYPAL_DISABLED__) return;
-    const panel = document.getElementById("paypal-panel");
-    if (!panel) return;
-    const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
-    panel.classList.toggle("hidden", !open);
-    if (open) initPayPalPanelButtons();
-  }
+    const host = document.getElementById("paypal-button-container");
+    if (!window.paypal || !host) return;
+    if (host.dataset.rendered === "1") return;
 
-  function setLoggedInUI(){
-    $("#btn-open-register")?.classList.add("hidden");
-    $("#btn-open-login")?.classList.add("hidden");
-    $("#balance")?.classList.remove("hidden");
+    const minUsd = Number(window.__PAYPAL_MIN_USD__ || 10) || 10;
 
-    // USD PRIKAZ – NOVO
-    $("#balance-dollar")?.classList.remove("hidden");
+    window.paypal.Buttons({
 
-    $("#btn-logout")?.classList.remove("hidden");
-    $("#auth")?.classList.add("hidden");
-    $("#app")?.classList.remove("hidden");
+      style: { layout:'horizontal', height:35, label:'paypal', color:'blue' },
 
-    renderBalance?.();
+      createOrder: function(_data, actions){
+        const el = document.getElementById("pp-amount");
+        let v = Math.max(minUsd, parseFloat(el?.value || String(minUsd)) || minUsd);
+        v = Math.floor(v);
+        if (el) el.value = String(v);
+        return actions.order.create({
+          purchase_units: [{
+            amount: { value: v.toFixed(2), currency_code: "USD" }
+          }]
+        });
+      },
 
-    const ppBtn = document.getElementById("btn-open-paypal");
-    if (ppBtn){
-      ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
-      if (!ppBtn.dataset.bound){
-        ppBtn.addEventListener("click", ()=> togglePaypalPanel());
-        ppBtn.dataset.bound = "1";
+      onApprove: async function(data, actions){
+        try{
+          await actions.order.capture();
+          const bonus_code = (document.getElementById("pp-bonus")?.value || "").trim();
+
+          const r = await api("/api/paypal/confirm", {
+            method:"POST",
+            body: { orderId: data.orderID, bonus_code }
+          });
+
+          if (WHO) WHO.balance_silver = (r.balance_silver|0);
+          window.WHO = WHO;
+          renderBalance();
+          await refreshMeLight();
+
+          const msg = document.getElementById("pp-msg");
+          if (msg){
+            msg.innerHTML = `Thank you for your payment! Gold has been added.<br>
+              Join our community:
+              <a href="https://discord.gg/VABaCc65" target="_blank" rel="noopener">
+              https://discord.gg/VABaCc65</a>`;
+          } else {
+            showToast(`Thank you for your payment! Join our community: https://discord.gg/VABaCc65`);
+          }
+
+        }catch(e){
+          alert(e?.message || "Payment confirm failed.");
+        }
+      },
+
+      onError: err => {
+        console.error("PayPal error:", err);
+        alert("PayPal error.");
       }
+
+    }).render("#paypal-button-container");
+
+    host.dataset.rendered = "1";
+
+  }catch(e){
+    console.warn("initPayPalPanelButtons failed:", e);
+  }
+}
+
+
+function togglePaypalPanel(forceOpen){
+  if (window.__PAYPAL_DISABLED__) return;
+
+  const panel = document.getElementById("paypal-panel");
+  if (!panel) return;
+
+  const open = (typeof forceOpen === "boolean") ? forceOpen : panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !open);
+
+  if (open) initPayPalPanelButtons();
+}
+
+
+function setLoggedInUI(){
+  $("#btn-open-register")?.classList.add("hidden");
+  $("#btn-open-login")?.classList.add("hidden");
+  $("#balance")?.classList.remove("hidden");
+
+  // USD PRIKAZ
+  $("#balance-dollar")?.classList.remove("hidden");
+
+  $("#btn-logout")?.classList.remove("hidden");
+  $("#auth")?.classList.add("hidden");
+  $("#app")?.classList.remove("hidden");
+
+  renderBalance?.();
+
+  const ppBtn = document.getElementById("btn-open-paypal");
+  if (ppBtn){
+    ppBtn.classList.toggle("hidden", !!window.__PAYPAL_DISABLED__);
+    if (!ppBtn.dataset.bound){
+      ppBtn.addEventListener("click", ()=> togglePaypalPanel());
+      ppBtn.dataset.bound = "1";
     }
   }
+}
 
-  function setLoggedOutUI(){
-    WHO = null;
-    window.WHO = null;
-    $("#btn-open-register")?.classList.remove("hidden");
-    $("#btn-open-login")?.classList.remove("hidden");
-    $("#balance")?.classList.add("hidden");
 
-    // USD PRIKAZ sakrij kad si odjavljen
-    $("#balance-dollar")?.classList.add("hidden");
+function setLoggedOutUI(){
+  WHO = null;
+  window.WHO = null;
 
-    $("#btn-logout")?.classList.add("hidden");
-    const bal=$("#balance"); if (bal) bal.textContent="0g 0s";
-    $("#app")?.classList.remove("hidden");
-    $("#auth")?.classList.add("hidden");
-    document.getElementById("paypal-panel")?.classList.add("hidden");
-    document.getElementById("btn-open-paypal")?.classList.add("hidden");
-  }
+  $("#btn-open-register")?.classList.remove("hidden");
+  $("#btn-open-login")?.classList.remove("hidden");
+  $("#balance")?.classList.add("hidden");
 
-  async function loadMe(){
-    try{
-      const r = await api("/api/me");
-      if (!r || !r.user) throw new Error("no session");
-      WHO = r.user;
-      window.WHO = WHO;
-      setLoggedInUI();
-      const b = $("#buysToNext");
-      if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
-        ? `Buys to next recipe: ${WHO.buys_to_next}` : "Buys to next recipe: —";
-      applyPerkIndicators();
-      await safeCall("loadInventoryPanel");
-      safeCall("loadRecipes");
-      safeCall("loadMarket");
-      safeCall("loadMine");
-      safeCall("loadInventoryFull");
-      setTab("shop");
-    }catch{
-      setLoggedOutUI();
-      setTab("shop");
-    }
-  }
+  // USD PRIKAZ ugasi kad se odjavi
+  $("#balance-dollar")?.classList.add("hidden");
 
-  function openAuth(mode){
-    const auth = document.getElementById("auth");
-    if (!auth) return;
-    auth.classList.remove("hidden");
-    const reg = document.getElementById("card-register");
-    const log = document.getElementById("card-login");
-    if (reg) reg.style.display = (mode === "register" ? "block" : "none");
-    if (log) log.style.display = (mode === "login"    ? "block" : "none");
-    if (mode === "register") document.getElementById("reg-email")?.focus();
-    if (mode === "login")    document.getElementById("log-email")?.focus();
-  }
+  $("#btn-logout")?.classList.add("hidden");
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const header = document.querySelector("header.header");
-    const auth = document.getElementById("auth");
-    if (header && auth && auth.previousElementSibling !== header) {
-      header.insertAdjacentElement("afterend", auth);
+  const bal=$("#balance");
+  if (bal) bal.textContent="0g 0s";
+
+  $("#app")?.classList.remove("hidden");
+  $("#auth")?.classList.add("hidden");
+
+  document.getElementById("paypal-panel")?.classList.add("hidden");
+  document.getElementById("btn-open-paypal")?.classList.add("hidden");
+}
+
+
+async function loadMe(){
+  try{
+    const r = await api("/api/me");
+    if (!r || !r.user) throw new Error("no session");
+
+    WHO = r.user;
+    window.WHO = WHO;
+
+    setLoggedInUI();
+
+    const b = $("#buysToNext");
+    if (b) {
+      b.textContent = (typeof WHO?.buys_to_next === "number")
+        ? `Buys to next recipe: ${WHO.buys_to_next}`
+        : "Buys to next recipe: —";
     }
 
-    document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
-    document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
+    applyPerkIndicators();
 
-    document.getElementById("btn-register")?.addEventListener("click", doRegister);
-    document.getElementById("btn-login")?.addEventListener("click", doLogin);
-    document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+    await safeCall("loadInventoryPanel");
+    safeCall("loadRecipes");
+    safeCall("loadMarket");
+    safeCall("loadMine");
+    safeCall("loadInventoryFull");
 
-    document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-    document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-    document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    setTab("shop");
 
-    $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
-
-    loadMe();
-  });
-
-  async function doRegister(){
-    const msg = $("#reg-msg");
-    try{
-      const email = $("#reg-email")?.value.trim();
-      const pass = $("#reg-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      if (pass.length < 6) throw new Error("Password too short (min 6).");
-      msg && (msg.textContent = "…");
-      await api("/api/register", { method:"POST", body: { email, password: pass } });
-      msg && (msg.textContent = "OK — now log in.");
-      $("#card-register") && ($("#card-register").style.display="none");
-      $("#card-login") && ($("#card-login").style.display="block");
-      $("#log-email")?.focus();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Register failed.");
-    }
-  }
-
-  async function doLogin(){
-    const msg = $("#log-msg");
-    try{
-      const email = $("#log-email")?.value.trim();
-      const pass = $("#log-pass")?.value || "";
-      if (!email || !pass) throw new Error("Enter email & password.");
-      msg && (msg.textContent = "…");
-      await api("/api/login", { method:"POST", body: { email, password: pass } });
-      msg && (msg.textContent = "OK");
-      await loadMe();
-    }catch(e){
-      msg && (msg.textContent = e?.message || "Login failed.");
-    }
-  }
-
-  async function doLogout(){
-    try { await api("/api/logout"); } catch {}
+  }catch{
     setLoggedOutUI();
+    setTab("shop");
   }
+}
+
+
+function openAuth(mode){
+  const auth = document.getElementById("auth");
+  if (!auth) return;
+
+  auth.classList.remove("hidden");
+
+  const reg = document.getElementById("card-register");
+  const log = document.getElementById("card-login");
+
+  if (reg) reg.style.display = (mode === "register" ? "block" : "none");
+  if (log) log.style.display = (mode === "login"    ? "block" : "none");
+
+  if (mode === "register") document.getElementById("reg-email")?.focus();
+  if (mode === "login")    document.getElementById("log-email")?.focus();
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  const header = document.querySelector("header.header");
+  const auth = document.getElementById("auth");
+
+  if (header && auth && auth.previousElementSibling !== header) {
+    header.insertAdjacentElement("afterend", auth);
+  }
+
+  document.getElementById("btn-open-register")?.addEventListener("click", () => openAuth("register"));
+  document.getElementById("btn-open-login")?.addEventListener("click", () => openAuth("login"));
+
+  document.getElementById("btn-register")?.addEventListener("click", doRegister);
+  document.getElementById("btn-login")?.addEventListener("click", doLogin);
+  document.getElementById("btn-logout")?.addEventListener("click", doLogout);
+
+  document.getElementById("reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+  document.getElementById("reg-pass")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
+
+  document.getElementById("log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+  document.getElementById("log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+
+  $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
+
+  loadMe();
+});
+
+
+async function doRegister(){
+  const msg = $("#reg-msg");
+  try{
+    const email = $("#reg-email")?.value.trim();
+    const pass = $("#reg-pass")?.value || "";
+    if (!email || !pass) throw new Error("Enter email & password.");
+    if (pass.length < 6) throw new Error("Password too short (min 6).");
+    msg && (msg.textContent = "…");
+    await api("/api/register", { method:"POST", body: { email, password: pass } });
+    msg && (msg.textContent = "OK — now log in.");
+    $("#card-register") && ($("#card-register").style.display="none");
+    $("#card-login") && ($("#card-login").style.display="block");
+    $("#log-email")?.focus();
+  }catch(e){
+    msg && (msg.textContent = e?.message || "Register failed.");
+  }
+}
+
+
+async function doLogin(){
+  const msg = $("#log-msg");
+  try{
+    const email = $("#log-email")?.value.trim();
+    const pass = $("#log-pass")?.value || "";
+    if (!email || !pass) throw new Error("Enter email & password.");
+    msg && (msg.textContent = "…");
+    await api("/api/login", { method:"POST", body: { email, password: pass } });
+    msg && (msg.textContent = "OK");
+    await loadMe();
+  }catch(e){
+    msg && (msg.textContent = e?.message || "Login failed.");
+  }
+}
+
+
+async function doLogout(){
+  try { await api("/api/logout"); } catch {}
+  setLoggedOutUI();
+}
 </script>
 
 <script>
@@ -814,55 +874,54 @@ async function setTab(tab){
   }
 
   // ----------------------------
-//  BUY T1 MATERIALS
-// ----------------------------
-async function doBuyT1(){
-  const inp = $("#buy-t1-qty");
-  let qty = parseInt(inp?.value || "1", 10);
-  if (!qty || qty < 1) qty = 1;
-  if (qty > 99999) qty = 99999;
+  //  BUY T1 MATERIALS
+  // ----------------------------
+  async function doBuyT1(){
+    const inp = $("#buy-t1-qty");
+    let qty = parseInt(inp?.value || "1", 10);
+    if (!qty || qty < 1) qty = 1;
+    if (qty > 99999) qty = 99999;
 
-  const btn = $("#btn-buy-t1");
-  if (!btn) return;
+    const btn = $("#btn-buy-t1");
+    if (!btn) return;
 
-  const prev = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Buying…";
+    const prev = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Buying…";
 
-  try {
-    // qty ide na server
-    const r = await api("/api/shop/buy-t1", {
-      method:"POST",
-      body:{ qty }
-    });
+    try {
+      // qty ide na server
+      const r = await api("/api/shop/buy-t1", {
+        method:"POST",
+        body:{ qty }
+      });
 
-    // update local balance
-    if (r?.balance_silver != null && window.WHO){
-      WHO.balance_silver = r.balance_silver | 0;
+      // update local balance
+      if (r?.balance_silver != null && window.WHO){
+        WHO.balance_silver = r.balance_silver | 0;
+      }
+
+      // WHO refresh
+      await refreshMeLight();
+
+      // refresh UI
+      await loadShop();
+      await safeCall("loadInventoryPanel");
+
+      // toast
+      showToast(`Purchased x${qty}`);
+
+      // quest
+      window.questTrigger?.("buy-mat");
+
+    } catch(e){
+      showToast(e?.message || "Buy failed.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+      inp.value = "";
     }
-
-    // 🔥 OVO POPRAVLJA SVE (WHO refresh)
-    await refreshMeLight();
-
-    // refresh UI
-    await loadShop();
-    await safeCall("loadInventoryPanel");
-
-    // toast
-    showToast(`Purchased x${qty}`);
-
-    // quest
-    window.questTrigger?.("buy-mat");
-
-  } catch(e){
-    showToast(e?.message || "Buy failed.");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = prev;
-    inp.value = "";
   }
-}
-
 
   // ----------------------------
   //  WHEN TAB OPENS
@@ -884,8 +943,6 @@ async function doBuyT1(){
 </script>
 
 
-
-  
 <script>
 // ==========================
 //       QUEST SYSTEM
@@ -1028,347 +1085,406 @@ async function doBuyT1(){
 })();
 </script>
 
-
-
-
   
-  <!-- ===== Crafting ===== -->
-  <script>
-    function rowRecipe(r){
-      return `
-        <div class="itemrow">
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-            <div>
-              <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
-              <div class="muted">T${r.tier} · x${r.qty}</div>
-            </div>
-          </div>
-          <button class="btn muted" data-open="${esc(r.id)}">Open</button>
-        </div>`;
-    }
+ <!-- ===== Crafting ===== -->
+<script>
+function rowRecipe(r){
+  return `
+    <div class="itemrow">
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+        <div>
+          <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+          <div class="muted">T${r.tier} · x${r.qty}</div>
+        </div>
+      </div>
+      <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+    </div>`;
+}
 
-    async function loadRecipes(){
-      const box = $("#recipes"); if (!box) return;
-      box.textContent = "Loading…";
-      try{
-        const list = await api("/api/recipes/list");
-        const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-        const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
-        if (!rows.length){ box.textContent = "No recipes."; return; }
-        box.innerHTML = rows.map(rowRecipe).join("");
-        box.querySelectorAll("[data-open]").forEach(btn=>{
-          btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
-        });
-      }catch(e){
-        box.textContent = e?.message || "Failed to load recipes.";
-      }
-    }
-    $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
-    $("#filter-recipe")?.addEventListener("input", loadRecipes);
-
-    // Render + canCraft flag
-    function renderIngredients(details){
-      const parts = (details.ingredients||[]).map(ing=>{
-        const ok = (ing.have|0) >= (ing.qty|0);
-        const src = iconForByCode(ing.code, ing.tier);
-        return `
-          <div class="itemrow">
-            <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-            </div>
-            <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
-          </div>`;
-      }).join("");
-
-      const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
-      const craftNote = WHO?.perks?.craft_no_fail
-        ? "No fail (server checks ingredients)"
-        : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
-
-      return `
-        <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
-        <div class="itemrow"><div class="muted">Ingredients</div></div>
-        ${parts}
-        <div class="itemrow">
-          <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
-          <span class="muted" style="margin-left:8px">${craftNote}</span>
-        </div>`;
-    }
-
-    async function openRecipe(recipeId){
-      const box = $("#rec-details"); if (!box) return;
-      box.textContent = "Loading…";
-      try{
-        const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
-        box.innerHTML = renderIngredients(details);
-        window.CURRENT_RECIPE_ID = details.recipe.id;
-        window.CURRENT_RECIPE_DETAILS = details;
-      }catch(e){
-        box.textContent = e?.message || "Failed to load recipe.";
-      }
-    }
-
-    async function refreshArtefactBonus(){
-      try{
-        const r = await api("/api/inventory");
-        const bonus = (typeof r?.artefactBonusGold === "number") ? r.artefactBonusGold : (parseInt(r?.artefactBonusGold,10) || 0);
-        const el = document.getElementById("artefact-bonus");
-        if (el) el.textContent = bonus;
-      }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
-    }
-    (() => {
-      const craft = document.getElementById("tab-craft");
-      if (!craft) return;
-      const obs = new MutationObserver(() => {
-        if (!craft.classList.contains("hidden")) refreshArtefactBonus();
-      });
-      obs.observe(craft, { attributes:true });
-    })();
-
-    const arteBtn = $("#btn-artefact");
-    arteBtn?.addEventListener("click", async ()=>{
-      if (arteBtn.disabled) return;
-      const prev = arteBtn.textContent;
-      arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
-      try{
-        const r = await api("/api/craft/artefact",{method:"POST",body:{}});
-        const name = r.crafted || "Artefact";
-        const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
-        $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
-        $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
-        await safeCall("loadInventoryPanel");
-        await safeCall("loadInventoryFull");
-        await safeCall("loadRecipes");
-        await safeCall("loadBonus");
-        await refreshMeLight();
-      }catch(e){
-        $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
-      } finally{
-        arteBtn.disabled = false; arteBtn.textContent = prev;
-      }
+async function loadRecipes(){
+  const box = $("#recipes"); if (!box) return;
+  box.textContent = "Loading…";
+  try{
+    const list = await api("/api/recipes/list");
+    const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
+    const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
+    if (!rows.length){ box.textContent = "No recipes."; return; }
+    box.innerHTML = rows.map(rowRecipe).join("");
+    box.querySelectorAll("[data-open]").forEach(btn=>{
+      btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
     });
+  }catch(e){
+    box.textContent = e?.message || "Failed to load recipes.";
+  }
+}
 
-    // Delegirani klik za Craft (otpornije na re-render)
-    (function bindCraftOnce(){
-      if (window.__CRAFT_BOUND__) return;
-      window.__CRAFT_BOUND__ = true;
-      document.addEventListener("click", async (e)=>{
-        const t = e.target;
-        if (!t || t.id !== "btn-craft") return;
+$("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
+$("#filter-recipe")?.addEventListener("input", loadRecipes);
 
-        const details = window.CURRENT_RECIPE_DETAILS;
-        if (!details || !details.recipe?.id){ showToast("Open a recipe first."); return; }
 
-        const allowed = t.getAttribute("data-can") === "1";
-        if (!allowed){
-          try{
-            const miss = (details.ingredients||[])
-              .filter(ing => (ing.have|0) < (ing.qty|0))
-              .map(ing => ing.name);
-            showToast(miss.length ? ("You are missing: " + miss.join(", ")) : "Missing materials.");
-          }catch{ showToast("Missing materials."); }
-          return;
-        }
+// ---------------------------
+// Render + canCraft flag
+// ---------------------------
+function renderIngredients(details){
+  const parts = (details.ingredients||[]).map(ing=>{
+    const ok = (ing.have|0) >= (ing.qty|0);
+    const src = iconForByCode(ing.code, ing.tier);
+    return `
+      <div class="itemrow">
+        <div class="row" style="gap:10px;align-items:center">
+          <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+          <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
+        </div>
+        <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
+      </div>`;
+  }).join("");
 
-        const prev = t.textContent;
-        t.toggleAttribute("disabled", true);
-        t.textContent = "Crafting…";
-        try{
-          const r2 = await api("/api/craft/do",{method:"POST",body:{recipe_id: details.recipe.id}});
-          if (r2.crafted) showToast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-          else if (r2.scrap) showToast("Failed (got Scrap)");
-          else showToast("Done");
-          await safeCall("loadInventoryPanel");
-          await safeCall("loadRecipes");
-          await safeCall("loadInventoryFull");
-          await openRecipe(details.recipe.id);
-        }catch(e2){
-          if (e2?.data?.missing?.length) showToast("You are missing: " + e2.data.missing.join(", "));
-          else showToast(e2?.message || "Crafting failed.");
-        }finally{
-          t.toggleAttribute("disabled", false);
-          t.textContent = prev;
-        }
-      });
-    })();
-  </script>
+  const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
+  const craftNote = WHO?.perks?.craft_no_fail
+    ? "No fail (server checks ingredients)"
+    : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
 
-  <!-- ===== Market & Inventory (CLEAN) ===== -->
-  <script>
-  (() => {
-    // ---------- UTIL (lokalni, bez api() helpera) ----------
-    const $  = window.$  || (s => document.querySelector(s));
-    const esc = window.esc || (s => String(s));
-    const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
-    const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
-    const iconForByCode = window.iconForByCode || ((_c,_t)=>FALLBACK_ITEM_ICON);
+  return `
+    <div class="itemrow"><div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div></div>
+    <div class="itemrow"><div class="muted">Ingredients</div></div>
+    ${parts}
+    <div class="itemrow">
+      <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
+      <span class="muted" style="margin-left:8px">${craftNote}</span>
+    </div>`;
+}
 
-    const TIMEOUT_MS = 8000;
 
-    // Siguran toast/alert
-    const say = (msg) => {
-      const fn = (typeof window.showToast === "function")
-        ? window.showToast
-        : (typeof window.toast === "function" ? window.toast : (m)=>window.alert(m));
-      try { fn(msg); } catch { window.alert(String(msg)); }
-    };
+// ---------------------------
+// Open recipe
+// ---------------------------
+async function openRecipe(recipeId){
+  const box = $("#rec-details"); if (!box) return;
+  box.textContent = "Loading…";
+  try{
+    const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
+    box.innerHTML = renderIngredients(details);
+    window.CURRENT_RECIPE_ID = details.recipe.id;
+    window.CURRENT_RECIPE_DETAILS = details;
+  }catch(e){
+    box.textContent = e?.message || "Failed to load recipe.";
+  }
+}
 
-    function timeout(p, ms = TIMEOUT_MS){
-      return Promise.race([
-        p,
-        new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout")), ms))
-      ]);
-    }
-    async function getJSON(url){
-      const r = await timeout(fetch(url, { credentials:"include" }));
-      if (!r.ok) {
-        let msg = `HTTP ${r.status}`;
-        try { const j = await r.json(); if (j?.error) msg = j.error; } catch {}
-        const e = new Error(msg); e.status = r.status; throw e;
-      }
-      if (r.status === 204) return {};
-      const text = await r.text();
-      if (!text) return {};
-      try { return JSON.parse(text); }
-      catch { throw new Error("Invalid JSON"); }
-    }
-    async function postJSON(url, body){
-      const r = await timeout(fetch(url, {
-        method: "POST",
-        credentials:"include",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(body || {})
-      }));
-      let data = null; try { data = await r.json(); } catch {}
-      if (!r.ok) {
-        const e = new Error((data && data.error) || `HTTP ${r.status}`); e.status = r.status; e.data = data; throw e;
-      }
-      return data || {};
-    }
 
-    // ---------- SAFE LOAD ----------
-    async function safeLoad(boxSel, loader){
-      const box = $(boxSel); if (!box) return;
-      box.setAttribute('data-loading','1');
-      box.innerHTML = "";
+// ---------------------------
+// Artefact bonus refresh
+// ---------------------------
+async function refreshArtefactBonus(){
+  try{
+    const r = await api("/api/inventory");
+    const bonus = (typeof r?.artefactBonusGold === "number")
+      ? r.artefactBonusGold
+      : (parseInt(r?.artefactBonusGold,10) || 0);
+    const el = document.getElementById("artefact-bonus");
+    if (el) el.textContent = bonus;
+  }catch(e){ console.warn("refreshArtefactBonus failed:", e); }
+}
+
+(() => {
+  const craft = document.getElementById("tab-craft");
+  if (!craft) return;
+  const obs = new MutationObserver(() => {
+    if (!craft.classList.contains("hidden")) refreshArtefactBonus();
+  });
+  obs.observe(craft, { attributes:true });
+})();
+
+
+// ---------------------------
+// Craft ARTEFACT
+// ---------------------------
+const arteBtn = $("#btn-artefact");
+arteBtn?.addEventListener("click", async ()=>{
+  if (arteBtn.disabled) return;
+  const prev = arteBtn.textContent;
+  arteBtn.disabled = true; arteBtn.textContent = "Crafting…";
+  try{
+    const r = await api("/api/craft/artefact",{method:"POST",body:{}});
+    const name = r.crafted || "Artefact";
+    const bonus = (typeof r?.bonus_gold === "number") ? r.bonus_gold : (parseInt(r?.bonus_gold,10) || 0);
+    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
+    $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
+    await safeCall("loadInventoryPanel");
+    await safeCall("loadInventoryFull");
+    await safeCall("loadRecipes");
+    await safeCall("loadBonus");
+    await refreshMeLight();
+  }catch(e){
+    $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
+  } finally{
+    arteBtn.disabled = false; arteBtn.textContent = prev;
+  }
+});
+
+
+// ---------------------------
+// Delegated click for Craft button
+// ---------------------------
+(function bindCraftOnce(){
+  if (window.__CRAFT_BOUND__) return;
+  window.__CRAFT_BOUND__ = true;
+  document.addEventListener("click", async (e)=>{
+    const t = e.target;
+    if (!t || t.id !== "btn-craft") return;
+
+    const details = window.CURRENT_RECIPE_DETAILS;
+    if (!details || !details.recipe?.id){ showToast("Open a recipe first."); return; }
+
+    const allowed = t.getAttribute("data-can") === "1";
+    if (!allowed){
       try{
-        await loader(box);
-      }catch(e){
-        if (e && (e.status===401 || /401|unauthorized|not logged in/i.test(String(e.message||"")))) {
-          $("#auth")?.classList.remove("hidden");
-          $("#card-login") && ($("#card-login").style.display="block");
-          $("#card-register") && ($("#card-register").style.display="none");
-        }
-        console.warn("safeLoad fail:", e);
-      }finally{
-        box.removeAttribute('data-loading');
+        const miss = (details.ingredients||[])
+          .filter(ing => (ing.have|0) < (ing.qty|0))
+          .map(ing => ing.name);
+        showToast(miss.length ? ("You are missing: " + miss.join(", ")) : "Missing materials.");
+      }catch{ showToast("Missing materials."); }
+      return;
+    }
+
+    const prev = t.textContent;
+    t.toggleAttribute("disabled", true);
+    t.textContent = "Crafting…";
+
+    try{
+      const r2 = await api("/api/craft/do",{method:"POST",body:{recipe_id: details.recipe.id}});
+      if (r2.crafted) showToast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+      else if (r2.scrap) showToast("Failed (got Scrap)");
+      else showToast("Done");
+
+      await safeCall("loadInventoryPanel");
+      await safeCall("loadRecipes");
+      await safeCall("loadInventoryFull");
+      await openRecipe(details.recipe.id);
+    }catch(e2){
+      if (e2?.data?.missing?.length) showToast("You are missing: " + e2.data.missing.join(", "));
+      else showToast(e2?.message || "Crafting failed.");
+    }finally{
+      t.toggleAttribute("disabled", false);
+      t.textContent = prev;
+    }
+  });
+})();
+</script>
+
+
+<!-- ===== Market & Inventory (CLEAN) ===== -->
+<script>
+(() => {
+
+  // ---------- UTIL ----------
+  const $  = window.$  || (s => document.querySelector(s));
+  const esc = window.esc || (s => String(s));
+  const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
+  const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
+  const iconForByCode = window.iconForByCode || ((_c,_t)=>FALLBACK_ITEM_ICON);
+
+  const TIMEOUT_MS = 8000;
+
+  const say = (msg) => {
+    const fn = (typeof window.showToast === "function")
+      ? window.showToast
+      : (typeof window.toast === "function" ? window.toast : (m)=>window.alert(m));
+    try { fn(msg); } catch { window.alert(String(msg)); }
+  };
+
+  function timeout(p, ms = TIMEOUT_MS){
+    return Promise.race([
+      p,
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error("Timeout")), ms))
+    ]);
+  }
+
+  async function getJSON(url){
+    const r = await timeout(fetch(url, { credentials:"include" }));
+    if (!r.ok) {
+      let msg = `HTTP ${r.status}`;
+      try { const j = await r.json(); if (j?.error) msg = j.error; } catch {}
+      const e = new Error(msg); e.status = r.status; throw e;
+    }
+    if (r.status === 204) return {};
+    const text = await r.text();
+    if (!text) return {};
+    try { return JSON.parse(text); }
+    catch { throw new Error("Invalid JSON"); }
+  }
+
+  async function postJSON(url, body){
+    const r = await timeout(fetch(url, {
+      method: "POST",
+      credentials:"include",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify(body || {})
+    }));
+    let data = null; try { data = await r.json(); } catch {}
+    if (!r.ok) {
+      const e = new Error((data && data.error) || `HTTP ${r.status}`); e.status = r.status; e.data = data; throw e;
+    }
+    return data || {};
+  }
+
+  // ---------- SAFE LOAD ----------
+  async function safeLoad(boxSel, loader){
+    const box = $(boxSel); if (!box) return;
+    box.setAttribute('data-loading','1');
+    box.innerHTML = "";
+    try{
+      await loader(box);
+    }catch(e){
+      if (e && (e.status===401 || /401|unauthorized|not logged in/i.test(String(e.message||"")))) {
+        $("#auth")?.classList.remove("hidden");
+        $("#card-login") && ($("#card-login").style.display="block");
+        $("#card-register") && ($("#card-register").style.display="none");
       }
+      console.warn("safeLoad fail:", e);
+    }finally{
+      box.removeAttribute('data-loading');
     }
+  }
 
-    // ---------- INVENTORY (Create Sale panel) ----------
-    async function loadInventoryPanel(){
-      await safeLoad("#inv-list", async (box) => {
-        const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-        const r = await getJSON("/api/inventory");
+  // ---------- INVENTORY PANEL ----------
+  async function loadInventoryPanel(){
+    await safeLoad("#inv-list", async (box) => {
+      const q = ($("#inv-search")?.value || "").trim().toLowerCase();
+      const r = await getJSON("/api/inventory");
 
-        const items = (r.items || [])
-          .filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6)
-          .filter(x => !q || (x.name || "").toLowerCase().includes(q));
+      const items = (r.items || [])
+        .filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6)
+        .filter(x => !q || (x.name || "").toLowerCase().includes(q));
 
-        const recipes = (r.recipes || [])
-          .filter(x => !q || (x.name || "").toLowerCase().includes(q));
+      const recipes = (r.recipes || [])
+        .filter(x => !q || (x.name || "").toLowerCase().includes(q));
 
-        const frag = document.createDocumentFragment();
-        const add = (arr, kind) => {
-          for (const it of arr){
-            const ico = (kind === "item") ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON) : RECIPE_ICON;
-            const row = document.createElement("div");
-            row.className = "itemrow";
-            row.innerHTML = `
-              <div class="row" style="gap:10px;align-items:center">
-                <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-                <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
-              </div>
-              <button class="btn muted">Pick</button>`;
-            row.querySelector("button").addEventListener("click", () => {
-              window.SEL_INV = { kind, id: it.id, name: it.name };
-              const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
-              $("#price-g")?.focus();
-            });
-            frag.appendChild(row);
-          }
-        };
-        add(items, "item"); add(recipes, "recipe");
-        box.innerHTML = "";
-        if (!frag.childNodes.length) box.textContent = "Empty.";
-        else box.appendChild(frag);
-      });
-    }
+      const frag = document.createDocumentFragment();
 
-    // ---------- MARKET (live) ----------
-    async function loadMarket(){
-      await safeLoad("#market", async (box) => {
-        const q = ($("#market-q")?.value || "").trim();
-        const url = "/api/sales/live" + (q ? ("?q=" + encodeURIComponent(q)) : "");
-        const r = await getJSON(url);
-
-        const rows = (r?.listings || [])
-          .filter(Boolean)
-          .filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
-
-        if (!rows.length){ box.textContent = "No listings."; return; }
-
-        const frag = document.createDocumentFragment();
-        for (const s of rows){
-          const priceS = s?.price_s | 0;
-          const g = Math.floor(priceS/100), ss = priceS % 100;
-          const ico = (s.kind === "item") ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON) : RECIPE_ICON;
-          const mine = !!(window.WHO?.id && s?.seller_user_id === window.WHO.id);
+      const add = (arr, kind) => {
+        for (const it of arr){
+          const ico = (kind === "item")
+            ? (iconForByCode(it.code, it.tier) || FALLBACK_ITEM_ICON)
+            : RECIPE_ICON;
 
           const row = document.createElement("div");
           row.className = "itemrow";
           row.innerHTML = `
             <div class="row" style="gap:10px;align-items:center">
-              <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-              <div>${esc(s.name)} <span class="badge">T${s?.tier ?? "-"}</span> <span class="muted">x${s?.qty ?? 1}</span></div>
+              <img class="img-cell" src="${esc(ico)}" alt="" 
+                   onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+              <div>${esc(it.name)} <span class="badge">T${it.tier}</span> 
+                <span class="muted">x${it.qty}</span>
+              </div>
             </div>
-            <div class="row">
-              <span class="badge">${g}g ${ss}s</span>
-              ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
-            </div>`;
+            <button class="btn muted">Pick</button>`;
 
-          const btn = row.querySelector("button.btn:not(.muted)");
-          if (btn) {
-            btn.addEventListener("click", async () => {
-              if (!window.WHO?.id){ say("Please log in first."); return; }
-              if (btn.disabled) return;
-              const prev = btn.textContent; btn.disabled = true; btn.textContent = "Buying…";
-              try {
-                const res = await postJSON("/api/sales/buy", { id: s.id });
-                const newBal = (typeof res?.buyer_balance_silver === "number")
-                  ? res.buyer_balance_silver
-                  : (typeof res?.balance_silver === "number")
-                    ? res.balance_silver
-                    : null;
-                if (newBal != null && window.WHO) window.WHO.balance_silver = newBal|0;
-                await (window.refreshMeLight?.() || Promise.resolve());
-                await loadMarket(); await loadMine(); await loadInventoryPanel();
-                say("Purchased.");
-              } catch(err) {
-                say(err?.data?.error || err?.message || "Purchase failed.");
-              } finally {
-                btn.disabled = false; btn.textContent = prev;
-              }
-            });
-          }
+          row.querySelector("button").addEventListener("click", () => {
+            window.SEL_INV = { kind, id: it.id, name: it.name };
+            const m = $("#list-msg"); if (m) m.textContent = "Selected: " + it.name;
+            $("#price-g")?.focus();
+          });
+
           frag.appendChild(row);
         }
-        box.innerHTML = "";
-        box.appendChild(frag);
-      });
-    }
+      };
+
+      add(items, "item");
+      add(recipes, "recipe");
+      box.innerHTML = "";
+
+      if (!frag.childNodes.length) box.textContent = "Empty.";
+      else box.appendChild(frag);
+    });
+  }
+
+  // ---------- MARKET ----------
+  async function loadMarket(){
+    await safeLoad("#market", async (box) => {
+      const q = ($("#market-q")?.value || "").trim();
+      const url = "/api/sales/live" + (q ? ("?q=" + encodeURIComponent(q)) : "");
+      const r = await getJSON(url);
+
+      const rows = (r?.listings || [])
+        .filter(Boolean)
+        .filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0) >= 6)));
+
+      if (!rows.length){ box.textContent = "No listings."; return; }
+
+      const frag = document.createDocumentFragment();
+      for (const s of rows){
+        const priceS = s?.price_s | 0;
+        const g = Math.floor(priceS/100), ss = priceS % 100;
+
+        const ico = (s.kind === "item")
+          ? (iconForByCode(s.code, s.tier) || FALLBACK_ITEM_ICON)
+          : RECIPE_ICON;
+
+        const mine = !!(window.WHO?.id && s?.seller_user_id === window.WHO.id);
+
+        const row = document.createElement("div");
+        row.className = "itemrow";
+        row.innerHTML = `
+          <div class="row" style="gap:10px;align-items:center">
+            <img class="img-cell" src="${esc(ico)}" alt="" 
+                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <div>${esc(s.name)} <span class="badge">T${s?.tier ?? "-"}</span> 
+              <span class="muted">x${s?.qty ?? 1}</span></div>
+          </div>
+          <div class="row">
+            <span class="badge">${g}g ${ss}s</span>
+            ${mine ? '<button class="btn muted" disabled>My</button>' : '<button class="btn">Buy</button>'}
+          </div>`;
+
+        const btn = row.querySelector("button.btn:not(.muted)");
+        if (btn) {
+          btn.addEventListener("click", async () => {
+            if (!window.WHO?.id){ say("Please log in first."); return; }
+            if (btn.disabled) return;
+
+            const prev = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = "Buying…";
+
+            try {
+              const res = await postJSON("/api/sales/buy", { id: s.id });
+
+              const newBal = (typeof res?.buyer_balance_silver === "number")
+                ? res.buyer_balance_silver
+                : (typeof res?.balance_silver === "number")
+                  ? res.balance_silver
+                  : null;
+
+              if (newBal != null && window.WHO) window.WHO.balance_silver = newBal|0;
+
+              await (window.refreshMeLight?.() || Promise.resolve());
+              await loadMarket();
+              await loadMine();
+              await loadInventoryPanel();
+
+              say("Purchased.");
+
+            } catch(err) {
+              say(err?.data?.error || err?.message || "Purchase failed.");
+            } finally {
+              btn.disabled = false;
+              btn.textContent = prev;
+            }
+          });
+        }
+
+        frag.appendChild(row);
+      }
+
+      box.innerHTML = "";
+      box.appendChild(frag);
+    });
+  }
+
+})();  
+</script>
 
     // ---------- MY LISTINGS ----------
     async function loadMine(){
@@ -1508,9 +1624,9 @@ async function doBuyT1(){
       init();
     }
   })();
-  </script>
+</script>
 
- <!-- ===== BONUS (frontend) ===== -->
+<!-- ===== BONUS (frontend) ===== -->
 <script>
   function withTimeout(promise, ms=8000){
     return new Promise((resolve, reject)=>{
@@ -1619,29 +1735,12 @@ async function doBuyT1(){
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
         $("#auth")?.classList.remove("hidden");
         $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"); /* <- OVDJE JE ISPRAVKA: uklonjen višak ')' */
+        $("#card-register") && ($("#card-register").style.display="none"); 
       }
       Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
     }
   }
 </script>
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
