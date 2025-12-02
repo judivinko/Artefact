@@ -1134,6 +1134,39 @@ function pickWeightedRecipe(minTier=2){
   return arr[Math.floor(Math.random()*arr.length)];
 }
 
+
+// ⭐ NOVO — DODANO! (FRONTEND TRAŽI OVO)
+// ----------------- SHOP INFO -----------------
+app.get("/api/shop/info", (req, res) => {
+  const tok = readToken(req);
+  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
+
+  const u = db.prepare(`
+    SELECT balance_silver, shop_buy_count, next_recipe_at
+    FROM users WHERE id=?
+  `).get(tok.uid);
+
+  if (!u) return res.status(401).json({ ok:false, error:"Session expired" });
+
+  const claimed = getClaimedTiers(tok.uid);
+  const perks = perksFromClaimed(claimed);
+
+  const buysToNext = (u.next_recipe_at == null)
+    ? null
+    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
+
+  res.json({
+    ok: true,
+    balance_silver: u.balance_silver,
+    shop_price_s: perks.shop_price_s ?? 100,
+    shop_buy_count: u.shop_buy_count,
+    next_recipe_at: u.next_recipe_at,
+    buys_to_next: buysToNext,
+    perks
+  });
+});
+
+
 // ⭐ OVO JE ISPRAVNA RUTA KOJU FRONTEND OČEKUJE
 app.post("/api/shop/buy-t1", (req,res)=>{
   const uTok = verifyTokenFromCookies(req);
@@ -1234,6 +1267,7 @@ app.post("/api/shop/buy-t1", (req,res)=>{
     res.status(400).json({ ok:false, error:String(err.message || err) });
   }
 });
+
 
 
 // =======================================================
@@ -1963,6 +1997,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
