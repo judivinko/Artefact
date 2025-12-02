@@ -1106,7 +1106,7 @@ app.post("/api/bonus/claim",(req,res)=>{
 
 
 // ----------------- SHOP (T1) -----------------
-const SHOP_T1_COST_S_BASE = 10;      // OSNOVNA "baza" (1 materijal = 10s bez skaliranja)
+const SHOP_T1_COST_S_BASE = 10; // 1 materijal = 100 silver (10 * 10)
 const RECIPE_DROP_MIN = 5;
 const RECIPE_DROP_MAX = 10;
 
@@ -1151,7 +1151,7 @@ app.get("/api/shop/info", (req, res) => {
   const perks = perksFromClaimed(claimed);
 
   const basePrice = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
-  const finalPrice = basePrice * 10;  // 1 gold = 100 silver
+  const finalPrice = basePrice * 10;  // 1 material = 100 silver
 
   const buysToNext = (u.next_recipe_at == null)
     ? null
@@ -1166,11 +1166,12 @@ app.get("/api/shop/info", (req, res) => {
 });
 
 
-
-// ⭐ OVO JE ISPRAVNA RUTA KOJU FRONTEND OČEKUJE
+// ----------------- BUY T1 (with qty) -----------------
 app.post("/api/shop/buy-t1", (req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ ok:false, error:"Not logged in." });
+
+  const qty = Math.max(1, parseInt(req.body?.qty || "1", 10));
 
   try{
     const result = db.transaction(()=>{
@@ -1183,27 +1184,42 @@ app.post("/api/shop/buy-t1", (req,res)=>{
       if(!user) throw new Error("Session expired.");
 
       const perks = getPerks(user.id);
-
-      // baza iz perkova (npr 10), pa ×10 da bude 100s (1 gold) ili 90s kad bonus spusti na 9
       const basePrice = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
-      const cost      = basePrice * 10;   // REALNA cijena u silveru
+      const costSingle = basePrice * 10;   // cijena jednog
+      const totalCost  = costSingle * qty; // × količina
 
-      if (user.balance_silver < cost)
+      if (user.balance_silver < totalCost)
         throw new Error("Insufficient funds.");
 
       // SKIDANJE SILVERA
       db.prepare(`
         UPDATE users SET balance_silver = balance_silver - ?
         WHERE id=?
-      `).run(cost, user.id);
+      `).run(totalCost, user.id);
 
       // LOG
       db.prepare(`
         INSERT INTO gold_ledger(user_id, delta_s, reason, ref, created_at)
         VALUES (?, ?, ?, ?, ?)
-      `).run(user.id, -cost, "SHOP_BUY_T1", null, nowISO());
+      `).run(user.id, -totalCost, "SHOP_BUY_T1", null, nowISO());
 
-      // RECIPE LOGIKA
+      // DODAJ MATERIJALE × qty
+      // random Tier 1
+      const t1 = db.prepare("SELECT id, code, name FROM items WHERE tier=1").all();
+
+      let gotItems = [];
+      for (let i = 0; i < qty; i++) {
+        const pick = t1[Math.floor(Math.random()*t1.length)];
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,1)
+          ON CONFLICT(user_id,item_id)
+          DO UPDATE SET qty = qty + 1
+        `).run(user.id, pick.id);
+        gotItems.push(pick);
+      }
+
+      // RECIPE COUNTER UPDATE (samo 1x po kupnji, NE × qty)
       let nextAt = user.next_recipe_at;
       if (nextAt == null){
         nextAt = user.shop_buy_count + nextRecipeInterval();
@@ -1213,12 +1229,9 @@ app.post("/api/shop/buy-t1", (req,res)=>{
       const newBuyCount = (user.shop_buy_count || 0) + 1;
       db.prepare("UPDATE users SET shop_buy_count=? WHERE id=?").run(newBuyCount, user.id);
 
-      const willDropRecipe = newBuyCount >= nextAt;
-
-      let gotItem = null;
       let gotRecipe = null;
 
-      if (willDropRecipe){
+      if (newBuyCount >= nextAt){
         const pick = pickWeightedRecipe(perks.min_recipe_tier || 2);
         if (pick){
           db.prepare(`
@@ -1237,31 +1250,13 @@ app.post("/api/shop/buy-t1", (req,res)=>{
 
         const next = newBuyCount + nextRecipeInterval();
         db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(next, user.id);
-
-      } else {
-
-        const t1 = db.prepare("SELECT id, code, name FROM items WHERE tier=1").all();
-        const pick = t1[Math.floor(Math.random()*t1.length)];
-
-        db.prepare(`
-          INSERT INTO user_items(user_id,item_id,qty)
-          VALUES (?,?,1)
-          ON CONFLICT(user_id,item_id)
-          DO UPDATE SET qty = qty + 1
-        `).run(user.id, pick.id);
-
-        gotItem = {
-          code: pick.code,
-          name: pick.name,
-          tier: 1
-        };
       }
 
       const bal = db.prepare(`
         SELECT balance_silver FROM users WHERE id=?
       `).get(user.id).balance_silver;
 
-      return { balance_silver: bal, gotItem, gotRecipe };
+      return { balance_silver: bal, gotItems, gotRecipe };
     })();
 
     res.json({ ok:true, ...result });
@@ -1270,6 +1265,8 @@ app.post("/api/shop/buy-t1", (req,res)=>{
     res.status(400).json({ ok:false, error:String(err.message || err) });
   }
 });
+
+
 
 
 
@@ -2000,6 +1997,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
