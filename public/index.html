@@ -491,50 +491,36 @@ function iconForByCode(code, tier){
 
 
 <!-- ===== Global state + refresh ===== -->
+<!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
-let WHO = window.WHO || null;
-window.CURRENT_RECIPE_ID = null;
+  let WHO = window.WHO || null;
+  window.CURRENT_RECIPE_ID = null;
+  window.refreshMeLight ||= async () => {};
 
-/* ✔️ SIGURNA refreshMeLight verzija */
-window.refreshMeLight = async function(){
-  if (!WHO || !WHO.id) return;
+  function showApp(){ $("#app")?.classList.remove("hidden"); }
 
-  try{
-    const r = await api("/api/me-light").catch(()=>null);
-    if (!r || !r.user) return;
+  function renderBalance(){
+    const v = WHO?.balance_silver || 0;
+    const g = Math.floor(v/100), s = v%100;
 
-    WHO.balance_silver = r.user.balance_silver | 0;
-    WHO.perks = r.user.perks || {};
-    WHO.buys_to_next = r.user.buys_to_next ?? null;
+    // GOLD
+    const el = $("#balance");
+    if (el) {
+      el.textContent = ${g}g ${s}s;
+      el.classList.add("pulse");
+      setTimeout(()=> el.classList.remove("pulse"), 1300);
+    }
 
-    renderBalance();
-    applyPerkIndicators();
-  }catch(e){
-    console.warn("refreshMeLight fail:", e);
+    // USD — NOVO (NIŠTA NE BRIŠE)
+    const usd = document.getElementById("balance-dollar");
+    if (usd) {
+      usd.innerText = $${(g / 1000).toFixed(2)};
+      usd.classList.remove("hidden");
+    }
   }
-};
+</script>
 
-/* ✔️ Sigurno renderanje gold/silver */
-function renderBalance(){
-  const v = WHO?.balance_silver || 0;
-  const g = Math.floor(v/100);
-  const s = v % 100;
 
-  const el = $("#balance");
-  if (el){
-    el.textContent = `${g}g ${s}s`;
-    el.classList.add("pulse");
-    setTimeout(()=> el.classList.remove("pulse"), 1300);
-  }
-
-  const usd = $("#balance-dollar");
-  if (usd){
-    usd.textContent = `$${(g / 1000).toFixed(2)}`;
-    usd.classList.remove("hidden");
-  }
-}
-
-/* ✔️ UI Perks */
 function applyPerkIndicators(){
   const price = WHO?.perks?.shop_price_s ?? 100;
   $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
@@ -1756,5 +1742,6 @@ arteBtn?.addEventListener("click", async ()=>{
 
 </body>
 </html>
+
 
 
