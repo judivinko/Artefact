@@ -125,13 +125,12 @@
 </div>
 
   
-  <!-- ===== SHOP ===== -->
-<div id="tab-shop" class="card">
+<!-- ===== SHOP TAB ===== -->
+<div id="tab-shop" class="tab card">
 
-  <!-- 🔥 NASLOV SHOPA -->
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
-  <!-- 🔥 BUY T1 PANEL (UREĐENO) -->
+  <!-- BUY T1 PANEL -->
   <div class="card" style="padding:10px;margin-bottom:16px;">
 
     <div class="row" style="justify-content:space-between;align-items:center">
@@ -142,9 +141,9 @@
       Buys to next recipe: <span id="buysToNext">—</span>
     </div>
 
-    <!-- INPUT + BUY U ISTOM REDU -->
+    <!-- INPUT + BUTTON -->
     <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
-      <!-- KOLIČINA -->
+
       <input id="buy-t1-qty"
              type="number"
              class="input"
@@ -153,10 +152,46 @@
              max="99999"
              style="width:130px;">
 
-      <!-- BUY dugme -->
       <button id="btn-buy-t1"
               class="btn"
               style="padding-left:24px;padding-right:24px;">
+        Buy
+      </button>
+
+    </div>
+
+    <div id="shop-msg" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <!-- BALANCE -->
+  <div style="margin:6px 0;">
+    <span id="shop-balance" class="badge hidden">0g 0s</span>
+  </div>
+
+<!-- ===== SHOP ===== -->
+<div id="tab-shop" class="tab card">
+
+  <div class="label" style="margin-bottom:12px;">Shop</div>
+
+  <!-- BUY T1 PANEL -->
+  <div class="card" style="padding:10px;margin-bottom:16px;">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="label">Buy T1</div>
+    </div>
+
+    <div class="muted" style="margin-top:6px;">
+      Buys to next recipe: <span id="buysToNext">—</span>
+    </div>
+
+    <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
+      <input id="buy-t1-qty"
+             type="number"
+             class="input"
+             placeholder="qty (1–99999)"
+             min="1"
+             max="99999"
+             style="width:130px;">
+      <button id="btn-buy-t1" class="btn" style="padding-left:24px;padding-right:24px;">
         Buy
       </button>
     </div>
@@ -164,20 +199,21 @@
     <div id="shop-msg" class="muted" style="margin-top:8px"></div>
   </div>
 
-  <!-- PRIKAZ BALANCA -->
+  <!-- BALANCE -->
   <div style="margin:6px 0;">
     <span id="shop-balance" class="badge hidden">0g 0s</span>
   </div>
 
-  <!-- ===== UVOD / GAME / SHOP INFO ===== -->
+  <!-- SHOP INTRO -->
   <div id="shop-intro" class="card" style="margin-top:12px">
 
     <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
+
     <p class="muted" style="max-width:820px">
-      You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
-      When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
+      You collect materials, unlock recipes, and craft increasingly powerful items.
     </p>
 
+    <!-- GRID START -->
     <div class="grid" style="margin-top:12px">
 
       <!-- SHOP INFO -->
@@ -187,58 +223,52 @@
           <span class="badge">Price: <span id="shop-price-badge">100s</span></span>
         </div>
         <p class="muted">
-          In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
-          Materials are ingredients for crafting, while recipes unlock higher tiers.
+          Buy T1 materials and occasional recipes.
         </p>
-        <img src="/t1_bronze.png" alt="T1 example" class="img-landing" onerror="this.style.display='none'">
-        <img src="/recipe.png"  alt="Recipe example" class="img-landing" onerror="this.style.display='none'">
+        <img src="/t1_bronze.png" class="img-landing" onerror="this.style.display='none'">
+        <img src="/recipe.png" class="img-landing" onerror="this.style.display='none'">
       </div>
 
       <!-- CRAFT INFO -->
       <div class="card">
         <div class="label">2) Crafting</div>
         <p class="muted">
-          With a recipe and the required materials, you can craft <b>T2, T3, T4</b> and, finally, <b>T5</b> items.<br>
-          Crafting can sometimes <i>fail</i> and yield <b>Scrap</b> —
-          <span id="craft-fail-note" class="badge">10% fail</span>
+          Craft T2–T5 using recipes and materials.
         </p>
-        <img src="/t2_golden_ring.png"   alt="T2" class="img-landing" onerror="this.style.display='none'">
-        <img src="/t3_gate_of_might.png" alt="T3" class="img-landing" onerror="this.style.display='none'">
-        <img src="/t4_engine_core.png"   alt="T4" class="img-landing" onerror="this.style.display='none'">
-        <img src="/t5_ancient_relic.png" alt="T5" class="img-landing" onerror="this.style.display='none'">
+        <img src="/t2_golden_ring.png" class="img-landing">
+        <img src="/t3_gate_of_might.png" class="img-landing">
+        <img src="/t4_engine_core.png" class="img-landing">
+        <img src="/t5_ancient_relic.png" class="img-landing">
       </div>
 
-      <!-- MARKET INFO -->
+      <!-- MARKET -->
       <div class="card">
         <div class="label">3) Market</div>
         <p class="muted">
-          You can <b>sell</b> surplus materials or recipes, and <b>buy</b> what you're missing from others.<br>
-          Through trading, you speed up your progress toward T5 sets. <br>
-          <span id="market-fee-note" class="badge">Fee: 1%</span>
-          <span id="market-min-note" class="badge hidden">Min: 90s</span>
+          Buy/sell materials & recipes.
         </p>
+        <span class="badge">Fee: 1%</span>
       </div>
 
-      <!-- ARTEFACT INFO -->
+      <!-- ARTEFACT -->
       <div class="card">
         <div class="label">4) Artefact</div>
         <p class="muted">
-          When you have <b>10 different T5</b>, you can craft an <b>ARTEFAKT</b>.<br>
-          It provides a permanent <b>gold bonus</b> — and unlocks the <b>Bonus</b> section.
+          Collect 10 different T5 to craft the Artefact.
         </p>
-        <img src="/artefakt.png" alt="Artefact" class="img-landing" onerror="this.style.display='none'">
+        <img src="/artefakt.png" class="img-landing">
       </div>
 
     </div>
+    <!-- GRID END -->
 
-    <!-- TIPS -->
     <section class="card" style="margin-top:12px">
       <div class="label">Tips</div>
       <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
-        <li>Shop smart — recipes drop occasionally, so save your gold for key moments.</li>
-        <li>Craft in order of priority—focus on the recipes you have and the materials you can easily replace</li>
-        <li>The market is the best way to fill gaps in your set and sell what you don’t need.</li>
-        <li>Aim to collect 10 <i>different</i> T5 items — duplicates don’t count toward the ARTEFAKT.</li>
+        <li>Shop smart.</li>
+        <li>Craft by priority.</li>
+        <li>Use market to fill gaps.</li>
+        <li>Aim for 10 T5 for the Artefact.</li>
       </ul>
     </section>
 
@@ -246,12 +276,14 @@
 </div>
 
 
+
+
 <!-- ===== QUEST TAB ===== -->
 <div id="tab-quest" class="tab hidden card">
   <div class="label" style="margin-bottom:8px">Daily Quests</div>
 
   <div id="quest-list" class="column" style="gap:8px">
-    <!-- Questovi se automatski ubacuju putem JavaScripta -->
+    <!-- Quests inserted by JS -->
   </div>
 
   <div id="quest-msg" class="muted" style="margin-top:12px"></div>
@@ -388,7 +420,7 @@
         <div class="label">T5 Bonus</div>
         <button id="btn-claim-t5" class="btn" disabled>Claim</button>
       </div>
-      <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3+ + Craft no-fail</div>
+      <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3 + Craft no-fail</div>
       <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
     </div>
   </div>
@@ -1601,6 +1633,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
