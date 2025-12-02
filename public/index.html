@@ -463,11 +463,27 @@
     }
   </script>
 
- <!-- ===== Global state + Tabs + PayPal panel ===== -->
+<!-- ===== Global state + Tabs + PayPal panel ===== -->
 <script>
   let WHO = window.WHO || null;
   window.CURRENT_RECIPE_ID = null;
-  window.refreshMeLight ||= async () => {};
+
+  // ❗️ OVO JE POPRAVLJENO
+  window.refreshMeLight = async function(){
+    try{
+      const r = await api("/api/me");
+      if (r && r.user){
+        WHO.balance_silver = r.user.balance_silver | 0;
+        WHO.perks = r.user.perks || {};
+        WHO.buys_to_next = r.user.buys_to_next ?? null;
+        renderBalance();
+        applyPerkIndicators();
+      }
+    }catch(e){
+      console.warn("refreshMeLight fail:", e);
+    }
+  };
+  // ❗️ KRAJ POPRAVKE
 
   function showApp(){ $("#app")?.classList.remove("hidden"); }
 
@@ -483,13 +499,15 @@
       setTimeout(()=> el.classList.remove("pulse"), 1300);
     }
 
-    // USD — NOVO (NIŠTA NE BRIŠE)
+    // USD — NOVO
     const usd = document.getElementById("balance-dollar");
     if (usd) {
       usd.innerText = `$${(g / 1000).toFixed(2)}`;
       usd.classList.remove("hidden");
     }
   }
+</script>
+
 
   function applyPerkIndicators(){
     const price = WHO?.perks?.shop_price_s ?? 100;
@@ -1609,6 +1627,7 @@ async function doBuyT1(){
 </script>
 </body>
 </html>
+
 
 
 
