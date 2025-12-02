@@ -1167,24 +1167,20 @@ app.post("/api/bonus/claim",(req,res)=>{
 });
 
 // ----------------- SHOP (T1) -----------------
-
-const SHOP_T1_COST_S_BASE = 10; // 1 materijal = 100 silver (10 * 10)
+const SHOP_T1_COST_S_BASE = 10;  // Base = 10 → 10 * 10 = 100 silver
 const RECIPE_DROP_MIN = 5;
 const RECIPE_DROP_MAX = 10;
 
 function nextRecipeInterval(){
-  const min = RECIPE_DROP_MIN, max = RECIPE_DROP_MAX;
-  return Math.floor(Math.random()*(max-min+1))+min;
+  return Math.floor(Math.random()*(RECIPE_DROP_MAX-RECIPE_DROP_MIN+1))+RECIPE_DROP_MIN;
 }
 
 function pickWeightedRecipe(minTier=2){
-  const list = db.prepare("SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN ? AND 5").all(minTier|0);
+  const list = db.prepare("SELECT id, code, name, tier FROM recipes WHERE tier BETWEEN ? AND 5").all(minTier);
   if (!list.length) return null;
 
   const byTier = {};
-  for (const r of list){
-    (byTier[r.tier] ||= []).push(r);
-  }
+  for (const r of list) (byTier[r.tier] ||= []).push(r);
 
   const roll = Math.floor(Math.random()*1000)+1;
   let tier = (roll <= 13 ? 5 : roll <= 50 ? 4 : roll <= 200 ? 3 : 2);
@@ -1197,8 +1193,98 @@ function pickWeightedRecipe(minTier=2){
 }
 
 
-// ----------------- SHOP INFO -----------------
+// ----------------- BUY T1 (with qty) -----------------
+app.post("/api/shop/buy-t1", (req,res)=>{
+  const uTok = verifyTokenFromCookies(req);
+  if(!uTok) return res.status(401).json({ ok:false, error:"Not logged in." });
 
+  const qty = Math.max(1, parseInt(req.body?.qty || "1", 10));
+
+  try{
+    const result = db.transaction(()=>{
+
+      const user = db.prepare(`
+        SELECT id, balance_silver, shop_buy_count, next_recipe_at
+        FROM users WHERE id=?
+      `).get(uTok.uid);
+
+      if(!user) throw new Error("Session expired.");
+
+      // ======== CIJENA (100 silver) ========
+      const costSingle = SHOP_T1_COST_S_BASE * 10;
+      const totalCost  = costSingle * qty;
+
+      if (user.balance_silver < totalCost)
+        throw new Error("Insufficient funds.");
+
+      // SKIDANJE SILVERA
+      db.prepare(`
+        UPDATE users SET balance_silver = balance_silver - ?
+        WHERE id=?
+      `).run(totalCost, user.id);
+
+      // LOG
+      db.prepare(`
+        INSERT INTO gold_ledger(user_id, delta_s, reason, ref, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(user.id, -totalCost, "SHOP_BUY_T1", null, nowISO());
+
+      // GIVE MATERIALS × qty
+      const t1 = db.prepare("SELECT id, code, name FROM items WHERE tier=1").all();
+      for (let i = 0; i < qty; i++) {
+        const pick = t1[Math.floor(Math.random()*t1.length)];
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,1)
+          ON CONFLICT(user_id,item_id)
+          DO UPDATE SET qty = qty + 1
+        `).run(user.id, pick.id);
+      }
+
+      // ======== RECIPE LOGIC ========
+      let nextAt = user.next_recipe_at;
+      const newBuyCount = (user.shop_buy_count || 0) + qty;
+
+      // ako prvi put kupuješ
+      if (nextAt == null){
+        nextAt = newBuyCount + nextRecipeInterval();
+        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(nextAt, user.id);
+      }
+
+      db.prepare("UPDATE users SET shop_buy_count=? WHERE id=?").run(newBuyCount, user.id);
+
+      let gotRecipe = null;
+
+      if (newBuyCount >= nextAt){
+        const pick = pickWeightedRecipe();
+        if (pick){
+          db.prepare(`
+            INSERT INTO user_recipes(user_id,recipe_id,qty,attempts)
+            VALUES (?,?,1,0)
+            ON CONFLICT(user_id,recipe_id)
+            DO UPDATE SET qty = qty + 1
+          `).run(user.id, pick.id);
+          gotRecipe = pick;
+        }
+
+        const next = newBuyCount + nextRecipeInterval();
+        db.prepare("UPDATE users SET next_recipe_at=? WHERE id=?").run(next, user.id);
+      }
+
+      const bal = db.prepare(`SELECT balance_silver FROM users WHERE id=?`).get(user.id).balance_silver;
+
+      return { balance_silver: bal, gotRecipe };
+    })();
+
+    res.json({ ok:true, ...result });
+
+  } catch(err){
+    res.status(400).json({ ok:false, error:String(err.message || err) });
+  }
+});
+
+
+// ----------------- SHOP INFO -----------------
 app.get("/api/shop/info", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1210,15 +1296,11 @@ app.get("/api/shop/info", (req, res) => {
 
   if (!u) return res.status(401).json({ ok:false, error:"Session expired" });
 
-  const claimed = getClaimedTiers(tok.uid);
-  const perks = perksFromClaimed(claimed);
-
-  const basePrice = perks.shop_price_s ?? SHOP_T1_COST_S_BASE;
-  const finalPrice = basePrice * 10;  // 1 material = 100 silver
+  const finalPrice = SHOP_T1_COST_S_BASE * 10; // = 100 silver
 
   const buysToNext = (u.next_recipe_at == null)
     ? null
-    : Math.max(0, (u.next_recipe_at || 0) - (u.shop_buy_count || 0));
+    : Math.max(0, u.next_recipe_at - (u.shop_buy_count || 0));
 
   res.json({
     ok: true,
@@ -1927,4 +2009,5 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
