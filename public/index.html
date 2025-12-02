@@ -503,22 +503,18 @@ function iconForByCode(code, tier){
     const v = WHO?.balance_silver || 0;
     const g = Math.floor(v/100), s = v%100;
 
-    // GOLD
-    const el = $("#balance");
-    if (el) {
-      el.textContent = ${g}g ${s}s;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
+const el = $("#balance");
+if (el) {
+  el.textContent = `${g}g ${s}s`;
+  el.classList.add("pulse");
+  setTimeout(()=> el.classList.remove("pulse"), 1300);
+}
 
-    // USD — NOVO (NIŠTA NE BRIŠE)
-    const usd = document.getElementById("balance-dollar");
-    if (usd) {
-      usd.innerText = $${(g / 1000).toFixed(2)};
-      usd.classList.remove("hidden");
-    }
-  }
-</script>
+const usd = document.getElementById("balance-dollar");
+if (usd) {
+  usd.innerText = `$${(g / 1000).toFixed(2)}`;
+  usd.classList.remove("hidden");
+}
 
 
 function applyPerkIndicators(){
@@ -1742,6 +1738,7 @@ arteBtn?.addEventListener("click", async ()=>{
 
 </body>
 </html>
+
 
 
 
