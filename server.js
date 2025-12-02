@@ -1127,7 +1127,7 @@ function pickWeightedRecipe(minTier=2){
   return arr[Math.floor(Math.random()*arr.length)];
 }
 
-app.post("/api/shop/buy-t1",(req,res)=>{
+app.post("/api/shop/buy",(req,res)=>{
   const uTok = verifyTokenFromCookies(req);
   if(!uTok) return res.status(401).json({ok:false,error:"Not logged in."});
   try{
@@ -1910,6 +1910,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
