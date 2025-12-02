@@ -741,94 +741,115 @@ async function setTab(tab){
   }
 </script>
 
+<script>
+// ============================
+//        SHOP SYSTEM
+// ============================
+(function(){
+
+  const $  = sel => document.querySelector(sel);
+  const esc = s => String(s);
+
+  // ----------------------------
+  // LOAD SHOP INFO
+  // ----------------------------
+  async function loadShop(){
+    try {
+      const r = await api("/api/shop/info");
+
+      // cijena
+      if ($("#shop-price-inline")) 
+        $("#shop-price-inline").textContent = r.price_s || 100;
+
+      if ($("#shop-price-badge"))
+        $("#shop-price-badge").textContent = (r.price_s || 100) + "s";
+
+      // next recipe
+      if ($("#buysToNext"))
+        $("#buysToNext").textContent = r.buys_to_next ?? "—";
+
+      // balance
+      if (window.WHO){
+        const g = Math.floor(WHO.balance_silver / 100);
+        const s = WHO.balance_silver % 100;
+        const el = $("#shop-balance");
+        if (el){
+          el.classList.remove("hidden");
+          el.textContent = `${g}g ${s}s`;
+        }
+      }
+
+    } catch(e){
+      console.warn("loadShop fail", e);
+    }
+  }
+
+  // ----------------------------
+  //  BUY T1 MATERIALS
+  // ----------------------------
+  async function doBuyT1(){
+    const inp = $("#buy-t1-qty");
+    let qty = parseInt(inp?.value || "1", 10);
+    if (!qty || qty < 1) qty = 1;
+    if (qty > 99999) qty = 99999;
+
+    const btn = $("#btn-buy-t1");
+    if (!btn) return;
+
+    const prev = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Buying…";
+
+    try {
+      const r = await api("/api/shop/buy", {
+        method:"POST",
+        body:{ qty }
+      });
+
+      // update local balance
+      if (r?.balance_silver != null && window.WHO){
+        WHO.balance_silver = r.balance_silver|0;
+      }
+
+      // refresh UI
+      await loadShop();
+      await safeCall("loadInventoryPanel");
+
+      showToast(`Purchased x${qty}`);
+
+      // quest trigger
+      window.questTrigger?.("buy-mat");
+
+    } catch(e){
+      showToast(e?.message || "Buy failed.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prev;
+      inp.value = "";
+    }
+  }
+
+  // ----------------------------
+  //  WHEN TAB OPENS
+  // ----------------------------
+  window.showShopTab = function(){
+    loadShop();
+    questTrigger?.("shop-click");
+  };
+
+  // ----------------------------
+  //  BIND UI
+  // ----------------------------
+  const btn = $("#btn-buy-t1");
+  if (btn){
+    btn.addEventListener("click", doBuyT1);
+  }
+
+})();
+</script>
 
   
   
- <!-- SHOP -->
-    <div id="tab-shop" class="card">
-      <div class="row">
-        <div class="label">Buy T1 (<span id="shop-price-inline">100</span>s)</div>
-      </div>
-
-      <div class="row">
-        <span id="buysToNext" class="muted">Buys to next recipe: —</span>
-      </div>
-
-      <div style="margin:6px 0">
-        <span id="shop-balance" class="badge hidden">0g 0s</span>
-      </div>
-
-      <div class="row">
-        <button id="btn-buy-t1" class="btn">Buy</button>
-        <div id="shop-msg" class="muted"></div>
-      </div>
-
-      <!-- Uvod -->
-      <div id="shop-intro" class="card" style="margin-top:12px">
-        <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
-        <p class="muted" style="max-width:820px">
-          You collect materials, unlock recipes, and craft increasingly powerful items (T2 → T5).
-          When you gather <b>10 different T5</b>, you can assemble an <b>ARTEFACT</b> that grants you a gold bonus.
-        </p>
-
-        <div class="grid" style="margin-top:12px">
-          <div class="card">
-            <div class="row" style="justify-content:space-between;align-items:center">
-              <div class="label">1) Shop</div>
-              <span class="badge">Price: <span id="shop-price-badge">100s</span></span>
-            </div>
-            <p class="muted">
-              In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
-              Materials are ingredients for crafting, while recipes unlock higher tiers.
-            </p>
-            <img src="/t1_bronze.png" alt="T1 example" class="img-landing" onerror="this.style.display='none'">
-            <img src="/recipe.png" alt="Recipe example" class="img-landing" onerror="this.style.display='none'">
-          </div>
-
-          <div class="card">
-            <div class="label">2) Crafting</div>
-            <p class="muted">
-              With a recipe and the required materials, you can craft <b>T2, T3, T4</b> and, finally, <b>T5</b> items.<br>
-              Crafting can sometimes <i>fail</i> and yield <b>Scrap</b> —
-              <span id="craft-fail-note" class="badge">10% fail</span>
-            </p>
-            <img src="/t2_golden_ring.png" alt="T2" class="img-landing" onerror="this.style.display='none'">
-            <img src="/t3_gate_of_might.png" alt="T3" class="img-landing" onerror="this.style.display='none'">
-            <img src="/t4_engine_core.png" alt="T4" class="img-landing" onerror="this.style.display='none'">
-            <img src="/t5_ancient_relic.png" alt="T5" class="img-landing" onerror="this.style.display='none'">
-          </div>
-
-          <div class="card">
-            <div class="label">3) Market</div>
-            <p class="muted">
-              You can <b>sell</b> surplus materials or recipes, and <b>buy</b> what you’re missing from others.<br>
-              Through trading, you speed up your progress toward T5 sets. <br>
-              <span id="market-fee-note" class="badge">Fee: 1%</span>
-              <span id="market-min-note" class="badge hidden">Min: 90s</span>
-            </p>
-          </div>
-
-          <div class="card">
-            <div class="label">4) Artefact</div>
-            <p class="muted">
-              When you have <b>10 different T5</b>, you can craft an <b>ARTEFACT</b>.<br>
-              It provides a permanent <b>gold bonus</b> — and unlocks the <b>Bonus</b> section.
-            </p>
-            <img src="/artefakt.png" alt="Artefact" class="img-landing" onerror="this.style.display='none'">
-          </div>
-        </div>
-
-        <section class="card" style="margin-top:12px">
-          <div class="label">Tips</div>
-          <ul class="muted" style="margin:6px 0 0 18px;line-height:1.5">
-            <li>Shop smart — recipes drop occasionally, so save your gold for key moments.</li>
-            <li>Craft in order of priority—focus on the recipes you have and the materials you can easily replace</li>
-            <li>The market is the best way to fill gaps in your set and sell what you don’t need.</li>
-            <li>Aim to collect 10 <i>different</i> T5 items — duplicates don’t count toward the ARTEFAKT.</li>
-          </ul>
-        </section>
-      </div>
-    </div>
 
 // ==========================
 //       QUEST SYSTEM
@@ -1568,6 +1589,7 @@ async function setTab(tab){
 </script>
 </body>
 </html>
+
 
 
 
