@@ -1067,22 +1067,24 @@ async function doLogout(){
 
 
   
- <script>
-// Fallback za esc ako nije global
+<script>
+// ==========================
+// GLOBAL FALLBACKS
+// ==========================
 const esc = window.esc || (x => String(x));
-// Fallback za icon funkcije
 const iconForByCode = window.iconForByCode || (() => "");
 const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
+const RECIPE_ICON = window.RECIPE_ICON || "/recipe.png";
 
 
 // ==========================
-//       CRAFTING
+//   ROW FOR RECIPE LIST
 // ==========================
 function rowRecipe(r){
   return `
     <div class="itemrow">
       <div class="row" style="gap:10px;align-items:center">
-        <img class="img-cell" src="${RECIPE_ICON}" alt="" 
+        <img class="img-cell" src="${RECIPE_ICON}" alt=""
              onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
         <div>
           <div class="label" style="text-transform:none;color:var(--text)">
@@ -1095,8 +1097,12 @@ function rowRecipe(r){
     </div>`;
 }
 
+
+// ==========================
+//     LOAD RECIPES LIST
+// ==========================
 async function loadRecipes(){
-  const box = $("#recipes"); 
+  const box = $("#recipes");
   if (!box) return;
 
   box.textContent = "Loading…";
@@ -1105,13 +1111,13 @@ async function loadRecipes(){
     const list = await api("/api/recipes/list");
     const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
 
-    const rows = (list?.recipes || []).filter(x => 
+    const rows = (list?.recipes || []).filter(x =>
       !q || x.name.toLowerCase().includes(q)
     );
 
-    if (!rows.length){ 
-      box.textContent = "No recipes."; 
-      return; 
+    if (!rows.length){
+      box.textContent = "No recipes.";
+      return;
     }
 
     box.innerHTML = rows.map(rowRecipe).join("");
@@ -1131,21 +1137,21 @@ $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
 $("#filter-recipe")?.addEventListener("input", loadRecipes);
 
 
-// ---------------------------
-// Render + canCraft flag
-// ---------------------------
+// ==========================
+//   RENDER INGREDIENTS
+// ==========================
 function renderIngredients(details){
 
-  const parts = (details.ingredients||[]).map(ing=>{
+  const parts = (details.ingredients || []).map(ing=>{
     const ok = (ing.have|0) >= (ing.qty|0);
     const src = iconForByCode(ing.code, ing.tier);
 
     return `
       <div class="itemrow">
         <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell" 
-               src="${esc(src)}" 
-               alt="" 
+          <img class="img-cell"
+               src="${esc(src)}"
+               alt=""
                onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
           <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
         </div>
@@ -1158,12 +1164,12 @@ function renderIngredients(details){
 
   const craftNote = WHO?.perks?.craft_no_fail
     ? "No fail (server checks ingredients)"
-    : (canCraft ? "10% fail → Scrap (server checks ingredients)" 
+    : (canCraft ? "10% fail → Scrap (server checks ingredients)"
                 : "You are missing materials for this recipe.");
 
   return `
     <div class="itemrow">
-      <div><b>${esc(details.recipe.name)}</b> 
+      <div><b>${esc(details.recipe.name)}</b>
       <span class="badge">T${details.recipe.tier}</span></div>
     </div>
 
@@ -1178,11 +1184,11 @@ function renderIngredients(details){
 }
 
 
-// ---------------------------
-// Open recipe
-// ---------------------------
+// ==========================
+//       OPEN RECIPE
+// ==========================
 async function openRecipe(recipeId){
-  const box = $("#rec-details"); 
+  const box = $("#rec-details");
   if (!box) return;
 
   box.textContent = "Loading…";
@@ -1203,9 +1209,9 @@ async function openRecipe(recipeId){
 window.openRecipe = openRecipe;
 
 
-// ---------------------------
-// Artefact bonus refresh
-// ---------------------------
+// ==========================
+//  REFRESH ARTEFACT BONUS
+// ==========================
 async function refreshArtefactBonus(){
   try{
     const r = await api("/api/inventory");
@@ -1234,23 +1240,23 @@ async function refreshArtefactBonus(){
 })();
 
 
-// ---------------------------
-// Craft ARTEFACT
-// ---------------------------
+// ==========================
+//     CRAFT ARTEFACT
+// ==========================
 const arteBtn = $("#btn-artefact");
 if (arteBtn) arteBtn.addEventListener("click", async ()=>{
   if (arteBtn.disabled) return;
 
   const prev = arteBtn.textContent;
-  arteBtn.disabled = true; 
+  arteBtn.disabled = true;
   arteBtn.textContent = "Crafting…";
 
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:{}});
 
     const name = r.crafted || "Artefact";
-    const bonus = (typeof r?.bonus_gold === "number") 
-      ? r.bonus_gold 
+    const bonus = (typeof r?.bonus_gold === "number")
+      ? r.bonus_gold
       : (parseInt(r?.bonus_gold,10) || 0);
 
     $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
@@ -1266,19 +1272,17 @@ if (arteBtn) arteBtn.addEventListener("click", async ()=>{
     $("#artefact-msg") && ($("#artefact-msg").textContent = e?.message || "Crafting failed.");
 
   } finally{
-    arteBtn.disabled = false; 
+    arteBtn.disabled = false;
     arteBtn.textContent = prev;
   }
 });
 
 
-// ---------------------------
-// Delegated click for Craft button
-// ---------------------------
+// ==========================
+//   BUTTON: CRAFT DETAILS
+// ==========================
 (function bindCraftOnce(){
-  if (!document) return;
   if (window.__CRAFT_BOUND__) return;
-
   window.__CRAFT_BOUND__ = true;
 
   document.addEventListener("click", async (e)=>{
@@ -1286,9 +1290,9 @@ if (arteBtn) arteBtn.addEventListener("click", async ()=>{
     if (!t || t.id !== "btn-craft") return;
 
     const details = window.CURRENT_RECIPE_DETAILS;
-    if (!details || !details.recipe?.id){ 
-      showToast("Open a recipe first."); 
-      return; 
+    if (!details || !details.recipe?.id){
+      showToast("Open a recipe first.");
+      return;
     }
 
     const allowed = t.getAttribute("data-can") === "1";
@@ -1298,8 +1302,8 @@ if (arteBtn) arteBtn.addEventListener("click", async ()=>{
           .filter(ing => (ing.have|0) < (ing.qty|0))
           .map(ing => ing.name);
 
-        showToast(miss.length ? 
-          ("You are missing: " + miss.join(", ")) 
+        showToast(miss.length ?
+          ("You are missing: " + miss.join(", "))
           : "Missing materials."
         );
 
@@ -1347,6 +1351,7 @@ if (arteBtn) arteBtn.addEventListener("click", async ()=>{
   });
 })();
 </script>
+
 
 
 <!-- ===== Market & Inventory (CLEAN) ===== -->
@@ -1835,6 +1840,7 @@ if (document.readyState === "loading"){
 
 </body>
 </html>
+
 
 
 
