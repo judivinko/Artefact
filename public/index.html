@@ -129,8 +129,7 @@
   <div class="chip" data-tab="bonus">Bonus</div>
 </div>
 
-<!-- ===== SHOP ===== -->
-  
+<!-- ===== SHOP TAB ===== -->
 <div id="tab-shop" class="tab card">
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
@@ -149,7 +148,6 @@
     <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
       <input id="buy-t1-qty" type="number" class="input" placeholder="qty (1–99999)"
              min="1" max="99999" style="width:130px;" />
-
       <button id="btn-buy-t1" class="btn" style="padding-left:24px;padding-right:24px;">
         Buy
       </button>
@@ -187,50 +185,47 @@
       </div>
     </div>
   </div>
-</div>
 
-<!-- CRAFT INFO -->
-<div class="card">
-  <div class="label">2) Crafting</div>
-  <p class="muted">
-    With a recipe and the required materials, you can craft <b>T2 → T5</b>.
-  </p>
-  <img src="/t2_golden_ring.png" class="img-landing">
-  <img src="/t3_gate_of_might.png" class="img-landing">
-  <img src="/t4_engine_core.png" class="img-landing">
-  <img src="/t5_ancient_relic.png" class="img-landing">
-</div>
+  <div class="card" style="margin-top:16px;">
+    <div class="label">2) Crafting</div>
+    <p class="muted">
+      With a recipe and the required materials, you can craft <b>T2 → T5</b>.
+    </p>
+    <img src="/t2_golden_ring.png" class="img-landing">
+    <img src="/t3_gate_of_might.png" class="img-landing">
+    <img src="/t4_engine_core.png" class="img-landing">
+    <img src="/t5_ancient_relic.png" class="img-landing">
+  </div>
 
-<!-- MARKET INFO -->
-<div class="card">
-  <div class="label">3) Market</div>
-  <p class="muted">
-    Trade items with other players.
-  </p>
-</div>
+  <div class="card" style="margin-top:16px;">
+    <div class="label">3) Market</div>
+    <p class="muted">Trade items with other players.</p>
+  </div>
 
-<!-- ARTEFACT -->
-<div class="card">
-  <div class="label">4) Artefact</div>
-  <p class="muted">
-    Craft 10 distinct T5 items to unlock.
-  </p>
-  <img src="/artefakt.png" class="img-landing">
+  <div class="card" style="margin-top:16px;">
+    <div class="label">4) Artefact</div>
+    <p class="muted">Craft 10 distinct T5 items to unlock.</p>
+    <img src="/artefakt.png" class="img-landing">
+  </div>
 </div>
-   
+<!-- ===== END SHOP TAB ===== -->
+
+
 
 <!-- ===== QUEST TAB ===== -->
-  
 <div id="tab-quest" class="tab card hidden">
-  <div class="label" style="margin-bottom:8px">Daily Quests</div>
+  <div class="label" style="margin-bottom:8px;">Daily Quests</div>
+
   <div id="quest-list" class="column" style="gap:8px"></div>
   <div id="quest-msg" class="muted" style="margin-top:12px"></div>
 </div>
+<!-- ===== END QUEST TAB ===== -->
+
 
 
 <!-- ===== CRAFTING TAB ===== -->
-  
-<div id="tab-craft" class="card hidden">
+<div id="tab-craft" class="tab card hidden">
+
   <div class="row">
     <div class="label">Crafting</div>
     <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
@@ -262,7 +257,10 @@
       <div id="rec-details" class="list">Select a recipe on the left.</div>
     </div>
   </div>
+
 </div>
+<!-- ===== END CRAFT TAB ===== -->
+
 
 
 <!-- ===== MARKET TAB ===== -->
@@ -317,7 +315,9 @@
 
     </div>
 
-  </div> 
+  </div>
+</section> <!-- ← OVO SI ZABORAVIO -->
+
 
 
 <!-- ===== INVENTORY TAB ===== -->
@@ -1835,6 +1835,7 @@ if (document.readyState === "loading"){
 
 </body>
 </html>
+
 
 
 
