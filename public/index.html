@@ -1067,69 +1067,39 @@ async function doLogout(){
 
 
   
+<!-- ===== Crafting ===== -->
 <script>
-// Fallback funkcije
-const esc = window.esc || (x => String(x));
-const iconForByCode = window.iconForByCode || (() => "");
-const FALLBACK_ITEM_ICON = window.FALLBACK_ITEM_ICON || "/t1_bronze.png";
 
-
-// ====================================================
-//                     RECIPE LIST
-// ====================================================
 function rowRecipe(r){
   return `
-    <div class="itemrow">
-      <div class="row" style="gap:10px;align-items:center">
-
-        <!-- NEMA recipe ikone -->
-        <img class="img-cell"
-             src="${iconForByCode(r.code, r.tier) || FALLBACK_ITEM_ICON}"
-             alt=""
-             onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-
-        <div>
-          <div class="label" style="text-transform:none;color:var(--text)">
-            ${esc(r.name)}
-          </div>
-          <div class="muted">T${r.tier} · x${r.qty}</div>
-        </div>
+  <div class="itemrow">
+    <div class="row" style="gap:10px;align-items:center">
+      <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+      <div>
+        <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+        <div class="muted">T${r.tier} · x${r.qty}</div>
       </div>
-
-      <button class="btn muted" data-open="${esc(r.id)}">Open</button>
-    </div>`;
+    </div>
+    <button class="btn muted" data-open="${esc(r.id)}">Open</button>
+  </div>`;
 }
 
-
-// ====================================================
-//                    LOAD RECIPES
-// ====================================================
 async function loadRecipes(){
   const box = $("#recipes");
   if (!box) return;
   box.textContent = "Loading…";
-
   try{
     const list = await api("/api/recipes/list");
     const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-
-    const rows = (list?.recipes || []).filter(x =>
-      !q || x.name.toLowerCase().includes(q)
-    );
-
+    const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
     if (!rows.length){
       box.textContent = "No recipes.";
       return;
     }
-
     box.innerHTML = rows.map(rowRecipe).join("");
-
     box.querySelectorAll("[data-open]").forEach(btn=>{
-      btn.addEventListener("click",()=>{
-        window.openRecipe(btn.getAttribute("data-open"));
-      });
+      btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
     });
-
   }catch(e){
     box.textContent = e?.message || "Failed to load recipes.";
   }
@@ -1138,186 +1108,159 @@ async function loadRecipes(){
 $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
 $("#filter-recipe")?.addEventListener("input", loadRecipes);
 
+// ---------------------------
+// Render + canCraft flag
+// ---------------------------
 
-// ====================================================
-//           INGREDIENTS + CAN CRAFT RENDER
-// ====================================================
 function renderIngredients(details){
-
   const parts = (details.ingredients||[]).map(ing=>{
     const ok = (ing.have|0) >= (ing.qty|0);
-    const src = iconForByCode(ing.code, ing.tier) || FALLBACK_ITEM_ICON;
-
+    const src = iconForByCode(ing.code, ing.tier);
     return `
-      <div class="itemrow">
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell"
-               src="${esc(src)}"
-               alt=""
-               onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-        </div>
-        <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
-      </div>`;
+    <div class="itemrow">
+      <div class="row" style="gap:10px;align-items:center">
+        <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
+      </div>
+      <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
+    </div>`;
   }).join("");
 
-  const canCraft = (details.ingredients||[])
-    .every(ing => (ing.have|0) >= (ing.qty|0));
+  const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
 
   const craftNote = WHO?.perks?.craft_no_fail
     ? "No fail (server checks ingredients)"
-    : (canCraft ? "10% fail → Scrap (server checks ingredients)"
-                : "You are missing materials for this recipe.");
+    : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
 
   return `
-    <div class="itemrow">
-      <div><b>${esc(details.recipe.name)}</b>
-      <span class="badge">T${details.recipe.tier}</span></div>
-    </div>
-
-    <div class="itemrow"><div class="muted">Ingredients</div></div>
-
-    ${parts}
-
-    <div class="itemrow">
-      <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
-      <span class="muted" style="margin-left:8px">${craftNote}</span>
-    </div>`;
+  <div class="itemrow">
+    <div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div>
+  </div>
+  <div class="itemrow"><div class="muted">Ingredients</div></div>
+  ${parts}
+  <div class="itemrow">
+    <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
+    <span class="muted" style="margin-left:8px">${craftNote}</span>
+  </div>`;
 }
 
+// ---------------------------
+// Open recipe
+// ---------------------------
 
-// ====================================================
-//                OPEN RECIPE DETAILS
-// ====================================================
 async function openRecipe(recipeId){
   const box = $("#rec-details");
   if (!box) return;
-
   box.textContent = "Loading…";
-
   try{
     const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
-
     box.innerHTML = renderIngredients(details);
-
     window.CURRENT_RECIPE_ID = details.recipe.id;
     window.CURRENT_RECIPE_DETAILS = details;
-
   }catch(e){
     box.textContent = e?.message || "Failed to load recipe.";
   }
 }
 
-window.openRecipe = openRecipe;
+// ---------------------------
+// Artefact bonus refresh
+// ---------------------------
 
-
-// ====================================================
-//           ARTEFACT BONUS REFRESH ON TAB OPEN
-// ====================================================
 async function refreshArtefactBonus(){
   try{
     const r = await api("/api/inventory");
-
     const bonus = (typeof r?.artefactBonusGold === "number")
       ? r.artefactBonusGold
       : (parseInt(r?.artefactBonusGold,10) || 0);
-
     const el = document.getElementById("artefact-bonus");
     if (el) el.textContent = bonus;
-
-  }catch(e){}
+  }catch(e){
+    console.warn("refreshArtefactBonus failed:", e);
+  }
 }
 
 (() => {
   const craft = document.getElementById("tab-craft");
   if (!craft) return;
-
   const obs = new MutationObserver(() => {
     if (!craft.classList.contains("hidden")) refreshArtefactBonus();
   });
-
   obs.observe(craft, { attributes:true });
 })();
 
+// ---------------------------
+// Craft ARTEFACT
+// ---------------------------
 
-// ====================================================
-//                CRAFT ARTEFACT BUTTON
-// ====================================================
 const arteBtn = $("#btn-artefact");
-if (arteBtn) arteBtn.addEventListener("click", async ()=>{
-  if (arteBtn.disabled) return;
 
+arteBtn?.addEventListener("click", async ()=>{
+  if (arteBtn.disabled) return;
   const prev = arteBtn.textContent;
   arteBtn.disabled = true;
   arteBtn.textContent = "Crafting…";
-
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:{}});
-
     const name = r.crafted || "Artefact";
-    const bonus = r?.bonus_gold ?? 0;
-
-    $("#artefact-bonus").textContent = bonus;
-    $("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`;
-
+    const bonus = (typeof r?.bonus_gold === "number")
+      ? r.bonus_gold
+      : (parseInt(r?.bonus_gold,10) || 0);
+    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
+    $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
     await safeCall("loadInventoryPanel");
     await safeCall("loadInventoryFull");
     await safeCall("loadRecipes");
     await safeCall("loadBonus");
     await refreshMeLight();
-
   }catch(e){
-    $("#artefact-msg").textContent = e?.message || "Crafting failed.";
-
+    $("#artefact-msg") && ($("#artefact-msg").textContent = (e?.message || "Crafting failed."));
   } finally{
     arteBtn.disabled = false;
     arteBtn.textContent = prev;
   }
 });
 
+// ---------------------------
+// Delegated click for Craft button
+// ---------------------------
 
-// ====================================================
-//        DELEGATE CRAFT BUTTON (INSIDE DETAILS)
-// ====================================================
 (function bindCraftOnce(){
   if (window.__CRAFT_BOUND__) return;
   window.__CRAFT_BOUND__ = true;
 
   document.addEventListener("click", async (e)=>{
-    if (!e.target || e.target.id !== "btn-craft") return;
+    const t = e.target;
+    if (!t || t.id !== "btn-craft") return;
 
-    const btn = e.target;
     const details = window.CURRENT_RECIPE_DETAILS;
-
-    if (!details){
+    if (!details || !details.recipe?.id){
       showToast("Open a recipe first.");
       return;
     }
 
-    const allowed = btn.getAttribute("data-can") === "1";
-    if (!allowed){
-      const miss = (details.ingredients||[])
-        .filter(ing => ing.have < ing.qty)
-        .map(ing => ing.name);
+    const allowed = t.getAttribute("data-can") === "1";
 
-      showToast(miss.length ? "You are missing: " + miss.join(", ")
-                             : "Missing materials.");
+    if (!allowed){
+      try{
+        const miss = (details.ingredients||[])
+          .filter(ing => (ing.have|0) < (ing.qty|0))
+          .map(ing => ing.name);
+        showToast(miss.length ? ("You are missing: " + miss.join(", ")) : "Missing materials.");
+      }catch{
+        showToast("Missing materials.");
+      }
       return;
     }
 
-    const prev = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Crafting…";
+    const prev = t.textContent;
+    t.toggleAttribute("disabled", true);
+    t.textContent = "Crafting…";
 
     try{
-      const r = await api("/api/craft/do",{
-        method:"POST",
-        body:{ recipe_id: details.recipe.id }
-      });
-
-      if (r.crafted)
-        showToast(`Crafted: ${r.crafted.name} (T${r.crafted.tier})`);
-      else if (r.scrap)
+      const r2 = await api("/api/craft/do",{method:"POST",body:{recipe_id: details.recipe.id}});
+      if (r2.crafted)
+        showToast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
+      else if (r2.scrap)
         showToast("Failed (got Scrap)");
       else
         showToast("Done");
@@ -1327,22 +1270,19 @@ if (arteBtn) arteBtn.addEventListener("click", async ()=>{
       await safeCall("loadInventoryFull");
       await openRecipe(details.recipe.id);
 
-    }catch(e){
-      if (e?.data?.missing)
-        showToast("You are missing: " + e.data.missing.join(", "));
+    }catch(e2){
+      if (e2?.data?.missing?.length)
+        showToast("You are missing: " + e2.data.missing.join(", "));
       else
-        showToast(e?.message || "Crafting failed.");
-
+        showToast(e2?.message || "Crafting failed.");
     }finally{
-      btn.disabled = false;
-      btn.textContent = prev;
+      t.toggleAttribute("disabled", false);
+      t.textContent = prev;
     }
   });
 })();
+
 </script>
-
-
-
 
 
 <!-- ===== Market & Inventory (CLEAN) ===== -->
@@ -1831,6 +1771,7 @@ if (document.readyState === "loading"){
 
 </body>
 </html>
+
 
 
 
