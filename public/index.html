@@ -585,93 +585,87 @@ const IMG_PREFIX = "/";
 const RECIPE_ICON = IMG_PREFIX + "recipe.png";
 const FALLBACK_ITEM_ICON = IMG_PREFIX + "t1_bronze.png";
 
-/* Escape HTML text */
 function esc(s){
   return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
 }
 
-/* Convert item code → file name */
 function fileNameFromCodeTier(code, tier){
   if (!code) return null;
-
   const str = String(code);
-
-  // Pattern: T3_GOLDEN_RING → t3_golden_ring.png
   const m = str.match(/^T([1-6])_(.+)$/i);
   if (m){
-    const t = m[1];
-    const name = m[2].toLowerCase();
-    return `t${t}_${name}.png`;
+    return `t${m[1]}_${m[2].toLowerCase()}.png`;
   }
-
-  // Fallback for simple T1 names
-  if ((tier | 0) === 1){
+  if ((tier|0) === 1){
     return `t1_${str.toLowerCase()}.png`;
   }
-
   return null;
 }
 
-/* Get final icon path */
 function iconForByCode(code, tier){
   const file = fileNameFromCodeTier(code, tier);
   return file ? IMG_PREFIX + file : FALLBACK_ITEM_ICON;
 }
 </script>
 
-
 <!-- ===== Global state + refresh ===== -->
 <script>
-  let WHO = window.WHO || null;
-  window.CURRENT_RECIPE_ID = null;
-  window.refreshMeLight ||= async () => {};
+let WHO = window.WHO || null;
+window.CURRENT_RECIPE_ID = null;
+window.refreshMeLight ||= async () => {};
 
-  function showApp(){ $("#app")?.classList.remove("hidden"); }
+function showApp(){
+  const app = document.getElementById("app");
+  if (app) app.classList.remove("hidden");
+}
 
-  function renderBalance(){
-    const v = WHO?.balance_silver || 0;
-    const g = Math.floor(v/100), s = v%100;
+function renderBalance(){
+  const v = WHO?.balance_silver || 0;
+  const g = Math.floor(v/100);
+  const s = v % 100;
 
-    const el = $("#balance");
-    if (el) {
-      el.textContent = `${g}g ${s}s`;
-      el.classList.add("pulse");
-      setTimeout(()=> el.classList.remove("pulse"), 1300);
-    }
+  const el = document.getElementById("balance");
+  if (el){
+    el.textContent = `${g}g ${s}s`;
+    el.classList.add("pulse");
+    setTimeout(()=> el.classList.remove("pulse"), 1300);
+  }
 
-    const usd = document.getElementById("balance-dollar");
-    if (usd) {
-      usd.innerText = `$${(g / 1000).toFixed(2)}`;
-      usd.classList.remove("hidden");
-    }
-  }   <!-- ✔ OVDJE JE DODANA ZATVARAJUĆA VITICA -->
+  const usd = document.getElementById("balance-dollar");
+  if (usd){
+    usd.innerText = `$${(g/1000).toFixed(2)}`;
+    usd.classList.remove("hidden");
+  }
+}
+</script>
 
+<script>
+function applyPerkIndicators(){
+  const price = WHO?.perks?.shop_price_s ?? 100;
+  $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
+  $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
 
-  function applyPerkIndicators(){
-    const price = WHO?.perks?.shop_price_s ?? 100;
-    $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-    $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
+  const noFail = !!WHO?.perks?.craft_no_fail;
+  $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
+  $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
 
-    const noFail = !!WHO?.perks?.craft_no_fail;
-    $("#craft-fail-note") && ($("#craft-fail-note").textContent = noFail ? "No fail" : "10% fail");
-    $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
+  const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
+  $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
+  $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
 
-    const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-    $("#market-fee-note") && ($("#market-fee-note").textContent = `Fee: ${fee}`);
-    $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+  const minNote = !!WHO?.perks?.min_list_price_s;
+  $("#market-min-note")?.classList.toggle("hidden", !minNote);
+  $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+}
+</script>
 
-    const minNote = !!WHO?.perks?.min_list_price_s;
-    $("#market-min-note")?.classList.toggle("hidden", !minNote);
-    $("#market-min-inline")?.classList.toggle("hidden", !minNote);
-  }   <!-- ✔ OVDJE JE DODANA ZATVARAJUĆA VITICA -->
-
-
-/* ✔️ Tabs – potpuno ispravno */
+<script>
+/* Tabs + ADS */
 async function setTab(tab){
   showApp();
 
@@ -683,13 +677,15 @@ async function setTab(tab){
   $("#tab-market") ?.classList.toggle("hidden", tab !== "market");
   $("#tab-inv")    ?.classList.toggle("hidden", tab !== "inv");
   $("#tab-bonus")  ?.classList.toggle("hidden", tab !== "bonus");
+  $("#tab-ads")    ?.classList.toggle("hidden", tab !== "ads");
 
   if (tab === "quest"){ window.showQuestTab?.(); window.questTrigger?.("quest-click"); }
-  if (tab === "shop") window.questTrigger?.("shop-click");
-  if (tab === "craft") window.questTrigger?.("craft-click");
+  if (tab === "shop")   window.questTrigger?.("shop-click");
+  if (tab === "craft")  window.questTrigger?.("craft-click");
   if (tab === "market") window.questTrigger?.("market-click");
-  if (tab === "inv") window.questTrigger?.("inv-click");
-  if (tab === "bonus") window.questTrigger?.("bonus-click");
+  if (tab === "inv")    window.questTrigger?.("inv-click");
+  if (tab === "bonus")  window.questTrigger?.("bonus-click");
+  if (tab === "ads")    window.questTrigger?.("ads-click");
 
   if (tab === "market"){
     safeCall("loadInventoryPanel");
@@ -697,10 +693,16 @@ async function setTab(tab){
     safeCall("loadMine");
   }
 
-  if (tab === "inv") safeCall("loadInventoryFull");
+  if (tab === "inv"){
+    safeCall("loadInventoryFull");
+  }
 
   if (tab === "bonus"){
-    try{ await loadBonus(); }catch(e){ console.warn(e); }
+    try{ await loadBonus(); }catch(e){}
+  }
+
+  if (tab === "ads"){
+    safeCall("loadAdsPanel");
   }
 }
 </script>
@@ -723,12 +725,9 @@ function initPayPalPanelButtons(){
 
       createOrder: function(_data, actions){
         const el = document.getElementById("pp-amount");
-
-        /* ✔ FIX: sigurni broj */
         let vRaw = parseFloat(el?.value);
         let v = (!Number.isFinite(vRaw)) ? minUsd : Math.max(minUsd, vRaw);
         v = Math.floor(v);
-
         if (el) el.value = String(v);
 
         return actions.order.create({
@@ -800,10 +799,7 @@ function setLoggedInUI(){
   $("#btn-open-register")?.classList.add("hidden");
   $("#btn-open-login")?.classList.add("hidden");
   $("#balance")?.classList.remove("hidden");
-
-  // USD PRIKAZ
   $("#balance-dollar")?.classList.remove("hidden");
-
   $("#btn-logout")?.classList.remove("hidden");
   $("#auth")?.classList.add("hidden");
   $("#app")?.classList.remove("hidden");
@@ -828,14 +824,11 @@ function setLoggedOutUI(){
   $("#btn-open-register")?.classList.remove("hidden");
   $("#btn-open-login")?.classList.remove("hidden");
   $("#balance")?.classList.add("hidden");
-
-  // USD PRIKAZ ugasi kad se odjavi
   $("#balance-dollar")?.classList.add("hidden");
-
   $("#btn-logout")?.classList.add("hidden");
 
-  const bal=$("#balance");
-  if (bal) bal.textContent="0g 0s";
+  const bal = $("#balance");
+  if (bal) bal.textContent = "0g 0s";
 
   $("#app")?.classList.remove("hidden");
   $("#auth")?.classList.add("hidden");
@@ -860,7 +853,7 @@ async function loadMe(){
     const b = $("#buysToNext");
     if (b) {
       b.textContent = (typeof WHO?.buys_to_next === "number")
-        ? WHO.buys_to_next       // ✔ FIX (samo broj)
+        ? WHO.buys_to_next
         : "—";
     }
 
@@ -968,6 +961,7 @@ async function doLogout(){
 </script>
 
 
+
 <script>
 // ============================
 //        SHOP SYSTEM
@@ -984,18 +978,15 @@ async function doLogout(){
     try {
       const r = await api("/api/shop/info");
 
-      // cijena
-      if ($("#shop-price-inline")) 
+      if ($("#shop-price-inline"))
         $("#shop-price-inline").textContent = r.price_s || 100;
 
       if ($("#shop-price-badge"))
         $("#shop-price-badge").textContent = (r.price_s || 100) + "s";
 
-      // next recipe
       if ($("#buysToNext"))
         $("#buysToNext").textContent = r.buys_to_next ?? "—";
 
-      // balance
       if (window.WHO){
         const g = Math.floor(WHO.balance_silver / 100);
         const s = WHO.balance_silver % 100;
@@ -1028,28 +1019,20 @@ async function doLogout(){
     btn.textContent = "Buying…";
 
     try {
-      // qty ide na server
       const r = await api("/api/shop/buy-t1", {
         method:"POST",
         body:{ qty }
       });
 
-      // update local balance
       if (r?.balance_silver != null && window.WHO){
         WHO.balance_silver = r.balance_silver | 0;
       }
 
-      // WHO refresh
-      await window.refreshMeLight();   // ✔ FIX
-
-      // refresh UI
+      await window.refreshMeLight();
       await loadShop();
       await safeCall("loadInventoryPanel");
 
-      // toast
       showToast(`Purchased x${qty}`);
-
-      // quest
       window.questTrigger?.("buy-mat");
 
     } catch(e){
@@ -1057,7 +1040,7 @@ async function doLogout(){
     } finally {
       btn.disabled = false;
       btn.textContent = prev;
-      inp.value = "1";   // ✔ FIX
+      inp.value = "1";
     }
   }
 
@@ -1066,7 +1049,7 @@ async function doLogout(){
   // ----------------------------
   window.showShopTab = function(){
     loadShop();
-    window.questTrigger?.("shop-click");   // ✔ FIX
+    window.questTrigger?.("shop-click");
   };
 
   // ----------------------------
@@ -1079,7 +1062,6 @@ async function doLogout(){
 
 })();
 </script>
-
 
 
 <script>
@@ -1096,6 +1078,8 @@ async function doLogout(){
     { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
     { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
     { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
+    { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },   // ✔ DODANO
+];
 
     { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
     { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
@@ -1206,18 +1190,20 @@ async function doLogout(){
 })();
 </script>
 
-
   
-<!-- ===== Crafting ===== -->
 <script>
+// ==========================
+//        CRAFT SYSTEM
+// ==========================
 
+// Template za listu recepata
 function rowRecipe(r){
   return `
   <div class="itemrow">
     <div class="row" style="gap:10px;align-items:center">
-      <img class="img-cell" src="${RECIPE_ICON}" alt="" onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+      <img class="img-cell" src="${RECIPE_ICON}" alt="">
       <div>
-        <div class="label" style="text-transform:none;color:var(--text)">${esc(r.name)}</div>
+        <div class="label" style="text-transform:none;">${esc(r.name)}</div>
         <div class="muted">T${r.tier} · x${r.qty}</div>
       </div>
     </div>
@@ -1225,183 +1211,159 @@ function rowRecipe(r){
   </div>`;
 }
 
+// Učitavanje recepata
 async function loadRecipes(){
   const box = $("#recipes");
   if (!box) return;
+
   box.textContent = "Loading…";
+
   try{
     const list = await api("/api/recipes/list");
     const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-    const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
+
+    const rows = (list?.recipes || [])
+      .filter(x => !q || x.name.toLowerCase().includes(q));
+
     if (!rows.length){
       box.textContent = "No recipes.";
       return;
     }
+
     box.innerHTML = rows.map(rowRecipe).join("");
+
     box.querySelectorAll("[data-open]").forEach(btn=>{
-      btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
+      btn.addEventListener("click",()=>openRecipe(btn.dataset.open));
     });
+
   }catch(e){
-    box.textContent = e?.message || "Failed to load recipes.";
+    box.textContent = e.message || "Failed to load recipes.";
   }
 }
 
 $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
 $("#filter-recipe")?.addEventListener("input", loadRecipes);
 
-// ---------------------------
-// Render + canCraft flag
-// ---------------------------
 
+// Render sastojaka
 function renderIngredients(details){
   const parts = (details.ingredients||[]).map(ing=>{
     const ok = (ing.have|0) >= (ing.qty|0);
     const src = iconForByCode(ing.code, ing.tier);
+
     return `
     <div class="itemrow">
       <div class="row" style="gap:10px;align-items:center">
-        <img class="img-cell" src="${esc(src)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+        <img class="img-cell" src="${esc(src)}">
         <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
       </div>
-      <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
+      <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
     </div>`;
   }).join("");
 
-  const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
+  const canCraft = (details.ingredients||[]).every(ing => ing.have >= ing.qty);
 
   const craftNote = WHO?.perks?.craft_no_fail
-    ? "No fail (server checks ingredients)"
-    : (canCraft ? "10% fail → Scrap (server checks ingredients)" : "You are missing materials for this recipe.");
+    ? "No fail (server controlled)"
+    : (canCraft ? "10% fail chance" : "Missing materials");
 
   return `
-  <div class="itemrow">
-    <div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div>
-  </div>
-  <div class="itemrow"><div class="muted">Ingredients</div></div>
-  ${parts}
-  <div class="itemrow">
-    <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
-    <span class="muted" style="margin-left:8px">${craftNote}</span>
-  </div>`;
+    <div class="itemrow">
+      <div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div>
+    </div>
+
+    <div class="itemrow"><div class="muted">Ingredients</div></div>
+
+    ${parts}
+
+    <div class="itemrow">
+      <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
+      <span class="muted" style="margin-left:8px">${craftNote}</span>
+    </div>
+  `;
 }
 
-// ---------------------------
-// Open recipe
-// ---------------------------
-
+// Otvaranje recepta
 async function openRecipe(recipeId){
   const box = $("#rec-details");
   if (!box) return;
+
   box.textContent = "Loading…";
+
   try{
-    const details = await api(`/api/recipes/ingredients/${encodeURIComponent(recipeId)}`);
+    const details = await api(`/api/recipes/ingredients/${recipeId}`);
     box.innerHTML = renderIngredients(details);
     window.CURRENT_RECIPE_ID = details.recipe.id;
     window.CURRENT_RECIPE_DETAILS = details;
   }catch(e){
-    box.textContent = e?.message || "Failed to load recipe.";
+    box.textContent = e.message || "Failed to load recipe.";
   }
 }
 
-// ---------------------------
-// Artefact bonus refresh
-// ---------------------------
 
-async function refreshArtefactBonus(){
-  try{
-    const r = await api("/api/inventory");
-    const bonus = (typeof r?.artefactBonusGold === "number")
-      ? r.artefactBonusGold
-      : (parseInt(r?.artefactBonusGold,10) || 0);
-    const el = document.getElementById("artefact-bonus");
-    if (el) el.textContent = bonus;
-  }catch(e){
-    console.warn("refreshArtefactBonus failed:", e);
-  }
-}
-
-(() => {
-  const craft = document.getElementById("tab-craft");
-  if (!craft) return;
-  const obs = new MutationObserver(() => {
-    if (!craft.classList.contains("hidden")) refreshArtefactBonus();
-  });
-  obs.observe(craft, { attributes:true });
-})();
-
-// ---------------------------
-// Craft ARTEFACT
-// ---------------------------
+// ==========================
+//        Craft ARTEFACT
+// ==========================
 
 const arteBtn = $("#btn-artefact");
 
 arteBtn?.addEventListener("click", async ()=>{
   if (arteBtn.disabled) return;
+
   const prev = arteBtn.textContent;
   arteBtn.disabled = true;
   arteBtn.textContent = "Crafting…";
+
   try{
     const r = await api("/api/craft/artefact",{method:"POST",body:{}});
     const name = r.crafted || "Artefact";
-    const bonus = (typeof r?.bonus_gold === "number")
-      ? r.bonus_gold
-      : (parseInt(r?.bonus_gold,10) || 0);
-    $("#artefact-bonus") && ($("#artefact-bonus").textContent = bonus);
-    $("#artefact-msg") && ($("#artefact-msg").textContent = `Crafted: ${name} (+${bonus} gold)`);
+
+    $("#artefact-msg")?.textContent = `Crafted: ${name}`;
+
     await safeCall("loadInventoryPanel");
     await safeCall("loadInventoryFull");
     await safeCall("loadRecipes");
-    await safeCall("loadBonus");
     await refreshMeLight();
+
   }catch(e){
-    $("#artefact-msg") && ($("#artefact-msg").textContent = (e?.message || "Crafting failed."));
+    $("#artefact-msg")?.textContent = e.message || "Crafting failed.";
   } finally{
     arteBtn.disabled = false;
     arteBtn.textContent = prev;
   }
 });
 
-// ---------------------------
-// Delegated click for Craft button
-// ---------------------------
+
+// ==========================
+//       Craft dugme
+// ==========================
 
 (function bindCraftOnce(){
   if (window.__CRAFT_BOUND__) return;
   window.__CRAFT_BOUND__ = true;
 
   document.addEventListener("click", async (e)=>{
-    const t = e.target;
-    if (!t || t.id !== "btn-craft") return;
+    if (e.target.id !== "btn-craft") return;
 
     const details = window.CURRENT_RECIPE_DETAILS;
-    if (!details || !details.recipe?.id){
-      showToast("Open a recipe first.");
-      return;
-    }
+    if (!details) return showToast("Open a recipe first.");
 
-    const allowed = t.getAttribute("data-can") === "1";
+    const allowed = e.target.dataset.can === "1";
+    if (!allowed) return showToast("Missing materials.");
 
-    if (!allowed){
-      try{
-        const miss = (details.ingredients||[])
-          .filter(ing => (ing.have|0) < (ing.qty|0))
-          .map(ing => ing.name);
-        showToast(miss.length ? ("You are missing: " + miss.join(", ")) : "Missing materials.");
-      }catch{
-        showToast("Missing materials.");
-      }
-      return;
-    }
-
-    const prev = t.textContent;
-    t.toggleAttribute("disabled", true);
-    t.textContent = "Crafting…";
+    const prev = e.target.textContent;
+    e.target.disabled = true;
+    e.target.textContent = "Crafting…";
 
     try{
-      const r2 = await api("/api/craft/do",{method:"POST",body:{recipe_id: details.recipe.id}});
-      if (r2.crafted)
-        showToast(`Crafted: ${r2.crafted.name} (T${r2.crafted.tier})`);
-      else if (r2.scrap)
+      const r = await api("/api/craft/do", {
+        method:"POST",
+        body:{ recipe_id: details.recipe.id }
+      });
+
+      if (r.crafted)
+        showToast(`Crafted: ${r.crafted.name} (T${r.crafted.tier})`);
+      else if (r.scrap)
         showToast("Failed (got Scrap)");
       else
         showToast("Done");
@@ -1411,19 +1373,16 @@ arteBtn?.addEventListener("click", async ()=>{
       await safeCall("loadInventoryFull");
       await openRecipe(details.recipe.id);
 
-    }catch(e2){
-      if (e2?.data?.missing?.length)
-        showToast("You are missing: " + e2.data.missing.join(", "));
-      else
-        showToast(e2?.message || "Crafting failed.");
+    }catch(err){
+      showToast(err.message || "Crafting failed.");
     }finally{
-      t.toggleAttribute("disabled", false);
-      t.textContent = prev;
+      e.target.disabled = false;
+      e.target.textContent = prev;
     }
   });
 })();
-
 </script>
+
 
 
 <!-- ===== Market & Inventory (CLEAN) ===== -->
@@ -1786,132 +1745,304 @@ if (document.readyState === "loading"){
 
 
 
- <!-- ===== BONUS (frontend) ===== -->
+<!-- ===== BONUS (frontend) ===== -->
 <script>
-  function withTimeout(promise, ms=8000){
-    return new Promise((resolve, reject)=>{
-      const t = setTimeout(()=> reject(new Error("Timeout")), ms);
-      promise.then(v=>{clearTimeout(t); resolve(v);})
-             .catch(e=>{clearTimeout(t); reject(e);});
-    });
-  }
+function withTimeout(promise, ms=8000){
+  return new Promise((resolve, reject)=>{
+    const t = setTimeout(()=> reject(new Error("Timeout")), ms);
+    promise.then(v=>{clearTimeout(t); resolve(v);})
+           .catch(e=>{clearTimeout(t); reject(e);});
+  });
+}
 
-  function tile(name, code, ok, tier){
-    const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
-    return `
-      <div class="tile ${ok?'ok':'miss'}">
-        <img class="img-cell" src="${esc(ico)}" alt="" onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-        <div>${esc(name)}</div>
-      </div>`;
-  }
+function tile(name, code, ok, tier){
+  const ico = iconForByCode(code, tier) || FALLBACK_ITEM_ICON;
+  return `
+    <div class="tile ${ok?'ok':'miss'}">
+      <img class="img-cell" src="${esc(ico)}" alt="" 
+           onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+      <div>${esc(name)}</div>
+    </div>`;
+}
 
-  async function loadBonus(){
-    const lock = $("#bonus-lock");
-    const boxes = {2:$("#bonus-t2"),3:$("#bonus-t3"),4:$("#bonus-t4"),5:$("#bonus-t5")};
-    const btns  = {2:$("#btn-claim-t2"),3:$("#btn-claim-t3"),4:$("#btn-claim-t4"),5:$("#btn-claim-t5")};
-    Object.values(btns).forEach(b=>{ if(b){ b.disabled = true; b.classList.add("muted"); } });
-    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
+async function loadBonus(){
+  const lock = $("#bonus-lock");
+  const boxes = {
+    2:$("#bonus-t2"),
+    3:$("#bonus-t3"),
+    4:$("#bonus-t4"),
+    5:$("#bonus-t5")
+  };
+  const btns = {
+    2:$("#btn-claim-t2"),
+    3:$("#btn-claim-t3"),
+    4:$("#btn-claim-t4"),
+    5:$("#btn-claim-t5")
+  };
 
-    let cleared = false;
-    setTimeout(()=>{
-      if (cleared) return;
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent = "Still loading… check connection"; });
-    }, 3000);
+  Object.values(btns).forEach(b=>{ if(b){ b.disabled=true; b.classList.add("muted"); } });
+  Object.values(boxes).forEach(b=>{ if(b) b.textContent="Loading…"; });
 
-    try{
-      const r = await withTimeout(api("/api/bonus/status"), 8000);
-      cleared = true;
-      const hasArt = !!r?.has_artefact;
-      lock?.classList.toggle("hidden", hasArt);
-      if (!hasArt) Object.values(btns).forEach(b=>{ b && (b.disabled=true); });
+  let cleared = false;
+  setTimeout(()=>{
+    if (cleared) return;
+    Object.values(boxes).forEach(b=>{ if(b) b.textContent="Still loading… check connection"; });
+  }, 3000);
 
-      function prettyNameFromCode(code){
-        return String(code)
-          .replace(/^T\d_/, "")
-          .replaceAll("_"," ")
-          .toLowerCase()
-          .replace(/\b\w/g, c=>c.toUpperCase());
-      }
+  try{
+    const r = await withTimeout(api("/api/bonus/status"), 8000);
+    cleared = true;
 
-      for (const t of [2,3,4,5]){
-        const box = boxes[t]; if (!box) continue;
-        const info = r.tiers?.[t];
-        if (!info){ box.textContent="No data"; continue; }
-
-        const tiles = [];
-        for (const c of (info.owned||[]))   tiles.push(tile(prettyNameFromCode(c), c, true,  t));
-        for (const c of (info.missing||[])) tiles.push(tile(prettyNameFromCode(c), c, false, t));
-        box.innerHTML = tiles.join("") || "Empty.";
-
-        const btn = btns[t];
-        if (btn){
-          const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
-          btn.disabled = !canClaim;
-          btn.textContent = info.claimed ? "Claimed" : "Claim";
-          if (info.claimed) btn.classList.add("muted"); else btn.classList.remove("muted");
-
-          btn.onclick = async ()=>{
-            if (btn.disabled) return;
-            const prev = btn.textContent;
-            btn.disabled = true; btn.textContent = "Claiming…";
-            try{
-              await api("/api/bonus/claim",{method:"POST",body:{tier:t}});
-              showToast(`T${t} bonus claimed.`);
-              await loadBonus();
-              await refreshMeLight();
-            }catch(e){
-              alert(e?.message || "Claim failed.");
-            } finally{
-              btn.textContent = prev;
-            }
-          };
-        }
-      }
-
-    } catch(e){
-      Object.values(boxes).forEach(b=>{
-        if(b) b.textContent = e?.message || "Failed to load bonus.";
-      });
+    const hasArt = !!r?.has_artefact;
+    lock?.classList.toggle("hidden", hasArt);
+    if (!hasArt){
+      Object.values(btns).forEach(b=>{ if (b) b.disabled = true; });
     }
-  }
 
-      /* ===== SEND GOLD (novi dio) ===== */
-      const btnT = $("#btn-transfer");
-      if (btnT) {
-        btnT.onclick = async () => {
-          const email = $("#transfer-email")?.value?.trim();
-          const gold = parseInt($("#transfer-gold")?.value);
-          if (!email || !gold || gold <= 0) return showToast("Enter email and gold amount.");
-          btnT.disabled = true;
-          btnT.textContent = "Sending…";
-          try {
-            await api("/api/transfer-gold", { method:"POST", body:{ email, gold } });
-            showToast(`Sent ${gold} gold to ${email}`);
+    function prettyNameFromCode(code){
+      return String(code)
+        .replace(/^T\d_/, "")
+        .replaceAll("_"," ")
+        .toLowerCase()
+        .replace(/\b\w/g, c=>c.toUpperCase());
+    }
+
+    for (const t of [2,3,4,5]){
+      const box = boxes[t];
+      if (!box) continue;
+
+      const info = r.tiers?.[t];
+      if (!info){
+        box.textContent = "No data";
+        continue;
+      }
+
+      const tiles = [];
+      for (const c of (info.owned||[]))   tiles.push(tile(prettyNameFromCode(c), c, true, t));
+      for (const c of (info.missing||[])) tiles.push(tile(prettyNameFromCode(c), c, false, t));
+
+      box.innerHTML = tiles.join("") || "Empty.";
+
+      const btn = btns[t];
+      if (btn){
+        const canClaim = hasArt && (info.missing?.length===0) && !info.claimed;
+        btn.disabled = !canClaim;
+        btn.textContent = info.claimed ? "Claimed" : "Claim";
+        if (info.claimed) btn.classList.add("muted");
+        else btn.classList.remove("muted");
+
+        btn.onclick = async ()=>{
+          if (btn.disabled) return;
+          const prev = btn.textContent;
+          btn.disabled = true;
+          btn.textContent = "Claiming…";
+          try{
+            await api("/api/bonus/claim",{method:"POST", body:{tier:t}});
+            showToast(`T${t} bonus claimed.`);
+            await loadBonus();
             await refreshMeLight();
-          } catch(e){
-            alert(e?.message || "Transfer failed");
-          } finally {
-            btnT.disabled = false;
-            btnT.textContent = "Send";
+          }catch(e){
+            alert(e?.message || "Claim failed.");
+          }finally{
+            btn.textContent = prev;
           }
         };
       }
-      /* ===== END SEND GOLD ===== */
-  
+    }
+
+  }catch(e){
+    cleared = true;
+
+    if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
+      $("#auth")?.classList.remove("hidden");
+      $("#card-login") && ($("#card-login").style.display="block");
+      $("#card-register") && ($("#card-register").style.display="none");
+    }
+
+    Object.values(boxes).forEach(b=>{
+      if (b) b.textContent = e?.message || "Failed.";
+    });
+  }
+}
+
+/* ===== SEND GOLD ===== */
+const btnT = $("#btn-transfer");
+if (btnT){
+  btnT.onclick = async () => {
+    const email = $("#transfer-email")?.value?.trim();
+    const gold  = parseInt($("#transfer-gold")?.value);
+
+    if (!email || !gold || gold <= 0)
+      return showToast("Enter email and gold amount.");
+
+    btnT.disabled = true;
+    btnT.textContent = "Sending…";
+
+    try{
+      await api("/api/transfer-gold", { method:"POST", body:{email, gold} });
+      showToast(`Sent ${gold} gold to ${email}`);
+      await refreshMeLight();
     }catch(e){
-      cleared = true;
-      if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
-        $("#auth")?.classList.remove("hidden");
-        $("#card-login") && ($("#card-login").style.display="block");
-        $("#card-register") && ($("#card-register").style.display="none"); 
+      alert(e?.message || "Transfer failed");
+    }finally{
+      btnT.disabled = false;
+      btnT.textContent = "Send";
+    }
+  };
+}
+</script>
+
+<script>
+// ==========================
+//        ADS SYSTEM
+// ==========================
+(function(){
+
+  const $ = window.$ || (s => document.querySelector(s));
+  const say = msg => (window.showToast ? showToast(msg) : alert(msg));
+
+  // -------------------------------------
+  // Load existing ads
+  // -------------------------------------
+  async function loadAdsPanel(){
+    const box = $("#ads-list");
+    if (!box) return;
+    box.textContent = "Loading…";
+
+    try{
+      const r = await api("/api/ads/list");
+      const rows = Array.isArray(r?.ads) ? r.ads : [];
+
+      if (!rows.length){
+        box.textContent = "No ads yet.";
+        return;
       }
-      Object.values(boxes).forEach(b=>{ if(b) b.textContent = e?.message || "Failed."; });
+
+      box.innerHTML = rows.map(ad => `
+        <div class="itemrow">
+          <div class="muted" style="word-break:break-all">${ad.text}</div>
+          <div class="badge">${ad.price_s} silver</div>
+        </div>
+      `).join("");
+
+    }catch(e){
+      box.textContent = e?.message || "Failed to load ads.";
     }
   }
+
+  // -------------------------------------
+  // BUY COURSE (100 000 gold)
+  // -------------------------------------
+  async function buyCourse(){
+    const btn = $("#ads-buy-btn");
+    if (!btn) return;
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = "Processing…";
+
+    try{
+      const r = await api("/api/ads/buy-course", {
+        method:"POST",
+        body:{}
+      });
+
+      // update balance
+      if (typeof r?.balance_silver === "number" && window.WHO){
+        WHO.balance_silver = r.balance_silver;
+        renderBalance();
+      }
+
+      // unique code from server
+      const code = r?.access_code || "COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase();
+
+      say("You have purchased the programming course!");
+      const msg = $("#ads-buy-msg");
+      if (msg){
+        msg.innerHTML = `
+          <div>🎉 <b>Course unlocked!</b></div>
+          <div>Your code: <b>${code}</b></div>
+          <div>Contact us on Discord with this code: <b>ARTEFACT profile</b></div>
+        `;
+      }
+
+    }catch(e){
+      say(e?.message || "Purchase failed.");
+    }finally{
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  }
+
+  // -------------------------------------
+  // SUBMIT AD (100 gold)
+  // -------------------------------------
+  async function submitAd(){
+    const inp = $("#ads-text");
+    if (!inp) return;
+
+    const text = inp.value.trim();
+    if (!text){
+      say("Enter your advertisement text.");
+      return;
+    }
+
+    const btn = $("#ads-submit-btn");
+    if (!btn) return;
+
+    btn.disabled = true;
+    const prev = btn.textContent;
+    btn.textContent = "Posting…";
+
+    try{
+      const r = await api("/api/ads/create", {
+        method:"POST",
+        body:{ text }
+      });
+
+      // update balance
+      if (typeof r?.balance_silver === "number" && window.WHO){
+        WHO.balance_silver = r.balance_silver;
+        renderBalance();
+      }
+
+      say("Advertisement posted.");
+      inp.value = "";
+
+      // reload ads
+      await loadAdsPanel();
+
+    }catch(e){
+      say(e?.data?.error || e?.message || "Failed.");
+    }finally{
+      btn.disabled = false;
+      btn.textContent = prev;
+    }
+  }
+
+  // -------------------------------------
+  // EXPORT TO WINDOW
+  // -------------------------------------
+  window.loadAdsPanel = loadAdsPanel;
+  window.buyCourse    = buyCourse;
+  window.submitAd     = submitAd;
+
+  // -------------------------------------
+  // INIT
+  // -------------------------------------
+  document.addEventListener("click", e=>{
+    if (e.target?.id === "ads-buy-btn")  buyCourse();
+    if (e.target?.id === "ads-submit-btn") submitAd();
+  });
+
+})();
 </script>
+
 
 </body>
 </html>
+
 
 
 
