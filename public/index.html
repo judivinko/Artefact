@@ -1073,44 +1073,45 @@ async function doLogout(){
   const esc = window.esc || (s=>String(s));
 
   const QUESTS = [
-    { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
-    { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
-    { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
-    { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
-    { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
-    { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },   // ✔ DODANO
+
+  { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
+  { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
+  { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
+  { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
+  { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
+  { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },
+
+  { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
+  { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
+  { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
+  { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
+
+  { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
+  { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
+  { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
+  { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
+
+  { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
+
+  { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
+  { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
+  { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
+  { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
+
+  { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
+
+  { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
+  { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
+  { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
+  { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
+
+  { id:"shop-spend", text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
+
+  { id:"buy-gold-1",  text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
+  { id:"buy-gold-10", text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
+  { id:"buy-gold-50", text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
+
 ];
-
-    { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
-    { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
-    { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
-    { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
-
-    { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
-    { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
-    { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
-    { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
-
-    { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
-
-    { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
-    { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
-    { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
-    { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
-
-    { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
-
-    { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
-    { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
-    { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
-    { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
-
-    { id:"shop-spend", text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
-
-    { id:"buy-gold-1",  text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
-    { id:"buy-gold-10", text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
-    { id:"buy-gold-50", text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
-  ];
 
   function dailyResetCheck(){
     const today = new Date().toDateString();
@@ -1904,28 +1905,28 @@ if (btnT){
   // -------------------------------------
   // Load existing ads
   // -------------------------------------
-  async function loadAdsPanel(){
-    const box = $("#ads-list");
+  async function loadAdsPanel() {
+    const box = $("#ad-output");
     if (!box) return;
     box.textContent = "Loading…";
 
-    try{
+    try {
       const r = await api("/api/ads/list");
       const rows = Array.isArray(r?.ads) ? r.ads : [];
 
-      if (!rows.length){
+      if (!rows.length) {
         box.textContent = "No ads yet.";
         return;
       }
 
       box.innerHTML = rows.map(ad => `
         <div class="itemrow">
-          <div class="muted" style="word-break:break-all">${ad.text}</div>
+          <div class="muted" style="word-break:break-all;">${ad.text}</div>
           <div class="badge">${ad.price_s} silver</div>
         </div>
       `).join("");
 
-    }catch(e){
+    } catch (e) {
       box.textContent = e?.message || "Failed to load ads.";
     }
   }
@@ -1933,43 +1934,41 @@ if (btnT){
   // -------------------------------------
   // BUY COURSE (100 000 gold)
   // -------------------------------------
-  async function buyCourse(){
-    const btn = $("#ads-buy-btn");
-    if (!btn) return;
-    if (btn.disabled) return;
+  async function buyCourse() {
+    const btn = $("#btn-buy-course");
+    if (!btn || btn.disabled) return;
 
     btn.disabled = true;
     const prev = btn.textContent;
     btn.textContent = "Processing…";
 
-    try{
+    try {
       const r = await api("/api/ads/buy-course", {
-        method:"POST",
-        body:{}
+        method: "POST",
+        body: {}
       });
 
-      // update balance
-      if (typeof r?.balance_silver === "number" && window.WHO){
+      if (typeof r?.balance_silver === "number" && window.WHO) {
         WHO.balance_silver = r.balance_silver;
         renderBalance();
       }
 
-      // unique code from server
-      const code = r?.access_code || "COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase();
+      const code = r?.access_code || ("COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase());
 
       say("You have purchased the programming course!");
-      const msg = $("#ads-buy-msg");
-      if (msg){
+
+      const msg = $("#course-msg");
+      if (msg) {
         msg.innerHTML = `
           <div>🎉 <b>Course unlocked!</b></div>
           <div>Your code: <b>${code}</b></div>
-          <div>Contact us on Discord with this code: <b>ARTEFACT profile</b></div>
+          <div>Contact us on Discord with this code.</div>
         `;
       }
 
-    }catch(e){
+    } catch (e) {
       say(e?.message || "Purchase failed.");
-    }finally{
+    } finally {
       btn.disabled = false;
       btn.textContent = prev;
     }
@@ -1978,31 +1977,30 @@ if (btnT){
   // -------------------------------------
   // SUBMIT AD (100 gold)
   // -------------------------------------
-  async function submitAd(){
-    const inp = $("#ads-text");
+  async function submitAd() {
+    const inp = $("#ad-text");
     if (!inp) return;
 
     const text = inp.value.trim();
-    if (!text){
+    if (!text) {
       say("Enter your advertisement text.");
       return;
     }
 
-    const btn = $("#ads-submit-btn");
-    if (!btn) return;
+    const btn = $("#btn-post-ad");
+    if (!btn || btn.disabled) return;
 
     btn.disabled = true;
     const prev = btn.textContent;
     btn.textContent = "Posting…";
 
-    try{
+    try {
       const r = await api("/api/ads/create", {
-        method:"POST",
-        body:{ text }
+        method: "POST",
+        body: { text }
       });
 
-      // update balance
-      if (typeof r?.balance_silver === "number" && window.WHO){
+      if (typeof r?.balance_silver === "number" && window.WHO) {
         WHO.balance_silver = r.balance_silver;
         renderBalance();
       }
@@ -2010,38 +2008,35 @@ if (btnT){
       say("Advertisement posted.");
       inp.value = "";
 
-      // reload ads
       await loadAdsPanel();
 
-    }catch(e){
+    } catch (e) {
       say(e?.data?.error || e?.message || "Failed.");
-    }finally{
+    } finally {
       btn.disabled = false;
       btn.textContent = prev;
     }
   }
 
   // -------------------------------------
-  // EXPORT TO WINDOW
+  // EXPORT NA WINDOW
   // -------------------------------------
   window.loadAdsPanel = loadAdsPanel;
-  window.buyCourse    = buyCourse;
-  window.submitAd     = submitAd;
 
   // -------------------------------------
-  // INIT
+  // INIT BUTTON EVENTS
   // -------------------------------------
-  document.addEventListener("click", e=>{
-    if (e.target?.id === "ads-buy-btn")  buyCourse();
-    if (e.target?.id === "ads-submit-btn") submitAd();
+  document.addEventListener("click", e => {
+    if (e.target?.id === "btn-buy-course") buyCourse();
+    if (e.target?.id === "btn-post-ad")   submitAd();
   });
 
 })();
 </script>
 
-
 </body>
 </html>
+
 
 
 
