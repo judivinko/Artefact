@@ -1797,8 +1797,6 @@ if (document.readyState === "loading"){
       });
     }
   }
-</script>
-
 
       /* ===== SEND GOLD (novi dio) ===== */
       const btnT = $("#btn-transfer");
@@ -1822,7 +1820,7 @@ if (document.readyState === "loading"){
         };
       }
       /* ===== END SEND GOLD ===== */
-
+  
     }catch(e){
       cleared = true;
       if (e?.status===401 || /not logged in/i.test(String(e?.message||""))) {
@@ -1837,6 +1835,7 @@ if (document.readyState === "loading"){
 
 </body>
 </html>
+
 
 
 
