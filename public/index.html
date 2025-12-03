@@ -490,6 +490,7 @@
     </div>
 
   </div>
+  
 </section>
 
 
@@ -1894,20 +1895,18 @@ if (btnT){
 </script>
 
 <script>
-// ==========================
-//        ADS SYSTEM
-// ==========================
 (function(){
 
-  const $ = window.$ || (s => document.querySelector(s));
+  const $ = s => document.querySelector(s);
   const say = msg => (window.showToast ? showToast(msg) : alert(msg));
 
-  // -------------------------------------
-  // Load existing ads
-  // -------------------------------------
+  // --------------------------
+  // LOAD ADS
+  // --------------------------
   async function loadAdsPanel() {
     const box = $("#ad-output");
     if (!box) return;
+
     box.textContent = "Loading…";
 
     try {
@@ -1922,18 +1921,16 @@ if (btnT){
       box.innerHTML = rows.map(ad => `
         <div class="itemrow">
           <div class="muted" style="word-break:break-all;">${ad.text}</div>
-          <div class="badge">${ad.price_s} silver</div>
         </div>
       `).join("");
-
     } catch (e) {
       box.textContent = e?.message || "Failed to load ads.";
     }
   }
 
-  // -------------------------------------
-  // BUY COURSE (100 000 gold)
-  // -------------------------------------
+  // --------------------------
+  // BUY COURSE
+  // --------------------------
   async function buyCourse() {
     const btn = $("#btn-buy-course");
     if (!btn || btn.disabled) return;
@@ -1943,29 +1940,26 @@ if (btnT){
     btn.textContent = "Processing…";
 
     try {
-      const r = await api("/api/ads/buy-course", {
-        method: "POST",
-        body: {}
-      });
+      const r = await api("/api/ads/buy-course", { method:"POST" });
 
       if (typeof r?.balance_silver === "number" && window.WHO) {
         WHO.balance_silver = r.balance_silver;
         renderBalance();
       }
 
-      const code = r?.access_code || ("COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase());
-
-      say("You have purchased the programming course!");
+      const code =
+        r?.access_code ||
+        ("COURSE-" + Math.random().toString(36).slice(2, 8).toUpperCase());
 
       const msg = $("#course-msg");
       if (msg) {
         msg.innerHTML = `
-          <div>🎉 <b>Course unlocked!</b></div>
+          <div><b>Course unlocked!</b></div>
           <div>Your code: <b>${code}</b></div>
-          <div>Contact us on Discord with this code.</div>
         `;
       }
 
+      say("Course purchased.");
     } catch (e) {
       say(e?.message || "Purchase failed.");
     } finally {
@@ -1974,18 +1968,15 @@ if (btnT){
     }
   }
 
-  // -------------------------------------
-  // SUBMIT AD (100 gold)
-  // -------------------------------------
+  // --------------------------
+  // SUBMIT AD
+  // --------------------------
   async function submitAd() {
     const inp = $("#ad-text");
     if (!inp) return;
 
     const text = inp.value.trim();
-    if (!text) {
-      say("Enter your advertisement text.");
-      return;
-    }
+    if (!text) return say("Enter your text.");
 
     const btn = $("#btn-post-ad");
     if (!btn || btn.disabled) return;
@@ -1996,8 +1987,8 @@ if (btnT){
 
     try {
       const r = await api("/api/ads/create", {
-        method: "POST",
-        body: { text }
+        method:"POST",
+        body:{ text }
       });
 
       if (typeof r?.balance_silver === "number" && window.WHO) {
@@ -2005,9 +1996,8 @@ if (btnT){
         renderBalance();
       }
 
-      say("Advertisement posted.");
       inp.value = "";
-
+      say("Advertisement posted.");
       await loadAdsPanel();
 
     } catch (e) {
@@ -2018,34 +2008,25 @@ if (btnT){
     }
   }
 
-  // -------------------------------------
-  // EXPORT NA WINDOW
-  // -------------------------------------
+  // --------------------------
+  // EXPORT (needed!)
+  // --------------------------
   window.loadAdsPanel = loadAdsPanel;
 
-  // -------------------------------------
-  // INIT BUTTON EVENTS
-  // -------------------------------------
+  // --------------------------
+  // EVENT CATCHER
+  // --------------------------
   document.addEventListener("click", e => {
-    if (e.target?.id === "btn-buy-course") buyCourse();
-    if (e.target?.id === "btn-post-ad")   submitAd();
+    if (e.target.id === "btn-buy-course") buyCourse();
+    if (e.target.id === "btn-post-ad")   submitAd();
   });
 
 })();
 </script>
 
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
 
 
 
