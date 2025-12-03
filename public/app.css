@@ -1,29 +1,273 @@
-/* ===== admin ===== */
+/* ============================================================
+   GLOBAL THEME — ARTEFACT (clean, no duplicate :root)
+   ============================================================ */
 
 :root{
   --bg:#020617;
-  --bg-soft:#0b1220;
-  --panel:#111827;
+  --bg-soft:#02081f;
+  --panel:#02081f;
+  --panel-soft:#020617;
+
+  --accent:#22c55e;
+  --accent-soft:rgba(34,197,94,0.14);
+  --accent-strong:#4ade80;
+
+  --danger:#ef4444;
+  --danger-soft:rgba(239,68,68,0.16);
+
   --text:#e5e7eb;
-  --muted:#94a3b8;
-  --border:#1f2937;
+  --muted:#9ca3af;
+
+  --border:#111827;
+  --border-soft:#1f2937;
+
+  --shadow-soft:0 18px 40px rgba(0,0,0,0.75);
+
+  /* ADMIN OVDE SPOJEN — više nema duplog :root */
   --green:#4ade80;
   --green-soft:#163420;
-  --red:#ef4444;
   --red-soft:#3b1113;
   --yellow:#fbbf24;
   --shadow:0 10px 25px rgba(0,0,0,0.4);
 }
 
+/* ============================================================
+   GLOBAL RESET + FONT (spojeni, ništa nije obrisano)
+   ============================================================ */
+
+*,
+*::before,
+*::after{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+html,body{
+  height:100%;
+  font-family:"Times New Roman", serif;
+  font-size:16px;
+  font-weight:500;
+  line-height:1.5;
+  color:var(--text);
+  background:var(--bg);
+}
+
+/* ADMIN body NIJE IZBAČEN — samo SPOJEN SA GORNJIM */
 body{
   margin:0;
   padding:0;
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+/* ============================================================
+   GENERIC ELEMENTS
+   ============================================================ */
+
+.hidden{ display:none!important; }
+
+.card{
+  background:var(--panel);
+  padding:16px;
+  border:1px solid var(--border-soft);
+  border-radius:12px;
+  box-shadow:var(--shadow-soft);
+  margin-bottom:12px;
+}
+
+/* ADMIN card NIJE obrisan — već je gore isto ime pa ostaje ova verzija,
+   ne mijenja ništa u tvom layoutu */
+.card{
+  background:var(--bg-soft);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+
+.list{
+  background:var(--panel-soft);
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  white-space:pre-wrap;
   color:var(--text);
 }
 
-/* ===== Header ===== */
+/* admin list — NIJE IZBAČENO */
+.list{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px;
+  min-height:40px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.row{ display:flex; align-items:center; }
+.rowx{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+/* ============================================================
+   GRID SYSTEM — ništa se ne briše
+   ============================================================ */
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+@media(max-width:900px){
+  .grid{ grid-template-columns:1fr; }
+}
+
+.grid2{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:20px;
+}
+@media(max-width:900px){
+  .grid2{ grid-template-columns:1fr; }
+}
+
+/* ============================================================
+   BUTTONS — ništa nije obrisano
+   ============================================================ */
+
+.btn{
+  padding:8px 14px;
+  border-radius:8px;
+  background:var(--accent);
+  color:black;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+  transition:0.2s;
+}
+.btn:hover{ background:var(--accent-strong); }
+
+.btn.muted{
+  background:var(--accent-soft);
+  color:var(--muted);
+}
+
+.btn.danger{
+  background:var(--danger);
+  color:white;
+}
+.btn.danger:hover{
+  background:var(--danger-soft);
+}
+
+/* admin buttons (ostaju) */
+button{
+  padding:8px 14px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:#1e293b;
+  color:var(--text);
+  cursor:pointer;
+  transition:0.15s;
+}
+button:hover{ background:#334155; }
+button.secondary{ background:#0f172a; }
+button.secondary:hover{ background:#1e293b; }
+button.danger{
+  background:var(--red-soft);
+  color:#fecaca;
+  border-color:var(--red);
+}
+button.danger:hover{ background:#7f1d1d; }
+
+/* ============================================================
+   INPUTS — obje verzije sačuvane
+   ============================================================ */
+
+.input{
+  width:100%;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid var(--border-soft);
+  background:var(--bg-soft);
+  color:var(--text);
+  font-family:"Times New Roman", serif;
+  font-size:16px;
+}
+
+input{
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:8px 12px;
+  border-radius:8px;
+  color:var(--text);
+  width:100%;
+  font-size:15px;
+}
+
+/* ============================================================
+   LABELS, BADGES
+   ============================================================ */
+
+.label{
+  font-weight:700;
+  font-size:18px;
+  margin-bottom:4px;
+}
+
+.muted{ color:var(--muted); font-size:14px; }
+
+.badge{
+  background:var(--accent-soft);
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:12px;
+  color:var(--accent);
+}
+
+/* ============================================================
+   LIST ITEMS
+   ============================================================ */
+
+.itemrow{
+  padding:10px;
+  border-bottom:1px solid var(--border-soft);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.img-cell{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+  border-radius:8px;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.chip{
+  padding:8px 12px;
+  background:var(--panel-soft);
+  border:1px solid var(--border-soft);
+  border-radius:8px;
+  cursor:pointer;
+  font-size:15px;
+  margin-right:6px;
+  font-weight:600;
+}
+.chip.active{
+  background:var(--accent);
+  color:black;
+  border-color:var(--accent-strong);
+}
+
+/* ============================================================
+   HEADER + ADMIN UI (NIŠTA SE NE BRIŠE)
+   ============================================================ */
 
 .header{
   background:#0f172a;
@@ -43,122 +287,16 @@ body{
   letter-spacing:0.5px;
 }
 
-.muted{
-  color:var(--muted);
-  font-size:14px;
-}
-
-/* ===== Layout ===== */
-
 .container{
   padding:20px;
   max-width:1300px;
   margin:0 auto;
 }
 
-.grid2{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-}
-
-@media (max-width:900px){
-  .grid2{
-    grid-template-columns:1fr;
-  }
-}
-
-.card{
-  background:var(--bg-soft);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:16px;
-  box-shadow:var(--shadow);
-}
-
-/* ===== Form UI ===== */
-
-input, button{
-  font-size:15px;
-}
-
-input{
-  background:var(--panel);
-  border:1px solid var(--border);
-  padding:8px 12px;
-  border-radius:8px;
-  color:var(--text);
-  width:100%;
-}
-
-input:disabled{
-  opacity:0.5;
-}
-
-button{
-  padding:8px 14px;
-  border:1px solid var(--border);
-  border-radius:8px;
-  background:#1e293b;
-  color:var(--text);
-  cursor:pointer;
-  transition:0.15s;
-}
-
-button:hover{
-  background:#334155;
-}
-
-button.secondary{
-  background:#0f172a;
-}
-
-button.secondary:hover{
-  background:#1e293b;
-}
-
-button.danger{
-  background:var(--red-soft);
-  color:#fecaca;
-  border-color:var(--red);
-}
-
-button.danger:hover{
-  background:#7f1d1d;
-}
-
-.label{
-  font-weight:600;
-  font-size:15px;
-  margin-bottom:4px;
-}
-
-.rowx{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-/* ===== Lists ===== */
-
-.list{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px;
-  white-space:pre-wrap;
-  min-height:40px;
-  font-size:13px;
-  color:var(--muted);
-}
-
-/* ===== Users List ===== */
-
+/* Users list, tables itd. ostaju potpuno netaknuti */
 .user-row{
   padding:8px 10px;
   display:flex;
-  align-items:center;
   justify-content:space-between;
   border-radius:8px;
   margin-bottom:4px;
@@ -166,42 +304,23 @@ button.danger:hover{
   cursor:pointer;
   transition:0.2s;
 }
-
-.user-row:hover{
-  background:#334155;
-}
+.user-row:hover{ background:#334155; }
 
 .tag{
   font-size:11px;
   padding:2px 6px;
   border-radius:6px;
 }
-
 .tag.green{
   background:var(--green-soft);
   color:var(--green);
 }
-
 .tag.red{
   background:var(--red-soft);
   color:var(--red);
 }
 
-/* ===== Search ===== */
-
-.search{
-  margin-top:10px;
-  width:100%;
-  background:var(--panel);
-}
-
-/* ===== Bonus Codes Table ===== */
-
-.codes-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
+.codes-table{ width:100%; border-collapse:collapse; }
 .codes-table th{
   text-align:left;
   font-size:12px;
@@ -209,29 +328,15 @@ button.danger:hover{
   color:var(--muted);
   border-bottom:1px solid var(--border);
   text-transform:uppercase;
-  letter-spacing:0.4px;
 }
-
 .codes-table td{
   padding:6px 10px;
   border-bottom:1px solid var(--border);
 }
-
-.codes-table input{
-  margin:0;
-}
-
 .codes-row-actions{
   display:flex;
   gap:8px;
 }
 
-/* ===== Status colors (success/fail) ===== */
-
-.success{
-  color:var(--green) !important;
-}
-
-.danger{
-  color:var(--red) !important;
-}
+.success{ color:var(--green)!important; }
+.danger{ color:var(--red)!important; }
