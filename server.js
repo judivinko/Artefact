@@ -968,23 +968,6 @@ app.get("/api/me", (req, res) => {
 
 // ----------------- ADMIN core -----------------
 
-function isAdmin(req){
-  const tok = readToken(req);
-  if (!tok) return false;
-  const u = db.prepare("SELECT is_admin FROM users WHERE id=?").get(tok.uid);
-  return !!(u && u.is_admin);
-}
-
-app.post("/api/admin/set-bonus-gold", (req, res) => {
-  if (!isAdmin(req)) return res.status(401).json({ ok: false, error: "Unauthorized" });
-  const { code = "ARTEFACT", bonus_gold = 0 } = req.body || {};
-  const g = Math.max(0, parseInt(bonus_gold, 10) || 0);
-  const row = db.prepare("SELECT id FROM items WHERE code=?").get(String(code));
-  if (!row) return res.status(404).json({ ok: false, error: "Item not found" });
-  db.prepare("UPDATE items SET bonus_gold=? WHERE code=?").run(g, String(code));
-  return res.json({ ok: true, bonus_gold: g });
-});
-
 app.get("/api/admin/cleanup-images/dryrun", (req, res) => {
   if (!isAdmin(req)) return res.status(401).json({ ok:false, error:"Unauthorized" });
   function scan(rootDir) {
@@ -1995,6 +1978,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
