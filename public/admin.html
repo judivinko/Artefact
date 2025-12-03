@@ -166,33 +166,40 @@
   
   <!-- Helpers -->
   
-  <script>  
-const $ = s => document.querySelector(s);
-let ADMIN_KEY = "", LOCKED = false, REMEMBER = false;
-let users = [], selected = null;
+<script>
+// =============== ADMIN KEY ===============
 
-function msg(sel, text, ok=true){
-  const e=$(sel); if(!e) return;
-  e.textContent=text;
-  e.className = ok ? "muted success" : "muted danger";
-}
+$("#btn-key-set")?.addEventListener("click", async ()=>{
+  const v = $("#admin-key")?.value?.trim();
+  if (!v){
+    msg("#key-msg","No key entered.",false);
+    return;
+  }
 
-function setWho(text){
-  const e=$("#who");
-  if(e) e.textContent = text;
-}
+  ADMIN_KEY = v;          // <— GLAVNO!!!
+  savePrefs();
+  await checkAdmin();
+});
 
-function loadPrefs(){
-  ADMIN_KEY = localStorage.getItem("admin.key") || "";
-  LOCKED = localStorage.getItem("admin.lock") === "1";
-  REMEMBER = localStorage.getItem("admin.remember") === "1";
+$("#btn-key-clear")?.addEventListener("click", ()=>{
+  ADMIN_KEY = "";
+  $("#admin-key").value = "";
+  savePrefs();
+  msg("#key-msg","Cleared",true);
+});
 
-  $("#admin-key").value = ADMIN_KEY;
-  $("#key-lock").checked = LOCKED;
-  $("#key-remember").checked = REMEMBER;
-
+$("#key-lock")?.addEventListener("change",(e)=>{
+  LOCKED = e.target.checked;
+  savePrefs();
   applyLock();
-}
+});
+
+$("#key-remember")?.addEventListener("change",(e)=>{
+  REMEMBER = e.target.checked;
+  savePrefs();
+});
+
+
 
 function savePrefs(){
   if (REMEMBER) localStorage.setItem("admin.key", ADMIN_KEY);
@@ -554,6 +561,7 @@ async function setArtefactBonusGold(){
     msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`, true);
   }catch(e){ msg("#bonus-msg", e.message, false); }
 }
+
 
 
 
