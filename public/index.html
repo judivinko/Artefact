@@ -5,88 +5,99 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ARTEFACT</title>
 
-  <style>html,body{background:#000;color:#e5e7eb;margin:0}</style>
+  <style>
+    html,body {
+      background:#000;
+      color:#e5e7eb;
+      margin:0;
+    }
+  </style>
 
-  <script>
-    (async function loadPayPalSDK(){
-      try{
-        const r = await fetch("/api/paypal/config", { credentials:"include" });
-        const j = await r.json().catch(()=>null);
-        if (!r.ok || !j?.ok || !j?.client_id) {
-          console.warn("PayPal not configured:", j?.error || r.status);
-          window.__PAYPAL_DISABLED__ = true;
-          return;
-        }
+<script>
+(async function loadPayPalSDK(){
+  try {
+    const r = await fetch("/api/paypal/config", { credentials: "include" });
+    const j = await r.json().catch(()=>null);
 
-        const qs = new URLSearchParams({
-          "client-id": j.client_id,
-          "currency": j.currency || "USD",
-          "intent": "capture",
-          "components": "buttons"
-        });
+    if (!r.ok || !j?.ok || !j?.client_id) {
+      console.warn("PayPal not configured:", j?.error || r.status);
+      window.__PAYPAL_DISABLED__ = true;
+      return;
+    }
 
-        const s = document.createElement("script");
-        s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
-        s.async = true;
-        s.onload = () => { window.__PAYPAL_READY__ = true; };
-        document.head.appendChild(s);
+    const qs = new URLSearchParams({
+      "client-id": j.client_id,
+      "currency": j.currency || "USD",
+      "intent": "capture",
+      "components": "buttons"
+    });
 
-        window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
+    const s = document.createElement("script");
+    s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
+    s.async = true;
+    s.onload = () => { window.__PAYPAL_READY__ = true; };
+    document.head.appendChild(s);
 
-      } catch(e){
-        console.warn("PayPal SDK load failed:", e);
-        window.__PAYPAL_DISABLED__ = true;
-      }
-    })();
-  </script>
+    window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
 
-  <link rel="stylesheet" href="/app.css" />
+  } catch(e) {
+    console.warn("PayPal SDK load failed:", e);
+    window.__PAYPAL_DISABLED__ = true;
+  }
+})();
+</script>
+
+
+<link rel="stylesheet" href="/app.css" />
 </head>
 
 <body>
 
-<div id="app"><!-- ✔ Dodano, jer tvoj JS stalno koristi #app -->
+<div id="app">
 
-<!-- ===== Header ===== -->
-  
 <header class="header no-border" style="padding:14px 20px;">
   <div class="brand" style="font-size:22px; font-weight:700; letter-spacing:1px;">
     ARTEFACT
   </div>
 
   <div class="row" style="gap:12px; align-items:center;">
-    <span id="balance"
-          class="badge hidden"
-          style="padding:6px 14px;font-size:16px;background:rgba(255,255,255,0.08);
-                 border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(6px);">
+
+    <span id="balance" class="badge hidden"
+          style="padding:6px 14px; font-size:16px;
+                 background:rgba(255,255,255,0.08);
+                 border:1px solid rgba(255,255,255,0.15);
+                 backdrop-filter:blur(6px);">
       0g 0s
     </span>
 
-    <span id="balance-dollar"
-          class="badge hidden"
-          style="padding:6px 14px;font-size:16px;background:rgba(34,197,94,0.12);
-                 border:1px solid rgba(34,197,94,0.25);color:#4ade80;backdrop-filter:blur(6px);">
+    <span id="balance-dollar" class="badge hidden"
+          style="padding:6px 14px; font-size:16px;
+                 background:rgba(34,197,94,0.12);
+                 border:1px solid rgba(34,197,94,0.25);
+                 color:#4ade80;
+                 backdrop-filter:blur(6px);">
       $0.00
     </span>
 
-    <button id="btn-open-paypal" class="btn secondary hidden">PayPal</button>
+    <button id="btn-open-paypal"   class="btn secondary hidden">PayPal</button>
     <button id="btn-open-register" class="btn secondary">Register</button>
-    <button id="btn-open-login" class="btn">Log in</button>
-    <button id="btn-logout" class="btn muted hidden">Log out</button>
+    <button id="btn-open-login"    class="btn">Log in</button>
+    <button id="btn-logout"        class="btn muted hidden">Log out</button>
+
   </div>
 </header>
 
-<!-- ===== PayPal panel ===== -->
-  
+
 <section id="paypal-panel" class="card hidden">
+
   <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
     <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
     <input id="pp-amount" class="input" type="number" min="1" step="1" value="1"
-           placeholder="USD" style="width:120px" />
+           placeholder="USD" style="width:120px">
 
     <label for="pp-bonus" class="label" style="margin:0">Bonus code</label>
     <input id="pp-bonus" class="input" type="text" maxlength="32"
-           placeholder="optional" style="width:240px" />
+           placeholder="optional" style="width:240px">
   </div>
 
   <div class="row" style="margin-top:10px">
@@ -94,29 +105,32 @@
   </div>
 
   <div id="pp-msg" class="muted" style="margin-top:8px"></div>
+
 </section>
+
 
 <!-- ===== Auth ===== -->
   
-<section id="auth" class="card hidden" style="margin-top:12px">
-  <div id="card-register" style="display:none">
+<section id="auth" class="card hidden">
+
+  <div id="card-register" class="auth-box hidden">
     <div class="label">Register</div>
-    <input id="reg-email" class="input" placeholder="email@example.com" type="email" />
-    <input id="reg-pass" class="input" placeholder="password (min 6)" type="password"
-           style="margin-top:8px" />
-    <button id="btn-register" class="btn" style="margin-top:8px">Register</button>
-    <div id="reg-msg" class="muted" style="margin-top:6px"></div>
+    <input id="reg-email" class="input" type="email" placeholder="email@example.com">
+    <input id="reg-pass" class="input" type="password" placeholder="password (min 6)">
+    <button id="btn-register" class="btn">Register</button>
+    <div id="reg-msg" class="muted"></div>
   </div>
 
-  <div id="card-login" style="display:none">
+  <div id="card-login" class="auth-box hidden">
     <div class="label">Log in</div>
-    <input id="log-email" class="input" placeholder="email@example.com" type="email" />
-    <input id="log-pass" class="input" placeholder="password" type="password"
-           style="margin-top:8px" />
-    <button id="btn-login" class="btn secondary" style="margin-top:8px">Log in</button>
-    <div id="log-msg" class="muted" style="margin-top:6px"></div>
+    <input id="log-email" class="input" type="email" placeholder="email@example.com">
+    <input id="log-pass" class="input" type="password" placeholder="password">
+    <button id="btn-login" class="btn secondary">Log in</button>
+    <div id="log-msg" class="muted"></div>
   </div>
+
 </section>
+
 
 <!-- ===== App Tabs ===== -->
   
@@ -127,18 +141,20 @@
   <div class="chip" data-tab="market">Market</div>
   <div class="chip" data-tab="inv">Inventory</div>
   <div class="chip" data-tab="bonus">Bonus</div>
+  <div class="chip" data-tab="ads">Ads</div>
 </div>
+
 
 <!-- ===== SHOP TAB ===== -->
 <div id="tab-shop" class="tab card">
+
   <div class="label" style="margin-bottom:12px;">Shop</div>
 
+  <!-- Buy T1 block -->
   <div class="card" style="padding:10px;margin-bottom:16px;">
     <div class="row" style="justify-content:space-between;align-items:center">
       <div class="label">Buy T1</div>
-      <span class="badge">
-        Price: <span id="shop-price-inline">100</span>s
-      </span>
+      <span class="badge">Price: <span id="shop-price-inline">100</span>s</span>
     </div>
 
     <div class="muted" style="margin-top:6px;">
@@ -146,8 +162,13 @@
     </div>
 
     <div class="row" style="margin-top:10px; gap:10px; align-items:center;">
-      <input id="buy-t1-qty" type="number" class="input" placeholder="qty (1–99999)"
-             min="1" max="99999" style="width:130px;" />
+      <input id="buy-t1-qty"
+             type="number"
+             class="input"
+             placeholder="qty (1–99999)"
+             min="1"
+             max="99999"
+             style="width:130px;" />
       <button id="btn-buy-t1" class="btn" style="padding-left:24px;padding-right:24px;">
         Buy
       </button>
@@ -156,10 +177,12 @@
     <div id="shop-msg" class="muted" style="margin-top:8px"></div>
   </div>
 
+  <!-- Balance -->
   <div style="margin:6px 0;">
     <span id="shop-balance" class="badge hidden">0g 0s</span>
   </div>
 
+  <!-- Game intro -->
   <div id="shop-intro" class="card" style="margin-top:12px">
     <div class="label" style="line-height:1.2;margin-bottom:6px">GAME</div>
 
@@ -186,6 +209,7 @@
     </div>
   </div>
 
+  <!-- Crafting intro -->
   <div class="card" style="margin-top:16px;">
     <div class="label">2) Crafting</div>
     <p class="muted">
@@ -197,30 +221,37 @@
     <img src="/t5_ancient_relic.png" class="img-landing">
   </div>
 
+  <!-- Market intro -->
   <div class="card" style="margin-top:16px;">
     <div class="label">3) Market</div>
     <p class="muted">Trade items with other players.</p>
   </div>
 
+  <!-- Artefact intro -->
   <div class="card" style="margin-top:16px;">
     <div class="label">4) Artefact</div>
     <p class="muted">Craft 10 distinct T5 items to unlock.</p>
     <img src="/artefakt.png" class="img-landing">
   </div>
+
 </div>
-<!-- ===== END SHOP TAB ===== -->
-
-
 
 <!-- ===== QUEST TAB ===== -->
 <div id="tab-quest" class="tab card hidden">
+
+  <!-- Daily quests -->
   <div class="label" style="margin-bottom:8px;">Daily Quests</div>
+  <div id="quest-list-daily" class="column" style="gap:8px"></div>
+  <div id="quest-msg-daily" class="muted" style="margin-top:12px"></div>
 
-  <div id="quest-list" class="column" style="gap:8px"></div>
-  <div id="quest-msg" class="muted" style="margin-top:12px"></div>
+  <hr style="border:none;border-top:1px solid #233047;margin:20px 0;" />
+
+  <!-- Lifetime quests -->
+  <div class="label" style="margin-bottom:8px;">Lifetime Quests</div>
+  <div id="quest-list-lifetime" class="column" style="gap:8px"></div>
+  <div id="quest-msg-lifetime" class="muted" style="margin-top:12px"></div>
+
 </div>
-<!-- ===== END QUEST TAB ===== -->
-
 
 
 <!-- ===== CRAFTING TAB ===== -->
@@ -237,10 +268,8 @@
     </button>
   </div>
 
-  <div style="margin-top:8px">Bonus gold: <span id="artefact-bonus">0</span></div>
-  <div id="artefact-msg" class="muted" style="margin-top:4px"></div>
-
   <div class="grid">
+
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div class="label">Recipes you own</div>
@@ -256,15 +285,14 @@
       <div class="label">Details</div>
       <div id="rec-details" class="list">Select a recipe on the left.</div>
     </div>
+
   </div>
 
 </div>
-<!-- ===== END CRAFT TAB ===== -->
 
 
 
 <!-- ===== MARKET TAB ===== -->
-  
 <section id="tab-market" class="card hidden">
   <div class="label">Marketplace</div>
 
@@ -295,7 +323,6 @@
     </div>
 
     <!-- Marketplace + My listings -->
-    
     <div class="card">
 
       <div class="row" style="gap:10px; align-items:center">
@@ -312,31 +339,52 @@
       </div>
 
       <div id="mine" class="list">Loading…</div>
-
     </div>
 
   </div>
-</section> <!-- ← OVO SI ZABORAVIO -->
+</section>
 
 
 
 <!-- ===== INVENTORY TAB ===== -->
 <section id="tab-inv" class="card hidden">
-  <div class="label">Inventory</div>
-  <div id="inv-full" class="list">Loading…</div>
+  <div class="label" style="margin-bottom:12px;">Inventory</div>
+
+  <div class="grid">
+
+    <!-- LEFT: ITEMS -->
+    <div class="card">
+      <div class="label">Items</div>
+      <div id="inv-items" class="list" style="max-height:340px; overflow:auto;">
+        Loading…
+      </div>
+    </div>
+
+    <!-- RIGHT: RECIPES -->
+    <div class="card">
+      <div class="label">Recipes</div>
+      <div id="inv-recipes" class="list" style="max-height:340px; overflow:auto;">
+        Loading…
+      </div>
+    </div>
+
+  </div>
 </section>
 
 
+
 <!-- ===== BONUS TAB ===== -->
-  
-<div id="tab-bonus" class="card hidden">
+
+<div id="tab-bonus" class="tab card hidden">
 
   <div class="row" style="justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap">
     <div class="label">Bonus</div>
 
     <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap">
-      <input id="transfer-email" class="input" type="email" placeholder="email@example.com" style="min-width:220px">
-      <input id="transfer-gold" class="input" type="number" inputmode="numeric" placeholder="Gold" style="width:120px">
+      <input id="transfer-email" class="input" type="email"
+             placeholder="email@example.com" style="min-width:220px">
+      <input id="transfer-gold" class="input" type="number" inputmode="numeric"
+             placeholder="Gold" style="width:120px">
       <button id="btn-transfer" class="btn">Send</button>
     </div>
 
@@ -377,79 +425,156 @@
         <div class="label">T5 Bonus</div>
         <button id="btn-claim-t5" class="btn" disabled>Claim</button>
       </div>
-      <div class="muted" style="margin:4px 0 6px">Shop price 90s + Recipe drops T3 + Craft no-fail</div>
+      <div class="muted" style="margin:4px 0 6px">
+        Shop price 90s + Recipe drops T3 + Craft no-fail
+      </div>
       <div id="bonus-t5" class="list" style="max-height:240px">Loading…</div>
     </div>
 
   </div>
-</div> 
+
+</div>
+<!-- ===== ADS TAB ===== -->
+
+<section id="tab-ads" class="card hidden">
+
+  <div class="label" style="margin-bottom:12px;">Advertisements & Courses</div>
+
+  <div class="grid">
+
+    <!-- ===== LEFT SIDE — BUY COURSE ===== -->
+    <div class="card">
+
+      <div class="label">Programming Course</div>
+
+      <p class="muted" style="max-width:460px; line-height:1.4; margin-top:6px;">
+        Learn how to build your own web server, online shop, authentication system,
+        database logic, payment integration and more.  
+        After purchase, you receive a unique access code.  
+        Price: <b>100,000 gold</b>.
+      </p>
+
+      <button id="btn-buy-course" class="btn" style="margin-top:10px; width:100%;">
+        Buy Course (100,000 gold)
+      </button>
+
+      <div id="course-msg" class="muted" style="margin-top:8px;"></div>
+
+    </div>
+
+
+    <!-- ===== RIGHT SIDE — CREATE AD ===== -->
+    <div class="card">
+
+      <div class="label">Create Your Ad</div>
+
+      <p class="muted" style="margin-top:4px;">
+        Price: <b>100 gold</b> per advertisement.  
+        Allowed links: Website, YouTube, Discord, Portfolio, Social media.
+      </p>
+
+      <textarea id="ad-text" class="input"
+                placeholder="Write your advertisement text here..."
+                style="margin-top:10px; height:120px; resize:vertical;"></textarea>
+
+      <button id="btn-post-ad" class="btn" style="margin-top:10px; width:100%;">
+        Publish Advertisement (100 gold)
+      </button>
+
+      <div id="ad-msg" class="muted" style="margin-top:8px;"></div>
+
+      <div id="ad-output" class="list" style="margin-top:12px; min-height:40px;">
+        No ads yet.
+      </div>
+
+    </div>
+
+  </div>
+</section>
 
 
  <script>
 (function(){
   const w = window;
 
-  w.$  = w.$  || ((s,root=document)=>root.querySelector(s));
-  w.$$ = w.$$ || ((s,root=document)=>Array.from(root.querySelectorAll(s)));
+  /* ========= Selectors ========= */
+  w.$  = w.$  || ((s, root=document) => root.querySelector(s));
+  w.$$ = w.$$ || ((s, root=document) => Array.from(root.querySelectorAll(s)));
 
-  // Toast
-  w.showToast = w.showToast || function(t){
+
+  /* ========= Toast (popup message) ========= */
+  w.showToast = w.showToast || function(msg){
     const box = document.getElementById("toast");
-    if (box && box.classList) {
-      box.textContent = String(t || "");
-      box.classList.remove("hidden");
-      clearTimeout(box._t);
-      box._t = setTimeout(()=>box.classList.add("hidden"), 2600);
-    } else {
-      console.warn("TOAST:", t);
-    }
+    if (!box) return console.warn("TOAST:", msg);
+
+    box.textContent = String(msg || "");
+    box.classList.remove("hidden");
+
+    clearTimeout(box._t);
+    box._t = setTimeout(() => box.classList.add("hidden"), 2600);
   };
-  try { if (typeof w.toast !== "function") w.toast = w.showToast; } catch(_) { w.toast = w.showToast; }
 
+  try { if (typeof w.toast !== "function") w.toast = w.showToast; }
+  catch (_) { w.toast = w.showToast; }
+
+
+  /* ========= API wrapper ========= */
   w.api = w.api || (async function api(path, opts={}){
-    const method = (opts.method || "GET").toUpperCase();
-    const headers = Object.assign({}, opts.headers || {});
-    const init = { credentials: "include", ...opts, method };
+    const method  = (opts.method || "GET").toUpperCase();
+    const headers = { ...(opts.headers || {}) };
 
-    if (method !== "GET" && method !== "HEAD") {
-      headers["Content-Type"] = headers["Content-Type"] || "application/json";
-    }
-    init.headers = headers;
+    const init = {
+      credentials: "include",
+      ...opts,
+      method,
+      headers
+    };
 
+    // Auto-JSON za body
     if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
+      headers["Content-Type"] = headers["Content-Type"] || "application/json";
       init.body = JSON.stringify(init.body);
     }
 
     let res;
-    try { res = await fetch(path, init); }
-    catch (e) { const err = new Error("Network error"); err.cause = e; throw err; }
+    try {
+      res = await fetch(path, init);
+    } catch (err) {
+      const e = new Error("Network error");
+      e.cause = err;
+      throw e;
+    }
 
+    const text = await res.text().catch(() => null);
     let data = null;
-    const text = await res.text().catch(()=>null);
 
-    if (text && text.trim().length) {
+    if (text && text.trim()) {
       try { data = JSON.parse(text); }
-      catch { data = { ok:false, error:"Invalid JSON" }; }
+      catch { data = { ok:false, error: "Invalid JSON" }; }
     } else {
-      data = (res.status===204) ? { ok:true } : (data || {});
+      data = (res.status === 204) ? { ok:true } : {};
     }
 
     if (!res.ok) {
-      const err = new Error((data && data.error) || ("HTTP " + res.status));
-      err.status = res.status;
-      err.data = data;
-      throw err;
+      const e = new Error(data.error || ("HTTP " + res.status));
+      e.status = res.status;
+      e.data   = data;
+      throw e;
     }
+
     return data;
   });
 
+
+  /* ========= Safe function call (optional helper) ========= */
   w.safeCall = w.safeCall || (async function(fnName, ...args){
     const fn = w[fnName];
-    if (typeof fn === "function") {
-      try { return await fn(...args); }
-      catch (e) { console.warn(fnName, "failed:", e); }
-    }
+    if (typeof fn !== "function") return;
+
+    try { return await fn(...args); }
+    catch (err) { console.warn(fnName, "failed:", err); }
   });
+
 })();
 </script>
 
@@ -457,29 +582,45 @@
 <!-- ===== Icons & mapping ===== -->
 <script>
 const IMG_PREFIX = "/";
-const RECIPE_ICON = `${IMG_PREFIX}recipe.png`;
-const FALLBACK_ITEM_ICON = `${IMG_PREFIX}t1_bronze.png`;
+const RECIPE_ICON = IMG_PREFIX + "recipe.png";
+const FALLBACK_ITEM_ICON = IMG_PREFIX + "t1_bronze.png";
 
+/* Escape HTML text */
 function esc(s){
   return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
+/* Convert item code → file name */
 function fileNameFromCodeTier(code, tier){
-  if(!code) return null;
-  const m = String(code).match(/^T([1-6])_(.*)$/);
-  if (m) return `t${m[1]}_${m[2].toLowerCase()}.png`;
-  if ((tier|0)===1) return `t1_${String(code).toLowerCase()}.png`;
+  if (!code) return null;
+
+  const str = String(code);
+
+  // Pattern: T3_GOLDEN_RING → t3_golden_ring.png
+  const m = str.match(/^T([1-6])_(.+)$/i);
+  if (m){
+    const t = m[1];
+    const name = m[2].toLowerCase();
+    return `t${t}_${name}.png`;
+  }
+
+  // Fallback for simple T1 names
+  if ((tier | 0) === 1){
+    return `t1_${str.toLowerCase()}.png`;
+  }
+
   return null;
 }
 
+/* Get final icon path */
 function iconForByCode(code, tier){
   const file = fileNameFromCodeTier(code, tier);
-  return file ? `${IMG_PREFIX}${file}` : FALLBACK_ITEM_ICON;
+  return file ? IMG_PREFIX + file : FALLBACK_ITEM_ICON;
 }
 </script>
 
@@ -1771,6 +1912,7 @@ if (document.readyState === "loading"){
 
 </body>
 </html>
+
 
 
 
