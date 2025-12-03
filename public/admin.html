@@ -167,121 +167,182 @@
   <!-- Helpers -->
   
   <script>  
-    const $ = s => document.querySelector(s);
-    let ADMIN_KEY = "", LOCKED = false, REMEMBER = false;
-    let users = [], selected = null;
+const $ = s => document.querySelector(s);
+let ADMIN_KEY = "", LOCKED = false, REMEMBER = false;
+let users = [], selected = null;
 
-    function msg(sel, text, ok=true){
-      const e=$(sel); if(!e) return;
-      e.textContent=text; e.className = ok ? "muted success" : "muted danger";
-    }
-    function setWho(text){ const e=$("#who"); if(e) e.textContent = text; }
+function msg(sel, text, ok=true){
+  const e=$(sel); if(!e) return;
+  e.textContent=text;
+  e.className = ok ? "muted success" : "muted danger";
+}
 
-    function loadPrefs(){
-      ADMIN_KEY = localStorage.getItem("admin.key") || "";
-      LOCKED = localStorage.getItem("admin.lock") === "1";
-      REMEMBER = localStorage.getItem("admin.remember") === "1";
-      $("#admin-key").value = ADMIN_KEY;
-      $("#key-lock").checked = LOCKED;
-      $("#key-remember").checked = REMEMBER;
-      applyLock();
-    }
-    function savePrefs(){
-      if (REMEMBER) localStorage.setItem("admin.key", ADMIN_KEY);
-      else localStorage.removeItem("admin.key");
-      localStorage.setItem("admin.lock", LOCKED ? "1" : "0");
-      localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
-    }
+function setWho(text){
+  const e=$("#who");
+  if(e) e.textContent = text;
+}
 
-    function applyLock(){
-      $("#admin-key").disabled = LOCKED;
-      $("#btn-key-set").disabled = LOCKED;
-      $("#btn-key-clear").disabled = LOCKED;
+function loadPrefs(){
+  ADMIN_KEY = localStorage.getItem("admin.key") || "";
+  LOCKED = localStorage.getItem("admin.lock") === "1";
+  REMEMBER = localStorage.getItem("admin.remember") === "1";
 
-     const safeButtons = [
-       "btn-save-1","btn-save-2","btn-save-3","btn-save-4","btn-save-5",
-       "btn-codes-save-all"
-      ];
-      
-      safeButtons.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = LOCKED;
-      });
+  $("#admin-key").value = ADMIN_KEY;
+  $("#key-lock").checked = LOCKED;
+  $("#key-remember").checked = REMEMBER;
 
-      for (let i = 0; i < 5; i++){
-        const codeEl = document.getElementById(`bonus-code-${i}`);
-        const pctEl  = document.getElementById(`bonus-percent-${i}`);
-        if (codeEl) codeEl.disabled = LOCKED;
-        if (pctEl)  pctEl.disabled  = LOCKED;
-      }
-    }
+  applyLock();
+}
 
-    async function api(path, opts={}){
-      const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
-      if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
-      const res = await fetch(path, { credentials:"include", ...opts, headers });
-      let data = null; try{ data = await res.json(); }catch{}
-      if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
-      return data;
-    }
+function savePrefs(){
+  if (REMEMBER) localStorage.setItem("admin.key", ADMIN_KEY);
+  else localStorage.removeItem("admin.key");
 
-    async function checkAdmin(){
-      try{ await api("/api/admin/ping"); msg("#key-msg","Admin OK",true); }
-      catch(e){ msg("#key-msg","Key invalid or missing ("+e.message+")",false); }
-    }
+  localStorage.setItem("admin.lock", LOCKED ? "1" : "0");
+  localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
+}
 
-    function renderUsers(){
-      const q = ($("#search").value||"").trim().toLowerCase();
-      const box = $("#users"); box.innerHTML = "";
-      let list = users.slice();
-      list.sort((a,b)=> (a.is_disabled===b.is_disabled ? a.email.localeCompare(b.email) : (a.is_disabled?1:-1)));
-      if (q) list = list.filter(u => u.email.toLowerCase().includes(q));
-      if (!list.length){ box.textContent="No users."; return; }
-      for (const u of list){
-        const row = document.createElement("div"); row.className="user-row";
-        row.innerHTML = `
-          <div>
-            <span class="mono">#${u.id}</span>
-            <span class="mono">${u.email}</span>
-            ${u.is_disabled ? `<span class="tag red">disabled</span>` : `<span class="tag green">active</span>`}
-          </div>
-          <div class="muted">${u.gold}g ${u.silver}s</div>
-        `;
-        row.addEventListener("click", ()=> selectUser(u));
-        box.appendChild(row);
-      }
-    }
-    
-    async function loadUsers(){
-      $("#users").textContent = "Loading…";
-      try{ const r = await api("/api/admin/users"); users = r.users||[]; renderUsers(); }
-      catch(e){ $("#users").textContent = e.message; }
-    }
-    
-    function selectUser(u){
-      selected = u;
-      $("#sel-user-label").textContent = `Selected user: ${u.email} (id ${u.id})`;
-      $("#ops-msg").textContent = "";
-      loadInventory();
-    }
-    
-    async function loadInventory(){
-      const box = $("#inv");
-      if (!selected){ box.textContent="Select a user from the list →"; return; }
-      box.textContent="Loading…";
-      try{
-        const r = await api(`/api/admin/inventory/${selected.id}`);
-        const lines = [];
-        lines.push("ITEMS:");
-        if (!(r.items||[]).length) lines.push("(none)");
-        (r.items||[]).forEach(it=> lines.push(` • [T${it.tier}] ${it.name} x${it.qty}`));
-        lines.push("");
-        lines.push("RECIPES:");
-        if (!(r.recipes||[]).length) lines.push("(none)");
-        (r.recipes||[]).forEach(rc=> lines.push(` • [T${rc.tier}] ${rc.name} x${rc.qty}`));
-        box.textContent = lines.join("\n");
-      }catch(e){ box.textContent = e.message; }
-    }
+function applyLock(){
+  $("#admin-key").disabled = LOCKED;
+  $("#btn-key-set").disabled = LOCKED;
+  $("#btn-key-clear").disabled = LOCKED;
+
+  const safeButtons = [
+    "btn-save-1","btn-save-2","btn-save-3","btn-save-4","btn-save-5",
+    "btn-codes-save-all"
+  ];
+
+  safeButtons.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = LOCKED;
+  });
+
+  for (let i = 0; i < 5; i++){
+    const codeEl = document.getElementById(`bonus-code-${i}`);
+    const pctEl  = document.getElementById(`bonus-percent-${i}`);
+    if (codeEl) codeEl.disabled = LOCKED;
+    if (pctEl)  pctEl.disabled  = LOCKED;
+  }
+}
+
+async function api(path, opts={}){
+  const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
+  if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
+
+  const res = await fetch(path, { credentials:"include", ...opts, headers });
+
+  // SIGURNO PARSIRANJE — NE RUŠI CIJELI ADMIN
+  let data = null;
+  try { data = await res.json(); } catch {
+    data = {};
+  }
+
+  if (!res.ok){
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
+
+async function checkAdmin(){
+  try{
+    await api("/api/admin/ping");
+    msg("#key-msg","Admin OK",true);
+  }catch(e){
+    msg("#key-msg","Key invalid or missing ("+e.message+")",false);
+  }
+}
+
+function renderUsers(){
+  const q = ($("#search").value||"").trim().toLowerCase();
+  const box = $("#users");
+  box.innerHTML = "";
+
+  let list = users.slice();
+  list.sort((a,b)=> 
+    (a.is_disabled===b.is_disabled
+      ? a.email.localeCompare(b.email)
+      : (a.is_disabled?1:-1)));
+
+  if (q)
+    list = list.filter(u => u.email.toLowerCase().includes(q));
+
+  if (!list.length){
+    box.textContent="No users.";
+    return;
+  }
+
+  for (const u of list){
+    const row = document.createElement("div");
+    row.className="user-row";
+
+    row.innerHTML = `
+      <div>
+        <span class="mono">#${u.id}</span>
+        <span class="mono">${u.email}</span>
+        ${u.is_disabled 
+            ? `<span class="tag red">disabled</span>` 
+            : `<span class="tag green">active</span>`}
+      </div>
+      <div class="muted">${u.gold}g ${u.silver}s</div>
+    `;
+
+    row.addEventListener("click", ()=> selectUser(u));
+    box.appendChild(row);
+  }
+}
+
+async function loadUsers(){
+  $("#users").textContent = "Loading…";
+  try{
+    const r = await api("/api/admin/users");
+    users = r.users||[];
+    renderUsers();
+  }catch(e){
+    $("#users").textContent = e.message;
+  }
+}
+
+function selectUser(u){
+  selected = u;
+  $("#sel-user-label").textContent =
+    `Selected user: ${u.email} (id ${u.id})`;
+  $("#ops-msg").textContent = "";
+  loadInventory();
+}
+
+async function loadInventory(){
+  const box = $("#inv");
+
+  if (!selected){
+    box.textContent="Select a user from the list →";
+    return;
+  }
+
+  box.textContent="Loading…";
+
+  try{
+    const r = await api(`/api/admin/inventory/${selected.id}`);
+    const lines = [];
+
+    lines.push("ITEMS:");
+    if (!(r.items||[]).length) lines.push("(none)");
+    (r.items||[]).forEach(it=> 
+      lines.push(` • [T${it.tier}] ${it.name} x${it.qty}`));
+
+    lines.push("");
+    lines.push("RECIPES:");
+    if (!(r.recipes||[]).length) lines.push("(none)");
+    (r.recipes||[]).forEach(rc=> 
+      lines.push(` • [T${rc.tier}] ${rc.name} x${rc.qty}`));
+
+    box.textContent = lines.join("\n");
+
+  }catch(e){
+    box.textContent = e.message;
+  }
+}
+</script>
 
 
     // ----------------- Bonus codes -----------------
@@ -493,6 +554,7 @@ async function setArtefactBonusGold(){
     msg("#bonus-msg", `Artefact bonus set to ${r.bonus_gold} gold.`, true);
   }catch(e){ msg("#bonus-msg", e.message, false); }
 }
+
 
 
 
