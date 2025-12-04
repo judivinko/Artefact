@@ -1073,47 +1073,53 @@ async function doLogout(){
 
   const esc = window.esc || (s=>String(s));
 
-  const QUESTS = [
+  // SVI QUESTOVI SU LIFETIME (daily je prazan dok ne dodaš svoje)
+  const DAILY_QUESTS = [
+    // Ako želiš, ovdje ubacujemo dnevne questove
+  ];
 
-  { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
-  { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
-  { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
-  { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
-  { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
-  { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },
+  const LIFETIME_QUESTS = [
 
-  { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
-  { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
-  { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
-  { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
+    { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
+    { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
+    { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
+    { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
+    { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
+    { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },
 
-  { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
-  { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
-  { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
-  { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
+    { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
+    { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
+    { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
+    { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
 
-  { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
+    { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
+    { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
+    { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
+    { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
 
-  { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
-  { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
-  { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
-  { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
+    { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
 
-  { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
+    { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
+    { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
+    { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
+    { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
 
-  { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
-  { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
-  { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
-  { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
+    { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
 
-  { id:"shop-spend", text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
+    { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
+    { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
+    { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
+    { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
 
-  { id:"buy-gold-1",  text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
-  { id:"buy-gold-10", text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
-  { id:"buy-gold-50", text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
+    { id:"shop-spend", text:"Potroši 100 golda u Shopu (dobivaš 50 nazad)", reward:50 },
 
-];
+    { id:"buy-gold-1",  text:"Kupi gold za 1$ (dobivaš ×2)",   reward:1000 },
+    { id:"buy-gold-10", text:"Kupi gold za 10$ (dobivaš ×2)",  reward:10000 },
+    { id:"buy-gold-50", text:"Kupi gold za 50$ (dobivaš ×2)",  reward:50000 }
 
+  ];
+
+  // ========== DAILY RESET ==========
   function dailyResetCheck(){
     const today = new Date().toDateString();
     const last  = localStorage.getItem("quests_day") || "";
@@ -1131,17 +1137,19 @@ async function doLogout(){
     localStorage.setItem("quests_done", JSON.stringify(status));
   }
 
+  // Trigger quest aktivira quest kao "u tijeku"
   window.questTrigger = function(id){
     const status = getStatus();
-    if(status[id]) return;
-    status[id] = false;
+    if(status[id]) return; // već završeno
+    status[id] = false;    // aktiviran ali nije claimed
     saveStatus(status);
     renderQuests();
   };
 
+  // Claim reward
   window.claimQuest = function(id, reward){
     const status = getStatus();
-    if(status[id] === true) return;
+    if(status[id] === true) return; // već claimed
 
     status[id] = true;
     saveStatus(status);
@@ -1151,20 +1159,31 @@ async function doLogout(){
       renderBalance();
     }
 
-    document.getElementById("quest-msg").innerText =
-      `Dobio si +${reward} gold!`;
+    // poruka za lifetime (možeš urediti ili proširiti)
+    const msg = document.getElementById("quest-msg-lifetime");
+    if (msg) msg.innerText = `Dobio si +${reward} gold!`;
 
     renderQuests();
   };
 
+  // ========== RENDER ==========
   function renderQuests(){
-    const list   = document.getElementById("quest-list");
-    const status = getStatus();
-    list.innerHTML = "";
+    const listDaily     = document.getElementById("quest-list-daily");
+    const msgDaily      = document.getElementById("quest-msg-daily");
+    const listLifetime  = document.getElementById("quest-list-lifetime");
+    const msgLifetime   = document.getElementById("quest-msg-lifetime");
 
-    QUESTS.forEach(q=>{
+    if(!listDaily || !listLifetime) return;
+
+    const status = getStatus();
+
+    // --- DAILY ---
+    listDaily.innerHTML = "";
+    msgDaily.innerHTML = "";
+
+    DAILY_QUESTS.forEach(q => {
       const done = status[q.id] === true;
-      const activated = status[q.id] !== undefined;
+      const active = status[q.id] !== undefined;
 
       const row = document.createElement("div");
       row.className = "card row";
@@ -1175,15 +1194,46 @@ async function doLogout(){
           <div>${q.text}</div>
           <div class="muted" style="font-size:12px">Nagrada: ${q.reward} gold</div>
         </div>
-        <button class="btn ${done ? "disabled" : !activated ? "muted" : ""}"
-                onclick="${done ? "" : activated ? `window.claimQuest('${q.id}', ${q.reward})` : ""}">
-          ${ done ? "Završeno" : activated ? "Claim" : "U tijeku" }
+
+        <button class="btn ${done ? "disabled" : !active ? "muted" : ""}"
+          onclick="${done ? "" : active ? `window.claimQuest('${q.id}', ${q.reward})` : ""}">
+          ${ done ? "Završeno" : active ? "Claim" : "U tijeku" }
         </button>
       `;
-      list.appendChild(row);
+      listDaily.appendChild(row);
+    });
+
+    if(DAILY_QUESTS.length === 0)
+      msgDaily.innerText = "Nema dnevnih questova.";
+
+    // --- LIFETIME ---
+    listLifetime.innerHTML = "";
+    msgLifetime.innerHTML = "";
+
+    LIFETIME_QUESTS.forEach(q => {
+      const done = status[q.id] === true;
+      const active = status[q.id] !== undefined;
+
+      const row = document.createElement("div");
+      row.className = "card row";
+      row.style.justifyContent = "space-between";
+
+      row.innerHTML = `
+        <div>
+          <div>${q.text}</div>
+          <div class="muted" style="font-size:12px">Nagrada: ${q.reward} gold</div>
+        </div>
+
+        <button class="btn ${done ? "disabled" : !active ? "muted" : ""}"
+          onclick="${done ? "" : active ? `window.claimQuest('${q.id}', ${q.reward})` : ""}">
+          ${ done ? "Završeno" : active ? "Claim" : "U tijeku" }
+        </button>
+      `;
+      listLifetime.appendChild(row);
     });
   }
 
+  // TAB otvaranje
   window.showQuestTab = function(){
     dailyResetCheck();
     renderQuests();
@@ -2027,6 +2077,7 @@ if (btnT){
 
 </body>
 </html>
+
 
 
 
