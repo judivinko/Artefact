@@ -1245,7 +1245,7 @@ async function doLogout(){
   
 <script>
 // ======================================================
-//   CRAFTING SYSTEM — FULL WORKING VERSION
+//   CRAFTING SYSTEM — WORKING + PUBLIC IMAGES FIX
 // ======================================================
 
 let CURRENT_RECIPE_ID = null;
@@ -1287,7 +1287,7 @@ async function loadRecipes() {
       <div class="row selectable" 
            data-id="${r.id}"
            onclick="showRecipe(${r.id})">
-         <img src="/images/${r.code.toLowerCase()}.png" 
+         <img src="/${r.code.toLowerCase()}.png"
               class="img-cell"
               onerror="this.style.display='none'">
          <div>${r.name} <span class="muted">(T${r.tier})</span></div>
@@ -1322,12 +1322,16 @@ async function showRecipe(id) {
     const r = js.recipe;
     const ing = js.ingredients;
 
+    // -------- DETAILS HEADER (recipe icon)
     let html = `
       <div class="row">
-        <img src="/images/${r.code.toLowerCase()}.png"
+        <img src="/${r.code.toLowerCase()}.png"
              class="img-cell"
              onerror="this.style.display='none'">
-        <div><b>${r.name}</b> <span class="muted">(T${r.tier})</span></div>
+        <div>
+          <b>${r.name}</b>
+          <span class="muted">(T${r.tier})</span>
+        </div>
       </div>
 
       <hr/>
@@ -1335,9 +1339,10 @@ async function showRecipe(id) {
       <div class="label">Ingredients</div>
     `;
 
+    // -------- INGREDIENTS LIST (ingredient icons)
     html += ing.map(i => `
       <div class="row">
-        <img src="/images/${i.code.toLowerCase()}.png"
+        <img src="/${i.code.toLowerCase()}.png"
              class="img-cell"
              onerror="this.style.display='none'">
         <div>${i.name} <span class="muted">(T${i.tier})</span></div>
@@ -1345,6 +1350,7 @@ async function showRecipe(id) {
       </div>
     `).join("");
 
+    // -------- CRAFT BUTTON
     html += `
       <hr/>
       <button onclick="craftDo(${r.id})" class="btn full">
@@ -1385,7 +1391,7 @@ async function craftDo(id) {
     if (js.result === "success") {
       box.innerHTML = `
         <div class="success">You crafted <b>${js.crafted.name}</b>!</div>
-        <img src="/images/${js.crafted.code.toLowerCase()}.png"
+        <img src="/${js.crafted.code.toLowerCase()}.png"
              class="img-big"
              onerror="this.style.display='none'">
       `;
@@ -2088,6 +2094,7 @@ if (btnT){
 
 </body>
 </html>
+
 
 
 
