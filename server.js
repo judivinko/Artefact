@@ -1674,26 +1674,45 @@ app.post("/api/quests/event", (req, res) => {
 
 // ----------------- RECIPES & CRAFT -----------------
 
+// ==========================
+//  GET /api/recipes/list
+// ==========================
 app.get("/api/recipes/list", (req, res) => {
   const tok = readToken(req);
-  if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
+  if (!tok)
+    return res.status(401).json({ ok:false, error:"Not logged in." });
 
   try {
     const rows = db.prepare(`
-      SELECT r.id, r.code, r.name, r.tier, ur.qty
+      SELECT 
+        r.id,
+        r.code,
+        r.name,
+        r.tier,
+        ur.qty
       FROM user_recipes ur
-      JOIN recipes r ON r.id = ur.recipe_id
-      WHERE ur.user_id = ? AND ur.qty > 0
+      JOIN recipes r 
+        ON r.id = ur.recipe_id
+      WHERE ur.user_id = ?
+        AND ur.qty > 0
       ORDER BY r.tier ASC, r.name ASC
     `).all(tok.uid);
 
     res.json({ ok:true, recipes: rows });
 
   } catch (e) {
-    res.status(500).json({ ok:false, error: String(e.message || e) });
+    res.status(500).json({
+      ok:false,
+      error: String(e.message || e)
+    });
   }
 });
 
+
+// ==========================
+//  GET /api/recipes/ingredients/:id
+//  (jedina verzija, bez duplikata)
+// ==========================
 app.get("/api/recipes/ingredients/:id", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1708,13 +1727,22 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
       WHERE id=?
     `).get(id);
 
-    if (!recipe) return res.status(404).json({ ok:false, error:"Recipe not found" });
+    if (!recipe)
+      return res.status(404).json({ ok:false, error:"Recipe not found" });
 
     const ingredients = db.prepare(`
-      SELECT ri.item_id, ri.qty, i.code, i.name, i.tier, COALESCE(ui.qty,0) AS have
+      SELECT 
+        ri.item_id,
+        ri.qty,
+        i.code,
+        i.name,
+        i.tier,
+        COALESCE(ui.qty,0) AS have
       FROM recipe_ingredients ri
-      JOIN items i ON i.id = ri.item_id
-      LEFT JOIN user_items ui ON ui.item_id = ri.item_id AND ui.user_id = ?
+      JOIN items i 
+        ON i.id = ri.item_id
+      LEFT JOIN user_items ui 
+        ON ui.item_id = ri.item_id AND ui.user_id = ?
       WHERE ri.recipe_id = ?
       ORDER BY i.tier, i.name
     `).all(tok.uid, id);
@@ -1722,10 +1750,14 @@ app.get("/api/recipes/ingredients/:id", (req, res) => {
     res.json({ ok:true, recipe, ingredients });
 
   } catch (e) {
-    res.status(500).json({ ok:false, error: String(e.message || e) });
+    res.status(500).json({ ok:false, error:String(e.message || e) });
   }
 });
 
+
+// ==========================
+//      POST /api/craft/do
+// ==========================
 app.post("/api/craft/do", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1770,16 +1802,23 @@ app.post("/api/craft/do", (req, res) => {
           missing.push(n.name);
       }
 
-      if (missing.length) throw { code:"MISSING_MATS", missing };
+      if (missing.length)
+        throw { code:"MISSING_MATS", missing };
 
+      // skini materijale
       for (const n of need)
-        db.prepare("UPDATE user_items SET qty=qty-? WHERE user_id=? AND item_id=?")
-          .run(n.qty, tok.uid, n.item_id);
+        db.prepare(`
+          UPDATE user_items 
+          SET qty=qty-? 
+          WHERE user_id=? AND item_id=?
+        `).run(n.qty, tok.uid, n.item_id);
 
+      // fail perk
       const perks = getPerks(tok.uid);
       const fail = perks.craft_no_fail ? false : (Math.random() < 0.10);
 
       if (!fail) {
+        // uspjesan craft → dobija output item
         db.prepare(`
           INSERT INTO user_items(user_id,item_id,qty)
           VALUES (?,?,1)
@@ -1787,6 +1826,7 @@ app.post("/api/craft/do", (req, res) => {
           DO UPDATE SET qty=qty+1
         `).run(tok.uid, r.output_item_id);
 
+        // recipe potrošen
         db.prepare(`
           UPDATE user_recipes SET qty=qty-1
           WHERE user_id=? AND recipe_id=?
@@ -1797,19 +1837,20 @@ app.post("/api/craft/do", (req, res) => {
         `).get(r.output_item_id);
 
         return { result:"success", crafted: out };
-      } else {
-        const scrap = db.prepare("SELECT id FROM items WHERE code='SCRAP'").get();
-        if (scrap) {
-          db.prepare(`
-            INSERT INTO user_items(user_id,item_id,qty)
-            VALUES (?,?,1)
-            ON CONFLICT(user_id,item_id)
-            DO UPDATE SET qty=qty+1
-          `).run(tok.uid, scrap.id);
-        }
-        return { result:"fail", scrap:true };
       }
 
+      // FAIL → SCRAP
+      const scrap = db.prepare("SELECT id FROM items WHERE code='SCRAP'").get();
+      if (scrap) {
+        db.prepare(`
+          INSERT INTO user_items(user_id,item_id,qty)
+          VALUES (?,?,1)
+          ON CONFLICT(user_id,item_id)
+          DO UPDATE SET qty=qty+1
+        `).run(tok.uid, scrap.id);
+      }
+
+      return { result:"fail", scrap:true };
     })();
 
     res.json({ ok:true, ...result });
@@ -1826,8 +1867,8 @@ app.post("/api/craft/do", (req, res) => {
   }
 });
 
-// ----------------- ARTEFACT CRAFT -----------------
 
+// ----------------- ARTEFACT CRAFT -----------------
 app.post("/api/craft/artefact", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1850,7 +1891,8 @@ app.post("/api/craft/artefact", (req, res) => {
 
       for (const it of picked)
         db.prepare(`
-          UPDATE user_items SET qty=qty-1
+          UPDATE user_items 
+          SET qty=qty-1
           WHERE user_id=? AND item_id=?
         `).run(tok.uid, it.id);
 
@@ -1878,7 +1920,6 @@ app.post("/api/craft/artefact", (req, res) => {
 });
 
 // ----------------- INVENTORY -----------------
-
 app.get("/api/inventory", (req, res) => {
   const tok = readToken(req);
   if (!tok) return res.status(401).json({ ok:false, error:"Not logged in." });
@@ -1906,6 +1947,7 @@ app.get("/api/inventory", (req, res) => {
     res.status(500).json({ ok:false, error:String(e.message||e) });
   }
 });
+
 
 // -----------------------------------------------------
 // MARKETPLACE
@@ -2324,6 +2366,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
