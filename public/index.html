@@ -1244,195 +1244,206 @@ async function doLogout(){
 
   
 <script>
-// ==========================
-//        CRAFT SYSTEM
-// ==========================
+// ======================================================
+//   CRAFTING SYSTEM — FULL WORKING VERSION
+// ======================================================
 
-// Template za listu recepata
-function rowRecipe(r){
-  return `
-  <div class="itemrow">
-    <div class="row" style="gap:10px;align-items:center">
-      <img class="img-cell" src="${RECIPE_ICON}" alt="">
-      <div>
-        <div class="label" style="text-transform:none;">${esc(r.name)}</div>
-        <div class="muted">T${r.tier} · x${r.qty}</div>
-      </div>
-    </div>
-    <button class="btn muted" data-open="${esc(r.id)}">Open</button>
-  </div>`;
-}
+let CURRENT_RECIPE_ID = null;
 
-// Učitavanje recepata
-async function loadRecipes(){
-  const box = $("#recipes");
-  if (!box) return;
+// ------------------------------
+// Load all recipes you own
+// ------------------------------
+async function loadRecipes() {
+  const list = $("#recipes");
+  if (!list) return;
 
-  box.textContent = "Loading…";
+  list.textContent = "Loading…";
 
-  try{
-    const list = await api("/api/recipes/list");
-    const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
+  let q = $("#filter-recipe")?.value?.toLowerCase() || "";
 
-    const rows = (list?.recipes || [])
-      .filter(x => !q || x.name.toLowerCase().includes(q));
+  try {
+    const res = await fetch("/api/recipes/list");
+    const js = await res.json();
 
-    if (!rows.length){
-      box.textContent = "No recipes.";
+    if (!js.ok) {
+      list.textContent = "Error loading recipes";
       return;
     }
 
-    box.innerHTML = rows.map(rowRecipe).join("");
+    let rows = js.recipes;
 
-    box.querySelectorAll("[data-open]").forEach(btn=>{
-      btn.addEventListener("click",()=>openRecipe(btn.dataset.open));
-    });
+    if (q.trim() !== "") {
+      rows = rows.filter(r =>
+        (r.name || "").toLowerCase().includes(q)
+      );
+    }
 
-  }catch(e){
-    box.textContent = e.message || "Failed to load recipes.";
+    if (!rows.length) {
+      list.textContent = "No recipes.";
+      return;
+    }
+
+    list.innerHTML = rows.map(r => `
+      <div class="row selectable" 
+           data-id="${r.id}"
+           onclick="showRecipe(${r.id})">
+         <img src="/images/${r.code.toLowerCase()}.png" 
+              class="img-cell"
+              onerror="this.style.display='none'">
+         <div>${r.name} <span class="muted">(T${r.tier})</span></div>
+         <div class="badge right">${r.qty}×</div>
+      </div>
+    `).join("");
+
+  } catch (e) {
+    list.textContent = "Failed.";
   }
 }
 
-$("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
-$("#filter-recipe")?.addEventListener("input", loadRecipes);
+// ------------------------------
+// Load ingredients for one recipe
+// ------------------------------
+async function showRecipe(id) {
+  CURRENT_RECIPE_ID = id;
 
+  const box = $("#rec-details");
+  if (!box) return;
+  box.textContent = "Loading…";
 
-// Render sastojaka
-function renderIngredients(details){
-  const parts = (details.ingredients||[]).map(ing=>{
-    const ok = (ing.have|0) >= (ing.qty|0);
-    const src = iconForByCode(ing.code, ing.tier);
+  try {
+    const res = await fetch(`/api/recipes/ingredients/${id}`);
+    const js = await res.json();
 
-    return `
-    <div class="itemrow">
-      <div class="row" style="gap:10px;align-items:center">
-        <img class="img-cell" src="${esc(src)}">
-        <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
+    if (!js.ok) {
+      box.textContent = "Error loading ingredients.";
+      return;
+    }
+
+    const r = js.recipe;
+    const ing = js.ingredients;
+
+    let html = `
+      <div class="row">
+        <img src="/images/${r.code.toLowerCase()}.png"
+             class="img-cell"
+             onerror="this.style.display='none'">
+        <div><b>${r.name}</b> <span class="muted">(T${r.tier})</span></div>
       </div>
-      <div class="${ok ? "" : "muted"}">${ing.have}/${ing.qty}</div>
-    </div>`;
-  }).join("");
 
-  const canCraft = (details.ingredients||[]).every(ing => ing.have >= ing.qty);
+      <hr/>
 
-  const craftNote = WHO?.perks?.craft_no_fail
-    ? "No fail (server controlled)"
-    : (canCraft ? "10% fail chance" : "Missing materials");
+      <div class="label">Ingredients</div>
+    `;
 
-  return `
-    <div class="itemrow">
-      <div><b>${esc(details.recipe.name)}</b> <span class="badge">T${details.recipe.tier}</span></div>
-    </div>
+    html += ing.map(i => `
+      <div class="row">
+        <img src="/images/${i.code.toLowerCase()}.png"
+             class="img-cell"
+             onerror="this.style.display='none'">
+        <div>${i.name} <span class="muted">(T${i.tier})</span></div>
+        <div class="right">${i.have} / ${i.qty}</div>
+      </div>
+    `).join("");
 
-    <div class="itemrow"><div class="muted">Ingredients</div></div>
+    html += `
+      <hr/>
+      <button onclick="craftDo(${r.id})" class="btn full">
+        Craft 1× ${r.name}
+      </button>
+    `;
 
-    ${parts}
+    box.innerHTML = html;
 
-    <div class="itemrow">
-      <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">Craft</button>
-      <span class="muted" style="margin-left:8px">${craftNote}</span>
-    </div>
-  `;
+  } catch (e) {
+    box.textContent = "Failed.";
+  }
 }
 
-// Otvaranje recepta
-async function openRecipe(recipeId){
+// ------------------------------
+// Attempt crafting
+// ------------------------------
+async function craftDo(id) {
   const box = $("#rec-details");
   if (!box) return;
 
-  box.textContent = "Loading…";
+  box.textContent = "Crafting…";
 
-  try{
-    const details = await api(`/api/recipes/ingredients/${recipeId}`);
-    box.innerHTML = renderIngredients(details);
-    window.CURRENT_RECIPE_ID = details.recipe.id;
-    window.CURRENT_RECIPE_DETAILS = details;
-  }catch(e){
-    box.textContent = e.message || "Failed to load recipe.";
+  try {
+    const res = await fetch("/api/craft/do", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ recipe_id:id })
+    });
+
+    const js = await res.json();
+
+    if (!js.ok) {
+      box.textContent = js.error || "Error.";
+      return;
+    }
+
+    if (js.result === "success") {
+      box.innerHTML = `
+        <div class="success">You crafted <b>${js.crafted.name}</b>!</div>
+        <img src="/images/${js.crafted.code.toLowerCase()}.png"
+             class="img-big"
+             onerror="this.style.display='none'">
+      `;
+    } else {
+      box.innerHTML = `
+        <div class="error">Craft failed. You received Scrap.</div>
+      `;
+    }
+
+    // refresh lists
+    loadRecipes();
+    setTimeout(() => showRecipe(id), 600);
+
+  } catch (e) {
+    box.textContent = "Craft failed.";
   }
 }
 
+// ------------------------------
+// Craft Artefact
+// ------------------------------
+async function craftArtefact() {
+  const box = $("#rec-details");
+  box.textContent = "Crafting Artefact…";
 
-// ==========================
-//        Craft ARTEFACT
-// ==========================
-
-const arteBtn = $("#btn-artefact");
-
-arteBtn?.addEventListener("click", async ()=>{
-  if (arteBtn.disabled) return;
-
-  const prev = arteBtn.textContent;
-  arteBtn.disabled = true;
-  arteBtn.textContent = "Crafting…";
-
-  try{
-    const r = await api("/api/craft/artefact",{method:"POST",body:{}});
-    const name = r.crafted || "Artefact";
-
-    $("#artefact-msg")?.textContent = `Crafted: ${name}`;
-
-    await safeCall("loadInventoryPanel");
-    await safeCall("loadInventoryFull");
-    await safeCall("loadRecipes");
-    await refreshMeLight();
-
-  }catch(e){
-    $("#artefact-msg")?.textContent = e.message || "Crafting failed.";
-  } finally{
-    arteBtn.disabled = false;
-    arteBtn.textContent = prev;
-  }
-});
-
-
-// ==========================
-//       Craft dugme
-// ==========================
-
-(function bindCraftOnce(){
-  if (window.__CRAFT_BOUND__) return;
-  window.__CRAFT_BOUND__ = true;
-
-  document.addEventListener("click", async (e)=>{
-    if (e.target.id !== "btn-craft") return;
-
-    const details = window.CURRENT_RECIPE_DETAILS;
-    if (!details) return showToast("Open a recipe first.");
-
-    const allowed = e.target.dataset.can === "1";
-    if (!allowed) return showToast("Missing materials.");
-
-    const prev = e.target.textContent;
-    e.target.disabled = true;
-    e.target.textContent = "Crafting…";
-
-    try{
-      const r = await api("/api/craft/do", {
-        method:"POST",
-        body:{ recipe_id: details.recipe.id }
-      });
-
-      if (r.crafted)
-        showToast(`Crafted: ${r.crafted.name} (T${r.crafted.tier})`);
-      else if (r.scrap)
-        showToast("Failed (got Scrap)");
-      else
-        showToast("Done");
-
-      await safeCall("loadInventoryPanel");
-      await safeCall("loadRecipes");
-      await safeCall("loadInventoryFull");
-      await openRecipe(details.recipe.id);
-
-    }catch(err){
-      showToast(err.message || "Crafting failed.");
-    }finally{
-      e.target.disabled = false;
-      e.target.textContent = prev;
-    }
+  const res = await fetch("/api/craft/artefact", {
+    method:"POST"
   });
-})();
+
+  const js = await res.json();
+
+  if (!js.ok) {
+    box.textContent = js.error || "Error.";
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="success">You created the ARTEFACT!</div>
+    <img src="/artefakt.png" class="img-big"
+         onerror="this.style.display='none'">
+  `;
+}
+
+// ------------------------------
+// Event bindings
+// ------------------------------
+document.getElementById("btn-refresh-rec")?.addEventListener("click", loadRecipes);
+document.getElementById("filter-recipe")?.addEventListener("input", loadRecipes);
+document.getElementById("btn-artefact")?.addEventListener("click", craftArtefact);
+
+// ------------------------------
+// Load on tab open
+// ------------------------------
+window.loadCraft = function() {
+  loadRecipes();
+  $("#rec-details").textContent = "Select a recipe on the left.";
+};
+
 </script>
 
 
@@ -2077,6 +2088,7 @@ if (btnT){
 
 </body>
 </html>
+
 
 
 
