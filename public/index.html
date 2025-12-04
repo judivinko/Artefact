@@ -1340,15 +1340,23 @@ async function showRecipe(id) {
     `;
 
     // -------- INGREDIENTS LIST (ingredient icons)
-    html += ing.map(i => `
-      <div class="row">
-        <img src="/${i.code.toLowerCase()}.png"
-             class="img-cell"
-             onerror="this.style.display='none'">
-        <div>${i.name} <span class="muted">(T${i.tier})</span></div>
-        <div class="right">${i.have} / ${i.qty}</div>
-      </div>
-    `).join("");
+html += ing.map(i => `
+  <div class="row selectable">
+    
+    <div class="img-slot">
+      <img src="/${i.code.toLowerCase()}.png"
+           class="img-cell"
+           onerror="this.style.display='none'">
+    </div>
+
+    <div>
+      ${i.name} <span class="muted">(T${i.tier})</span>
+    </div>
+
+    <div class="right">${i.have} / ${i.qty}</div>
+
+  </div>
+`).join("");
 
     // -------- CRAFT BUTTON
     html += `
@@ -2094,6 +2102,7 @@ if (btnT){
 
 </body>
 </html>
+
 
 
 
