@@ -1065,6 +1065,75 @@ app.post("/api/transfer-gold", (req, res) => {
   }
 });
 
+// ----------------- ADS SYSTEM -----------------
+
+ensure(`
+  CREATE TABLE IF NOT EXISTS ads(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    price_s INTEGER NOT NULL DEFAULT 10000,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+`);
+
+app.get("/api/ads/list", (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT a.id, a.text, a.price_s, u.email
+      FROM ads a
+      JOIN users u ON u.id = a.user_id
+      ORDER BY a.id DESC
+      LIMIT 200
+    `).all();
+    res.json({ ok:true, ads: rows });
+  } catch {
+    res.status(500).json({ ok:false, error:"Failed to load ads" });
+  }
+});
+
+app.post("/api/ads/create", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+    const text = String(req.body?.text || "").trim();
+    if (!text) return res.json({ ok:false, error:"Empty text" });
+
+    const cost_s = 100 * 100;
+
+    const out = db.transaction(() => {
+      const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
+      if (!u || u.balance_silver < cost_s)
+        return { ok:false, error:"Not enough gold" };
+
+      const newBal = u.balance_silver - cost_s;
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
+
+      db.prepare(`
+        INSERT INTO ads(user_id,text,price_s,created_at)
+        VALUES (?,?,?,?)
+      `).run(uid, text, cost_s, nowISO());
+
+      const count = db.prepare(`SELECT COUNT(*) AS c FROM ads`).get().c;
+
+      if (count > 50) {
+        const del = count - 50;
+        db.prepare(`
+          DELETE FROM ads
+          WHERE id IN (SELECT id FROM ads ORDER BY id ASC LIMIT ?)
+        `).run(del);
+      }
+
+      return { ok:true, balance_silver:newBal };
+    })();
+
+    res.json(out);
+
+  } catch (e) {
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
 
 // ----------------- ADMIN core -----------------
 
@@ -2213,74 +2282,7 @@ app.post("/api/transfer-gold", (req, res) => {
   }
 });
 
-// ----------------- ADS SYSTEM -----------------
-
-ensure(`
-  CREATE TABLE IF NOT EXISTS ads(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    price_s INTEGER NOT NULL DEFAULT 10000,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-`);
-
-app.get("/api/ads/list", (req, res) => {
-  try {
-    const rows = db.prepare(`
-      SELECT a.id, a.text, a.price_s, u.email
-      FROM ads a
-      JOIN users u ON u.id = a.user_id
-      ORDER BY a.id DESC
-      LIMIT 200
-    `).all();
-    res.json({ ok:true, ads: rows });
-  } catch {
-    res.status(500).json({ ok:false, error:"Failed to load ads" });
-  }
-});
-
-app.post("/api/ads/create", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const text = String(req.body?.text || "").trim();
-    if (!text) return res.json({ ok:false, error:"Empty text" });
-
-    const cost_s = 100 * 100;
-
-    const out = db.transaction(() => {
-      const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-      if (!u || u.balance_silver < cost_s)
-        return { ok:false, error:"Not enough gold" };
-
-      const newBal = u.balance_silver - cost_s;
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
-
-      db.prepare(`
-        INSERT INTO ads(user_id,text,price_s,created_at)
-        VALUES (?,?,?,?)
-      `).run(uid, text, cost_s, nowISO());
-
-      const count = db.prepare(`SELECT COUNT(*) AS c FROM ads`).get().c;
-
-      if (count > 50) {
-        const del = count - 50;
-        db.prepare(`
-          DELETE FROM ads
-          WHERE id IN (SELECT id FROM ads ORDER BY id ASC LIMIT ?)
-        `).run(del);
-      }
-
-      return { ok:true, balance_silver:newBal };
-    })();
-
-    res.json(out);
-
-  } catch (e) {
-    res.status(500).json({ ok:false, error:String(e.message||e) });
-  }
-});
+// ----------------- ADS BUY COURSE -----------------
 
 app.post("/api/ads/buy-course", (req, res) => {
   try {
@@ -2300,13 +2302,20 @@ app.post("/api/ads/buy-course", (req, res) => {
 
     if (!out.ok) return res.json(out);
 
-    const access_code = "COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase();
-    res.json({ ok:true, balance_silver: out.balance_silver, access_code });
+    const access_code =
+      "COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase();
+
+    res.json({
+      ok:true,
+      balance_silver: out.balance_silver,
+      access_code
+    });
 
   } catch (e) {
     res.status(500).json({ ok:false, error:"Failed to buy course" });
   }
 });
+
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -2360,6 +2369,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
