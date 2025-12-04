@@ -1,284 +1,358 @@
-/* ============================================================
-   GLOBAL THEME — ARTEFACT (clean, no duplicate :root)
-   ============================================================ */
+/* ---------------------------------------------------------
+    ARTEFACT — GLOBAL THEME
+--------------------------------------------------------- */
 
-:root{
-  --bg:#020617;
-  --bg-soft:#02081f;
-  --panel:#02081f;
-  --panel-soft:#020617;
+:root {
+  --bg: #020617;
+  --panel: #060b1a;
+  --panel-soft: #0b1120;
+  --border: #1f2937;
+  --border-soft: #233047;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #22c55e;
+  --danger: #ef4444;
 
-  --accent:#22c55e;
-  --accent-soft:rgba(34,197,94,0.14);
-  --accent-strong:#4ade80;
-
-  --danger:#ef4444;
-  --danger-soft:rgba(239,68,68,0.16);
-
-  --text:#e5e7eb;
-  --muted:#9ca3af;
-
-  --border:#111827;
-  --border-soft:#1f2937;
-
-  --shadow-soft:0 18px 40px rgba(0,0,0,0.75);
-
-  /* ADMIN */
-  --green:#4ade80;
-  --green-soft:#163420;
-  --red-soft:#3b1113;
-  --yellow:#fbbf24;
-  --shadow:0 10px 25px rgba(0,0,0,0.4);
+  --radius: 12px;
+  --shadow: 0 14px 32px rgba(0,0,0,0.6);
 }
 
-/* ============================================================
-   GLOBAL RESET + FONTS
-   ============================================================ */
-
-*,
-*::before,
-*::after{
+/* ----- BASE RESET ----- */
+* {
+  margin:0;
+  padding:0;
   box-sizing:border-box;
-  margin:0;
-  padding:0;
+  font-family:system-ui, -apple-system, Segoe UI, sans-serif;
 }
 
-html,body{
+html,body {
+  width:100%;
   height:100%;
-  font-family:"Times New Roman", serif;
-  font-size:16px;
-  font-weight:500;
-  line-height:1.5;
-  color:var(--text);
-  background:var(--bg);
-}
-
-body{
-  margin:0;
-  padding:0;
   background:var(--bg);
   color:var(--text);
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  overflow-x:hidden;
 }
 
-/* ============================================================
-   GENERIC ELEMENTS
-   ============================================================ */
+.hidden { display:none !important; }
 
-.hidden{ display:none!important; }
+/* ---------------------------------------------------------
+    LAYOUT HELPERS
+--------------------------------------------------------- */
 
-.card{
-  background:var(--panel);
-  padding:16px;
-  border:1px solid var(--border-soft);
-  border-radius:12px;
-  box-shadow:var(--shadow-soft);
-  margin-bottom:12px;
+.row {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
 }
 
-.card{
-  background:var(--bg-soft);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:16px;
-  box-shadow:var(--shadow);
+.column {
+  display:flex;
+  flex-direction:column;
 }
 
-.list{
-  background:var(--panel-soft);
-  padding:12px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  white-space:pre-wrap;
-  color:var(--text);
-}
-
-.list{
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px;
-  min-height:40px;
-  font-size:13px;
-  color:var(--muted);
-}
-
-.row{ display:flex; align-items:center; gap:10px; }
-.rowx{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-
-/* ============================================================
-   GRID SYSTEM
-   ============================================================ */
-
-.grid{
+.grid {
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-@media(max-width:900px){
-  .grid{ grid-template-columns:1fr; }
+  gap:16px;
+  grid-template-columns:repeat(auto-fit, minmax(280px,1fr));
 }
 
-.grid2{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:20px;
-}
-@media(max-width:900px){
-  .grid2{ grid-template-columns:1fr; }
-}
-
-/* ============================================================
-   BUTTONS
-   ============================================================ */
-
-.btn{
-  padding:8px 14px;
-  border-radius:8px;
-  background:var(--accent);
-  color:black;
-  border:none;
-  cursor:pointer;
-  font-weight:700;
-  transition:0.2s;
-}
-.btn:hover{ background:var(--accent-strong); }
-
-.btn.muted{
-  background:var(--accent-soft);
-  color:var(--muted);
-}
-
-.btn.danger{
-  background:var(--danger);
-  color:white;
-}
-.btn.danger:hover{
-  background:var(--danger-soft);
-}
-
-/* admin buttons */
-button{
-  padding:8px 14px;
-  border:1px solid var(--border);
-  border-radius:8px;
-  background:#1e293b;
-  color:var(--text);
-  cursor:pointer;
-  transition:0.15s;
-}
-button:hover{ background:#334155; }
-button.secondary{ background:#0f172a; }
-button.secondary:hover{ background:#1e293b; }
-button.danger{
-  background:var(--red-soft);
-  color:#fecaca;
-  border-color:var(--red);
-}
-button.danger:hover{ background:#7f1d1d; }
-
-/* ============================================================
-   INPUTS
-   ============================================================ */
-
-.input{
-  width:100%;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid var(--border-soft);
-  background:var(--bg-soft);
-  color:var(--text);
-  font-family:"Times New Roman", serif;
-  font-size:16px;
-}
-
-input{
-  background:var(--panel);
-  border:1px solid var(--border);
-  padding:8px 12px;
-  border-radius:8px;
-  color:var(--text);
-  width:100%;
-  font-size:15px;
-}
-
-/* ============================================================
-   LABELS, BADGES
-   ============================================================ */
-
-.label{
-  font-weight:700;
-  font-size:18px;
-  margin-bottom:4px;
-}
-
-.muted{ color:var(--muted); font-size:14px; }
-
-.badge{
-  background:var(--accent-soft);
-  padding:2px 6px;
-  border-radius:6px;
-  font-size:12px;
-  color:var(--accent);
-}
-
-/* ============================================================
-   LIST ITEMS
-   ============================================================ */
-
-.itemrow{
-  padding:10px;
-  border-bottom:1px solid var(--border-soft);
+/* ---------------------------------------------------------
+    HEADER
+--------------------------------------------------------- */
+.header {
   display:flex;
   justify-content:space-between;
   align-items:center;
+  background:rgba(0,0,0,0.35);
+  border-bottom:1px solid var(--border-soft);
+  backdrop-filter:blur(10px);
 }
 
-.img-cell{
-  width:42px;
-  height:42px;
-  object-fit:contain;
-  border-radius:8px;
+.no-border { border-bottom:none !important; }
+
+.brand {
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:1px;
 }
 
-/* ============================================================
-   TABS
-   ============================================================ */
 
-.chip{
-  padding:8px 12px;
+/* ---------------------------------------------------------
+    TAB BAR
+--------------------------------------------------------- */
+
+.tabbar {
   background:var(--panel-soft);
-  border:1px solid var(--border-soft);
-  border-radius:8px;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;
+}
+
+.chip {
+  padding:8px 16px;
+  border-radius:20px;
   cursor:pointer;
-  font-size:15px;
-  margin-right:6px;
-  font-weight:600;
-}
-.chip.active{
-  background:var(--accent);
-  color:black;
-  border-color:var(--accent-strong);
+  user-select:none;
+  background:#111827;
+  border:1px solid #1f2937;
+  margin-right:10px;
+  white-space:nowrap;
+  transition:0.15s;
 }
 
-.img-slot {
-  width: 48px;
-  height: 48px;
-  background:#0f172a;
-  border-radius:8px;
-  overflow:hidden;
-  flex-shrink:0;
+.chip:hover { background:#1c2536; }
 
+.chip.active {
+  background:#22c55e;
+  color:#000;
+  border-color:#22c55e;
+}
+
+
+/* ---------------------------------------------------------
+    CARDS
+--------------------------------------------------------- */
+
+.card {
+  background:var(--panel);
+  border:1px solid var(--border-soft);
+  padding:14px;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-top:14px;
+}
+
+
+/* ---------------------------------------------------------
+    LIST (scrollable box)
+--------------------------------------------------------- */
+
+.list {
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  padding:8px;
+  border-radius:var(--radius);
+  min-height:60px;
+  max-height:360px;
+  overflow:auto;
+}
+
+
+/* ---------------------------------------------------------
+    ITEMROW (inventory, market, ingredients…)
+--------------------------------------------------------- */
+
+.itemrow {
+  background:#0b1220;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:8px 10px;
+  margin-bottom:8px;
   display:flex;
+  justify-content:space-between;
   align-items:center;
-  justify-content:center;
+  transition:0.15s;
+}
+
+.itemrow:hover {
+  background:#101a30;
+  border-color:#334155;
 }
 
 .img-cell {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-  display: block;
+  width:42px;
+  height:42px;
+  border-radius:6px;
+  object-fit:contain;
+  background:rgba(255,255,255,0.04);
+}
+
+
+/* ---------------------------------------------------------
+    LABELS, BADGES, TEXT
+--------------------------------------------------------- */
+
+.label {
+  font-weight:600;
+  color:var(--text);
+}
+
+.muted {
+  color:var(--muted);
+  font-size:14px;
+}
+
+.badge {
+  padding:4px 8px;
+  border-radius:6px;
+  background:#1e293b;
+  font-size:14px;
+  border:1px solid #2b3a55;
+}
+
+.badge.right {
+  margin-left:auto;
+}
+
+
+/* ---------------------------------------------------------
+    BUTTONS
+--------------------------------------------------------- */
+
+.btn {
+  background:#22c55e;
+  color:#000;
+  padding:8px 16px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.15s;
+}
+
+.btn:hover {
+  background:#4ade80;
+}
+
+.btn.secondary {
+  background:#1e293b;
+  color:#e5e7eb;
+}
+
+.btn.secondary:hover {
+  background:#2c3c59;
+}
+
+.btn.muted {
+  background:#374151;
+  color:#9ca3af;
+}
+
+.btn.danger {
+  background:#ef4444;
+  color:#fff;
+}
+
+.btn.danger:hover {
+  background:#f87171;
+}
+
+.btn.disabled,
+.btn[disabled] {
+  opacity:0.4;
+  pointer-events:none;
+}
+
+
+/* ---------------------------------------------------------
+    INPUTS
+--------------------------------------------------------- */
+
+.input {
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:8px;
+  padding:8px 10px;
+  color:#e5e7eb;
+  outline:none;
+  width:100%;
+}
+
+.input:focus {
+  border-color:#334155;
+}
+
+
+/* ---------------------------------------------------------
+    CRAFTING — RECIPE DETAILS
+--------------------------------------------------------- */
+
+.img-big {
+  width:86px;
+  height:86px;
+  display:block;
+  margin:10px auto;
+  object-fit:contain;
+}
+
+/* ---------------------------------------------------------
+    BONUS TILES
+--------------------------------------------------------- */
+
+#bonus-grid {
+  margin-top:12px;
+}
+
+.tile {
+  background:#0b1220;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  gap:6px;
+  margin:6px 0;
+}
+
+.tile.ok {
+  border-color:#22c55e;
+}
+
+.tile.miss {
+  border-color:#374151;
+  opacity:0.7;
+}
+
+/* Bonus tile image */
+.tile .img-cell {
+  width:50px;
+  height:50px;
+}
+
+
+/* ---------------------------------------------------------
+    TOAST POPUP
+--------------------------------------------------------- */
+
+#toast {
+  position:fixed;
+  left:50%;
+  top:20px;
+  transform:translateX(-50%);
+  background:#111827;
+  border:1px solid #334155;
+  padding:8px 18px;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  z-index:9999;
+  opacity:1;
+  transition:0.4s;
+}
+
+#toast.hidden {
+  opacity:0;
+  pointer-events:none;
+}
+
+
+/* ---------------------------------------------------------
+    SMALL UTILITIES
+--------------------------------------------------------- */
+
+.right { margin-left:auto; }
+
+.img-landing {
+  width:60px;
+  margin-top:10px;
+  margin-right:6px;
+}
+
+.auth-box {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
 
@@ -381,4 +455,5 @@ input{
   object-fit:contain;
   display:block;
 }
+
 
