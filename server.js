@@ -1451,6 +1451,31 @@ app.post("/api/shop/buy-t1", (req, res) => {
   }
 });
 
+// ----------------- SHOP INFO -----------------
+app.get("/api/shop/info", (req, res) => {
+  try {
+    const tok = readToken(req);
+    if (!tok) return res.status(401).json({ ok:false });
+
+    const u = db.prepare(`
+      SELECT balance_silver, shop_buy_count, next_recipe_at
+      FROM users WHERE id=?
+    `).get(tok.uid);
+
+    if (!u) return res.json({ ok:false });
+
+    res.json({
+      ok: true,
+      balance_silver: u.balance_silver,
+      shop_buy_count: u.shop_buy_count,
+      next_recipe_at: u.next_recipe_at
+    });
+
+  } catch (e) {
+    res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
 
 
 //                     DAILY QUESTS — BACKEND
@@ -2369,6 +2394,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
