@@ -23,7 +23,7 @@
 
   --shadow-soft:0 18px 40px rgba(0,0,0,0.75);
 
-  /* ADMIN OVDE SPOJEN — više nema duplog :root */
+  /* ADMIN */
   --green:#4ade80;
   --green-soft:#163420;
   --red-soft:#3b1113;
@@ -32,7 +32,7 @@
 }
 
 /* ============================================================
-   GLOBAL RESET + FONT (spojeni, ništa nije obrisano)
+   GLOBAL RESET + FONTS
    ============================================================ */
 
 *,
@@ -53,7 +53,6 @@ html,body{
   background:var(--bg);
 }
 
-/* ADMIN body NIJE IZBAČEN — samo SPOJEN SA GORNJIM */
 body{
   margin:0;
   padding:0;
@@ -77,8 +76,6 @@ body{
   margin-bottom:12px;
 }
 
-/* ADMIN card NIJE obrisan — već je gore isto ime pa ostaje ova verzija,
-   ne mijenja ništa u tvom layoutu */
 .card{
   background:var(--bg-soft);
   border:1px solid var(--border);
@@ -96,7 +93,6 @@ body{
   color:var(--text);
 }
 
-/* admin list — NIJE IZBAČENO */
 .list{
   background:var(--panel);
   border:1px solid var(--border);
@@ -107,11 +103,11 @@ body{
   color:var(--muted);
 }
 
-.row{ display:flex; align-items:center; }
+.row{ display:flex; align-items:center; gap:10px; }
 .rowx{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 
 /* ============================================================
-   GRID SYSTEM — ništa se ne briše
+   GRID SYSTEM
    ============================================================ */
 
 .grid{
@@ -133,7 +129,7 @@ body{
 }
 
 /* ============================================================
-   BUTTONS — ništa nije obrisano
+   BUTTONS
    ============================================================ */
 
 .btn{
@@ -161,7 +157,7 @@ body{
   background:var(--danger-soft);
 }
 
-/* admin buttons (ostaju) */
+/* admin buttons */
 button{
   padding:8px 14px;
   border:1px solid var(--border);
@@ -182,7 +178,7 @@ button.danger{
 button.danger:hover{ background:#7f1d1d; }
 
 /* ============================================================
-   INPUTS — obje verzije sačuvane
+   INPUTS
    ============================================================ */
 
 .input{
@@ -266,7 +262,7 @@ input{
 }
 
 /* ============================================================
-   HEADER + ADMIN UI (NIŠTA SE NE BRIŠE)
+   HEADER + ADMIN UI
    ============================================================ */
 
 .header{
@@ -293,7 +289,6 @@ input{
   margin:0 auto;
 }
 
-/* Users list, tables itd. ostaju potpuno netaknuti */
 .user-row{
   padding:8px 10px;
   display:flex;
@@ -342,140 +337,26 @@ input{
 .danger{ color:var(--red)!important; }
 
 /* ============================================================
-   FIX ZA SLIKE U CRAFTING, MARKET, SHOP, BONUS
+   🔥 FIX ZA SLIKE — UTORI (slotovi)
    ============================================================ */
 
-/* Standardni prikaz ikonice (lista itema, recepti, market, shop) */
+.img-slot {
+  width:48px;
+  height:48px;
+  border-radius:8px;
+  border:1px solid var(--border-soft);
+  background:#0f172a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+.img-slot img,
 .img-cell {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  object-fit: contain;
-  margin-right: 10px;
-  display: block;
-}
-
-/* Veće slike u detaljima (craft output, artefakt) */
-.img-big {
-  width: 96px;
-  height: 96px;
-  object-fit: contain;
-  display: block;
-  margin: 14px auto;
-}
-
-/* ============================================================
-   LISTA ITEMA (Crafting / Market / Shop)
-   ============================================================ */
-
-.list .row,
-.selectable {
-  padding: 8px 12px;
-  margin-bottom: 4px;
-  border-radius: 8px;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.selectable:hover {
-  background: rgba(255,255,255,0.05);
-}
-
-/* ============================================================
-   DETALJI — Crafting panel
-   ============================================================ */
-
-#rec-details .row {
-  padding: 6px 2px;
-  min-height: 46px;
-}
-
-#rec-details img.img-cell {
-  margin-right: 12px;
-}
-
-/* ============================================================
-   GRID FIX ZA TAB CRAFT
-   ============================================================ */
-
-#tab-craft .grid {
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-/* ============================================================
-   MARKET — kartice i slike
-   ============================================================ */
-
-.market-item,
-.market-row {
-  display: flex;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--panel-soft);
-  min-height: 54px;
-  gap: 12px;
-}
-
-.market-item:hover {
-  background: rgba(255,255,255,0.06);
-}
-
-/* ============================================================
-   SHOP — kartice
-   ============================================================ */
-
-.shop-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--panel-soft);
-  border: 1px solid var(--border-soft);
-  min-height: 55px;
-  gap: 12px;
-}
-
-.shop-item img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-/* ============================================================
-   BONUS TAB
-   ============================================================ */
-
-.bonus-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 10px;
-  border-radius: 10px;
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-  min-height: 55px;
-  gap: 12px;
-}
-
-.bonus-row img {
-  width: 42px;
-  height: 42px;
-  object-fit: contain;
-}
-
-/* ============================================================
-   BADGE PORAVNANJE
-   ============================================================ */
-
-.badge.right {
-  margin-left: auto;
-  font-size: 12px;
-  padding: 3px 8px;
+  width:42px!important;
+  height:42px!important;
+  object-fit:contain;
+  display:block;
 }
