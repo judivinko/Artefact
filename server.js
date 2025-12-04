@@ -996,123 +996,72 @@ app.get("/api/me", (req, res) => {
   });
 });
 
-// ----------------- ADS SYSTEM -----------------
+// ----------------- TRANSFER GOLD -----------------
 
-// tabela ads ako ne postoji
-ensure(`
-  CREATE TABLE IF NOT EXISTS ads(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    text TEXT NOT NULL,
-    price_s INTEGER NOT NULL DEFAULT 10000,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id)
-  );
-`);
-
-// GET LIST
-app.get("/api/ads/list", (req, res) => {
+app.post("/api/transfer-gold", (req, res) => {
   try {
-    const rows = db.prepare(`
-      SELECT a.id, a.text, a.price_s, u.email
-      FROM ads a
-      JOIN users u ON u.id = a.user_id
-      ORDER BY a.id DESC
-      LIMIT 200
-    `).all();
+    const senderId = requireAuth(req);
+    const { email, gold } = req.body || {};
 
-    return res.json({ ok:true, ads: rows });
-  } catch (e) {
-    return res.status(500).json({ ok:false, error:"Failed to load ads" });
-  }
-});
+    if (!isEmail(email))
+      return res.status(400).json({ ok:false, error:"Bad email" });
 
-// CREATE AD (100 gold = 10000 silver)
-app.post("/api/ads/create", async (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const text = String(req.body?.text || "").trim();
-    if (!text) return res.status(400).json({ ok:false, error:"Empty text" });
+    const g = Math.trunc(gold);
+    if (!(g > 0))
+      return res.status(400).json({ ok:false, error:"Gold must be > 0" });
 
-    const cost_s = 100 * 100; // 100 gold → silver
+    if (!userHasArtefact(senderId))
+      return res.status(403).json({ ok:false, error:"Artefact required" });
+
+    const recipient = db.prepare(
+      "SELECT id, is_disabled FROM users WHERE lower(email)=lower(?)"
+    ).get(String(email).toLowerCase());
+
+    if (!recipient || recipient.is_disabled)
+      return res.status(404).json({ ok:false, error:"Recipient not found" });
+
+    if (recipient.id === senderId)
+      return res.status(400).json({ ok:false, error:"Cannot send to yourself" });
+
+    const deltaS = g * 100;
 
     const out = db.transaction(() => {
-      const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-      if (!u) throw new Error("User missing");
+      const s = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(senderId);
+      if (!s || (s.balance_silver|0) < deltaS)
+        throw new Error("Insufficient funds");
 
-      if (u.balance_silver < cost_s)
-        return { ok:false, error:"Not enough gold" };
-
-      const newBal = u.balance_silver - cost_s;
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
-
-      // ✦ UBACIVANJE NOVOG OGLASA
       db.prepare(`
-        INSERT INTO ads(user_id,text,price_s,created_at)
-        VALUES (?,?,?,?)
-      `).run(uid, text, cost_s, nowISO());
+        UPDATE users SET balance_silver = balance_silver - ?
+        WHERE id=?
+      `).run(deltaS, senderId);
 
-      // ✦ BROJ OGLASA
-      const count = db.prepare(`SELECT COUNT(*) AS c FROM ads`).get().c;
+      db.prepare(`
+        UPDATE users SET balance_silver = balance_silver + ?
+        WHERE id=?
+      `).run(deltaS, recipient.id);
 
-      // ✦ Ako ima više od 50 — brišemo najstarije
-      if (count > 50) {
-        const toDelete = count - 50;
+      const now = nowISO();
 
-        db.prepare(`
-          DELETE FROM ads
-          WHERE id IN (
-            SELECT id FROM ads
-            ORDER BY id ASC
-            LIMIT ?
-          )
-        `).run(toDelete);
-      }
+      db.prepare(`
+        INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
+        VALUES (?,?,?,?,?)
+      `).run(senderId, -deltaS, "TRANSFER_OUT", String(recipient.id), now);
 
-      return { ok:true, balance_silver: newBal };
+      db.prepare(`
+        INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
+        VALUES (?,?,?,?,?)
+      `).run(recipient.id, deltaS, "TRANSFER_IN", String(senderId), now);
+
+      const after = db.prepare("SELECT balance_silver FROM users WHERE id=?")
+        .get(senderId).balance_silver;
+
+      return { balance_silver: after };
     })();
 
-    res.json(out);
+    res.json({ ok:true, ...out });
 
   } catch (e) {
-    res.status(500).json({ ok:false, error:String(e.message || e) });
-  }
-});
-
-
-
-// BUY COURSE (100 000 gold = 10 000 000 silver)
-app.post("/api/ads/buy-course", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const price_s = 100000 * 100;
-
-    const result = db.transaction(() => {
-      const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-      if (!u) throw new Error("User missing");
-
-      if (u.balance_silver < price_s)
-        return { ok:false, error:"Not enough gold" };
-
-      const newBal = u.balance_silver - price_s;
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
-
-      return { ok:true, balance_silver: newBal };
-    })();
-
-    if (!result.ok) return res.json(result);
-
-    const access_code =
-      "COURSE-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-
-    return res.json({
-      ok:true,
-      balance_silver: result.balance_silver,
-      access_code
-    });
-
-  } catch (e) {
-    return res.status(500).json({ ok:false, error:"Failed to buy course" });
+    res.status(400).json({ ok:false, error:String(e.message||e) });
   }
 });
 
@@ -2266,20 +2215,17 @@ app.post("/api/transfer-gold", (req, res) => {
 
 // ----------------- ADS SYSTEM -----------------
 
-// 1) Tabela za oglase (ako nije već gore u migracijama)
 ensure(`
   CREATE TABLE IF NOT EXISTS ads(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     text TEXT NOT NULL,
-    price_s INTEGER NOT NULL DEFAULT 10000,  -- 100 gold = 10000 silver
+    price_s INTEGER NOT NULL DEFAULT 10000,
     created_at TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 `);
 
-
-// 2) LISTA OGLASA (max 200)
 app.get("/api/ads/list", (req, res) => {
   try {
     const rows = db.prepare(`
@@ -2289,63 +2235,76 @@ app.get("/api/ads/list", (req, res) => {
       ORDER BY a.id DESC
       LIMIT 200
     `).all();
-
     res.json({ ok:true, ads: rows });
-
-  } catch (e) {
+  } catch {
     res.status(500).json({ ok:false, error:"Failed to load ads" });
   }
 });
 
-
-// 3) KREIRANJE OGLASA + MAX 50
 app.post("/api/ads/create", (req, res) => {
   try {
     const uid = requireAuth(req);
     const text = String(req.body?.text || "").trim();
+    if (!text) return res.json({ ok:false, error:"Empty text" });
 
-    if (!text)
-      return res.status(400).json({ ok:false, error:"Empty text" });
-
-    const cost_s = 100 * 100; // 100 gold → silver
+    const cost_s = 100 * 100;
 
     const out = db.transaction(() => {
-
       const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-      if (!u) throw new Error("User missing");
-
-      if (u.balance_silver < cost_s)
+      if (!u || u.balance_silver < cost_s)
         return { ok:false, error:"Not enough gold" };
 
       const newBal = u.balance_silver - cost_s;
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
 
-      // skini pare
-      db.prepare("UPDATE users SET balance_silver=? WHERE id=?")
-        .run(newBal, uid);
-
-      // dodaj oglas
       db.prepare(`
         INSERT INTO ads(user_id,text,price_s,created_at)
         VALUES (?,?,?,?)
       `).run(uid, text, cost_s, nowISO());
 
-      // obriši stare ako ih ima > 50
-      db.prepare(`
-        DELETE FROM ads
-        WHERE id IN (
-          SELECT id FROM ads
-          ORDER BY id ASC
-          LIMIT (SELECT COUNT(*) - 50 FROM ads)
-        )
-      `).run();
+      const count = db.prepare(`SELECT COUNT(*) AS c FROM ads`).get().c;
 
-      return { ok:true, balance_silver: newBal };
+      if (count > 50) {
+        const del = count - 50;
+        db.prepare(`
+          DELETE FROM ads
+          WHERE id IN (SELECT id FROM ads ORDER BY id ASC LIMIT ?)
+        `).run(del);
+      }
+
+      return { ok:true, balance_silver:newBal };
     })();
 
     res.json(out);
 
   } catch (e) {
     res.status(500).json({ ok:false, error:String(e.message||e) });
+  }
+});
+
+app.post("/api/ads/buy-course", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+    const cost_s = 100000 * 100;
+
+    const out = db.transaction(() => {
+      const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
+      if (!u || u.balance_silver < cost_s)
+        return { ok:false, error:"Not enough gold" };
+
+      const newBal = u.balance_silver - cost_s;
+      db.prepare("UPDATE users SET balance_silver=? WHERE id=?").run(newBal, uid);
+
+      return { ok:true, balance_silver:newBal };
+    })();
+
+    if (!out.ok) return res.json(out);
+
+    const access_code = "COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase();
+    res.json({ ok:true, balance_silver: out.balance_silver, access_code });
+
+  } catch (e) {
+    res.status(500).json({ ok:false, error:"Failed to buy course" });
   }
 });
 
@@ -2401,6 +2360,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
