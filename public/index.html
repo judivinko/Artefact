@@ -1146,25 +1146,25 @@ async function doLogout(){
     renderQuests();
   };
 
-  // Claim reward
   window.claimQuest = function(id, reward){
     const status = getStatus();
-    if(status[id] === true) return; // već claimed
+    if(status[id] === true) return;
 
     status[id] = true;
     saveStatus(status);
 
+    // QUEST daje GOLD → pretvorimo u SILVER
     if (window.WHO) {
-      WHO.balance_silver += reward;
+      WHO.balance_silver += reward * 100;
       renderBalance();
     }
 
-    // poruka za lifetime (možeš urediti ili proširiti)
     const msg = document.getElementById("quest-msg-lifetime");
     if (msg) msg.innerText = `Dobio si +${reward} gold!`;
 
     renderQuests();
-  };
+};
+
 
   // ========== RENDER ==========
   function renderQuests(){
@@ -2077,6 +2077,7 @@ if (btnT){
 
 </body>
 </html>
+
 
 
 
