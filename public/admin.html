@@ -15,12 +15,16 @@
   <div id="who" class="muted">Status: unknown</div>
 </header>
 
-<!-- Admin Key -->
 <main class="container">
+
+  <!-- ADMIN KEY -->
   <section class="card">
     <div class="label">Admin</div>
+
     <div class="rowx">
+
       <input id="admin-key" type="password" placeholder="x-admin-key" />
+
       <button id="btn-key-set">Set</button>
       <button id="btn-key-clear" class="secondary">Clear</button>
 
@@ -35,353 +39,123 @@
       </label>
 
       <span id="key-msg" class="muted"></span>
+
     </div>
   </section>
 
-<!-- Controls -->
-<section class="grid2">
 
-  <!-- LEFT SIDE – USER CONTROLS -->
-  <div class="card">
-    <div class="label">Controls</div>
 
-    <div class="muted" id="sel-user-label">Selected user: —</div>
+  <!-- GRID: CONTROLS + USERS -->
+  <section class="grid2">
 
-    <div class="rowx" style="margin-top:8px">
-      <input id="gold-amount" type="number" min="-999999" step="1" placeholder="Gold amount (1g = 100s)" />
-      <button id="btn-give">+ Give</button>
-      <button id="btn-take" class="secondary">– Take</button>
-    </div>
+    <!-- LEFT: CONTROLS -->
+    <div class="card">
+      <div class="label">Controls</div>
 
-    <div class="rowx" style="margin-top:8px">
-      <button id="btn-disable" class="danger">Disable account</button>
-      <button id="btn-enable" class="secondary">Enable account</button>
-    </div>
+      <div class="muted" id="sel-user-label">Selected user: —</div>
 
-    <div id="ops-msg" class="muted" style="margin-top:6px"></div>
-
-    <hr style="border:none;border-top:1px solid #233047;margin:12px 0">
-
-    <!-- BONUS CODES -->
-    <div class="label">Bonus Codes</div>
-    <div class="muted" style="margin-top:4px">Unesi do 5 kodova. Svaki red ima svoj “Save X”.</div>
-
-    <div class="rowx" style="margin-top:8px;justify-content:space-between">
-      <button id="btn-codes-reload" class="secondary">Reload</button>
-      <button id="btn-codes-save-all" class="secondary">Save all</button>
-    </div>
-
-    <div style="overflow:auto;margin-top:8px">
-      <table class="codes-table">
-        <thead>
-          <tr>
-            <th style="width:40%">Bonus code</th>
-            <th style="width:20%">Percent (%)</th>
-            <th style="width:25%">Total used (gold)</th>
-            <th style="width:15%">Action</th>
-          </tr>
-        </thead>
-
-        <tbody id="codes-tbody">
-          <tr>
-            <td><input id="bonus-code-0"></td>
-            <td><input id="bonus-percent-0" type="number" min="0" max="100"></td>
-            <td><input id="bonus-used-0" value="0" disabled></td>
-            <td><button id="btn-save-1" class="secondary">Save 1</button></td>
-          </tr>
-          <tr>
-            <td><input id="bonus-code-1"></td>
-            <td><input id="bonus-percent-1" type="number" min="0" max="100"></td>
-            <td><input id="bonus-used-1" value="0" disabled></td>
-            <td><button id="btn-save-2" class="secondary">Save 2</button></td>
-          </tr>
-          <tr>
-            <td><input id="bonus-code-2"></td>
-            <td><input id="bonus-percent-2" type="number" min="0" max="100"></td>
-            <td><input id="bonus-used-2" value="0" disabled></td>
-            <td><button id="btn-save-3" class="secondary">Save 3</button></td>
-          </tr>
-          <tr>
-            <td><input id="bonus-code-3"></td>
-            <td><input id="bonus-percent-3" type="number" min="0" max="100"></td>
-            <td><input id="bonus-used-3" value="0" disabled></td>
-            <td><button id="btn-save-4" class="secondary">Save 4</button></td>
-          </tr>
-          <tr>
-            <td><input id="bonus-code-4"></td>
-            <td><input id="bonus-percent-4" type="number" min="0" max="100"></td>
-            <td><input id="bonus-used-4" value="0" disabled></td>
-            <td><button id="btn-save-5" class="secondary">Save 5</button></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div id="codes-msg" class="muted" style="margin-top:6px"></div>
-  </div>
-
-  <!-- RIGHT SIDE – USERS + INVENTORY -->
-  <div class="card">
-    <div class="rowx" style="justify-content:space-between;">
-      <div class="label">Users (active first, A–Z)</div>
-      <button id="btn-refresh-users" class="secondary">Refresh</button>
-    </div>
-
-    <input id="search" class="search" placeholder="Search email…">
-    <div id="users" class="list" style="margin-top:8px;max-height:320px;overflow:auto;">—</div>
-
-    <div class="card" style="margin-top:12px;">
-      <div class="rowx" style="justify-content:space-between;">
-        <div class="label">Inventory of selected user</div>
-        <button id="btn-refresh-inv" class="secondary">Reload</button>
+      <div class="rowx" style="margin-top:8px">
+        <input id="gold-amount" type="number" placeholder="Gold amount (1g = 100s)">
+        <button id="btn-give">+ Give</button>
+        <button id="btn-take" class="secondary">– Take</button>
       </div>
 
-      <div id="inv" class="list">Select a user from the list →</div>
-    </div>
-  </div>
+      <div class="rowx" style="margin-top:8px">
+        <button id="btn-disable" class="danger">Disable account</button>
+        <button id="btn-enable" class="secondary">Enable account</button>
+      </div>
 
-</section>
+      <div id="ops-msg" class="muted" style="margin-top:6px"></div>
+
+      <hr class="divider" />
+
+      <!-- BONUS CODES -->
+      <div class="label">Bonus Codes</div>
+      <div class="muted" style="margin-top:4px">Up to 5 bonus codes. Each row has its own "Save X".</div>
+
+      <div class="rowx" style="margin-top:8px;justify-content:space-between">
+        <button id="btn-codes-reload" class="secondary">Reload</button>
+        <button id="btn-codes-save-all" class="secondary">Save all</button>
+      </div>
+
+      <div style="overflow:auto;margin-top:8px">
+        <table class="codes-table">
+          <thead>
+            <tr>
+              <th style="width:40%">Bonus code</th>
+              <th style="width:20%">Percent (%)</th>
+              <th style="width:25%">Total used (gold)</th>
+              <th style="width:15%">Action</th>
+            </tr>
+          </thead>
+
+          <tbody id="codes-tbody">
+            <tr>
+              <td><input id="bonus-code-0"></td>
+              <td><input id="bonus-percent-0" type="number" min="0" max="100"></td>
+              <td><input id="bonus-used-0" value="0" disabled></td>
+              <td><button id="btn-save-1" class="secondary">Save 1</button></td>
+            </tr>
+            <tr>
+              <td><input id="bonus-code-1"></td>
+              <td><input id="bonus-percent-1" type="number" min="0" max="100"></td>
+              <td><input id="bonus-used-1" value="0" disabled></td>
+              <td><button id="btn-save-2" class="secondary">Save 2</button></td>
+            </tr>
+            <tr>
+              <td><input id="bonus-code-2"></td>
+              <td><input id="bonus-percent-2" type="number" min="0" max="100"></td>
+              <td><input id="bonus-used-2" value="0" disabled></td>
+              <td><button id="btn-save-3" class="secondary">Save 3</button></td>
+            </tr>
+            <tr>
+              <td><input id="bonus-code-3"></td>
+              <td><input id="bonus-percent-3" type="number" min="0" max="100"></td>
+              <td><input id="bonus-used-3" value="0" disabled></td>
+              <td><button id="btn-save-4" class="secondary">Save 4</button></td>
+            </tr>
+            <tr>
+              <td><input id="bonus-code-4"></td>
+              <td><input id="bonus-percent-4" type="number" min="0" max="100"></td>
+              <td><input id="bonus-used-4" value="0" disabled></td>
+              <td><button id="btn-save-5" class="secondary">Save 5</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="codes-msg" class="muted" style="margin-top:6px"></div>
+
+    </div>
+
+
+
+    <!-- RIGHT: USERS LIST + INVENTORY -->
+    <div class="card">
+
+      <div class="rowx" style="justify-content:space-between;">
+        <div class="label">Users (active first, A–Z)</div>
+        <button id="btn-refresh-users" class="secondary">Refresh</button>
+      </div>
+
+      <input id="search" class="search" placeholder="Search email…">
+      <div id="users" class="list" style="margin-top:8px;max-height:320px;overflow:auto;">—</div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="rowx" style="justify-content:space-between;">
+          <div class="label">Inventory of selected user</div>
+          <button id="btn-refresh-inv" class="secondary">Reload</button>
+        </div>
+
+        <div id="inv" class="list">Select a user from the list →</div>
+      </div>
+
+    </div>
+
+  </section>
 </main>
 
-<!-- Helpers & Script -->
-<script>
-
-const $ = s => document.querySelector(s);
-let ADMIN_KEY = "", LOCKED = false, REMEMBER = false;
-let users = [], selected = null;
-
-function msg(sel, text, ok=true){
-  const e=$(sel); if(!e) return;
-  e.textContent=text; 
-  e.className = ok ? "muted success" : "muted danger";
-}
-
-function setWho(text){
-  const e=$("#who");
-  if (e) e.textContent = text;
-}
-
-function loadPrefs(){
-  ADMIN_KEY = localStorage.getItem("admin.key") || "";
-  LOCKED = localStorage.getItem("admin.lock") === "1";
-  REMEMBER = localStorage.getItem("admin.remember") === "1";
-  $("#admin-key").value = ADMIN_KEY;
-  $("#key-lock").checked = LOCKED;
-  $("#key-remember").checked = REMEMBER;
-  applyLock();
-}
-function savePrefs(){
-  if (REMEMBER) localStorage.setItem("admin.key", ADMIN_KEY);
-  else localStorage.removeItem("admin.key");
-  localStorage.setItem("admin.lock", LOCKED ? "1" : "0");
-  localStorage.setItem("admin.remember", REMEMBER ? "1" : "0");
-}
-
-function applyLock(){
-  $("#admin-key").disabled = LOCKED;
-  $("#btn-key-set").disabled = LOCKED;
-  $("#btn-key-clear").disabled = LOCKED;
-
-  for (let i=1;i<=5;i++){
-    const btn = document.getElementById(`btn-save-${i}`);
-    if (btn) btn.disabled = LOCKED;
-  }
-}
-
-async function api(path, opts={}){
-  const headers = { "Content-Type":"application/json", ...(opts.headers||{}) };
-  if (ADMIN_KEY) headers["x-admin-key"] = ADMIN_KEY;
-  const res = await fetch(path, { credentials:"include", ...opts, headers });
-  let data=null; try{ data=await res.json(); }catch{}
-  if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
-  return data;
-}
-
-async function checkAdmin(){
-  try{ await api("/api/admin/ping"); msg("#key-msg","Admin OK",true); }
-  catch(e){ msg("#key-msg","Key invalid or missing",false); }
-}
-
-function renderUsers(){
-  const q = ($("#search").value||"").trim().toLowerCase();
-  const box = $("#users"); box.innerHTML = "";
-  let list = users.slice();
-  list.sort((a,b)=>(a.is_disabled===b.is_disabled ? a.email.localeCompare(b.email) : (a.is_disabled?1:-1)));
-  if (q) list = list.filter(u=>u.email.toLowerCase().includes(q));
-  if (!list.length){ box.textContent="No users."; return; }
-
-  for (const u of list){
-    const row=document.createElement("div");
-    row.className="user-row";
-    row.innerHTML=`
-      <div>
-        <span class="mono">#${u.id}</span>
-        <span class="mono">${u.email}</span>
-        ${u.is_disabled ? '<span class="tag red">disabled</span>' : '<span class="tag green">active</span>'}
-      </div>
-      <div class="muted">${u.gold}g ${u.silver}s</div>
-    `;
-    row.addEventListener("click", ()=> selectUser(u));
-    box.appendChild(row);
-  }
-}
-
-async function loadUsers(){
-  $("#users").textContent="Loading…";
-  try{
-    const r = await api("/api/admin/users");
-    users = r.users || [];
-    renderUsers();
-  }catch(e){ $("#users").textContent=e.message; }
-}
-
-function selectUser(u){
-  selected=u;
-  $("#sel-user-label").textContent=`Selected user: ${u.email} (id ${u.id})`;
-  $("#ops-msg").textContent="";
-  loadInventory();
-}
-
-async function loadInventory(){
-  const box=$("#inv");
-  if (!selected){ box.textContent="Select a user from the list →"; return; }
-  box.textContent="Loading…";
-  try{
-    const r=await api(`/api/admin/user/${selected.id}/inventory`);
-    const lines=[];
-    lines.push("ITEMS:");
-    if (!(r.items||[]).length) lines.push("(none)");
-    (r.items||[]).forEach(it=>lines.push(` • [T${it.tier}] ${it.name} x${it.qty}`));
-    lines.push("");
-    lines.push("RECIPES:");
-    if (!(r.recipes||[]).length) lines.push("(none)");
-    (r.recipes||[]).forEach(rc=>lines.push(` • [T${rc.tier}] ${rc.name} x${rc.qty}`));
-    box.textContent=lines.join("\n");
-  }catch(e){ box.textContent=e.message; }
-}
-
-function sanitizeCode(raw){
-  const s=String(raw||"").trim().toUpperCase();
-  return s.replace(/[^A-Z0-9_.-]/g,"").slice(0,32);
-}
-
-async function loadBonusCodes(){
-  try{
-    const r=await api("/api/admin/bonus-codes");
-    const rows=r?.slots || [];
-    for (let i=0;i<5;i++){
-      const entry=rows[i] || { code:"", percent:0, total_credited_silver:0 };
-      document.getElementById(`bonus-code-${i}`).value = entry.code || "";
-      document.getElementById(`bonus-percent-${i}`).value = Number(entry.percent||0);
-      document.getElementById(`bonus-used-${i}`).value = Math.floor((entry.total_credited_silver||0)/100);
-    }
-    msg("#codes-msg","Loaded",true);
-  }catch(e){
-    msg("#codes-msg",e.message,false);
-  }
-}
-
-async function saveBonusRow(i){
-  const code=sanitizeCode(document.getElementById(`bonus-code-${i}`).value);
-  const percent=Math.max(0,Math.min(100,parseInt(document.getElementById(`bonus-percent-${i}`).value||"0",10)));
-  try{
-    const r=await api("/api/admin/bonus-codes",{
-      method:"POST",
-      body:JSON.stringify({ slot:i+1, code, percent, is_active:true })
-    });
-    if (typeof r.total_credited_silver === "number"){
-      document.getElementById(`bonus-used-${i}`).value = Math.floor(r.total_credited_silver/100);
-    }
-    msg("#codes-msg",`Saved row ${i+1}`,true);
-  }catch(e){
-    msg("#codes-msg",e.message,false);
-  }
-}
-
-["1","2","3","4","5"].forEach((n,i)=>{
-  const btn=document.getElementById(`btn-save-${n}`);
-  if (!btn) return;
-  btn.addEventListener("click", async ev=>{
-    ev.preventDefault();
-    await saveBonusRow(i);
-  });
-});
-
-$("#btn-key-set").addEventListener("click", async ()=>{
-  ADMIN_KEY=$("#admin-key").value.trim();
-  REMEMBER=$("#key-remember").checked;
-  LOCKED=$("#key-lock").checked;
-  savePrefs(); applyLock();
-  await checkAdmin(); await loadUsers(); await loadBonusCodes();
-});
-
-$("#btn-key-clear").addEventListener("click", ()=>{
-  ADMIN_KEY="";
-  savePrefs(); applyLock();
-  msg("#key-msg","Cleared");
-});
-
-$("#btn-refresh-users").addEventListener("click", loadUsers);
-$("#btn-refresh-inv").addEventListener("click", loadInventory);
-$("#search").addEventListener("input", renderUsers);
-
-$("#btn-give").addEventListener("click", ()=> changeGold(+1));
-$("#btn-take").addEventListener("click", ()=> changeGold(-1));
-$("#btn-disable").addEventListener("click", ()=> setDisabled(true));
-$("#btn-enable").addEventListener("click", ()=> setDisabled(false));
-
-document.getElementById("btn-codes-reload").addEventListener("click", loadBonusCodes);
-
-loadPrefs();
-(async ()=>{
-  try{
-    const me = await fetch("/api/me",{credentials:"include"}).then(r=>r.ok?r.json():null);
-    if (me && me.user) setWho(`${me.user.email} • ${me.user.is_admin ? "ADMIN" : "USER"} • ${me.user.gold}g ${me.user.silver}s`);
-    else setWho("Not logged in");
-  }catch{
-    setWho("Not logged in");
-  }
-  if (ADMIN_KEY){
-    await checkAdmin();
-    await loadUsers();
-    await loadBonusCodes();
-  }
-})();
-
-async function changeGold(sign){
-  if (!selected){ msg("#ops-msg","Select a user first",false); return; }
-  const amount=parseInt($("#gold-amount").value||"0",10)||0;
-  if (amount===0){ msg("#ops-msg","Enter non-zero amount",false); return; }
-  const gold=sign>0?amount:-amount;
-  try{
-    const r=await api("/api/admin/adjust-balance",{
-      method:"POST",
-      body:JSON.stringify({ email:selected.email, gold })
-    });
-    msg("#ops-msg",`New balance: ${Math.floor(r.balance_silver/100)}g ${r.balance_silver%100}s`,true);
-    await loadUsers();
-    const found=users.find(x=>x.id===selected.id);
-    if (found) selected=found;
-    await loadInventory();
-  }catch(e){ msg("#ops-msg",e.message,false); }
-}
-
-async function setDisabled(flag){
-  if (!selected){ msg("#ops-msg","Select a user first",false); return; }
-  try{
-    await api("/api/admin/disable-user",{
-      method:"POST",
-      body:JSON.stringify({ email:selected.email, disabled:flag })
-    });
-    msg("#ops-msg",flag?"Account disabled":"Account enabled",true);
-    await loadUsers();
-    const found=users.find(x=>x.id===selected.id);
-    if (found) selected=found;
-    $("#sel-user-label").textContent=`Selected user: ${selected.email} (id ${selected.id})`;
-  }catch(e){ msg("#ops-msg",e.message,false); }
-}
-
-</script>
+<script src="/admin.js"></script>
 
 </body>
 </html>
