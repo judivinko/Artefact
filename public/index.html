@@ -1619,6 +1619,22 @@ function render(){
 window.renderQuests = render;
 window.questMarkReady = mark;
 
+setTimeout(()=>{
+  if (!window.setTab){
+    console.warn("setTab NOT FOUND");
+    return;
+  }
+
+  const original = window.setTab;
+
+  window.setTab = function(tab){
+    original(tab);                           // pokreni originalni tab switcher
+    mark("tab-" + tab);                      // označi quest
+    if (tab === "quest") render();           // render quest lista
+  };
+
+}, 200);
+  
 /* ============================================================
     QUEST TAB HOOK (FINAL)
 ============================================================ */
@@ -1775,6 +1791,7 @@ window.questMarkReady = mark;
     
 </body>
 </html>
+
 
 
 
