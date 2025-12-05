@@ -674,6 +674,19 @@ function questState(user_id){
   `).all(user_id);
 }
 
+function getUser(req){
+  const tok = req.cookies && req.cookies[TOKEN_NAME];
+  if (!tok) return null;
+
+  try{
+    const data = jwt.verify(tok, JWT_SECRET);
+    const u = db.prepare("SELECT id, email, is_disabled FROM users WHERE id=?").get(data.uid);
+    if (!u || u.is_disabled) return null;
+    return u;
+  }catch{
+    return null;
+  }
+}
 
 
 // ----------------- AUTH -----------------
@@ -1851,6 +1864,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
