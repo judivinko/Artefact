@@ -1481,9 +1481,9 @@
 <script>
 (async function(){
 
-/* ============================================================
-    DEFINICIJA QUESTOVA
-============================================================ */
+/* ============================================
+   DEFINICIJA QUESTOVA
+============================================ */
 const QUESTS_DAILY = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1507,9 +1507,9 @@ const QUESTS_LIFE = [
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ============================================================
-    FETCH STANJA
-============================================================ */
+/* ============================================
+   FETCH STATE
+============================================ */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
@@ -1522,16 +1522,16 @@ async function loadState(){
 
 let STATE = await loadState();
 
-/* ============================================================
-    GET STATE
-============================================================ */
+/* ============================================
+   GET STATE
+============================================ */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ============================================================
-    MARK READY
-============================================================ */
+/* ============================================
+   MARK READY
+============================================ */
 async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
@@ -1543,9 +1543,9 @@ async function mark(id){
   render();
 }
 
-/* ============================================================
-    CLAIM
-============================================================ */
+/* ============================================
+   CLAIM
+============================================ */
 async function claim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
@@ -1556,14 +1556,15 @@ async function claim(q){
   STATE = await loadState();
   render();
 
-  // server reward ➝ gold
-  WHO.balance_silver += q.reward * 100;
-  renderBalance();
+  if (window.WHO){
+    WHO.balance_silver += q.reward * 100;
+    if (typeof renderBalance === "function") renderBalance();
+  }
 }
 
-/* ============================================================
-    RENDER JEDNOG REDA
-============================================================ */
+/* ============================================
+   RENDER ROW
+============================================ */
 function row(q){
   const st = getState(q.id);
 
@@ -1574,7 +1575,6 @@ function row(q){
   if (st.done){
     label = "Finished";
     cls   = "quest-btn finished";
-    dis   = "disabled";
   }
   else if (st.ready){
     label = "Claim";
@@ -1583,22 +1583,19 @@ function row(q){
   }
 
   return `
-    <div class="quest-row" data-id="${q.id}">
-      <span>${q.name}</span>
-
-      <div class="quest-right">
-        <span class="quest-reward">+${q.reward} gold</span>
-        <button class="${cls}" ${dis}>${label}</button>
-      </div>
+  <div class="quest-row" data-id="${q.id}">
+    <span>${q.name}</span>
+    <div class="quest-right">
+      <span class="quest-reward">+${q.reward} gold</span>
+      <button class="${cls}" ${dis}>${label}</button>
     </div>
-  `;
+  </div>`;
 }
 
-/* ============================================================
-    RENDER LISTI
-============================================================ */
+/* ============================================
+   RENDER LISTS
+============================================ */
 function render(){
-
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
 
@@ -1614,45 +1611,28 @@ function render(){
   });
 }
 
-/* ============================================================
-    GLOBALIZACIJA
-============================================================ */
-window.renderQuests = render;
-window.questMarkReady = mark;
+/* ============================================
+   AUTONOMNI QUEST TAB LISTENER
+   (NE OVISI O setTab)
+============================================ */
+document.addEventListener("click", (e)=>{
+  const t = e.target.closest("[data-tab]");
+  if (!t) return;
 
-/* ============================================================
-    SETTAB HOOK  (FINAL VERSION, RADI 100%)
-============================================================ */
-setTimeout(()=>{
+  const tab = t.dataset.tab;
 
-  if (typeof window.setTab !== "function"){
-    console.warn("setTab NOT FOUND");
-    return;
+  // mark quest
+  mark("tab-" + tab);
+
+  // if quest tab open — render
+  if (tab === "quest"){
+    setTimeout(render, 100);
   }
-
-  const original = window.setTab;
-
-  window.setTab = function(tab){
-
-    // ORIGIN TAB SWITCH
-    original(tab);
-
-    // QUEST READY
-    window.questMarkReady("tab-" + tab);
-
-    // QUEST PANEL
-    const box = document.getElementById("tab-quest");
-    if (box){
-      const isQuest = (tab === "quest");
-      box.classList.toggle("hidden", !isQuest);
-      if (isQuest) render();
-    }
-  };
-
-}, 200);
+});
 
 })();
 </script>
+
 
 
 
@@ -1797,6 +1777,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
