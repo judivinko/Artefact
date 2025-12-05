@@ -1508,7 +1508,7 @@ const QUESTS_LIFE = [
 ];
 
 /* ============================================================
-    FETCH BACKEND STANJA (po korisniku)
+    FETCH STANJA
 ============================================================ */
 async function loadState(){
   try{
@@ -1523,7 +1523,7 @@ async function loadState(){
 let STATE = await loadState();
 
 /* ============================================================
-    HELPERI ZA STANJE
+    HELPER ZA STANJE
 ============================================================ */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
@@ -1556,13 +1556,12 @@ async function claim(q){
   STATE = await loadState();
   render();
 
-  // dodaj gold lokalno
   WHO.balance_silver += q.reward * 100;
   renderBalance();
 }
 
 /* ============================================================
-    RENDER JEDNA LINIJA
+    RENDER REDA
 ============================================================ */
 function row(q){
   const st = getState(q.id);
@@ -1599,15 +1598,12 @@ function row(q){
 ============================================================ */
 function render(){
 
-  // DAILY
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
 
-  // LIFETIME
   document.getElementById("quest-life").innerHTML =
     QUESTS_LIFE.map(row).join("");
 
-  // CLAIM CLICK
   document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
     btn.onclick = ()=>{
       const id = btn.closest(".quest-row").dataset.id;
@@ -1617,38 +1613,37 @@ function render(){
   });
 }
 
+/* ============================================================
+    FIX — GLOBALIZACIJA FUNKCIJA (OBAVEZNO!)
+============================================================ */
+window.renderQuests = render;
+window.questMarkReady = mark;
 
-// ======================
-// QUEST TAB HOOK (FINAL)
-// ======================
+/* ============================================================
+    QUEST TAB HOOK (FINAL)
+============================================================ */
 (function(){
   const origSetTab = window.setTab;
 
   window.setTab = async function(tab){
-    // prvo odradi originalni setTab
     origSetTab(tab);
 
-    // kontrola prikaza quest taba
     const el = document.getElementById("tab-quest");
     if (el){
       el.classList.toggle("hidden", tab !== "quest");
     }
 
-    // render questova kad uđeš u tab
     if (tab === "quest"){
-      if (typeof window.renderQuests === "function"){
-        window.renderQuests();
-      }
+      window.renderQuests();
     }
 
-    // markiraj quest "visit tab"
-    if (typeof window.questMarkReady === "function"){
-      window.questMarkReady("tab-" + tab);
-    }
+    window.questMarkReady("tab-" + tab);
   };
 })();
 
+})();
 </script>
+
 
 
 <script>
@@ -1780,6 +1775,7 @@ function render(){
     
 </body>
 </html>
+
 
 
 
