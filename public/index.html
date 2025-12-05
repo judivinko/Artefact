@@ -1481,9 +1481,9 @@
 <script>
 (async function(){
 
-/* ======================================
-   DEFINICIJA QUESTOVA
-====================================== */
+/* ============================================================
+    DEFINICIJA QUESTOVA
+============================================================ */
 const QUESTS_DAILY = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1507,9 +1507,9 @@ const QUESTS_LIFE = [
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ======================================
-   FETCH STATE
-====================================== */
+/* ============================================================
+    FETCH STANJA
+============================================================ */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
@@ -1522,16 +1522,16 @@ async function loadState(){
 
 let STATE = await loadState();
 
-/* ======================================
-   GET STATE
-====================================== */
+/* ============================================================
+    GET STATE
+============================================================ */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ======================================
-   MARK READY
-====================================== */
+/* ============================================================
+    MARK READY
+============================================================ */
 async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
@@ -1543,9 +1543,9 @@ async function mark(id){
   render();
 }
 
-/* ======================================
-   CLAIM QUEST
-====================================== */
+/* ============================================================
+    CLAIM
+============================================================ */
 async function claim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
@@ -1556,13 +1556,14 @@ async function claim(q){
   STATE = await loadState();
   render();
 
+  // server reward ➝ gold
   WHO.balance_silver += q.reward * 100;
   renderBalance();
 }
 
-/* ======================================
-   RENDER QUEST ROW
-====================================== */
+/* ============================================================
+    RENDER JEDNOG REDA
+============================================================ */
 function row(q){
   const st = getState(q.id);
 
@@ -1573,6 +1574,7 @@ function row(q){
   if (st.done){
     label = "Finished";
     cls   = "quest-btn finished";
+    dis   = "disabled";
   }
   else if (st.ready){
     label = "Claim";
@@ -1583,6 +1585,7 @@ function row(q){
   return `
     <div class="quest-row" data-id="${q.id}">
       <span>${q.name}</span>
+
       <div class="quest-right">
         <span class="quest-reward">+${q.reward} gold</span>
         <button class="${cls}" ${dis}>${label}</button>
@@ -1591,10 +1594,11 @@ function row(q){
   `;
 }
 
-/* ======================================
-   RENDER LISTS
-====================================== */
+/* ============================================================
+    RENDER LISTI
+============================================================ */
 function render(){
+
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
 
@@ -1610,15 +1614,15 @@ function render(){
   });
 }
 
-/* ======================================
-   GLOBALIZACIJA
-====================================== */
+/* ============================================================
+    GLOBALIZACIJA
+============================================================ */
 window.renderQuests = render;
 window.questMarkReady = mark;
 
-/* ======================================
-   UJEDINJENI setTab HOOK  (QUEST + ADS)
-====================================== */
+/* ============================================================
+    SETTAB HOOK  (FINAL VERSION, RADI 100%)
+============================================================ */
 setTimeout(()=>{
 
   if (typeof window.setTab !== "function"){
@@ -1630,24 +1634,18 @@ setTimeout(()=>{
 
   window.setTab = function(tab){
 
-    /* original */
+    // ORIGIN TAB SWITCH
     original(tab);
 
-    /* QUEST READY */
+    // QUEST READY
     window.questMarkReady("tab-" + tab);
 
-    /* QUEST PANEL */
-    const qp = document.getElementById("tab-quest");
-    if (qp){
-      qp.classList.toggle("hidden", tab !== "quest");
-      if (tab === "quest") window.renderQuests();
-    }
-
-    /* ADS PANEL */
-    const ap = document.getElementById("tab-ads");
-    if (ap){
-      ap.classList.toggle("hidden", tab !== "ads");
-      if (tab === "ads") window.renderAdsLinks?.();
+    // QUEST PANEL
+    const box = document.getElementById("tab-quest");
+    if (box){
+      const isQuest = (tab === "quest");
+      box.classList.toggle("hidden", !isQuest);
+      if (isQuest) render();
     }
   };
 
@@ -1655,6 +1653,7 @@ setTimeout(()=>{
 
 })();
 </script>
+
 
 
 
@@ -1791,6 +1790,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
