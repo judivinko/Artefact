@@ -13,47 +13,49 @@
     }
   </style>
 
-<script>
-(async function loadPayPalSDK(){
-  try {
-    const r = await fetch("/api/paypal/config", { credentials: "include" });
-    const j = await r.json().catch(()=>null);
+  <!-- PAYPAL SDK LOADER (NE DIRAM) -->
+  <script>
+  (async function loadPayPalSDK(){
+    try {
+      const r = await fetch("/api/paypal/config", { credentials: "include" });
+      const j = await r.json().catch(()=>null);
 
-    if (!r.ok || !j?.ok || !j?.client_id) {
-      console.warn("PayPal not configured:", j?.error || r.status);
+      if (!r.ok || !j?.ok || !j?.client_id) {
+        console.warn("PayPal not configured:", j?.error || r.status);
+        window.__PAYPAL_DISABLED__ = true;
+        return;
+      }
+
+      const qs = new URLSearchParams({
+        "client-id": j.client_id,
+        "currency": j.currency || "USD",
+        "intent": "capture",
+        "components": "buttons"
+      });
+
+      const s = document.createElement("script");
+      s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
+      s.async = true;
+      s.onload = () => { window.__PAYPAL_READY__ = true; };
+      document.head.appendChild(s);
+
+      window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
+
+    } catch(e) {
+      console.warn("PayPal SDK load failed:", e);
       window.__PAYPAL_DISABLED__ = true;
-      return;
     }
+  })();
+  </script>
 
-    const qs = new URLSearchParams({
-      "client-id": j.client_id,
-      "currency": j.currency || "USD",
-      "intent": "capture",
-      "components": "buttons"
-    });
-
-    const s = document.createElement("script");
-    s.src = `https://www.paypal.com/sdk/js?${qs.toString()}`;
-    s.async = true;
-    s.onload = () => { window.__PAYPAL_READY__ = true; };
-    document.head.appendChild(s);
-
-    window.__PAYPAL_MIN_USD__ = j.min_usd || 1;
-
-  } catch(e) {
-    console.warn("PayPal SDK load failed:", e);
-    window.__PAYPAL_DISABLED__ = true;
-  }
-})();
-</script>
-
-<link rel="stylesheet" href="/app.css" />
+  <link rel="stylesheet" href="/app.css" />
 </head>
 
 <body>
 
 <div id="app">
 
+<!-- HEADER -->
 <header class="header no-border" style="padding:14px 20px;">
   <div class="brand" style="font-size:22px; font-weight:700; letter-spacing:1px;">
     ARTEFACT
@@ -86,6 +88,7 @@
   </div>
 </header>
 
+<!-- PAYPAL PANEL -->
 <section id="paypal-panel" class="card hidden">
   <div class="row" style="align-items:center; gap:8px; flex-wrap:wrap">
     <label for="pp-amount" class="label" style="margin:0">Amount (USD)</label>
@@ -104,6 +107,7 @@
   <div id="pp-msg" class="muted" style="margin-top:8px"></div>
 </section>
 
+<!-- AUTH -->
 <section id="auth" class="card hidden">
   <div id="card-register" class="auth-box hidden">
     <div class="label">Register</div>
@@ -122,6 +126,7 @@
   </div>
 </section>
 
+<!-- TAB BAR -->
 <div class="tabbar row">
   <div class="chip active" data-tab="shop">Shop</div>
   <div class="chip" data-tab="quest">Quest</div>
@@ -132,6 +137,7 @@
   <div class="chip" data-tab="ads">Ads</div>
 </div>
 
+<!-- SHOP TAB -->
 <div id="tab-shop" class="tab card">
 
   <div class="label" style="margin-bottom:12px;">Shop</div>
@@ -182,7 +188,7 @@
         </div>
 
         <p class="muted">
-          In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.<br>
+          In the Shop, you buy <b>T1 materials</b>, and occasionally you also receive <b>recipes</b>.
           Materials are ingredients for crafting, while recipes unlock higher tiers.
         </p>
 
@@ -194,9 +200,7 @@
 
   <div class="card" style="margin-top:16px;">
     <div class="label">2) Crafting</div>
-    <p class="muted">
-      With a recipe and the required materials, you can craft <b>T2 → T5</b>.
-    </p>
+    <p class="muted">With a recipe and the required materials, you can craft <b>T2 → T5</b>.</p>
     <img src="/t2_golden_ring.png" class="img-landing">
     <img src="/t3_gate_of_might.png" class="img-landing">
     <img src="/t4_engine_core.png" class="img-landing">
@@ -215,7 +219,6 @@
   </div>
 
 </div>
-
 <!-- ===== QUEST TAB ===== -->
 <div id="tab-quest" class="tab card hidden">
 
@@ -231,6 +234,7 @@
 
 </div>
 
+
 <!-- ===== CRAFTING TAB ===== -->
 <div id="tab-craft" class="tab card hidden">
 
@@ -239,7 +243,7 @@
     <span id="craft-perk" class="badge muted" title="Crafting fail chance">10% fail</span>
 
     <button id="btn-artefact" class="btn right">
-      <img src="/artefakt.png" alt="Artefact" class="img-cell"
+      <img src="/artefakt.png" class="img-cell"
            onerror="this.onerror=null;this.style.display='none'">
       Craft ARTEFACT (10× distinct T5)
     </button>
@@ -266,6 +270,7 @@
   </div>
 
 </div>
+
 
 <!-- ===== MARKET TAB ===== -->
 <section id="tab-market" class="card hidden">
@@ -314,6 +319,7 @@
   </div>
 </section>
 
+
 <!-- ===== INVENTORY TAB ===== -->
 <section id="tab-inv" class="card hidden">
   <div class="label" style="margin-bottom:12px;">Inventory</div>
@@ -336,6 +342,7 @@
 
   </div>
 </section>
+
 
 <!-- ===== BONUS TAB ===== -->
 <div id="tab-bonus" class="tab card hidden">
@@ -397,1205 +404,973 @@
   </div>
 
 </div>
-
+<!-- ===== GLOBAL UTILITY / API WRAPPER ===== -->
 <script>
 (function(){
-  const w = window;
+  const W = window;
 
-  w.$  = w.$  || ((s, root=document) => root.querySelector(s));
-  w.$$ = w.$$ || ((s, root=document) => Array.from(root.querySelectorAll(s)));
+  // Shortcuts
+  W.$  = (s, r=document) => r.querySelector(s);
+  W.$$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  w.showToast = w.showToast || function(msg){
-    const box = document.getElementById("toast");
-    if (!box) return console.warn("TOAST:", msg);
-
-    box.textContent = String(msg || "");
+  // Toast
+  W.showToast = function(msg){
+    const box = $("#toast");
+    if(!box){
+      console.warn("TOAST:", msg);
+      return;
+    }
+    box.textContent = String(msg);
     box.classList.remove("hidden");
-
     clearTimeout(box._t);
-    box._t = setTimeout(() => box.classList.add("hidden"), 2600);
+    box._t = setTimeout(()=> box.classList.add("hidden"), 2500);
   };
 
-  try { if (typeof w.toast !== "function") w.toast = w.showToast; }
-  catch (_) { w.toast = w.showToast; }
-
-  w.api = w.api || (async function api(path, opts={}){
+  // Wrapper for all API calls (jedini ostaje)
+  W.api = async function(path, opts={}){
     const method  = (opts.method || "GET").toUpperCase();
     const headers = { ...(opts.headers || {}) };
 
     const init = {
-      credentials: "include",
       ...opts,
       method,
+      credentials:"include",
       headers
     };
 
-    if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
+    // Auto-encode JSON body
+    if(init.body && typeof init.body==="object" && !(init.body instanceof FormData)){
       headers["Content-Type"] = headers["Content-Type"] || "application/json";
       init.body = JSON.stringify(init.body);
     }
 
     let res;
-    try {
+    try{
       res = await fetch(path, init);
-    } catch (err) {
-      const e = new Error("Network error");
-      e.cause = err;
-      throw e;
+    }catch(err){
+      throw new Error("Network error");
     }
 
-    const text = await res.text().catch(() => null);
-    let data = null;
+    const text = await res.text().catch(()=>null);
+    let data;
 
-    if (text && text.trim()) {
-      try { data = JSON.parse(text); }
-      catch { data = { ok:false, error: "Invalid JSON" }; }
+    if(text && text.trim()){
+      try{ data = JSON.parse(text); }
+      catch{ data = { ok:false, error:"Invalid JSON" }; }
     } else {
-      data = (res.status === 204) ? { ok:true } : {};
+      data = (res.status===204) ? {ok:true} : {};
     }
 
-    if (!res.ok) {
-      const e = new Error(data.error || ("HTTP " + res.status));
-      e.status = res.status;
-      e.data   = data;
+    if(!res.ok){
+      const e = new Error(data.error || ("HTTP "+res.status));
+      e.data = data;
       throw e;
     }
 
     return data;
-  });
-
-  w.safeCall = w.safeCall || (async function(fnName, ...args){
-    const fn = w[fnName];
-    if (typeof fn !== "function") return;
-
-    try { return await fn(...args); }
-    catch (err) { console.warn(fnName, "failed:", err); }
-  });
+  };
 
 })();
 </script>
 
+
+<!-- ===== GLOBAL VARIABLES & REFRESH ===== -->
 <script>
-const IMG_PREFIX = "/";
-const RECIPE_ICON = IMG_PREFIX + "recipe.png";
-const FALLBACK_ITEM_ICON = IMG_PREFIX + "t1_bronze.png";
-
-function esc(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#39;");
-}
-
-function fileNameFromCodeTier(code, tier){
-  if (!code) return null;
-  const str = String(code);
-  const m = str.match(/^T([1-6])_(.+)$/i);
-  if (m){
-    return `t${m[1]}_${m[2].toLowerCase()}.png`;
-  }
-  if ((tier|0) === 1){
-    return `t1_${str.toLowerCase()}.png`;
-  }
-  return null;
-}
-
-function iconForByCode(code, tier){
-  const file = fileNameFromCodeTier(code, tier);
-  return file ? IMG_PREFIX + file : FALLBACK_ITEM_ICON;
-}
-</script>
-
-<!-- GLOBAL & REFRESH -->
-<script>
-let WHO = window.WHO || null;
+let WHO = null;
 window.CURRENT_RECIPE_ID = null;
-window.refreshMeLight = async () => {
+
+// Minimal light refresh — NE RADI duple pozive
+window.refreshMeLight = async function(){
   try{
     const r = await api("/api/me");
-    if (r?.user){
+    if(r?.user){
       WHO = r.user;
-      window.WHO = WHO;
       renderBalance();
     }
-    // lightweight refresh (NO DUPLICATE CALLS)
-    safeCall("loadInventoryPanel");
-    safeCall("loadMarket");
-    safeCall("loadMine");
+
+    // lagani update — bez petlji
+    if(document.querySelector(".chip.active")?.dataset.tab === "market"){
+      loadInventoryPanel();
+      loadMarket();
+      loadMine();
+    }
+
   }catch(e){
     console.warn("refreshMeLight failed:", e);
   }
 };
 
 function showApp(){
-  const app = document.getElementById("app");
-  if (app) app.classList.remove("hidden");
+  $("#app")?.classList.remove("hidden");
 }
 
 function renderBalance(){
-  const v = WHO?.balance_silver || 0;
-  const g = Math.floor(v/100);
-  const s = v % 100;
+  const silver = WHO?.balance_silver || 0;
+  const g = Math.floor(silver/100);
+  const s = silver % 100;
 
-  const el = document.getElementById("balance");
-  if (el){
-    el.textContent = `${g}g ${s}s`;
-    el.classList.add("pulse");
-    setTimeout(()=> el.classList.remove("pulse"), 1300);
+  const bal = $("#balance");
+  if(bal){
+    bal.classList.remove("hidden");
+    bal.textContent = `${g}g ${s}s`;
+    bal.classList.add("pulse");
+    setTimeout(()=>bal.classList.remove("pulse"), 800);
   }
 
-  const usd = document.getElementById("balance-dollar");
-  if (usd){
-    usd.innerText = `$${(g/1000).toFixed(2)}`;
+  const usd = $("#balance-dollar");
+  if(usd){
     usd.classList.remove("hidden");
+    usd.textContent = `$${(g/1000).toFixed(2)}`;
   }
 }
-</script>
 
-<script>
 function applyPerkIndicators(){
   const price = WHO?.perks?.shop_price_s ?? 100;
-  $("#shop-price-badge") && ($("#shop-price-badge").textContent = `${price}s`);
-  $("#shop-price-inline") && ($("#shop-price-inline").textContent = String(price));
+  $("#shop-price-badge").textContent = price+"s";
+  $("#shop-price-inline").textContent = price;
 
   const noFail = !!WHO?.perks?.craft_no_fail;
-  $("#craft-perk") && ($("#craft-perk").textContent = noFail ? "No fail" : "10% fail");
+  $("#craft-perk").textContent = noFail ? "No fail" : "10% fail";
 
   const fee = WHO?.perks?.auction_fee_bps===0 ? "0%" : "1%";
-  $("#market-fee-inline") && ($("#market-fee-inline").textContent = `Fee: ${fee}`);
+  $("#market-fee-inline").textContent = `Fee: ${fee}`;
 
-  const minNote = !!WHO?.perks?.min_list_price_s;
-  $("#market-min-inline")?.classList.toggle("hidden", !minNote);
+  const hasMin = !!WHO?.perks?.min_list_price_s;
+  $("#market-min-inline").classList.toggle("hidden", !hasMin);
 }
 </script>
 
-<!-- TABS -->
+
+<!-- ===== TAB SISTEM ===== -->
 <script>
 async function setTab(tab){
   showApp();
 
-  $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
+  // Chip aktivacija
+  $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab===tab));
 
-  $("#tab-shop")   ?.classList.toggle("hidden", tab !== "shop");
-  $("#tab-quest")  ?.classList.toggle("hidden", tab !== "quest");
-  $("#tab-craft")  ?.classList.toggle("hidden", tab !== "craft");
-  $("#tab-market") ?.classList.toggle("hidden", tab !== "market");
-  $("#tab-inv")    ?.classList.toggle("hidden", tab !== "inv");
-  $("#tab-bonus")  ?.classList.toggle("hidden", tab !== "bonus");
-  $("#tab-ads")    ?.classList.toggle("hidden", tab !== "ads");
+  // Prikaz tabova
+  ["shop","quest","craft","market","inv","bonus","ads"].forEach(id=>{
+    $("#tab-"+id)?.classList.toggle("hidden", id!==tab);
+  });
 
-  if (tab === "quest"){ window.showQuestTab?.(); window.questTrigger?.("quest-click"); }
-  if (tab === "shop") window.questTrigger?.("shop-click");
-  if (tab === "craft") window.questTrigger?.("craft-click");
-  if (tab === "market"){ loadInventoryPanel(); loadMarket(); loadMine(); }
-  if (tab === "inv") loadInventoryFull();
-  if (tab === "bonus") loadBonus();
-  if (tab === "ads") loadAdsPanel();
+  // Triggers
+  if(tab==="quest"){ showQuestTab(); questTrigger("quest-click"); }
+  if(tab==="shop")  questTrigger("shop-click");
+  if(tab==="craft") questTrigger("craft-click");
+
+  if(tab==="market"){
+    loadInventoryPanel();
+    loadMarket();
+    loadMine();
+  }
+
+  if(tab==="inv")   loadInventoryFull();
+  if(tab==="bonus") loadBonus();
+  if(tab==="ads")   loadAdsPanel();
 }
 </script>
 
-<!-- AUTH -->
+
+<!-- ===== AUTH SYSTEM ===== -->
 <script>
 async function loadMe(){
   try{
     const r = await api("/api/me");
-    if (!r?.user) throw new Error("no session");
+    if(!r?.user) throw 0;
 
     WHO = r.user;
-    window.WHO = WHO;
-
-    setLoggedInUI();
-
-    const b = $("#buysToNext");
-    if (b) b.textContent = (typeof WHO?.buys_to_next === "number")
-      ? WHO.buys_to_next : "—";
-
+    renderBalance();
     applyPerkIndicators();
 
+    setLoggedInUI();
     setTab("shop");
 
   }catch{
+    WHO = null;
     setLoggedOutUI();
     setTab("shop");
   }
 }
 
 function openAuth(mode){
-  const auth = $("#auth");
-  if (!auth) return;
+  const box = $("#auth");
+  if(!box) return;
 
-  auth.classList.remove("hidden");
+  box.classList.remove("hidden");
 
-  $("#card-register").style.display = (mode === "register" ? "block" : "none");
-  $("#card-login").style.display    = (mode === "login"    ? "block" : "none");
+  $("#card-login").style.display    = (mode==="login"    ? "block" : "none");
+  $("#card-register").style.display = (mode==="register" ? "block" : "none");
 
-  if (mode === "register") $("#reg-email")?.focus();
-  if (mode === "login")    $("#log-email")?.focus();
+  if(mode==="login")    $("#log-email")?.focus();
+  if(mode==="register") $("#reg-email")?.focus();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-
-  const header = document.querySelector("header.header");
-  const auth = document.getElementById("auth");
-
-  if (header && auth && auth.previousElementSibling !== header) {
-    header.insertAdjacentElement("afterend", auth);
-  }
-
-  $("#btn-open-register")?.addEventListener("click", () => openAuth("register"));
-  $("#btn-open-login")?.addEventListener("click", () => openAuth("login"));
-
-  $("#btn-register")?.addEventListener("click", doRegister);
-  $("#btn-login")?.addEventListener("click", doLogin);
-  $("#btn-logout")?.addEventListener("click", doLogout);
-
-  $("#reg-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-  $("#reg-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doRegister(); });
-  $("#log-email")?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-  $("#log-pass") ?.addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
-
-  $$(".chip").forEach(c => c.addEventListener("click", ()=> setTab(c.dataset.tab)));
-
-  loadMe();
-});
-
-<script>
 async function doRegister(){
   const msg = $("#reg-msg");
   try{
-    const email = $("#reg-email")?.value.trim();
-    const pass = $("#reg-pass")?.value || "";
-    if (!email || !pass) throw new Error("Enter email & password.");
-    if (pass.length < 6) throw new Error("Password too short (min 6).");
+    const email = $("#reg-email").value.trim();
+    const pass  = $("#reg-pass").value;
+
+    if(!email || !pass) throw new Error("Enter email & password.");
+    if(pass.length < 6)  throw new Error("Password too short.");
+
     msg.textContent = "…";
-    await api("/api/register", { method:"POST", body: { email, password: pass } });
+    await api("/api/register",{method:"POST",body:{email,password:pass}});
     msg.textContent = "OK — now log in.";
+
     $("#card-register").style.display="none";
     $("#card-login").style.display="block";
-    $("#log-email")?.focus();
+    $("#log-email").focus();
+
   }catch(e){
-    msg.textContent = e?.message || "Register failed.";
+    msg.textContent = e.message;
   }
 }
 
 async function doLogin(){
   const msg = $("#log-msg");
   try{
-    const email = $("#log-email")?.value.trim();
-    const pass = $("#log-pass")?.value || "";
-    if (!email || !pass) throw new Error("Enter email & password.");
+    const email = $("#log-email").value.trim();
+    const pass  = $("#log-pass").value;
+
+    if(!email || !pass) throw new Error("Enter both fields.");
+
     msg.textContent = "…";
-    await api("/api/login", { method:"POST", body: { email, password: pass } });
-    msg.textContent = "OK";
+    await api("/api/login",{method:"POST",body:{email,password:pass}});
+
     await loadMe();
+    msg.textContent = "OK";
+
   }catch(e){
-    msg.textContent = e?.message || "Login failed.";
+    msg.textContent = e.message || "Login failed.";
   }
 }
 
 async function doLogout(){
-  try { await api("/api/logout"); } catch {}
+  try{ await api("/api/logout"); }catch{}
+  WHO = null;
   setLoggedOutUI();
+  setTab("shop");
+}
+
+function setLoggedInUI(){
+  $("#btn-open-register")?.classList.add("hidden");
+  $("#btn-open-login")?.classList.add("hidden");
+  $("#btn-open-paypal")?.classList.remove("hidden");
+  $("#btn-logout")?.classList.remove("hidden");
+}
+
+function setLoggedOutUI(){
+  $("#btn-open-register")?.classList.remove("hidden");
+  $("#btn-open-login")?.classList.remove("hidden");
+  $("#btn-open-paypal")?.classList.add("hidden");
+  $("#btn-logout")?.classList.add("hidden");
 }
 </script>
 
-<!-- SHOP -->
+
+<!-- ===== DOMContentLoaded ===== -->
 <script>
-(function(){
-  const $ = sel => document.querySelector(sel);
-
-  async function loadShop(){
-    try {
-      const r = await api("/api/shop/info");
-
-      $("#shop-price-inline").textContent = r.price_s || 100;
-      $("#shop-price-badge").textContent = (r.price_s || 100) + "s";
-
-      $("#buysToNext").textContent = r.buys_to_next ?? "—";
-
-      if (window.WHO){
-        const g = Math.floor(WHO.balance_silver / 100);
-        const s = WHO.balance_silver % 100;
-        const el = $("#shop-balance");
-        if (el){
-          el.classList.remove("hidden");
-          el.textContent = `${g}g ${s}s`;
-        }
-      }
-
-    } catch(e){
-      console.warn("loadShop fail", e);
-    }
-  }
-
-  async function doBuyT1(){
-    const inp = $("#buy-t1-qty");
-    let qty = parseInt(inp?.value || "1", 10);
-    if (!qty || qty < 1) qty = 1;
-    if (qty > 99999) qty = 99999;
-
-    const btn = $("#btn-buy-t1");
-    const prev = btn.textContent;
-
-    btn.disabled = true;
-    btn.textContent = "Buying…";
-
-    try{
-      const r = await api("/api/shop/buy-t1", {
-        method:"POST",
-        body:{ qty }
-      });
-
-      if (r?.balance_silver != null && window.WHO){
-        WHO.balance_silver = r.balance_silver | 0;
-        renderBalance();
-      }
-
-      await loadShop();
-      await loadInventoryPanel();
-
-      showToast(`Purchased x${qty}`);
-      window.questTrigger?.("buy-mat");
-
-    }catch(e){
-      showToast(e?.message || "Buy failed.");
-    }finally{
-      btn.disabled = false;
-      btn.textContent = prev;
-      inp.value = "1";
-    }
-  }
-
-  window.showShopTab = loadShop;
-  $("#btn-buy-t1")?.addEventListener("click", doBuyT1);
-
-})();
-</script>
-
-<!-- QUEST SYSTEM -->
-<script>
-(function(){
-  const esc = s=>String(s);
-
-  const DAILY_QUESTS = [];
-
-  const LIFETIME_QUESTS = [
-    { id:"shop-click",     text:"Klikni na tab Shop",      reward:20 },
-    { id:"craft-click",    text:"Klikni na tab Crafting",  reward:20 },
-    { id:"market-click",   text:"Klikni na tab Market",    reward:20 },
-    { id:"inv-click",      text:"Klikni na tab Inventory", reward:20 },
-    { id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20 },
-    { id:"ads-click",      text:"Klikni na tab Ads",       reward:20 },
-
-    { id:"craft-t2", text:"Iskraftaj T2 item", reward:20 },
-    { id:"craft-t3", text:"Iskraftaj T3 item", reward:30 },
-    { id:"craft-t4", text:"Iskraftaj T4 item", reward:40 },
-    { id:"craft-t5", text:"Iskraftaj T5 item", reward:50 },
-
-    { id:"sell-t2", text:"Postavi T2 item na aukciju", reward:20 },
-    { id:"sell-t3", text:"Postavi T3 item na aukciju", reward:30 },
-    { id:"sell-t4", text:"Postavi T4 item na aukciju", reward:40 },
-    { id:"sell-t5", text:"Postavi T5 item na aukciju", reward:50 },
-
-    { id:"buy-mat", text:"Kupi bilo koji materijal", reward:10 },
-
-    { id:"rec-t2", text:"Osvoji T2 recept", reward:20 },
-    { id:"rec-t3", text:"Osvoji T3 recept", reward:30 },
-    { id:"rec-t4", text:"Osvoji T4 recept", reward:40 },
-    { id:"rec-t5", text:"Osvoji T5 recept", reward:50 },
-
-    { id:"artifact", text:"Iskraftaj Artefakt", reward:10000 },
-
-    { id:"buy-t2", text:"Kupi T2 item na aukciji", reward:20 },
-    { id:"buy-t3", text:"Kupi T3 item na aukciji", reward:30 },
-    { id:"buy-t4", text:"Kupi T4 item na aukciji", reward:40 },
-    { id:"buy-t5", text:"Kupi T5 item na aukciji", reward:50 },
-
-    { id:"shop-spend", text:"Potroši 100 golda u Shopu", reward:50 },
-
-    { id:"buy-gold-1",  text:"Kupi gold za 1$",   reward:1000 },
-    { id:"buy-gold-10", text:"Kupi gold za 10$",  reward:10000 },
-    { id:"buy-gold-50", text:"Kupi gold za 50$",  reward:50000 }
-  ];
-
-  function dailyResetCheck(){
-    const today = new Date().toDateString();
-    const last  = localStorage.getItem("quests_day") || "";
-    if(today !== last){
-      localStorage.setItem("quests_day", today);
-      localStorage.setItem("quests_done", JSON.stringify({}));
-    }
-  }
-
-  function getStatus(){
-    return JSON.parse(localStorage.getItem("quests_done") || "{}");
-  }
-
-  function saveStatus(status){
-    localStorage.setItem("quests_done", JSON.stringify(status));
-  }
-
-  window.questTrigger = function(id){
-    const status = getStatus();
-    if(status[id]) return;
-    status[id] = false;
-    saveStatus(status);
-    renderQuests();
-  };
-
-  window.claimQuest = function(id, reward){
-    const status = getStatus();
-    if(status[id] === true) return;
-
-    status[id] = true;
-    saveStatus(status);
-
-    if (window.WHO) {
-      WHO.balance_silver += reward * 100;
-      renderBalance();
-    }
-
-    const msg = document.getElementById("quest-msg-lifetime");
-    if (msg) msg.innerText = `Dobio si +${reward} gold!`;
-
-    renderQuests();
-  };
-
-  function renderQuests(){
-    const listDaily     = document.getElementById("quest-list-daily");
-    const msgDaily      = document.getElementById("quest-msg-daily");
-    const listLifetime  = document.getElementById("quest-list-lifetime");
-    const msgLifetime   = document.getElementById("quest-msg-lifetime");
-
-    if(!listDaily || !listLifetime) return;
-
-    const status = getStatus();
-
-    listDaily.innerHTML = "";
-    msgDaily.innerHTML = "";
-
-    DAILY_QUESTS.forEach(q => {
-      const done = status[q.id] === true;
-      const active = status[q.id] !== undefined;
-
-      const row = document.createElement("div");
-      row.className = "card row";
-      row.style.justifyContent = "space-between";
-
-      row.innerHTML = `
-        <div>
-          <div>${q.text}</div>
-          <div class="muted" style="font-size:12px">Nagrada: ${q.reward} gold</div>
-        </div>
-
-        <button class="btn ${done ? "disabled" : !active ? "muted" : ""}"
-          onclick="${done ? "" : active ? `window.claimQuest('${q.id}', ${q.reward})` : ""}">
-          ${ done ? "Završeno" : active ? "Claim" : "U tijeku" }
-        </button>
-      `;
-      listDaily.appendChild(row);
-    });
-
-    if(DAILY_QUESTS.length === 0)
-      msgDaily.innerText = "Nema dnevnih questova.";
-
-    listLifetime.innerHTML = "";
-    msgLifetime.innerHTML = "";
-
-    LIFETIME_QUESTS.forEach(q => {
-      const done = status[q.id] === true;
-      const active = status[q.id] !== undefined;
-
-      const row = document.createElement("div");
-      row.className = "card row";
-      row.style.justifyContent = "space-between";
-
-      row.innerHTML = `
-        <div>
-          <div>${q.text}</div>
-          <div class="muted" style="font-size:12px">Nagrada: ${q.reward} gold</div>
-        </div>
-
-        <button class="btn ${done ? "disabled" : !active ? "muted" : ""}"
-          onclick="${done ? "" : active ? `window.claimQuest('${q.id}', ${q.reward})` : ""}">
-          ${ done ? "Završeno" : active ? "Claim" : "U tijeku" }
-        </button>
-      `;
-      listLifetime.appendChild(row);
-    });
-  }
-
-  window.showQuestTab = function(){
-    dailyResetCheck();
-    renderQuests();
-  };
-
-})();
-</script>
-
-<!-- CRAFTING -->
-<script>
-  function rowRecipe(r){
-    return `
-      <div class="itemrow">
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell" src="${RECIPE_ICON}" alt=""
-               onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
-          <div>
-            <div class="label" style="text-transform:none;color:var(--text)">
-              ${esc(r.name)}</div>
-            <div class="muted">T${r.tier} · x${r.qty}</div>
-          </div>
-        </div>
-        <button class="btn muted" data-open="${esc(r.id)}">Open</button>
-      </div>`;
-  }
-
-  async function loadRecipes(){
-    const box = $("#recipes");
-    if (!box) return;
-    box.textContent = "Loading…";
-    try{
-      const list = await api("/api/recipes/list");
-      const q = ($("#filter-recipe")?.value || "").trim().toLowerCase();
-      const rows = (list?.recipes || []).filter(x => !q || x.name.toLowerCase().includes(q));
-      if (!rows.length){ box.textContent = "No recipes."; return; }
-      box.innerHTML = rows.map(rowRecipe).join("");
-      box.querySelectorAll("[data-open]").forEach(btn=>{
-        btn.addEventListener("click",()=>openRecipe(btn.getAttribute("data-open")));
-      });
-    }catch(e){
-      box.textContent = e?.message || "Failed to load recipes.";
-    }
-  }
-
-  $("#btn-refresh-rec")?.addEventListener("click", loadRecipes);
-  $("#filter-recipe")?.addEventListener("input", loadRecipes);
-
-  function renderIngredients(details){
-    const parts = (details.ingredients||[]).map(ing=>{
-      const ok = (ing.have|0) >= (ing.qty|0);
-      const src = iconForByCode(ing.code, ing.tier);
-      return `
-        <div class="itemrow">
-          <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(src)}" alt=""
-                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(ing.name)} <span class="badge">T${ing.tier}</span></div>
-          </div>
-          <div class="${ok ? "" : "muted"}">${(ing.have|0)}/${(ing.qty|0)}</div>
-        </div>`;
-    }).join("");
-
-    const canCraft = (details.ingredients||[]).every(ing => (ing.have|0) >= (ing.qty|0));
-    const note = WHO?.perks?.craft_no_fail
-      ? "No fail (server checks ingredients)"
-      : (canCraft ? "10% fail → Scrap" : "Missing materials");
-
-    return `
-      <div class="itemrow"><div><b>${esc(details.recipe.name)}</b>
-      <span class="badge">T${details.recipe.tier}</span></div></div>
-      <div class="itemrow"><div class="muted">Ingredients</div></div>
-      ${parts}
-      <div class="itemrow">
-        <button id="btn-craft" class="btn" data-can="${canCraft ? "1" : "0"}">
-          Craft</button>
-        <span class="muted" style="margin-left:8px">${note}</span>
-      </div>`;
-  }
-
-  async function openRecipe(id){
-    const box = $("#rec-details");
-    box.textContent = "Loading…";
-    try{
-      const details = await api(`/api/recipes/ingredients/${encodeURIComponent(id)}`);
-      box.innerHTML = renderIngredients(details);
-      window.CURRENT_RECIPE_DETAILS = details;
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
-    }
-  }
-
-  document.addEventListener("click", async(e)=>{
-    if (e.target.id !== "btn-craft") return;
-
-    const d = window.CURRENT_RECIPE_DETAILS;
-    if (!d || !d.recipe?.id) return showToast("Open a recipe first.");
-
-    if (e.target.getAttribute("data-can") !== "1"){
-      return showToast("Missing materials.");
-    }
-
-    const btn = e.target;
-    const prev = btn.textContent;
-
-    btn.disabled = true;
-    btn.textContent = "Crafting…";
-
-    try{
-      const r = await api("/api/craft/do",{method:"POST",body:{recipe_id:d.recipe.id}});
-      if (r.crafted) showToast(`Crafted: ${r.crafted.name}`);
-      else if (r.scrap) showToast("Failed (Scrap)");
-      await loadInventoryPanel();
-      await loadInventoryFull();
-      await loadRecipes();
-      await openRecipe(d.recipe.id);
-    }catch(e){
-      showToast(e?.message || "Failed.");
-    }finally{
-      btn.disabled = false;
-      btn.textContent = prev;
-    }
+document.addEventListener("DOMContentLoaded",()=>{
+
+  // AUTH
+  $("#btn-open-login")   ?.addEventListener("click", ()=>openAuth("login"));
+  $("#btn-open-register")?.addEventListener("click", ()=>openAuth("register"));
+  $("#btn-register")?.addEventListener("click", doRegister);
+  $("#btn-login")   ?.addEventListener("click", doLogin);
+  $("#btn-logout")  ?.addEventListener("click", doLogout);
+
+  $("#reg-email")?.addEventListener("keydown", e=>e.key==="Enter"&&doRegister());
+  $("#reg-pass") ?.addEventListener("keydown", e=>e.key==="Enter"&&doRegister());
+  $("#log-email")?.addEventListener("keydown", e=>e.key==="Enter"&&doLogin());
+  $("#log-pass") ?.addEventListener("keydown", e=>e.key==="Enter"&&doLogin());
+
+  // Tabs
+  $$(".chip").forEach(c=>{
+    c.addEventListener("click", ()=> setTab(c.dataset.tab));
   });
-</script>
 
-<!-- MARKET & INVENTORY -->
+  // Load session
+  loadMe();
+});
+</script>
+<!-- ===== SHOP ===== -->
 <script>
-async function safeLoad(sel, fn){
-  const box = $(sel);
-  if (!box) return;
+async function loadShop(){
+  if(!WHO) return;
   try{
-    await fn(box);
+    const r = await api("/api/shop/status");
+    $("#buysToNext").textContent = r?.buysToNext ?? "—";
+    $("#shop-price-inline").textContent = r?.price_s ?? 100;
+    $("#shop-price-badge").textContent  = (r?.price_s ?? 100) + "s";
   }catch(e){
-    box.textContent = e?.message || "Failed.";
+    console.warn("loadShop failed:", e);
   }
 }
 
-async function getJSON(url){
-  return api(url, { method:"GET" });
+async function buyT1(){
+  const qty = parseInt($("#buy-t1-qty").value)||0;
+  const msg = $("#shop-msg");
+  msg.textContent = "";
+
+  if(qty<=0){
+    msg.textContent = "Enter valid quantity.";
+    return;
+  }
+
+  try{
+    msg.textContent="…";
+    await api("/api/shop/buy-t1",{
+      method:"POST",
+      body:{ qty }
+    });
+    msg.textContent="OK";
+    await refreshMeLight();
+    await loadShop();
+  }catch(e){
+    msg.textContent=e.message;
+  }
 }
 
-async function postJSON(url, body){
-  return api(url, { method:"POST", body });
+$("#btn-buy-t1")?.addEventListener("click",buyT1);
+</script>
+
+
+<!-- ===== QUEST SYSTEM ===== -->
+<script>
+const QUESTS=[
+  {id:"shop-click",     text:"Klikni na tab Shop",      reward:20},
+  {id:"craft-click",    text:"Klikni na tab Crafting",  reward:20},
+  {id:"market-click",   text:"Klikni na tab Market",    reward:20},
+  {id:"inv-click",      text:"Klikni na tab Inventory", reward:20},
+  {id:"bonus-click",    text:"Klikni na tab Bonus",     reward:20},
+  {id:"craft-t2", text:"Iskraftaj T2 item", reward:20},
+  {id:"craft-t3", text:"Iskraftaj T3 item", reward:20},
+  {id:"craft-t4", text:"Iskraftaj T4 item", reward:20},
+  {id:"craft-t5", text:"Iskraftaj T5 item", reward:20},
+];
+
+async function questTrigger(id){
+  try{
+    await api("/api/quest/trigger",{method:"POST",body:{id}});
+    loadQuests();
+  }catch{}
 }
 
-async function loadInventoryPanel(){
-  await safeLoad("#inv-list", async (box) => {
-    const q = ($("#inv-search")?.value || "").trim().toLowerCase();
-    const r = await getJSON("/api/inventory");
+async function loadQuests(){
+  try{
+    const r=await api("/api/quest/status");
+    const daily=r?.daily||[];
+    const life =r?.lifetime||[];
 
-    const items = (r.items || [])
-      .filter(x => x.code !== "ARTEFACT" && (x.tier|0) < 6)
-      .filter(x => !q || (x.name || "").toLowerCase().includes(q));
+    renderQuestList("#quest-list-daily",daily);
+    renderQuestList("#quest-list-lifetime",life);
+  }catch(e){
+    console.warn("loadQuests failed:",e);
+  }
+}
 
-    const recipes = (r.recipes || [])
-      .filter(x => !q || (x.name || "").toLowerCase().includes(q));
+function renderQuestList(sel,list){
+  const box=$(sel);
+  box.innerHTML="";
+  for(const q of list){
+    const row=document.createElement("div");
+    row.className="row card";
+    row.style.justifyContent="space-between";
+    row.innerHTML=`
+      <div>${q.text}</div>
+      <button class="btn ${q.done?"muted":""}" ${q.done?"disabled":""}
+        data-q="${q.id}">${q.done?"Done":"+20"}</button>
+    `;
+    box.appendChild(row);
+  }
+
+  box.querySelectorAll("button[data-q]").forEach(b=>{
+    b.addEventListener("click",async()=>{
+      const id=b.dataset.q;
+      try{
+        await api("/api/quest/claim",{method:"POST",body:{id}});
+        loadQuests();
+        refreshMeLight();
+      }catch(e){
+        showToast(e.message);
+      }
+    });
+  });
+}
+
+function showQuestTab(){
+  loadQuests();
+}
+</script>
+
+
+<!-- ===== CRAFTING ===== -->
+<script>
+async function loadRecipes(){
+  try{
+    const r = await api("/api/recipes/list");
+    renderRecipeList(r?.rows||[]);
+  }catch(e){
+    $("#recipes").textContent="Failed to load recipes.";
+  }
+}
+
+function renderRecipeList(rows){
+  const box=$("#recipes");
+  const q=$("#filter-recipe").value.trim().toLowerCase();
+  box.innerHTML="";
+
+  for(const r of rows){
+    if(q && !(r.name||"").toLowerCase().includes(q)) continue;
+
+    const row=document.createElement("div");
+    row.className="rowx card";
+    row.style.cursor="pointer";
+    row.innerHTML=`
+      <img src="${r.icon||'/recipe.png'}" class="img-cell" />
+      <div class="col">
+        <div>${r.name}</div>
+        <div class="muted">${r.code}</div>
+      </div>
+    `;
+    row.addEventListener("click",()=>showRecipeDetails(r.id));
+    box.appendChild(row);
+  }
+}
+
+async function showRecipeDetails(id){
+  CURRENT_RECIPE_ID=id;
+  try{
+    const r=await api("/api/recipes/details?recipe_id="+id);
+    renderRecipeDetails(r);
+  }catch(e){
+    $("#rec-details").textContent="Failed.";
+  }
+}
+
+function renderRecipeDetails(r){
+  if(!r){
+    $("#rec-details").textContent="Not found.";
+    return;
+  }
+
+  let need="";
+  for(const n of r.needs||[]){
+    need+=`<div class="row" style="align-items:center">
+      <img src="${n.icon}" class="img-cell"/>
+      <span>${n.qty} × ${n.name}</span>
+    </div>`;
+  }
+
+  $("#rec-details").innerHTML=`
+    <div class="label">${r.name}</div>
+    <div class="muted">Tier ${r.tier}</div>
+    <div style="margin-top:12px">${need}</div>
+    <button id="btn-craft" class="btn" style="margin-top:12px">Craft</button>
+    <div id="craft-msg" class="muted" style="margin-top:6px"></div>
+  `;
+
+  $("#btn-craft")?.addEventListener("click",craftCurrent);
+}
+
+async function craftCurrent(){
+  if(!CURRENT_RECIPE_ID) return;
+
+  const msg=$("#craft-msg");
+  msg.textContent="…";
+  try{
+    await api("/api/craft",{method:"POST",body:{recipe_id:CURRENT_RECIPE_ID}});
+    msg.textContent="OK";
+    questTrigger("craft-t2");
+    questTrigger("craft-t3");
+    questTrigger("craft-t4");
+    questTrigger("craft-t5");
+    refreshMeLight();
+    loadRecipes();
+  }catch(e){
+    msg.textContent=e.message;
+  }
+}
+
+$("#filter-recipe")?.addEventListener("input",loadRecipes);
+$("#btn-refresh-rec")?.addEventListener("click",loadRecipes);
+</script>
+<!-- ===== MARKETPLACE ===== -->
+<script>
+async function loadMarket(){
+  const box = $("#market");
+  box.textContent = "Loading…";
+  try{
+    const q = ($("#market-q").value || "").trim();
+    const r = await api("/api/sales/live" + (q ? "?q="+encodeURIComponent(q) : ""));
+    const rows = r?.listings || [];
+    if(!rows.length){ box.textContent="No listings."; return; }
 
     const frag = document.createDocumentFragment();
-    const add = (arr, kind) => {
-      for (const it of arr){
-        const ico = (kind === "item")
-          ? (iconForByCode(it.code, it.tier))
-          : RECIPE_ICON;
 
-        const row = document.createElement("div");
-        row.className = "itemrow";
-        row.innerHTML = `
+    for(const s of rows){
+      if(s.code==="ARTEFACT" || (s.tier|0)>=6) continue;
+
+      const ico = s.kind==="item"
+        ? iconForByCode(s.code,s.tier)
+        : RECIPE_ICON;
+
+      const g = Math.floor((s.price_s|0)/100);
+      const ss = (s.price_s|0)%100;
+
+      const row = document.createElement("div");
+      row.className="itemrow";
+
+      row.innerHTML=`
+        <div class="row" style="gap:10px;align-items:center">
+          <img class="img-cell" src="${ico}">
+          <div>${esc(s.name)} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span></div>
+        </div>
+        <div class="row">
+          <span class="badge">${g}g ${ss}s</span>
+          ${s.seller_user_id===WHO?.id 
+            ? `<button class="btn muted" disabled>My</button>`
+            : `<button class="btn" data-buy="${s.id}">Buy</button>`}
+        </div>
+      `;
+
+      frag.appendChild(row);
+    }
+
+    box.innerHTML="";
+    box.appendChild(frag);
+
+    box.querySelectorAll("[data-buy]").forEach(btn=>{
+      btn.addEventListener("click",()=>buyMarketItem(btn.dataset.buy,btn));
+    });
+
+  }catch(e){
+    box.textContent = e.message || "Failed.";
+  }
+}
+
+async function buyMarketItem(id,btn){
+  if(!WHO?.id) return showToast("Please log in.");
+
+  const prev = btn.textContent;
+  btn.disabled=true;
+  btn.textContent="Buying…";
+
+  try{
+    const r = await api("/api/sales/buy",{method:"POST",body:{id}});
+    if(r?.buyer_balance_silver!=null){
+      WHO.balance_silver = r.buyer_balance_silver|0;
+      renderBalance();
+    }
+    loadMarket();
+    loadMine();
+    loadInventoryPanel();
+    showToast("Purchased.");
+  }catch(e){
+    showToast(e?.data?.error || e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent=prev;
+  }
+}
+
+
+async function loadMine(){
+  const box=$("#mine");
+  box.textContent="Loading…";
+
+  try{
+    const r=await api("/api/sales/mine");
+    let rows=r?.listings||[];
+    const q=($("#mine-q").value||"").trim().toLowerCase();
+    if(q) rows = rows.filter(x=> (x.name||"").toLowerCase().includes(q));
+
+    rows = rows.filter(s=>s.status==="live");
+
+    if(!rows.length){ box.textContent="No live listings."; return; }
+
+    const frag = document.createDocumentFragment();
+
+    for(const s of rows){
+      const ico=s.kind==="item"?iconForByCode(s.code,s.tier):RECIPE_ICON;
+      const g=Math.floor(s.price_s/100), ss=s.price_s%100;
+
+      const row=document.createElement("div");
+      row.className="itemrow";
+
+      row.innerHTML=`
+        <div class="row" style="gap:10px;align-items:center">
+          <img src="${ico}" class="img-cell">
+          <div>${esc(s.name)} <span class="badge">T${s.tier}</span> <span class="muted">x${s.qty}</span></div>
+        </div>
+        <div class="row">
+          <span class="badge">${g}g ${ss}s</span>
+          <button class="btn danger" data-cancel="${s.id}">Cancel</button>
+        </div>
+      `;
+
+      frag.appendChild(row);
+    }
+
+    box.innerHTML="";
+    box.appendChild(frag);
+
+    box.querySelectorAll("[data-cancel]").forEach(btn=>{
+      btn.addEventListener("click",()=>cancelListing(btn.dataset.cancel,btn));
+    });
+
+  }catch(e){
+    box.textContent=e.message;
+  }
+}
+
+async function cancelListing(id,btn){
+  const prev=btn.textContent;
+  btn.disabled=true;
+  btn.textContent="…";
+
+  try{
+    await api("/api/sales/cancel",{method:"POST",body:{id}});
+    loadMarket();
+    loadMine();
+    loadInventoryPanel();
+  }catch(e){
+    showToast(e.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent=prev;
+  }
+}
+
+async function handleList(){
+  const sel = window.SEL_INV;
+  if(!sel) return showToast("Pick item first.");
+
+  let gold = parseInt($("#price-g").value)||0;
+  let silver = parseInt($("#price-s").value)||0;
+  let qty = parseInt($("#price-qty").value)||1;
+
+  if(silver>99) silver=99;
+  if(qty<1) qty=1;
+
+  try{
+    await api("/api/sales/list",{
+      method:"POST",
+      body:{
+        kind:sel.kind,
+        id:sel.id,
+        qty,
+        gold,
+        silver
+      }
+    });
+    $("#list-msg").textContent="Listed.";
+    window.SEL_INV=null;
+    loadMarket();
+    loadMine();
+    loadInventoryPanel();
+    showToast("OK");
+  }catch(e){
+    $("#list-msg").textContent=e.message;
+  }
+}
+
+$("#btn-list")?.addEventListener("click",handleList);
+$("#market-q")?.addEventListener("input",loadMarket);
+$("#mine-q")?.addEventListener("input",loadMine);
+$("#btn-mine")?.addEventListener("click",loadMine);
+</script>
+
+
+<!-- ===== INVENTORY ===== -->
+<script>
+async function loadInventoryPanel(){
+  const box=$("#inv-list");
+  box.textContent="Loading…";
+
+  try{
+    const r=await api("/api/inventory");
+    const q=($("#inv-search").value||"").trim().toLowerCase();
+
+    const items=(r.items||[])
+      .filter(x=>x.code!=="ARTEFACT" && (x.tier|0)<6)
+      .filter(x=>!q || (x.name||"").toLowerCase().includes(q));
+
+    const recipes=(r.recipes||[])
+      .filter(x=>!q || (x.name||"").toLowerCase().includes(q));
+
+    const frag=document.createDocumentFragment();
+
+    const add=(arr,kind)=>{
+      for(const it of arr){
+        const ico = kind==="item" ? iconForByCode(it.code,it.tier) : RECIPE_ICON;
+
+        const row=document.createElement("div");
+        row.className="itemrow";
+        row.innerHTML=`
           <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(ico)}" alt=""
-                 onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-            <div>${esc(it.name)} <span class="badge">T${it.tier}</span>
-            <span class="muted">x${it.qty}</span></div>
+            <img class="img-cell" src="${ico}">
+            <div>${esc(it.name)} <span class="badge">T${it.tier}</span> <span class="muted">x${it.qty}</span></div>
           </div>
-          <button class="btn muted">Pick</button>`;
+          <button class="btn muted pick-btn">Pick</button>
+        `;
 
-        row.querySelector("button").addEventListener("click", () => {
-          window.SEL_INV = { kind, id: it.id, name: it.name };
-          $("#list-msg").textContent = "Selected: " + it.name;
-          $("#price-g")?.focus();
+        row.querySelector(".pick-btn").addEventListener("click",()=>{
+          window.SEL_INV={kind,id:it.id,name:it.name};
+          $("#list-msg").textContent="Selected: "+it.name;
         });
 
         frag.appendChild(row);
       }
     };
 
-    add(items, "item");
-    add(recipes, "recipe");
+    add(items,"item");
+    add(recipes,"recipe");
 
     box.innerHTML = frag.childNodes.length ? "" : "Empty.";
-    if (frag.childNodes.length) box.appendChild(frag);
-  });
-}
-
-async function loadMarket(){
-  await safeLoad("#market", async (box) => {
-    const q = ($("#market-q")?.value || "").trim();
-    const url = "/api/sales/live" + (q ? ("?q=" + encodeURIComponent(q)) : "");
-    const r = await getJSON(url);
-
-    const rows = (r?.listings || [])
-      .filter(Boolean)
-      .filter(s => !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0)>=6)));
-
-    if (!rows.length){ box.textContent = "No listings."; return; }
-
-    const frag = document.createDocumentFragment();
-    for (const s of rows){
-      const priceS = s?.price_s | 0;
-      const g = Math.floor(priceS/100), ss = priceS % 100;
-      const ico = (s.kind === "item")
-        ? iconForByCode(s.code, s.tier)
-        : RECIPE_ICON;
-
-      const mine = !!(window.WHO?.id && s?.seller_user_id === window.WHO.id);
-
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.innerHTML = `
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell"
-           src="${esc(ico)}" alt=""
-           onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(s.name)}
-           <span class="badge">T${s?.tier ?? "-"}</span>
-           <span class="muted">x${s?.qty ?? 1}</span></div>
-        </div>
-        <div class="row">
-          <span class="badge">${g}g ${ss}s</span>
-          ${mine ? '<button class="btn muted" disabled>My</button>' :
-                   '<button class="btn">Buy</button>'}
-        </div>`;
-
-      const btn = row.querySelector("button.btn:not(.muted)");
-      if (btn) {
-        btn.addEventListener("click", async () => {
-          if (!window.WHO?.id) return showToast("Please log in first.");
-          if (btn.disabled) return;
-
-          const prev = btn.textContent;
-          btn.disabled = true;
-          btn.textContent = "Buying…";
-
-          try{
-            const res = await postJSON("/api/sales/buy", { id: s.id });
-            const newBal = res?.buyer_balance_silver ?? res?.balance_silver ?? null;
-            if (newBal != null && window.WHO) {
-              WHO.balance_silver = newBal|0;
-              renderBalance();
-            }
-
-            await loadMarket();
-            await loadMine();
-            await loadInventoryPanel();
-
-            showToast("Purchased.");
-
-          }catch(err){
-            showToast(err?.data?.error || err?.message || "Purchase failed.");
-          }finally{
-            btn.disabled = false;
-            btn.textContent = prev;
-          }
-        });
-      }
-
-      frag.appendChild(row);
-    }
-
-    box.innerHTML = "";
-    box.appendChild(frag);
-  });
-}
-
-async function loadMine(){
-  await safeLoad("#mine", async (box) => {
-    const rq = await getJSON("/api/sales/mine");
-    const q = ($("#mine-q")?.value || "").trim().toLowerCase();
-
-    let rows = (rq?.listings || [])
-      .filter(Boolean)
-      .filter(s => s?.status === "live"
-        && !(s.kind === "item" && (s.code === "ARTEFACT" || (s.tier|0)>=6)));
-
-    if (q) rows = rows.filter(s => (s?.name || "").toLowerCase().includes(q));
-
-    if (!rows.length){ box.textContent = "No live listings."; return; }
-
-    const frag = document.createDocumentFragment();
-
-    for (const s of rows){
-      const priceS = s?.price_s | 0;
-      const g = Math.floor(priceS/100), ss = priceS % 100;
-      const ico = (s.kind === "item")
-        ? iconForByCode(s.code, s.tier)
-        : RECIPE_ICON;
-
-      const row = document.createElement("div");
-      row.className = "itemrow";
-      row.innerHTML = `
-        <div class="row" style="gap:10px;align-items:center">
-          <img class="img-cell"
-           src="${esc(ico)}" alt=""
-           onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-          <div>${esc(s.name)}
-           <span class="badge">T${s?.tier ?? "-"}</span>
-           <span class="muted">x${s?.qty ?? 1}</span></div>
-        </div>
-
-        <div class="row">
-          <span class="badge">${g}g ${ss}s</span>
-          <button class="btn danger">Cancel</button>
-        </div>`;
-
-      row.querySelector("button.btn.danger").addEventListener("click", async () => {
-        const btn = row.querySelector("button.btn.danger");
-        if (!btn || btn.disabled) return;
-
-        const prev = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Cancel…";
-
-        try{
-          await postJSON("/api/sales/cancel", { id: s.id });
-          await loadMarket();
-          await loadMine();
-          await loadInventoryPanel();
-        }catch(err){
-          showToast(err?.message || "Cancel failed.");
-        }finally{
-          btn.disabled = false;
-          btn.textContent = prev;
-        }
-      });
-
-      frag.appendChild(row);
-    }
-
-    box.innerHTML = "";
-    box.appendChild(frag);
-  });
-}
-
-async function handleList(){
-  try{
-    const sel = window.SEL_INV;
-    if (!sel) return showToast("Pick an item/recipe first.");
-
-    const gold = Math.max(0, parseInt($("#price-g")?.value || "0", 10) || 0);
-    let silver = Math.max(0, parseInt($("#price-s")?.value || "0", 10) || 0);
-    const qty = Math.max(1, parseInt($("#price-qty")?.value || "1", 10) || 1);
-    if (silver > 99) silver = 99;
-
-    await postJSON("/api/sales/list", {
-      kind: sel.kind,
-      id: sel.id,
-      qty,
-      gold,
-      silver
-    });
-
-    $("#list-msg").textContent = "Listed.";
-    window.SEL_INV = null;
-
-    await loadMarket();
-    await loadMine();
-    await loadInventoryPanel();
-
-    showToast("Listing created.");
+    if(frag.childNodes.length) box.appendChild(frag);
 
   }catch(e){
-    const msg = e?.data?.error || e?.message || "Listing failed.";
-    $("#list-msg").textContent = msg;
+    box.textContent=e.message;
   }
 }
 
-$("#btn-list")?.addEventListener("click", handleList);
-</script>
-
-<!-- INVENTORY FULL -->
-<script>
 async function loadInventoryFull(){
-  await safeLoad("#inv-full", async (box) => {
-    const r = await getJSON("/api/inventory");
-    const items   = Array.isArray(r.items)   ? r.items   : [];
-    const recipes = Array.isArray(r.recipes) ? r.recipes : [];
+  const box=$("#inv-items");
+  const boxR=$("#inv-recipes");
+  box.textContent="…";
+  boxR.textContent="…";
 
-    const out = [];
+  try{
+    const r=await api("/api/inventory");
+    box.innerHTML="";
+    boxR.innerHTML="";
 
-    for (const it of items){
-      const ico = iconForByCode(it.code, it.tier);
-      out.push(`
+    for(const it of r.items||[]){
+      const ico=iconForByCode(it.code,it.tier);
+      box.innerHTML+=`
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${esc(ico)}" alt=""
-              onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
+            <img class="img-cell" src="${ico}">
             <div>${esc(it.name)} <span class="badge">T${it.tier}</span></div>
           </div>
           <div class="muted">x${it.qty}</div>
-        </div>`);
+        </div>`;
     }
 
-    for (const rc of recipes){
-      out.push(`
+    for(const rc of r.recipes||[]){
+      boxR.innerHTML+=`
         <div class="itemrow">
           <div class="row" style="gap:10px;align-items:center">
-            <img class="img-cell" src="${RECIPE_ICON}" alt=""
-              onerror="this.onerror=null;this.src='${RECIPE_ICON}'">
+            <img class="img-cell" src="${RECIPE_ICON}">
             <div>${esc(rc.name)} <span class="badge">T${rc.tier}</span></div>
           </div>
           <div class="muted">x${rc.qty}</div>
-        </div>`);
+        </div>`;
     }
-
-    box.innerHTML = out.join("") || "Empty.";
-  });
+  }catch(e){
+    box.textContent=e.message;
+  }
 }
 
-window.loadInventoryFull = loadInventoryFull;
-
-document.addEventListener("DOMContentLoaded", () => {
-  const tabInv = $("#tab-inv");
-  if (!tabInv) return;
-
-  const obs = new MutationObserver(() => {
-    if (!tabInv.classList.contains("hidden")) {
-      loadInventoryFull();
-    }
-  });
-
-  obs.observe(tabInv, { attributes: true });
-});
+$("#inv-search")?.addEventListener("input",loadInventoryPanel);
 </script>
-
-<!-- BONUS -->
+<!-- ===== BONUS ===== -->
 <script>
-function withTimeout(promise, ms = 8000){
-  return new Promise((resolve, reject)=>{
-    const t = setTimeout(()=> reject(new Error("Timeout")), ms);
-    promise.then(v => { clearTimeout(t); resolve(v); })
-           .catch(e => { clearTimeout(t); reject(e); });
-  });
-}
-
-function tile(name, code, ok, tier){
-  const ico = iconForByCode(code, tier);
-  return `
-    <div class="tile ${ok ? 'ok' : 'miss'}">
-      <img class="img-cell" src="${esc(ico)}" alt=""
-        onerror="this.onerror=null;this.src='${FALLBACK_ITEM_ICON}'">
-      <div>${esc(name)}</div>
-    </div>`;
-}
-
 async function loadBonus(){
+  const t2 = $("#bonus-t2");
+  const t3 = $("#bonus-t3");
+  const t4 = $("#bonus-t4");
+  const t5 = $("#bonus-t5");
   const lock = $("#bonus-lock");
 
-  const boxes = {
-    2: $("#bonus-t2"),
-    3: $("#bonus-t3"),
-    4: $("#bonus-t4"),
-    5: $("#bonus-t5")
-  };
-
-  const btns = {
-    2: $("#btn-claim-t2"),
-    3: $("#btn-claim-t3"),
-    4: $("#btn-claim-t4"),
-    5: $("#btn-claim-t5")
-  };
-
-  Object.values(btns).forEach(b => {
-    if (b){ b.disabled = true; b.classList.add("muted"); }
-  });
-
-  Object.values(boxes).forEach(b => {
-    if (b) b.textContent = "Loading…";
-  });
-
-  let cleared = false;
-  setTimeout(() => {
-    if (!cleared){
-      Object.values(boxes).forEach(b => {
-        if (b) b.textContent = "Still loading…";
-      });
-    }
-  }, 3000);
+  t2.textContent="Loading…";
+  t3.textContent="Loading…";
+  t4.textContent="Loading…";
+  t5.textContent="Loading…";
 
   try{
-    const r = await withTimeout(api("/api/bonus/status"), 8000);
-    cleared = true;
-
+    const r = await api("/api/bonus/status");
     const hasArt = !!r?.has_artefact;
-    lock?.classList.toggle("hidden", hasArt);
+    lock.classList.toggle("hidden", hasArt);
 
-    for (const t of [2,3,4,5]){
-      const box = boxes[t];
-      if (!box) continue;
-
-      const info = r.tiers?.[t];
-      if (!info){
-        box.textContent = "No data";
-        continue;
-      }
-
-      const tiles = [];
-
-      for (const c of (info.owned || [])){
-        tiles.push(tile(c.replace(/^T\d_/,""), c, true, t));
-      }
-
-      for (const c of (info.missing || [])){
-        tiles.push(tile(c.replace(/^T\d_/,""), c, false, t));
-      }
-
-      box.innerHTML = tiles.join("") || "Empty.";
-
-      const btn = btns[t];
-      if (!btn) continue;
-
-      const canClaim = hasArt &&
-                       (info.missing?.length === 0) &&
-                       !info.claimed;
-
-      btn.disabled = !canClaim;
-      btn.textContent = info.claimed ? "Claimed" : "Claim";
-
-      if (info.claimed) btn.classList.add("muted");
-      else btn.classList.remove("muted");
-
-      btn.onclick = async () => {
-        if (btn.disabled) return;
-
-        const prev = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "Claiming…";
-
-        try{
-          await api("/api/bonus/claim", {
-            method: "POST",
-            body: { tier: t }
-          });
-
-          showToast(`T${t} bonus claimed.`);
-          await loadBonus();
-          await refreshMeLight();
-
-        }catch(e){
-          alert(e?.message || "Claim failed.");
-        }finally{
-          btn.textContent = prev;
-        }
-      };
-    }
-
+    renderBonusTier(2, r?.tiers?.[2], t2);
+    renderBonusTier(3, r?.tiers?.[3], t3);
+    renderBonusTier(4, r?.tiers?.[4], t4);
+    renderBonusTier(5, r?.tiers?.[5], t5);
   }catch(e){
-    cleared = true;
-    Object.values(boxes).forEach(b => {
-      if (b) b.textContent = e?.message || "Failed.";
-    });
+    t2.textContent=e.message;
+    t3.textContent=e.message;
+    t4.textContent=e.message;
+    t5.textContent=e.message;
   }
+}
+
+function renderBonusTier(tier, info, box){
+  if(!info){
+    box.textContent="No data.";
+    return;
+  }
+
+  const tiles = [];
+
+  for(const c of info.owned||[]){
+    tiles.push(bonusTile(c,true,tier));
+  }
+  for(const c of info.missing||[]){
+    tiles.push(bonusTile(c,false,tier));
+  }
+
+  box.innerHTML = tiles.join("") || "Empty.";
+
+  const btn = $("#btn-claim-t"+tier);
+  if(!btn) return;
+
+  const canClaim =
+    (info.missing?.length===0) &&
+    !info.claimed &&
+    (WHO?.has_artefact || false);
+
+  btn.disabled = !canClaim;
+  btn.textContent = info.claimed ? "Claimed" : "Claim";
+
+  if(info.claimed) btn.classList.add("muted");
+  else btn.classList.remove("muted");
+
+  btn.onclick = async()=>{
+    if(btn.disabled) return;
+
+    const prev=btn.textContent;
+    btn.disabled=true;
+    btn.textContent="…";
+
+    try{
+      await api("/api/bonus/claim",{
+        method:"POST",
+        body:{ tier }
+      });
+      showToast(`T${tier} bonus claimed.`);
+      loadBonus();
+      refreshMeLight();
+    }catch(e){
+      showToast(e.message);
+    }finally{
+      btn.textContent=prev;
+    }
+  };
+}
+
+function bonusTile(name,ok,tier){
+  const code = "T"+tier+"_"+name.toUpperCase();
+  const ico = iconForByCode(code,tier);
+  return `
+    <div class="tile ${ok?'ok':'miss'}">
+      <img class="img-cell" src="${ico}">
+      <div>${esc(name.replace(/^T\d_/,""))}</div>
+    </div>
+  `;
 }
 </script>
 
-<!-- ADS -->
+
+<!-- ===== ADS ===== -->
 <script>
-(function(){
-  const $ = s => document.querySelector(s);
+async function loadAdsPanel(){
+  const box = $("#ad-output");
+  if(!box) return;
+  box.textContent="Loading…";
 
-  async function loadAdsPanel(){
-    const box = $("#ad-output");
-    if (!box) return;
-    box.textContent = "Loading…";
+  try{
+    const r = await api("/api/ads/list");
+    const rows = r?.ads || [];
 
-    try{
-      const r = await api("/api/ads/list");
-      const rows = Array.isArray(r?.ads) ? r.ads : [];
-
-      if (!rows.length){
-        box.textContent = "No ads yet.";
-        return;
-      }
-
-      box.innerHTML = rows.map(ad => `
-        <div class="itemrow">
-          <div class="muted" style="word-break:break-all;">
-            ${ad.text}</div>
-        </div>`).join("");
-
-    }catch(e){
-      box.textContent = e?.message || "Failed.";
+    if(!rows.length){
+      box.textContent="No ads yet.";
+      return;
     }
+
+    box.innerHTML = rows.map(ad=>`
+      <div class="itemrow">
+        <div class="muted" style="word-break:break-all">${esc(ad.text)}</div>
+      </div>
+    `).join("");
+
+  }catch(e){
+    box.textContent=e.message;
   }
+}
 
-  async function buyCourse(){
-    const btn = $("#btn-buy-course");
-    if (!btn || btn.disabled) return;
+async function submitAd(){
+  const inp=$("#ad-text");
+  const txt=inp.value.trim();
+  if(!txt) return showToast("Enter text.");
 
-    btn.disabled = true;
-    const prev = btn.textContent;
-    btn.textContent = "Processing…";
+  const btn=$("#btn-post-ad");
+  const prev=btn.textContent;
+  btn.disabled=true;
+  btn.textContent="Posting…";
 
-    try{
-      const r = await api("/api/ads/buy-course", { method:"POST" });
+  try{
+    const r = await api("/api/ads/create",{
+      method:"POST",
+      body:{ text:txt }
+    });
 
-      if (typeof r?.balance_silver === "number" && window.WHO){
-        WHO.balance_silver = r.balance_silver;
-        renderBalance();
-      }
-
-      const code = r?.access_code ||
-          ("COURSE-" + Math.random().toString(36).slice(2,8).toUpperCase());
-
-      $("#course-msg").innerHTML = `
-        <div><b>Course unlocked!</b></div>
-        <div>Your code: <b>${code}</b></div>`;
-
-      showToast("Course purchased.");
-
-    }catch(e){
-      showToast(e?.message || "Purchase failed.");
-    }finally{
-      btn.disabled = false;
-      btn.textContent = prev;
+    if(typeof r?.balance_silver==="number" && WHO){
+      WHO.balance_silver=r.balance_silver;
+      renderBalance();
     }
+
+    inp.value="";
+    showToast("Ad posted.");
+    loadAdsPanel();
+  }catch(e){
+    showToast(e?.message || "Failed.");
+  }finally{
+    btn.disabled=false;
+    btn.textContent=prev;
   }
+}
 
-  async function submitAd(){
-    const inp = $("#ad-text");
-    const text = inp.value.trim();
-    if (!text) return showToast("Enter your text.");
+async function buyCourse(){
+  const btn=$("#btn-buy-course");
+  if(!btn || btn.disabled) return;
 
-    const btn = $("#btn-post-ad");
-    if (!btn || btn.disabled) return;
+  const prev=btn.textContent;
+  btn.disabled=true;
+  btn.textContent="Processing…";
 
-    btn.disabled = true;
-    const prev = btn.textContent;
-    btn.textContent = "Posting…";
+  try{
+    const r = await api("/api/ads/buy-course",{method:"POST"});
 
-    try{
-      const r = await api("/api/ads/create", {
-        method:"POST",
-        body:{ text }
-      });
-
-      if (typeof r?.balance_silver === "number" && window.WHO){
-        WHO.balance_silver = r.balance_silver;
-        renderBalance();
-      }
-
-      inp.value = "";
-      showToast("Advertisement posted.");
-      await loadAdsPanel();
-
-    }catch(e){
-      showToast(e?.data?.error || e?.message || "Failed.");
-    }finally{
-      btn.disabled = false;
-      btn.textContent = prev;
+    if(typeof r?.balance_silver==="number" && WHO){
+      WHO.balance_silver=r.balance_silver;
+      renderBalance();
     }
+
+    const code = r?.access_code ||
+      ("COURSE-"+Math.random().toString(36).substr(2,6).toUpperCase());
+
+    $("#course-msg").innerHTML=`
+      <div><b>Course unlocked!</b></div>
+      <div>Your code: <b>${code}</b></div>
+    `;
+
+    showToast("Course purchased.");
+  }catch(e){
+    showToast(e?.message || "Failed.");
+  }finally{
+    btn.disabled=false;
+    btn.textContent=prev;
   }
+}
 
-  window.loadAdsPanel = loadAdsPanel;
-
-  document.addEventListener("click", (e)=>{
-    if (e.target.id === "btn-buy-course") buyCourse();
-    if (e.target.id === "btn-post-ad")   submitAd();
-  });
-
-})();
+document.addEventListener("click",(e)=>{
+  if(e.target.id==="btn-post-ad") submitAd();
+  if(e.target.id==="btn-buy-course") buyCourse();
+});
 </script>
-
 </body>
 </html>
