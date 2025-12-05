@@ -383,16 +383,57 @@ ensure(`
   );
 `);
 
-ensure(`
-  CREATE TABLE IF NOT EXISTS user_quests (
-    user_id INTEGER NOT NULL,
-    quest_id TEXT NOT NULL,
-    ready INTEGER NOT NULL DEFAULT 0,
-    done INTEGER NOT NULL DEFAULT 0,
-    ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-    PRIMARY KEY (user_id, quest_id)
-  );
-`);
+// =============================
+// QUEST TABLE AUTO-MIGRATION
+// =============================
+try {
+  // 1) Provjeri kolone u user_quests
+  const cols = db.prepare(`
+    PRAGMA table_info(user_quests)
+  `).all();
+
+  const hasQuestId = cols.some(c => c.name === "quest_id");
+
+  if (!hasQuestId) {
+    console.log("[MIGRATION] user_quests nema quest_id kolonu → popravljam…");
+
+    // 2) Kreiraj novu ispravnu tabelu
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS user_quests_new (
+        user_id INTEGER NOT NULL,
+        quest_id TEXT NOT NULL,
+        ready INTEGER NOT NULL DEFAULT 0,
+        done INTEGER NOT NULL DEFAULT 0,
+        ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        PRIMARY KEY (user_id, quest_id)
+      );
+    `);
+
+    // 3) Prebaci stare podatke (ako postoje)
+    // Stara tabela je imala kolonu "quest" umjesto "quest_id"
+    try {
+      db.exec(`
+        INSERT INTO user_quests_new (user_id, quest_id, ready, done, ts)
+        SELECT user_id, quest AS quest_id, ready, done, ts FROM user_quests;
+      `);
+    } catch (e) {
+      console.log("[MIGRATION] Nema starih podataka za prebaciti.");
+    }
+
+    // 4) Obriši staru tabelu
+    db.exec(`DROP TABLE IF EXISTS user_quests;`);
+
+    // 5) Preimenuj novu
+    db.exec(`
+      ALTER TABLE user_quests_new RENAME TO user_quests;
+    `);
+
+    console.log("[MIGRATION] user_quests tabela uspješno popravljena!");
+  }
+} catch (err) {
+  console.error("[MIGRATION] Greška:", err);
+}
+
 
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
@@ -1864,6 +1905,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
