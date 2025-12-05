@@ -325,20 +325,16 @@
   <div class="muted">No quests added yet.</div>
 </div>
 
-<!-- QUEST -->
-<section id="tab-quest" class="card hidden">
-
-  <div class="card" style="padding:16px">
-    
-    <div class="label">Daily Quests</div>
-    <div id="quest-daily" style="margin-top:10px"></div>
-
-    <div class="label" style="margin-top:20px">Lifetime Quests</div>
-    <div id="quest-life" style="margin-top:10px"></div>
-
+<div class="quest-row" data-id="ID">
+  <div class="quest-left">
+    NAME
   </div>
 
-</section>
+  <div class="quest-right">
+    <span class="quest-reward">+50 gold</span>
+    <button class="quest-btn">Claim</button>
+  </div>
+</div>
 
 
     
@@ -1545,46 +1541,47 @@
     render();
   }
 
-  /* ========== RENDER QUEST LISTS ========== */
-  function render(){
-    const dBox = document.getElementById("quest-daily");
-    const lBox = document.getElementById("quest-life");
+function renderQuestLists(){
+  const dBox = document.getElementById("quest-daily");
+  const lBox = document.getElementById("quest-life");
 
-    dBox.innerHTML = DAILY.map(q=>{
-      const st = Q[q.id] || {};
-      return `
+  function row(q){
+    const st = QUEST_STATE[q.id] || {};
+    const done = st.done;
+    const ready = st.ready;
+
+    return `
       <div class="quest-row" data-id="${q.id}">
-        <div class="quest-name">${q.name}</div>
-        <div class="quest-reward">+${q.reward} gold</div>
-        <button class="quest-btn ${st.done?"finished":""}">
-          ${st.done?"Finished":st.ready?"Claim":"Claim"}
-        </button>
-      </div>`;
-    }).join("");
+        <div class="quest-left">${q.name}</div>
 
-    lBox.innerHTML = LIFE.map(q=>{
-      const st = Q[q.id] || {};
-      return `
-      <div class="quest-row" data-id="${q.id}">
-        <div class="quest-name">${q.name}</div>
-        <div class="quest-reward">+${q.reward} gold</div>
-        <button class="quest-btn ${st.done?"finished":""}">
-          ${st.done?"Finished":st.ready?"Claim":"Claim"}
-        </button>
-      </div>`;
-    }).join("");
-
-    [...document.querySelectorAll(".quest-row")].forEach(row=>{
-      const id = row.dataset.id;
-      const q = [...DAILY, ...LIFE].find(x=>x.id===id);
-
-      row.querySelector(".quest-btn").onclick = ()=>{
-        if (Q[id]?.ready && !Q[id]?.done){
-          claim(q);
-        }
-      };
-    });
+        <div class="quest-right">
+          <span class="quest-reward">+${q.reward} gold</span>
+          <button class="quest-btn ${done?"finished":""}">
+            ${done ? "Finished" : "Claim"}
+          </button>
+        </div>
+      </div>
+    `;
   }
+
+  dBox.innerHTML = QUESTS_DAILY.map(row).join("");
+  lBox.innerHTML = QUESTS_LIFE.map(row).join("");
+
+  // CLICK NA CLAIM DUGME
+  document.querySelectorAll(".quest-btn").forEach(btn=>{
+    btn.onclick = function(){
+      const row = btn.closest(".quest-row");
+      const id = row.dataset.id;
+      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+
+      if (!isReady(q) || isDone(q)) return;
+
+      questClaim(q);   // radi reward i postavlja finished
+    };
+  });
+}
+
+
 
   /* ========== RESET DAILY ========== */
   function resetDaily(){
@@ -1749,6 +1746,7 @@
     
 </body>
 </html>
+
 
 
 
