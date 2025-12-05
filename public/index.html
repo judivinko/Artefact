@@ -325,16 +325,17 @@
   <div class="muted">No quests added yet.</div>
 </div>
 
-<div class="quest-row" data-id="ID">
-  <div class="quest-left">
-    NAME
-  </div>
+<!-- QUEST -->
+<section id="tab-quest" class="card hidden">
 
-  <div class="quest-right">
-    <span class="quest-reward">+50 gold</span>
-    <button class="quest-btn">Claim</button>
-  </div>
-</div>
+  <h3 class="label">Daily Quests</h3>
+  <div id="quest-daily"></div>
+
+  <h3 class="label" style="margin-top:30px">Lifetime Quests</h3>
+  <div id="quest-life"></div>
+
+</section>
+
 
 
     
@@ -1486,67 +1487,72 @@
 (function(){
 
   /* ============================
-        QUEST LISTA
+        DEFINICIJE QUESTOVA
   ============================ */
 
-  const DAILY = [
-    { id:"tab-shop", name:"Visit Shop tab", reward:50 },
-    { id:"tab-craft", name:"Visit Crafting tab", reward:50 },
-    { id:"tab-market", name:"Visit Market tab", reward:50 },
-    { id:"tab-inv", name:"Visit Inventory tab", reward:50 },
-    { id:"tab-bonus", name:"Visit Bonus tab", reward:50 },
-    { id:"tab-ads", name:"Visit Ads tab", reward:50 },
-    { id:"tab-quest", name:"Visit Quest tab", reward:50 },
+  const QUESTS_DAILY = [
+    { id:"tab-shop",      name:"Visit Shop tab",      reward:50, type:"daily" },
+    { id:"tab-craft",     name:"Visit Crafting tab",  reward:50, type:"daily" },
+    { id:"tab-market",    name:"Visit Market tab",    reward:50, type:"daily" },
+    { id:"tab-inv",       name:"Visit Inventory tab", reward:50, type:"daily" },
+    { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50, type:"daily" },
+    { id:"tab-ads",       name:"Visit Ads tab",       reward:50, type:"daily" },
+    { id:"tab-quest",     name:"Visit Quest tab",     reward:50, type:"daily" },
 
-    { id:"craft-item", name:"Craft an item", reward:100 },
-    { id:"buy-material", name:"Buy material", reward:100 },
-    { id:"buy-market", name:"Buy from market", reward:100 },
-    { id:"publish-ad", name:"Publish an ad", reward:100 },
-    { id:"post-market", name:"Post item on market", reward:100 },
-    { id:"send-gold", name:"Send gold", reward:100 },
-    { id:"click-discord", name:"Click Discord button", reward:500 }
+    { id:"craft-item",    name:"Craft an item",          reward:100, type:"daily" },
+    { id:"buy-material",  name:"Buy material",           reward:100, type:"daily" },
+    { id:"buy-market",    name:"Buy from market",        reward:100, type:"daily" },
+    { id:"publish-ad",    name:"Publish ad",             reward:100, type:"daily" },
+    { id:"post-market",   name:"Post item on Market",    reward:100, type:"daily" },
+    { id:"send-gold",     name:"Send gold",              reward:100, type:"daily" },
+    { id:"click-discord", name:"Click Discord button",   reward:500, type:"daily" }
   ];
 
-  const LIFE = [
-    { id:"life-artefact", name:"Craft an Artefact", reward:20000 },
-    { id:"life-course", name:"Buy Programming Course", reward:20000 }
+  const QUESTS_LIFE = [
+    { id:"life-artefact", name:"Craft an Artefact",      reward:20000, type:"life" },
+    { id:"life-course",   name:"Buy Programming Course", reward:20000, type:"life" }
   ];
 
-  /* STORAGE */
+  /* ========== STATE ========== */
   let Q = JSON.parse(localStorage.getItem("QUEST_STATE") || "{}");
+
   function save(){ localStorage.setItem("QUEST_STATE", JSON.stringify(Q)); }
 
-  /* ========== MARK READY ========== */
+  function isReady(q){ return Q[q.id]?.ready; }
+  function isDone(q){ return Q[q.id]?.done; }
+
+  /* ========== EXTERNAL TRIGGER ========== */
   window.questMarkReady = function(id){
-    if (!Q[id] || !Q[id].done){
-      Q[id] = { ready:true, done:false, ts:Date.now() };
-      save();
-      render();
-    }
+    const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+    if (!q) return;
+    if (isDone(q)) return;
+    Q[id] = { ready:true, ts:Date.now() };
+    save();
+    render();
   };
 
   /* ========== CLAIM QUEST ========== */
   function claim(q){
-    if (!Q[q.id]?.ready || Q[q.id]?.done) return;
+    if (!isReady(q) || isDone(q)) return;
 
+    // gold → silver (1g = 100s)
     const silver = q.reward * 100;
-    WHO.balance_silver += silver;
-    renderBalance();
 
-    Q[q.id] = { ready:false, done:true, ts:Date.now() };
+    if (WHO){
+      WHO.balance_silver += silver;
+      renderBalance();
+    }
+
+    Q[q.id] = { done:true, ts:Date.now() };
     save();
 
     showToast(`+${q.reward} gold`);
-
     render();
   }
 
-function renderQuestLists(){
-  const dBox = document.getElementById("quest-daily");
-  const lBox = document.getElementById("quest-life");
-
+  /* ========== RENDER QUEST ROWS ========== */
   function row(q){
-    const st = QUEST_STATE[q.id] || {};
+    const st = Q[q.id] || {};
     const done = st.done;
     const ready = st.ready;
 
@@ -1564,56 +1570,62 @@ function renderQuestLists(){
     `;
   }
 
-  dBox.innerHTML = QUESTS_DAILY.map(row).join("");
-  lBox.innerHTML = QUESTS_LIFE.map(row).join("");
+  /* ========== RENDER LIST ========== */
+  function render(){
+    const dBox = document.getElementById("quest-daily");
+    const lBox = document.getElementById("quest-life");
 
-  // CLICK NA CLAIM DUGME
-  document.querySelectorAll(".quest-btn").forEach(btn=>{
-    btn.onclick = function(){
-      const row = btn.closest(".quest-row");
-      const id = row.dataset.id;
-      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+    dBox.innerHTML = QUESTS_DAILY.map(row).join("");
+    lBox.innerHTML = QUESTS_LIFE.map(row).join("");
 
-      if (!isReady(q) || isDone(q)) return;
+    document.querySelectorAll(".quest-btn").forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.closest(".quest-row").dataset.id;
+        const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
 
-      questClaim(q);   // radi reward i postavlja finished
-    };
-  });
-}
+        if (isReady(q) && !isDone(q)) claim(q);
+      };
+    });
+  }
 
-
-
-  /* ========== RESET DAILY ========== */
+  /* ========== DAILY RESET (24h) ========== */
   function resetDaily(){
     const now = Date.now();
-    const day = 24*60*60*1000;
+    const limit = 24*60*60*1000;
 
-    for (let q of DAILY){
-      if (Q[q.id]?.done && now - Q[q.id].ts >= day){
+    for (const q of QUESTS_DAILY){
+      if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
         delete Q[q.id];
       }
     }
     save();
   }
+
   setInterval(resetDaily, 60000);
   resetDaily();
 
-  /* ========== TAB INTEGRACIJA ========== */
+
+  /* ========== TAB HOOK ========== */
   window.setTab = (function(orig){
     return function(tab){
       orig(tab);
 
       const el = document.getElementById("tab-quest");
-      if (el){
-        el.classList.toggle("hidden", tab !== "quest");
-        if (tab === "quest") render();
-        if (tab === "quest") questMarkReady("tab-quest");
+      el.classList.toggle("hidden", tab !== "quest");
+
+      if (tab === "quest"){
+        render();
       }
+
+      // automatically mark visit quests
+      questMarkReady("tab-" + tab);
     };
   })(window.setTab);
 
+
 })();
 </script>
+
 
 
 
@@ -1746,6 +1758,7 @@ function renderQuestLists(){
     
 </body>
 </html>
+
 
 
 
