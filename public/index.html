@@ -1561,7 +1561,7 @@ async function claim(q){
 }
 
 /* ============================================================
-    RENDER REDA  (POPRAVLJENO)
+    RENDER REDA  (POPRAVLJENO – MORA BITI STRING!)
 ============================================================ */
 function row(q){
   const st = getState(q.id);
@@ -1597,16 +1597,23 @@ function row(q){
     RENDER LISTE
 ============================================================ */
 function render(){
+  const dailyEl = document.getElementById("quest-daily");
+  const lifeEl  = document.getElementById("quest-life");
 
-  document.getElementById("quest-daily").innerHTML =
-    QUESTS_DAILY.map(row).join("");
+  if (!dailyEl || !lifeEl){
+    console.warn("quest-daily ili quest-life ne postoje u DOM-u");
+    return;
+  }
 
-  document.getElementById("quest-life").innerHTML =
-    QUESTS_LIFE.map(row).join("");
+  dailyEl.innerHTML = QUESTS_DAILY.map(row).join("");
+  lifeEl.innerHTML  = QUESTS_LIFE.map(row).join("");
 
+  // veži click samo na claim dugmad
   document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
     btn.onclick = ()=>{
-      const id = btn.closest(".quest-row").dataset.id;
+      const rowEl = btn.closest(".quest-row");
+      if (!rowEl) return;
+      const id = rowEl.dataset.id;
       const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x => x.id === id);
       if (q) claim(q);
     };
@@ -1614,53 +1621,46 @@ function render(){
 }
 
 /* ============================================================
-    FIX — GLOBALIZACIJA FUNKCIJA
+    GLOBAL FUNKCIJE
 ============================================================ */
 window.renderQuests = render;
 window.questMarkReady = mark;
 
 /* ============================================================
-    QUEST HOOK — ostavljam TVOJ original
+    JEDINI setTab HOOK – SPOJENA SVA Tvoja LOGIKA
 ============================================================ */
 setTimeout(()=>{
-  if (!window.setTab){
+  if (typeof window.setTab !== "function"){
     console.warn("setTab NOT FOUND");
     return;
   }
 
-  const original = window.setTab;
-
-  window.setTab = function(tab){
-    original(tab);
-    mark("tab-" + tab);
-    if (tab === "quest") render();
-  };
-
-}, 200);
-
-/* ============================================================
-    DRUGI HOOK — ostavljam TVOJ original
-============================================================ */
-(function(){
   const origSetTab = window.setTab;
 
-  window.setTab = async function(tab){
+  window.setTab = function(tab){
+    // 1) originalni tab switch
     origSetTab(tab);
 
+    // 2) označi quest kao READY
+    window.questMarkReady("tab-" + tab);
+
+    // 3) prikaži/sakrij quest panel
     const el = document.getElementById("tab-quest");
     if (el){
       el.classList.toggle("hidden", tab !== "quest");
     }
 
+    // 4) renderaj listu kada si na quest tabu
     if (tab === "quest"){
       window.renderQuests();
     }
-
-    window.questMarkReady("tab-" + tab);
   };
-})();
+
+}, 200);
+
 })();
 </script>
+
 
 
 
@@ -1795,6 +1795,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
