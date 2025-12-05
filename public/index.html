@@ -1571,60 +1571,100 @@
   }
 
   /* ========== RENDER LIST ========== */
-  function render(){
-    const dBox = document.getElementById("quest-daily");
-    const lBox = document.getElementById("quest-life");
+function render(){
+  const dBox = document.getElementById("quest-daily");
+  const lBox = document.getElementById("quest-life");
 
-    dBox.innerHTML = QUESTS_DAILY.map(row).join("");
-    lBox.innerHTML = QUESTS_LIFE.map(row).join("");
+  // generacija HTML-a
+  dBox.innerHTML = QUESTS_DAILY.map(q=>{
+    const st = Q[q.id] || {};
+    const ready = st.ready;
+    const done = st.done;
 
-    document.querySelectorAll(".quest-btn").forEach(btn=>{
-      btn.onclick = ()=>{
-        const id = btn.closest(".quest-row").dataset.id;
-        const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+    return `
+      <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
+        <div class="quest-left">${q.name}</div>
 
-        if (isReady(q) && !isDone(q)) claim(q);
-      };
-    });
-  }
+        <div class="quest-right">
+          <span class="quest-reward">+${q.reward} gold</span>
+          <button class="quest-btn ${done?"finished":""}">
+            ${done ? "Finished" : "Claim"}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
 
-  /* ========== DAILY RESET (24h) ========== */
-  function resetDaily(){
-    const now = Date.now();
-    const limit = 24*60*60*1000;
+  lBox.innerHTML = QUESTS_LIFE.map(q=>{
+    const st = Q[q.id] || {};
+    const ready = st.ready;
+    const done = st.done;
 
-    for (const q of QUESTS_DAILY){
-      if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
-        delete Q[q.id];
+    return `
+      <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
+        <div class="quest-left">${q.name}</div>
+
+        <div class="quest-right">
+          <span class="quest-reward">+${q.reward} gold</span>
+          <button class="quest-btn ${done?"finished":""}">
+            ${done ? "Finished" : "Claim"}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  /* CLICK LISTENER ZA CLAIM */
+  document.querySelectorAll(".quest-btn").forEach(btn=>{
+    btn.onclick = ()=>{
+      const row = btn.closest(".quest-row");
+      const id = row.dataset.id;
+      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+
+      if (!q) return;
+      if (isReady(q) && !isDone(q)){
+        claim(q);
       }
-    }
-    save();
-  }
-
-  setInterval(resetDaily, 60000);
-  resetDaily();
-
-
-  /* ========== TAB HOOK ========== */
-  window.setTab = (function(orig){
-    return function(tab){
-      orig(tab);
-
-      const el = document.getElementById("tab-quest");
-      el.classList.toggle("hidden", tab !== "quest");
-
-      if (tab === "quest"){
-        render();
-      }
-
-      // automatically mark visit quests
-      questMarkReady("tab-" + tab);
     };
-  })(window.setTab);
+  });
+}
 
 
-})();
-</script>
+/* ========== DAILY RESET (24h) ========== */
+function resetDaily(){
+  const now = Date.now();
+  const limit = 24*60*60*1000; // 24h
+
+  for (const q of QUESTS_DAILY){
+    if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
+      delete Q[q.id];
+    }
+  }
+  save();
+}
+
+setInterval(resetDaily, 60000);
+resetDaily();
+
+
+/* ========== TAB HOOK ZA QUEST ========== */
+window.setTab = (function(orig){
+  return function(tab){
+    orig(tab);
+
+    const el = document.getElementById("tab-quest");
+    el.classList.toggle("hidden", tab !== "quest");
+
+    if (tab === "quest"){
+      render();
+    }
+
+    // automatski markira visit questove
+    questMarkReady("tab-" + tab);
+  };
+})(window.setTab);
+  
+ </script>
 
 
 
@@ -1758,6 +1798,7 @@
     
 </body>
 </html>
+
 
 
 
