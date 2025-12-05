@@ -88,31 +88,6 @@ app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "ad
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
-// --- NOVO: Library Tables (safe add) ---
-
-// 1. Sve knjige u igri (admin dodaje)
-db.exec(`
-  CREATE TABLE IF NOT EXISTS library_books (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    code TEXT NOT NULL UNIQUE,
-    title TEXT NOT NULL,
-    tier INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT NOT NULL
-  );
-`);
-
-// 2. Koje knjige korisnik posjeduje
-db.exec(`
-  CREATE TABLE IF NOT EXISTS user_books (
-    user_id INTEGER NOT NULL,
-    book_id INTEGER NOT NULL,
-    qty INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY (user_id, book_id),
-    FOREIGN KEY(user_id) REFERENCES users(id),
-    FOREIGN KEY(book_id) REFERENCES library_books(id)
-  );
-`);
-
 
 // -------- Helpers --------
 const nowISO = () => new Date().toISOString();
@@ -378,7 +353,6 @@ ensure(`
 `);
 
 /* ---- PayPal uplate (idempot) + bonus_code reference ---- */
-/* ---- PayPal uplate (idempot) + bonus_code reference ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS paypal_payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -408,6 +382,18 @@ ensure(`
     updated_at TEXT
   );
 `);
+
+ensure(`
+  CREATE TABLE IF NOT EXISTS user_quests (
+    user_id INTEGER NOT NULL,
+    quest_id TEXT NOT NULL,
+    ready INTEGER NOT NULL DEFAULT 0,
+    done INTEGER NOT NULL DEFAULT 0,
+    ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+    PRIMARY KEY (user_id, quest_id)
+  );
+`);
+
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
 if (!hasColumn("bonus_codes", "total_credited_silver")) {
@@ -661,6 +647,32 @@ ensureItem("ARTEFACT","Artefact",6,0);
 // prefiks "R "
 try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
 
+// --- QUEST SYSTEM BACKEND ---
+
+function questMark(user_id, quest_id){
+  db.prepare(`
+    INSERT INTO user_quests (user_id, quest_id, ready, done, ts)
+    VALUES (?, ?, 1, 0, strftime('%s','now'))
+    ON CONFLICT(user_id, quest_id)
+    DO UPDATE SET ready=1, done=0, ts=strftime('%s','now');
+  `).run(user_id, quest_id);
+}
+
+function questComplete(user_id, quest_id){
+  db.prepare(`
+    UPDATE user_quests
+    SET ready=0, done=1, ts=strftime('%s','now')
+    WHERE user_id=? AND quest_id=?;
+  `).run(user_id, quest_id);
+}
+
+function questState(user_id){
+  return db.prepare(`
+    SELECT quest_id, ready, done, ts
+    FROM user_quests
+    WHERE user_id=?;
+  `).all(user_id);
+}
 
 
 
@@ -1731,6 +1743,83 @@ app.post("/api/transfer-gold", (req, res) => {
   }
 });
 
+//---------------QUESTS----------//
+app.get("/api/quest/state", (req,res)=>{
+  const u = getUser(req);
+  if (!u) return res.status(401).json({ error:"Not logged in" });
+  res.json({ ok:true, quests: questState(u.id) });
+});
+
+app.post("/api/quest/mark", (req,res)=>{
+  const u = getUser(req);
+  if (!u) return res.status(401).json({ error:"Not logged in" });
+  const { quest_id } = req.body;
+  if (!quest_id) return res.json({ ok:false });
+  questMark(u.id, quest_id);
+  res.json({ ok:true });
+});
+
+app.post("/api/quest/claim", (req,res)=>{
+  const u = getUser(req);
+  if (!u) return res.status(401).json({ error:"Not logged in" });
+  const { quest_id, reward } = req.body;
+  if (!quest_id || !reward) return res.json({ ok:false });
+  questComplete(u.id, quest_id);
+  const silver = reward * 100;
+  db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`)
+    .run(silver, u.id);
+  res.json({ ok:true, added: silver });
+});
+
+app.post("/api/craft", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "craft-item");
+  if (req.body?.outCode === "ARTEFACT") questMark(user.id, "life-artefact");
+  res.json({ ok:true });
+});
+
+app.post("/api/buy-material", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "buy-material");
+  res.json({ ok:true });
+});
+
+app.post("/api/market/buy", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "buy-market");
+  res.json({ ok:true });
+});
+
+app.post("/api/market/post", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "post-market");
+  res.json({ ok:true });
+});
+
+app.post("/api/send-gold", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "send-gold");
+  res.json({ ok:true });
+});
+
+app.post("/api/ad/post", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "publish-ad");
+  res.json({ ok:true });
+});
+
+app.post("/api/buy/course", (req,res)=>{
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error:"Not logged in" });
+  questMark(user.id, "life-course");
+  res.json({ ok:true });
+});
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -1761,5 +1850,6 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
