@@ -1481,9 +1481,9 @@
 <script>
 (async function(){
 
-/* ============================================================
-    DEFINICIJA QUESTOVA
-============================================================ */
+/* ======================================
+   DEFINICIJA QUESTOVA
+====================================== */
 const QUESTS_DAILY = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1507,9 +1507,9 @@ const QUESTS_LIFE = [
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ============================================================
-    FETCH STANJA
-============================================================ */
+/* ======================================
+   FETCH STATE
+====================================== */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
@@ -1522,16 +1522,16 @@ async function loadState(){
 
 let STATE = await loadState();
 
-/* ============================================================
-    GET STATE
-============================================================ */
+/* ======================================
+   GET STATE
+====================================== */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ============================================================
-    MARK QUEST
-============================================================ */
+/* ======================================
+   MARK READY
+====================================== */
 async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
@@ -1543,9 +1543,9 @@ async function mark(id){
   render();
 }
 
-/* ============================================================
-    CLAIM QUEST
-============================================================ */
+/* ======================================
+   CLAIM QUEST
+====================================== */
 async function claim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
@@ -1560,9 +1560,9 @@ async function claim(q){
   renderBalance();
 }
 
-/* ============================================================
-    RENDER REDA  (VALIDAN HTML STRING — FIXED!)
-============================================================ */
+/* ======================================
+   RENDER QUEST ROW
+====================================== */
 function row(q){
   const st = getState(q.id);
 
@@ -1573,7 +1573,6 @@ function row(q){
   if (st.done){
     label = "Finished";
     cls   = "quest-btn finished";
-    dis   = "disabled";
   }
   else if (st.ready){
     label = "Claim";
@@ -1592,9 +1591,9 @@ function row(q){
   `;
 }
 
-/* ============================================================
-    RENDER
-============================================================ */
+/* ======================================
+   RENDER LISTS
+====================================== */
 function render(){
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
@@ -1611,53 +1610,15 @@ function render(){
   });
 }
 
-/* ============================================================
-    GLOBALIZACIJA
-============================================================ */
+/* ======================================
+   GLOBALIZACIJA
+====================================== */
 window.renderQuests = render;
 window.questMarkReady = mark;
 
-/* ============================================================
-    ADS SISTEM (POPUNJENO + FIX)
-============================================================ */
-let ADS_LINKS = JSON.parse(localStorage.getItem("ADS_LINKS") || "[]");
-
-function saveAds(){
-  localStorage.setItem("ADS_LINKS", JSON.stringify(ADS_LINKS));
-}
-
-function renderAdsLinks(){
-  const box = document.getElementById("ads-links");
-  if (!box) return;
-  if (ADS_LINKS.length === 0){
-    box.textContent = "No links yet.";
-    return;
-  }
-  box.innerHTML = ADS_LINKS.map(l => `
-    <div class="itemrow">
-      <div class="muted">${l}</div>
-    </div>
-  `).join("");
-}
-
-const adsPublishBtn = document.getElementById("ads-publish");
-if (adsPublishBtn){
-  adsPublishBtn.addEventListener("click", ()=>{
-    const input = document.getElementById("ads-link-input");
-    const val = (input?.value || "").trim();
-    if (!val) return;
-
-    ADS_LINKS.push(val);
-    if (ADS_LINKS.length > 50) ADS_LINKS.shift();
-    saveAds();
-    renderAdsLinks();
-    input.value = "";
-  });
-}
-
-/* ============================================================
-    JEDINI VALIDNI setTab HOOK (QUEST + ADS)
-============================================================ */
+/* ======================================
+   UJEDINJENI setTab HOOK  (QUEST + ADS)
+====================================== */
 setTimeout(()=>{
 
   if (typeof window.setTab !== "function"){
@@ -1669,26 +1630,25 @@ setTimeout(()=>{
 
   window.setTab = function(tab){
 
-    /* --- originalni tab switcher --- */
+    /* original */
     original(tab);
 
-    /* --- QUEST READY --- */
+    /* QUEST READY */
     window.questMarkReady("tab-" + tab);
 
-    /* --- QUEST TAB --- */
-    const questPanel = document.getElementById("tab-quest");
-    if (questPanel){
-      questPanel.classList.toggle("hidden", tab !== "quest");
+    /* QUEST PANEL */
+    const qp = document.getElementById("tab-quest");
+    if (qp){
+      qp.classList.toggle("hidden", tab !== "quest");
       if (tab === "quest") window.renderQuests();
     }
 
-    /* --- ADS TAB --- */
-    const adsPanel = document.getElementById("tab-ads");
-    if (adsPanel){
-      adsPanel.classList.toggle("hidden", tab !== "ads");
-      if (tab === "ads") renderAdsLinks();
+    /* ADS PANEL */
+    const ap = document.getElementById("tab-ads");
+    if (ap){
+      ap.classList.toggle("hidden", tab !== "ads");
+      if (tab === "ads") window.renderAdsLinks?.();
     }
-
   };
 
 }, 200);
@@ -1831,6 +1791,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
