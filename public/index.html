@@ -1617,29 +1617,37 @@ function render(){
   });
 }
 
-/* ============================================================
-    SETTAB HOOK — POVEZAN SA POSTOJEĆIM SISTEMOM
-============================================================ */
-window.setTab = (function(orig){
-  return function(tab){
 
-    // originalni tab sistem
-    orig(tab);
+// ======================
+// QUEST TAB HOOK (FINAL)
+// ======================
+(function(){
+  const origSetTab = window.setTab;
 
-    // otvori/zatvori quest tab
+  window.setTab = async function(tab){
+    // prvo odradi originalni setTab
+    origSetTab(tab);
+
+    // kontrola prikaza quest taba
     const el = document.getElementById("tab-quest");
-    el.classList.toggle("hidden", tab !== "quest");
-
-    if (tab === "quest"){
-      render();
+    if (el){
+      el.classList.toggle("hidden", tab !== "quest");
     }
 
-    // AUTOMATSKO PUNJENJE QUESTOVA ZA TABOVE
-    mark("tab-" + tab);
-  };
-})(window.setTab);
+    // render questova kad uđeš u tab
+    if (tab === "quest"){
+      if (typeof window.renderQuests === "function"){
+        window.renderQuests();
+      }
+    }
 
+    // markiraj quest "visit tab"
+    if (typeof window.questMarkReady === "function"){
+      window.questMarkReady("tab-" + tab);
+    }
+  };
 })();
+
 </script>
 
 
@@ -1772,6 +1780,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
