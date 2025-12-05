@@ -95,6 +95,8 @@
       <div class="chip" data-tab="market">Market</div>
       <div class="chip" data-tab="inv">Inventory</div>
       <div class="chip" data-tab="bonus">Bonus</div>
+      <div class="chip" data-tab="quests">Quests</div>
+      <div class="chip" data-tab="ads">Ads</div>
     </div>
 
     <!-- SHOP -->
@@ -318,6 +320,18 @@
   </div>
 </div>
 
+<div id="tab-quests" class="card hidden">
+  <div class="label">Quests</div>
+  <div class="muted">No quests added yet.</div>
+</div>
+
+<div id="tab-ads" class="card hidden">
+  <div class="label">Ads</div>
+  <div class="muted">No ads yet.</div>
+</div>
+
+
+
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
 <script>
@@ -454,6 +468,9 @@
       $("#tab-market")?.classList.toggle("hidden", tab !== "market");
       $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
       $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
+      $("#tab-quests")?.classList.toggle("hidden", tab !== "quests");
+      $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
+
 
       if (tab === "market") {
         safeCall("loadInventoryPanel");
@@ -1418,5 +1435,6 @@
 </script>
 </body>
 </html>
+
 
 
