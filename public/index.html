@@ -325,10 +325,44 @@
   <div class="muted">No quests added yet.</div>
 </div>
 
-<div id="tab-ads" class="card hidden">
-  <div class="label">Ads</div>
-  <div class="muted">No ads yet.</div>
-</div>
+<!-- ADS -->
+<section id="tab-ads" class="card hidden">
+
+  <div class="grid" style="grid-template-columns: 260px 1fr; gap:20px">
+
+    <!-- LEFT -->
+    <div class="card" style="padding:16px">
+      <div class="label">Ads</div>
+
+      <button id="ads-buy" class="btn" style="margin-top:12px">
+        Buy Server Programming Course (100,000 gold)
+      </button>
+
+      <div id="ads-result" class="muted" style="margin-top:12px; white-space:pre-line"></div>
+
+      <button id="ads-discord" class="btn secondary" style="margin-top:12px"
+        onclick="window.open('https://discord.gg/HWXnQ6cW','_blank')">
+        Discord
+      </button>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card" style="padding:16px">
+      <div class="label">Publish Ads (100 gold each)</div>
+
+      <div class="row" style="gap:10px; margin-top:8px">
+        <input id="ads-link-input" class="input" placeholder="https://your-link.com" style="flex:1">
+        <button id="ads-publish" class="btn">Publish</button>
+      </div>
+
+      <div id="ads-links" class="list" style="margin-top:10px; max-height:380px; overflow-y:auto">
+        No links yet.
+      </div>
+    </div>
+
+  </div>
+
+</section>
 
 
 
@@ -1433,8 +1467,144 @@
     }
   }
 </script>
+
+
+
+
+
+<script>
+(function(){
+
+  /* ====== LOCAL STORAGE ====== */
+  let ADS_LINKS = JSON.parse(localStorage.getItem("ADS_LINKS") || "[]");
+
+  function saveLinks(){
+    localStorage.setItem("ADS_LINKS", JSON.stringify(ADS_LINKS));
+  }
+
+  /* ====== RENDER LINKS ====== */
+  function renderAdsLinks(){
+    const box = document.getElementById("ads-links");
+    if (!box) return;
+
+    if (ADS_LINKS.length === 0){
+      box.textContent = "No links yet.";
+      return;
+    }
+
+    box.innerHTML = ADS_LINKS.map(l => `
+      <div class="itemrow">
+        <div class="muted">${l}</div>
+      </div>
+    `).join("");
+  }
+
+  /* ====== RANDOM CODE ====== */
+  function randomCode(){
+    return Math.random().toString(36).substring(2, 12).toUpperCase();
+  }
+
+  /* ====== GOLD HELPERS ====== */
+  function getGold(){
+    const sil = WHO?.balance_silver || 0;
+    return Math.floor(sil / 100);
+  }
+
+  function removeGold(g){
+    if (!WHO) return false;
+    WHO.balance_silver -= (g * 100);
+    if (WHO.balance_silver < 0) WHO.balance_silver = 0;
+    renderBalance(); // originalna funkcija
+    return true;
+  }
+
+  /* ====== BUY COURSE ====== */
+  const buyBtn = document.getElementById("ads-buy");
+  if (buyBtn){
+    buyBtn.addEventListener("click", ()=>{
+      const gold = getGold();
+      const cost = 100000;
+
+      const box = document.getElementById("ads-result");
+      if (!WHO){
+        box.textContent = "Please log in first.";
+        return;
+      }
+
+      if (gold < cost){
+        box.textContent = "Not enough gold. Please purchase gold.";
+        return;
+      }
+
+      removeGold(cost);
+
+      const code = randomCode();
+      box.innerHTML =
+        "You purchased the course.\n" +
+        "Contact the Artefact Discord profile with this code:\n\n" +
+        "<b>" + code + "</b>";
+    });
+  }
+
+  /* ====== PUBLISH ADS ====== */
+  const pubBtn = document.getElementById("ads-publish");
+  if (pubBtn){
+    pubBtn.addEventListener("click", ()=>{
+
+      if (!WHO){
+        showToast("Please log in first.");
+        return;
+      }
+
+      const gold = getGold();
+      if (gold < 100){
+        showToast("Not enough gold. Please purchase gold.");
+        return;
+      }
+
+      const input = document.getElementById("ads-link-input");
+      const val = (input?.value || "").trim();
+      if (!val) return;
+
+      // Pay
+      removeGold(100);
+
+      // Add link
+      ADS_LINKS.push(val);
+
+      // Limit 50
+      if (ADS_LINKS.length > 50){
+        ADS_LINKS.shift();
+      }
+
+      saveLinks();
+      renderAdsLinks();
+      input.value = "";
+    });
+  }
+
+  /* ====== PATCH setTab TO SHOW ADS TAB ====== */
+  window.setTab = (function(orig){
+    return function(tab){
+      orig(tab);
+
+      const el = document.getElementById("tab-ads");
+      if (el){
+        el.classList.toggle("hidden", tab !== "ads");
+        if (tab === "ads") renderAdsLinks();
+      }
+    };
+  })(window.setTab);
+
+})();
+</script>
+
+
+
+    
 </body>
 </html>
+
 
 
 
