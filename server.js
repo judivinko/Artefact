@@ -1822,6 +1822,7 @@ app.post("/api/buy/course", (req,res)=>{
 });
 
 
+
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
 (function ensureDefaultAdmin(){
   if (!DEFAULT_ADMIN_EMAIL) return;
@@ -1850,6 +1851,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
