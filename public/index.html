@@ -325,20 +325,14 @@
   <div class="muted">No quests added yet.</div>
 </div>
 
-<!-- QUEST -->
-<section id="tab-quest" class="card hidden" style="padding:20px">
-
-  <h3 class="label">Daily Quests</h3>
+<!-- QUESTS -->
+<section id="tab-quest" class="card hidden">
+  <div class="label" style="margin-bottom:12px">Daily Quests</div>
   <div id="quest-daily"></div>
 
-  <h3 class="label" style="margin-top:30px">Lifetime Quests</h3>
+  <div class="label" style="margin-top:20px;margin-bottom:12px">Lifetime Quests</div>
   <div id="quest-life"></div>
-
 </section>
-
-
-
-
     
 <!-- ADS -->
 <section id="tab-ads" class="card hidden">
@@ -1487,141 +1481,200 @@
 <script>
 (function(){
 
-  /* ============================
-        DEFINICIJE QUESTOVA
-  ============================ */
+  /* ========== DEFINICIJA QUESTOVA ========== */
 
   const QUESTS_DAILY = [
-    { id:"tab-shop",      name:"Visit Shop tab",      reward:50, type:"daily" },
-    { id:"tab-craft",     name:"Visit Crafting tab",  reward:50, type:"daily" },
-    { id:"tab-market",    name:"Visit Market tab",    reward:50, type:"daily" },
-    { id:"tab-inv",       name:"Visit Inventory tab", reward:50, type:"daily" },
-    { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50, type:"daily" },
-    { id:"tab-ads",       name:"Visit Ads tab",       reward:50, type:"daily" },
-    { id:"tab-quest",     name:"Visit Quest tab",     reward:50, type:"daily" },
+    // posjete tabova (50 gold)
+    { id:"tab-shop",   name:"Visit Shop tab",      reward:50,  type:"daily" },
+    { id:"tab-craft",  name:"Visit Crafting tab",  reward:50,  type:"daily" },
+    { id:"tab-market", name:"Visit Market tab",    reward:50,  type:"daily" },
+    { id:"tab-inv",    name:"Visit Inventory tab", reward:50,  type:"daily" },
+    { id:"tab-bonus",  name:"Visit Bonus tab",     reward:50,  type:"daily" },
+    { id:"tab-ads",    name:"Visit Ads tab",       reward:50,  type:"daily" },
+    { id:"tab-quest",  name:"Visit Quest tab",     reward:50,  type:"daily" },
 
+    // akcije (100 / 500 gold)
     { id:"craft-item",    name:"Craft an item",          reward:100, type:"daily" },
-    { id:"buy-material",  name:"Buy material",           reward:100, type:"daily" },
-    { id:"buy-market",    name:"Buy from market",        reward:100, type:"daily" },
-    { id:"publish-ad",    name:"Publish ad",             reward:100, type:"daily" },
-    { id:"post-market",   name:"Post item on Market",    reward:100, type:"daily" },
-    { id:"send-gold",     name:"Send gold",              reward:100, type:"daily" },
-    { id:"click-discord", name:"Click Discord button",   reward:500, type:"daily" }
+    { id:"buy-material",  name:"Buy material",          reward:100, type:"daily" },
+    { id:"buy-market",    name:"Buy from market",       reward:100, type:"daily" },
+    { id:"publish-ad",    name:"Publish ad",            reward:100, type:"daily" },
+    { id:"post-market",   name:"Post item on Market",   reward:100, type:"daily" },
+    { id:"send-gold",     name:"Send gold",             reward:100, type:"daily" },
+    { id:"click-discord", name:"Click Discord button",  reward:500, type:"daily" }
   ];
 
   const QUESTS_LIFE = [
-    { id:"life-artefact", name:"Craft an Artefact",      reward:20000, type:"life" },
-    { id:"life-course",   name:"Buy Programming Course", reward:20000, type:"life" }
+    { id:"life-artefact", name:"Craft an Artefact",       reward:20000, type:"life" },
+    { id:"life-course",   name:"Buy Programming Course",  reward:20000, type:"life" }
   ];
 
-  /* ========== STATE ========== */
-  let Q = JSON.parse(localStorage.getItem("QUEST_STATE") || "{}");
+  /* ========== STATE U LOCALSTORAGE ========== */
 
-  function save(){ localStorage.setItem("QUEST_STATE", JSON.stringify(Q)); }
+  let Q;
+  try{
+    Q = JSON.parse(localStorage.getItem("QUEST_STATE") || "{}") || {};
+  }catch{
+    Q = {};
+  }
 
-  function isReady(q){ return Q[q.id]?.ready; }
-  function isDone(q){ return Q[q.id]?.done; }
+  function save(){
+    try{
+      localStorage.setItem("QUEST_STATE", JSON.stringify(Q));
+    }catch{}
+  }
 
-  /* ========== MARK QUEST AS READY ========== */
+  function isReady(q){
+    return !!(Q[q.id] && Q[q.id].ready);
+  }
+  function isDone(q){
+    return !!(Q[q.id] && Q[q.id].done);
+  }
+
+  /* ========== GLOBAL: questMarkReady(id) ========== */
+  // zoveš je iz drugih skripti kad igrač završi zadatak (craft, buy, ad...)
   window.questMarkReady = function(id){
-    const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+    const all = [...QUESTS_DAILY, ...QUESTS_LIFE];
+    const q = all.find(x => x.id === id);
     if (!q) return;
-    if (isDone(q)) return;
-    Q[id] = { ready:true, ts:Date.now() };
+
+    const st = Q[id] || {};
+    if (st.done) return;           // već završeno, ne diramo
+
+    Q[id] = { ...st, ready:true, ts:Date.now() };
     save();
     render();
   };
 
-  /* ========== CLAIM QUEST ========== */
+  /* ========== CLAIM ========== */
+
   function claim(q){
+    if (!window.WHO){
+      showToast("Please log in first.");
+      return;
+    }
     if (!isReady(q) || isDone(q)) return;
 
-    const silver = q.reward * 100;
-    WHO.balance_silver += silver;
-    renderBalance();
+    const addSilver = (q.reward|0) * 100;      // 1 gold = 100 silver
+    WHO.balance_silver = (WHO.balance_silver|0) + addSilver;
+    window.WHO = WHO;
+    if (typeof renderBalance === "function") renderBalance();
 
-    Q[q.id] = { done:true, ts:Date.now() };
+    Q[q.id] = { ready:false, done:true, ts:Date.now() };
     save();
 
-    showToast(`+${q.reward} gold`);
+    showToast(`Quest completed! +${q.reward} gold`);
     render();
   }
 
-  /* ========== RENDER QUEST ROW ========== */
+  /* ========== RENDER REDA ========== */
+
+  function rowHTML(q){
+    const st = Q[q.id] || {};
+    const ready = !!st.ready;
+    const done  = !!st.done;
+
+    let stateClass = "not";
+    let btnText    = "Not completed";
+    let disabled   = "disabled";
+
+    if (done){
+      stateClass = "done";
+      btnText    = "Finished";
+      disabled   = "disabled";
+    } else if (ready){
+      stateClass = "ready";
+      btnText    = "Claim";
+      disabled   = "";          // aktivno
+    }
+
+    return `
+      <div class="quest-rowX quest-${q.type} ${stateClass}" data-id="${q.id}">
+        <div class="quest-name">${q.name}</div>
+        <div class="quest-right">
+          <span class="quest-reward">+${q.reward} gold</span>
+          <button class="quest-btn" ${disabled}>${btnText}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ========== RENDER LISTE ========== */
+
   function render(){
     const dBox = document.getElementById("quest-daily");
     const lBox = document.getElementById("quest-life");
+    if (!dBox || !lBox) return;
 
-    function rowHTML(q){
-      const st = Q[q.id] || {};
-      const ready = st.ready;
-      const done = st.done;
+    dBox.innerHTML = QUESTS_DAILY.map(rowHTML).join("") ||
+                     "<div class='muted'>No daily quests.</div>";
 
-      return `
-        <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
-          <div class="quest-left">${q.name}</div>
-          <div class="quest-right">
-            <span class="quest-reward">+${q.reward} gold</span>
-            <button class="quest-btn ${done?"finished":""}">
-              ${done ? "Finished" : "Claim"}
-            </button>
-          </div>
-        </div>
-      `;
-    }
+    lBox.innerHTML = QUESTS_LIFE.map(rowHTML).join("") ||
+                     "<div class='muted'>No lifetime quests.</div>";
 
-    dBox.innerHTML = QUESTS_DAILY.map(rowHTML).join("");
-    lBox.innerHTML = QUESTS_LIFE.map(rowHTML).join("");
-
-    document.querySelectorAll(".quest-btn").forEach(btn=>{
-      btn.onclick = ()=>{
-        const id = btn.closest(".quest-row").dataset.id;
-        const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
-        if (!q) return;
-        if (isReady(q) && !isDone(q)) claim(q);
-      };
-    });
+    // bind click na Claim
+    document.querySelectorAll("#quest-daily .quest-btn, #quest-life .quest-btn")
+      .forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+          const row = btn.closest(".quest-rowX");
+          if (!row) return;
+          const id = row.dataset.id;
+          const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+          if (!q) return;
+          if (!isReady(q) || isDone(q)) return;
+          claim(q);
+        });
+      });
   }
 
-  /* ========== DAILY RESET 24h ========== */
+  /* ========== RESET DNEVNIH (24h) ========== */
+
   function resetDaily(){
-    const now = Date.now();
-    const limit = 24*60*60*1000;
+    const now   = Date.now();
+    const limit = 24*60*60*1000; // 24h
 
     for (const q of QUESTS_DAILY){
-      if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
-        delete Q[q.id];
+      const st = Q[q.id];
+      if (!st) continue;
+      if (st.done && now - (st.ts || 0) >= limit){
+        delete Q[q.id];       // reset
       }
     }
     save();
   }
 
-  setInterval(resetDaily, 60000);
   resetDaily();
+  setInterval(resetDaily, 60000); // svake minute provjera
 
-  /* ========== HOOK U TAB SISTEM ========== */
-  window.setTab = (function(orig){
-    return function(tab){
-      orig(tab);
+  /* ========== HOOK NA setTab ========== */
 
-      document.getElementById("tab-quest")
-        .classList.toggle("hidden", tab !== "quest");
+  if (typeof window.setTab === "function"){
+    window.setTab = (function(orig){
+      return function(tab){
+        orig(tab);
 
-      if (tab === "quest"){
-        render();
-      }
+        const el = document.getElementById("tab-quest");
+        if (el){
+          el.classList.toggle("hidden", tab !== "quest");
+          if (tab === "quest") render();
+        }
 
-      // auto-ready tab quests
-      questMarkReady("tab-" + tab);
-    };
-  })(window.setTab);
+        // auto-complete za "visit tab" questove
+        // npr. setTab("shop") -> questMarkReady("tab-shop")
+        questMarkReady("tab-" + tab);
+      };
+    })(window.setTab);
+  }
 
+  // ako je stranica otvorena direktno na Quests
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const active = document.querySelector(".chip.active");
+    if (active && active.dataset.tab === "quest"){
+      render();
+    }
+  });
 
 })();
 </script>
-
-
-
 
 <script>
 (function(){
@@ -1752,6 +1805,7 @@
     
 </body>
 </html>
+
 
 
 
