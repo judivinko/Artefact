@@ -171,45 +171,46 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  margin-bottom: 6px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.05);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
 }
 
-.quest-name {
-  color: #e5e7eb;
+.quest-left {
   font-size: 15px;
+  color: #fff;
+}
+
+.quest-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;     /* razmak između gold i dugmeta */
 }
 
 .quest-reward {
   color: #facc15;
-  margin: 0 20px;
-  font-size: 15px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .quest-btn {
   padding: 6px 16px;
-  background: #f472b6;
-  color: black;
-  border-radius: 6px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #ff66b3;
+  color: #000;
   cursor: pointer;
-  font-weight: bold;
 }
 
 .quest-btn.finished {
   background: #444;
-  color: #ccc;
+  color: #aaa;
   cursor: default;
 }
 
-.quest-btn.disabled {
-  background: #333;
-  color: #888;
-  cursor: default;
-}
 
 /* --------------------------------------------------------
    SECTION PANELS — per-tab tonovi, bez globalnog plavog
@@ -419,5 +420,6 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
