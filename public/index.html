@@ -326,7 +326,7 @@
 </div>
 
 <!-- QUEST -->
-<section id="tab-quest" class="card hidden">
+<section id="tab-quest" class="card hidden" style="padding:20px">
 
   <h3 class="label">Daily Quests</h3>
   <div id="quest-daily"></div>
@@ -335,6 +335,7 @@
   <div id="quest-life"></div>
 
 </section>
+
 
 
 
@@ -1521,7 +1522,7 @@
   function isReady(q){ return Q[q.id]?.ready; }
   function isDone(q){ return Q[q.id]?.done; }
 
-  /* ========== EXTERNAL TRIGGER ========== */
+  /* ========== MARK QUEST AS READY ========== */
   window.questMarkReady = function(id){
     const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
     if (!q) return;
@@ -1535,13 +1536,9 @@
   function claim(q){
     if (!isReady(q) || isDone(q)) return;
 
-    // gold → silver (1g = 100s)
     const silver = q.reward * 100;
-
-    if (WHO){
-      WHO.balance_silver += silver;
-      renderBalance();
-    }
+    WHO.balance_silver += silver;
+    renderBalance();
 
     Q[q.id] = { done:true, ts:Date.now() };
     save();
@@ -1550,121 +1547,78 @@
     render();
   }
 
-  /* ========== RENDER QUEST ROWS ========== */
-  function row(q){
-    const st = Q[q.id] || {};
-    const done = st.done;
-    const ready = st.ready;
+  /* ========== RENDER QUEST ROW ========== */
+  function render(){
+    const dBox = document.getElementById("quest-daily");
+    const lBox = document.getElementById("quest-life");
 
-    return `
-      <div class="quest-row" data-id="${q.id}">
-        <div class="quest-left">${q.name}</div>
+    function rowHTML(q){
+      const st = Q[q.id] || {};
+      const ready = st.ready;
+      const done = st.done;
 
-        <div class="quest-right">
-          <span class="quest-reward">+${q.reward} gold</span>
-          <button class="quest-btn ${done?"finished":""}">
-            ${done ? "Finished" : "Claim"}
-          </button>
+      return `
+        <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
+          <div class="quest-left">${q.name}</div>
+          <div class="quest-right">
+            <span class="quest-reward">+${q.reward} gold</span>
+            <button class="quest-btn ${done?"finished":""}">
+              ${done ? "Finished" : "Claim"}
+            </button>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }
+
+    dBox.innerHTML = QUESTS_DAILY.map(rowHTML).join("");
+    lBox.innerHTML = QUESTS_LIFE.map(rowHTML).join("");
+
+    document.querySelectorAll(".quest-btn").forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.closest(".quest-row").dataset.id;
+        const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
+        if (!q) return;
+        if (isReady(q) && !isDone(q)) claim(q);
+      };
+    });
   }
 
-  /* ========== RENDER LIST ========== */
-function render(){
-  const dBox = document.getElementById("quest-daily");
-  const lBox = document.getElementById("quest-life");
+  /* ========== DAILY RESET 24h ========== */
+  function resetDaily(){
+    const now = Date.now();
+    const limit = 24*60*60*1000;
 
-  // generacija HTML-a
-  dBox.innerHTML = QUESTS_DAILY.map(q=>{
-    const st = Q[q.id] || {};
-    const ready = st.ready;
-    const done = st.done;
-
-    return `
-      <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
-        <div class="quest-left">${q.name}</div>
-
-        <div class="quest-right">
-          <span class="quest-reward">+${q.reward} gold</span>
-          <button class="quest-btn ${done?"finished":""}">
-            ${done ? "Finished" : "Claim"}
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  lBox.innerHTML = QUESTS_LIFE.map(q=>{
-    const st = Q[q.id] || {};
-    const ready = st.ready;
-    const done = st.done;
-
-    return `
-      <div class="quest-row ${done?"done":""} ${ready && !done?"ready":""}" data-id="${q.id}">
-        <div class="quest-left">${q.name}</div>
-
-        <div class="quest-right">
-          <span class="quest-reward">+${q.reward} gold</span>
-          <button class="quest-btn ${done?"finished":""}">
-            ${done ? "Finished" : "Claim"}
-          </button>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  /* CLICK LISTENER ZA CLAIM */
-  document.querySelectorAll(".quest-btn").forEach(btn=>{
-    btn.onclick = ()=>{
-      const row = btn.closest(".quest-row");
-      const id = row.dataset.id;
-      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
-
-      if (!q) return;
-      if (isReady(q) && !isDone(q)){
-        claim(q);
+    for (const q of QUESTS_DAILY){
+      if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
+        delete Q[q.id];
       }
-    };
-  });
-}
-
-
-/* ========== DAILY RESET (24h) ========== */
-function resetDaily(){
-  const now = Date.now();
-  const limit = 24*60*60*1000; // 24h
-
-  for (const q of QUESTS_DAILY){
-    if (Q[q.id]?.done && now - Q[q.id].ts >= limit){
-      delete Q[q.id];
     }
+    save();
   }
-  save();
-}
 
-setInterval(resetDaily, 60000);
-resetDaily();
+  setInterval(resetDaily, 60000);
+  resetDaily();
+
+  /* ========== HOOK U TAB SISTEM ========== */
+  window.setTab = (function(orig){
+    return function(tab){
+      orig(tab);
+
+      document.getElementById("tab-quest")
+        .classList.toggle("hidden", tab !== "quest");
+
+      if (tab === "quest"){
+        render();
+      }
+
+      // auto-ready tab quests
+      questMarkReady("tab-" + tab);
+    };
+  })(window.setTab);
 
 
-/* ========== TAB HOOK ZA QUEST ========== */
-window.setTab = (function(orig){
-  return function(tab){
-    orig(tab);
-
-    const el = document.getElementById("tab-quest");
-    el.classList.toggle("hidden", tab !== "quest");
-
-    if (tab === "quest"){
-      render();
-    }
-
-    // automatski markira visit questove
-    questMarkReady("tab-" + tab);
-  };
-})(window.setTab);
-  
- </script>
+})();
+</script>
 
 
 
@@ -1798,6 +1752,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
