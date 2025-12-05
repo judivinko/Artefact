@@ -1480,8 +1480,10 @@
 
 <script>
 (async function(){
-  
-// -------------------- DEFINICIJA QUESTOVA --------------------
+
+/* ============================================================
+    DEFINICIJA QUESTOVA
+============================================================ */
 const QUESTS_DAILY = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1501,100 +1503,138 @@ const QUESTS_DAILY = [
 ];
 
 const QUESTS_LIFE = [
-  { id:"life-artefact", name:"Craft an Artefact",    reward:20000 },
+  { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-// fetch backend state
+/* ============================================================
+    FETCH BACKEND STANJA (po korisniku)
+============================================================ */
 async function loadState(){
-  const r = await fetch("/api/quest/state");
-  const j = await r.json();
-  return j.ok ? j.quests : [];
+  try{
+    const r = await fetch("/api/quest/state");
+    const j = await r.json();
+    return j.ok ? j.quests : [];
+  }catch{
+    return [];
+  }
 }
 
 let STATE = await loadState();
 
+/* ============================================================
+    HELPERI ZA STANJE
+============================================================ */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
+/* ============================================================
+    MARK AS READY
+============================================================ */
 async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:id })
   });
+
   STATE = await loadState();
   render();
 }
 
+/* ============================================================
+    CLAIM
+============================================================ */
 async function claim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:q.id, reward:q.reward })
+    body: JSON.stringify({ quest_id:q.id })
   });
+
   STATE = await loadState();
   render();
+
+  // dodaj gold lokalno
   WHO.balance_silver += q.reward * 100;
   renderBalance();
 }
 
-// -------------------- RENDER JEDNE LINIJE --------------------
+/* ============================================================
+    RENDER JEDNA LINIJA
+============================================================ */
 function row(q){
   const st = getState(q.id);
-  let label = "Not completed";
-  let cls   = "quest-btn disabled";
-  let disabled = true;
+
+  let label  = "Not completed";
+  let cls    = "quest-btn disabled";
+  let dis    = "disabled";
 
   if (st.done){
     label = "Finished";
-    cls = "quest-btn finished";
+    cls   = "quest-btn finished";
+    dis   = "disabled";
   }
   else if (st.ready){
     label = "Claim";
-    cls = "quest-btn claim";
-    disabled = false;
+    cls   = "quest-btn claim";
+    dis   = "";
   }
 
   return `
     <div class="quest-row" data-id="${q.id}">
       <span>${q.name}</span>
+
       <div class="quest-right">
         <span class="quest-reward">+${q.reward} gold</span>
-        <button class="${cls}" ${disabled?"disabled":""}>${label}</button>
+        <button class="${cls}" ${dis}>${label}</button>
       </div>
     </div>
   `;
 }
 
-// -------------------- RENDER LISTA --------------------
+/* ============================================================
+    RENDER LISTE
+============================================================ */
 function render(){
+
+  // DAILY
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
 
+  // LIFETIME
   document.getElementById("quest-life").innerHTML =
     QUESTS_LIFE.map(row).join("");
 
+  // CLAIM CLICK
   document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
     btn.onclick = ()=>{
       const id = btn.closest(".quest-row").dataset.id;
-      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x=>x.id===id);
-      claim(q);
+      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x => x.id === id);
+      if (q) claim(q);
     };
   });
 }
 
-// -------------------- SETTAB HOOK --------------------
+/* ============================================================
+    SETTAB HOOK — POVEZAN SA POSTOJEĆIM SISTEMOM
+============================================================ */
 window.setTab = (function(orig){
   return function(tab){
+
+    // originalni tab sistem
     orig(tab);
 
+    // otvori/zatvori quest tab
     const el = document.getElementById("tab-quest");
     el.classList.toggle("hidden", tab !== "quest");
 
-    if (tab === "quest") render();
+    if (tab === "quest"){
+      render();
+    }
 
+    // AUTOMATSKO PUNJENJE QUESTOVA ZA TABOVE
     mark("tab-" + tab);
   };
 })(window.setTab);
@@ -1732,6 +1772,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
