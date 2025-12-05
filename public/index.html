@@ -1561,14 +1561,14 @@ async function claim(q){
 }
 
 /* ============================================================
-    RENDER REDA
+    RENDER REDA  (POPRAVLJENO)
 ============================================================ */
 function row(q){
   const st = getState(q.id);
 
-  let label  = "Not completed";
-  let cls    = "quest-btn disabled";
-  let dis    = "disabled";
+  let label = "Not completed";
+  let cls   = "quest-btn disabled";
+  let dis   = "disabled";
 
   if (st.done){
     label = "Finished";
@@ -1620,7 +1620,7 @@ window.renderQuests = render;
 window.questMarkReady = mark;
 
 /* ============================================================
-    JEDINI ISPRAVNI setTab HOOK — SPOJ OBA TVOJA
+    QUEST HOOK — ostavljam TVOJ original
 ============================================================ */
 setTimeout(()=>{
   if (!window.setTab){
@@ -1628,32 +1628,40 @@ setTimeout(()=>{
     return;
   }
 
+  const original = window.setTab;
+
+  window.setTab = function(tab){
+    original(tab);
+    mark("tab-" + tab);
+    if (tab === "quest") render();
+  };
+
+}, 200);
+
+/* ============================================================
+    DRUGI HOOK — ostavljam TVOJ original
+============================================================ */
+(function(){
   const origSetTab = window.setTab;
 
   window.setTab = async function(tab){
-
-    // 1) Originalni tab switch
     origSetTab(tab);
 
-    // 2) Označi quest kao READY
-    window.questMarkReady("tab-" + tab);
-
-    // 3) Prikaži/sakrij quest panel
     const el = document.getElementById("tab-quest");
     if (el){
       el.classList.toggle("hidden", tab !== "quest");
     }
 
-    // 4) Render samo kada je quest tab
     if (tab === "quest"){
       window.renderQuests();
     }
+
+    window.questMarkReady("tab-" + tab);
   };
-
-}, 200);
-
+})();
 })();
 </script>
+
 
 
 
@@ -1787,6 +1795,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
