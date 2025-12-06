@@ -319,6 +319,7 @@
   </div>
 </div>
 
+<!-- === DAILY TAB === -->
 <div id="tab-daily" class="hidden" style="padding:20px">
 
   <h2 style="margin-bottom:20px">Daily Rewards</h2>
@@ -328,6 +329,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap:16px;
     max-width:600px;
+    margin-bottom:20px;
   "></div>
 
   <div style="margin-top:25px;text-align:center">
@@ -469,7 +471,7 @@
       $("#market-min-inline")?.classList.toggle("hidden", !minNote);
     }
 
- async function setTab(tab){
+async function setTab(tab){
   showApp();
   $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
 
@@ -485,19 +487,12 @@
     safeCall("loadMarket");
     safeCall("loadMine");
   }
+  if (tab === "inv") safeCall("loadInventoryFull");
+  if (tab === "bonus") safeCall("loadBonus");
 
-  if (tab === "inv")   safeCall("loadInventoryFull");
-
-  if (tab === "bonus") { 
-    try { await loadBonus(); } 
-    catch(e){ console.warn(e); } 
-  }
-
-  // ⭐ OVO JE FALILO
-  if (tab === "daily"){
-    safeCall("renderDaily");
-  }
+  if (tab === "daily") safeCall("renderDaily");
 }
+
 
 
     function initPayPalPanelButtons(){
@@ -1486,9 +1481,11 @@
       `;
 
       if (i < j.currentDay) {
+        box.classList.add("daily-box-claimed");
         html += `<div style="color:#22c55e;margin-top:6px">✔ Claimed</div>`;
       }
       else if (i === j.currentDay) {
+        box.classList.add("daily-box-today");
         html += `<div style="color:#4ade80;margin-top:6px">(danas)</div>`;
       }
 
@@ -1502,8 +1499,8 @@
 
   };
 
+  // ——— Claim dugme ———
   document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
-
     const r = await fetch("/api/daily/login", { method:"POST", credentials:"include" });
     const j = await r.json();
 
@@ -1523,11 +1520,13 @@
 
 })();
 </script>
+>
 
 
     
 </body>
 </html>
+
 
 
 
