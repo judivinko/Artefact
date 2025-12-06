@@ -1596,189 +1596,131 @@ async function setTab(tab){
 </script>
 
 <script>
-// ==========================
-//        ADS TAB
-// ==========================
-
-// Poziva se iz setTab()
 window.setTabAds = function(){
   loadMyLinks();
   initAds();
 };
 
-// Učitavanje linkova
+// MY LINKS
 async function loadMyLinks(){
   const r = await fetch("/api/ads/my-links", { credentials:"include" });
   const j = await r.json();
   const box = document.getElementById("ads-my-links");
-  if (!box) return;
 
-  if(!j.ok){
-    box.innerHTML = "Error loading links.";
-    return;
-  }
+  if (!box) return;
+  if (!j.ok){ box.innerHTML = "Error loading links."; return; }
 
   if (j.links.length === 0){
     box.innerHTML = "<div>No links yet.</div>";
     return;
   }
 
-  box.innerHTML = j.links
-    .map(l => `<div style="padding:4px 0">${l.link}</div>`)
-    .join("");
+  box.innerHTML = j.links.map(l =>
+    `<div style="padding:4px 0">${l.link}</div>`
+  ).join("");
 }
 
-// Inicijalizacija svega
+
+// INIT BUTTONS
 function initAds(){
-  const buyBtn   = document.getElementById("ads-buy");
-  const discord  = document.getElementById("ads-discord");
-  const msgDisc  = document.getElementById("ads-discord-msg");
-  const sendBtn  = document.getElementById("ads-send");
-  const errLink  = document.getElementById("ads-error");
+  const buyBtn  = document.getElementById("ads-buy");
+  const discBtn = document.getElementById("ads-discord");
+  const sendBtn = document.getElementById("ads-send");
 
-  /* ------------------------
-          BUY COURSE
-  ------------------------- */
-  if (buyBtn && !buyBtn._adsBound){
-    buyBtn._adsBound = true;
+  // BUY COURSE
+  if (buyBtn && !buyBtn._bound){
+    buyBtn._bound = true;
+    buyBtn.addEventListener("click", buyCourse);
+  }
 
-    buyBtn.addEventListener("click", async ()=>{
-      const r = await fetch("/api/ads/buy-course", {
-        method:"POST",
-        credentials:"include"
-      });
-
-      const j = await r.json();
-      const err = document.getElementById("ads-buy-error");
-
-      // reset error
-      if (err){
-        err.classList.add("hidden");
-        err.textContent = "";
-      }
-
-      if (!j.ok){
-        if (j.error === "not_enough_gold"){
-          if (err){
-            err.textContent = "You don't have enough gold!";
-            err.style.color = "#ef4444";
-            err.classList.remove("hidden");
-          }
-          return;
-        }
-
-        if (err){
-          err.textContent = "Error: " + j.error;
-          err.style.color = "#ef4444";
-          err.classList.remove("hidden");
-        }
-        return;
-      }
-
-      // prikaz course koda
-      document.getElementById("ads-course-box").classList.remove("hidden");
-      document.getElementById("ads-course-code").textContent =
-        "COURSE: " + j.code;
-
-      if (err){
-        err.textContent = "Course purchased successfully!";
-        err.style.color = "#22c55e";
-        err.classList.remove("hidden");
-      }
-
-      window.refreshMeLight?.();
+  // DISCORD
+  if (discBtn && !discBtn._bound){
+    discBtn._bound = true;
+    discBtn.addEventListener("click", ()=>{
+      window.open("https://discord.gg/HWXnQ6cW", "_blank");
     });
   }
 
-  /* ------------------------
-          DISCORD
-  ------------------------- */
-  if (discord && !discord._dBound){
-    discord._dBound = true;
-
-    discord.addEventListener("click", ()=>{
-
-      // quest hook
-      if (window.questHooks?.discordClick){
-        window.questHooks.discordClick();
-      }
-
-     window.open("https://discord.gg/HWXnQ6cW", "_blank");
-
-      if (msgDisc){
-        msgDisc.textContent = "Discord opened! ✔";
-      }
-    });
+  // SEND LINK
+  if (sendBtn && !sendBtn._bound){
+    sendBtn._bound = true;
+    sendBtn.addEventListener("click", sendLink);
   }
-
-
-/* ------------------------
-       SUBMIT LINK
-------------------------- */
-if (sendBtn && !sendBtn._linkBound){
-  sendBtn._linkBound = true;
-
-  sendBtn.addEventListener("click", async ()=>{
-
-    const urlEl = document.getElementById("ads-url");
-    const url = urlEl ? urlEl.value.trim() : "";
-
-    if (!errLink) return;   // sigurnosno
-
-    if (!url){
-      errLink.textContent = "Please enter a link.";
-      errLink.style.color = "#ef4444";
-      errLink.classList.remove("hidden");
-      return;
-    }
-
-    let r, j;
-    try {
-      r = await fetch("/api/ads/send-link", {
-        method:"POST",
-        credentials:"include",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ url })
-      });
-      j = await r.json();
-    } catch (e){
-      errLink.textContent = "Network error.";
-      errLink.style.color = "#ef4444";
-      errLink.classList.remove("hidden");
-      return;
-    }
-
-    if (!j?.ok){
-
-      if (j?.error === "not_enough_gold"){
-        errLink.textContent = "You need 50 gold to submit a link!";
-        errLink.style.color = "#ef4444";
-        errLink.classList.remove("hidden");
-        return;
-      }
-
-      errLink.textContent = "Error: " + (j?.error || "unknown");
-      errLink.style.color = "#ef4444";
-      errLink.classList.remove("hidden");
-      return;
-    }
-
-    errLink.textContent = "Link submitted!";
-    errLink.style.color = "#22c55e";
-    errLink.classList.remove("hidden");
-
-    loadMyLinks?.();
-    window.refreshMeLight?.();
-  });
 }
 
 
+// BUY COURSE
+async function buyCourse(){
+  const r = await fetch("/api/ads/buy-course", {
+    method:"POST",
+    credentials:"include"
+  });
+
+  const j = await r.json();
+  const err = document.getElementById("ads-buy-error");
+
+  err.classList.add("hidden");
+  err.textContent = "";
+
+  if (!j.ok){
+    if (j.error === "not_enough_gold"){
+      err.textContent = "You don't have enough gold!";
+      err.style.color = "#ef4444";
+      err.classList.remove("hidden");
+      return;
+    }
+
+    err.textContent = "Error: " + j.error;
+    err.style.color = "#ef4444";
+    err.classList.remove("hidden");
+    return;
+  }
+
+  // SUCCESS → show code
+  document.getElementById("ads-course-box").style.display = "block";
+  document.getElementById("ads-course-code").textContent =
+    "Your Course Code: " + j.code;
+
+  err.textContent = "Course purchased successfully!";
+  err.style.color = "#22c55e";
+  err.classList.remove("hidden");
+
+  window.refreshMeLight?.();
+}
+
+
+// SEND LINK (50 gold)
+async function sendLink(){
+  const url = document.getElementById("ads-url").value.trim();
+  const err = document.getElementById("ads-error");
+
+  err.classList.add("hidden");
+  err.textContent = "";
+
+  const r = await fetch("/api/ads/send-link", {
+    method:"POST",
+    credentials:"include",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ link:url })
+  });
+
+  const j = await r.json();
+
+  if (!j.ok){
+    err.textContent = j.error || "Error";
+    err.classList.remove("hidden");
+    return;
+  }
+
+  await loadMyLinks();
+}
 </script>
 
 
     
 </body>
 </html>
+
 
 
 
