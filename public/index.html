@@ -1479,195 +1479,166 @@
 
 
 <script>
-(function(){
+(async function(){
 
-  /* ===================== DEFINICIJA ===================== */
-  const DAILY = [
-    { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
-    { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
-    { id:"tab-market",    name:"Visit Market tab",    reward:50 },
-    { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
-    { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
-    { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
-    { id:"tab-quest",     name:"Visit Quest tab",     reward:50 },
+/* ================================
+    DEFINICIJA QUESTOVA
+================================ */
+const QUESTS_DAILY = [
+  { id:"tab-shop",      name:"Visit Shop tab", reward:50 },
+  { id:"tab-craft",     name:"Visit Crafting tab", reward:50 },
+  { id:"tab-market",    name:"Visit Market tab", reward:50 },
+  { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
+  { id:"tab-bonus",     name:"Visit Bonus tab", reward:50 },
+  { id:"tab-ads",       name:"Visit Ads tab", reward:50 },
+  { id:"tab-quest",     name:"Visit Quest tab", reward:50 }
+];
 
-    { id:"craft-item",    name:"Craft an item",       reward:100 },
-    { id:"buy-material",  name:"Buy material",        reward:100 },
-    { id:"buy-market",    name:"Buy from market",     reward:100 },
-    { id:"publish-ad",    name:"Publish an ad",       reward:100 },
-    { id:"post-market",   name:"Post on market",      reward:100 },
-    { id:"send-gold",     name:"Send gold",           reward:100 },
-    { id:"click-discord", name:"Discord button",      reward:500 }
-  ];
+const QUESTS_LIFE = [
+  { id:"life-artefact", name:"Craft an Artefact", reward:20000 },
+  { id:"life-course",   name:"Buy Programming Course", reward:20000 }
+];
 
-  const LIFE = [
-    { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
-    { id:"life-course",   name:"Buy Programming Course", reward:20000 }
-  ];
+/* ================================
+    LOAD STATE
+================================ */
+async function loadState(){
+  try{
+    const r = await fetch("/api/quest/state");
+    const j = await r.json();
+    return j.ok ? j.quests : [];
+  }catch(e){
+    return [];
+  }
+}
 
-  /* ===================== STATE (localStorage) ===================== */
+let STATE = await loadState();
 
-  function userKey(){
-    const email = (window.WHO && WHO.email) || "";
-    return (email || "guest").toLowerCase();
+/* ================================
+    GET STATE
+================================ */
+function getState(id){
+  return STATE.find(x => x.quest_id === id) || { ready:0, done:0 };
+}
+
+/* ================================
+    MARK READY
+================================ */
+async function mark(id){
+  await fetch("/api/quest/mark", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ quest_id:id })
+  });
+
+  STATE = await loadState();
+  render();
+}
+
+/* ================================
+      CLAIM QUEST
+================================ */
+async function claim(q){
+  await fetch("/api/quest/claim", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ quest_id:q.id })
+  });
+
+  STATE = await loadState();
+  render();
+
+  WHO.balance_silver += q.reward * 100;
+  renderBalance();
+}
+
+/* ================================
+    RENDER JEDNOG REDA
+================================ */
+function row(q){
+  const st = getState(q.id);
+
+  let text  = "Not completed";
+  let cls   = "quest-btn disabled";
+  let dis   = "disabled";
+
+  if (st.done){
+    text = "Finished";
+    cls  = "quest-btn finished";
+  }
+  else if (st.ready){
+    text = "Claim";
+    cls  = "quest-btn claim";
+    dis  = "";
   }
 
-  function loadState(){
-    try{
-      const raw = localStorage.getItem("af_quests_v1_" + userKey());
-      if (!raw) return { daily:{}, life:{} };
-      const parsed = JSON.parse(raw);
-      return {
-        daily: parsed.daily || {},
-        life:  parsed.life  || {}
-      };
-    }catch{
-      return { daily:{}, life:{} };
+  return `
+    <div class="quest-row" data-id="${q.id}">
+      <span>${q.name}</span>
+      <div class="quest-right">
+        <span class="quest-reward">+${q.reward} gold</span>
+        <button class="${cls}" ${dis}>${text}</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ================================
+        RENDER CIJELE LISTE
+================================ */
+function render(){
+  document.getElementById("quest-daily").innerHTML =
+    QUESTS_DAILY.map(row).join("");
+
+  document.getElementById("quest-life").innerHTML =
+    QUESTS_LIFE.map(row).join("");
+
+  document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.closest(".quest-row").dataset.id;
+      const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x => x.id === id);
+      if (q) claim(q);
+    };
+  });
+}
+
+/* ================================
+        GLOBAL EXPORTS
+================================ */
+window.renderQuests = render;
+window.questMarkReady = mark;
+
+/* ================================
+        setTab HOOK
+================================ */
+setTimeout(()=>{
+  if (!window.setTab) return;
+
+  const orig = window.setTab;
+
+  window.setTab = function(tab){
+    orig(tab);
+
+    // prikaz / skrivanje quest taba
+    const q = document.getElementById("tab-quest");
+    if (q){
+      q.classList.toggle("hidden", tab !== "quest");
     }
-  }
 
-  function saveState(){
-    try{
-      localStorage.setItem("af_quests_v1_" + userKey(), JSON.stringify(STATE));
-    }catch{}
-  }
-
-  let STATE = loadState();
-
-  function bucketFor(id){
-    return DAILY.some(q=>q.id===id) ? "daily" : "life";
-  }
-
-  function getEntry(id){
-    const b = bucketFor(id);
-    if (!STATE[b][id]) STATE[b][id] = { ready:false, done:false };
-    return STATE[b][id];
-  }
-
-  /* ===================== PUBLIC FUNKCIJE ===================== */
-
-  function markReady(id){
-    const entry = getEntry(id);
-    if (!entry.done){
-      entry.ready = true;
-      saveState();
+    // render kada se otvori
+    if (tab === "quest"){
       render();
     }
-  }
 
-  function claim(id){
-    const q = DAILY.find(q=>q.id===id) || LIFE.find(q=>q.id===id);
-    if (!q) return;
+    // mark ready
+    mark("tab-" + tab);
+  };
 
-    const entry = getEntry(id);
-    if (!entry.ready || entry.done) return;
-
-    entry.ready = false;
-    entry.done  = true;
-    saveState();
-
-    if (window.WHO){
-      WHO.balance_silver = (WHO.balance_silver|0) + q.reward*100;
-      if (typeof window.renderBalance === "function") window.renderBalance();
-    }
-    if (typeof window.showToast === "function"){
-      window.showToast(`+${q.reward} gold`);
-    }
-    render();
-  }
-
-  /* ===================== RENDER ===================== */
-
-  function row(q){
-    const e = getEntry(q.id);
-
-    let label = "Not completed";
-    let cls   = "quest-btn disabled";
-    let dis   = "disabled";
-
-    if (e.done){
-      label = "Finished";
-      cls   = "quest-btn finished";
-      dis   = "disabled";
-    } else if (e.ready){
-      label = "Claim";
-      cls   = "quest-btn claim";
-      dis   = "";
-    }
-
-    return `
-      <div class="quest-row" data-id="${q.id}">
-        <span>${q.name}</span>
-        <div class="quest-right">
-          <span class="quest-reward">+${q.reward} gold</span>
-          <button class="${cls}" ${dis}>${label}</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function render(){
-    const d = document.getElementById("quest-daily");
-    const l = document.getElementById("quest-life");
-    if (!d || !l) return;
-    d.innerHTML = DAILY.map(row).join("");
-    l.innerHTML = LIFE.map(row).join("");
-  }
-
-  /* ===================== EVENTI (kao Crafting) ===================== */
-
-  // Claim button
-  document.addEventListener("click", (e)=>{
-    const btn = e.target;
-    if (!btn.classList || !btn.classList.contains("quest-btn")) return;
-    if (!btn.classList.contains("claim")) return;
-
-    const rowEl = btn.closest(".quest-row");
-    if (!rowEl) return;
-    const id = rowEl.dataset.id;
-    claim(id);
-  });
-
-  // Markanje READY na akcije u igri
-  document.addEventListener("click", (e)=>{
-
-    // TAB promjena (chipovi)
-    const chip = e.target.closest(".chip");
-    if (chip){
-      const tab = chip.dataset.tab;
-      const q = DAILY.find(q=>q.id === "tab-" + tab);
-      if (q) markReady(q.id);
-
-      if (tab === "quest"){
-        setTimeout(render, 50);
-      }
-    }
-
-    // Gumbi za akcije
-    const id = (e.target && e.target.id) || "";
-
-    if (id === "btn-buy-t1")   markReady("buy-material");
-    if (id === "btn-craft")    markReady("craft-item");
-    if (id === "btn-list")     markReady("post-market");
-    if (id === "ads-publish")  markReady("publish-ad");
-    if (id === "btn-transfer") markReady("send-gold");
-    if (id === "ads-discord")  markReady("click-discord");
-    if (id === "ads-buy")      markReady("life-course");
-    if (id === "btn-artefact") markReady("life-artefact");
-  });
-
-  /* ===================== EXPORT NA WINDOW (ako zatreba) ===================== */
-  window.questMarkReady = markReady;
-  window.questRender    = render;
-
-  /* ===================== INIT ===================== */
-  document.addEventListener("DOMContentLoaded", ()=>{
-    STATE = loadState();
-    render();
-  });
+}, 200);
 
 })();
 </script>
+
 
 
 
@@ -1802,6 +1773,7 @@
     
 </body>
 </html>
+
 
 
 
