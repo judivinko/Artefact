@@ -1482,28 +1482,24 @@
 
 
 <script>
-(() => {
-
-/* =====================================
-   TVOJI QUESTOVI
-===================================== */
 const QUESTS = [
-  { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
-  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
-  { id:"tab-market",    name:"Visit Market tab",    reward:50 },
-  { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
-  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
-  { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
-  { id:"tab-quest",     name:"Visit Quest tab",     reward:50 },
+  { id:"tab-shop",      name:"Visit Shop tab",      reward:50, daily:true },
+  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50, daily:true },
+  { id:"tab-market",    name:"Visit Market tab",    reward:50, daily:true },
+  { id:"tab-inv",       name:"Visit Inventory tab", reward:50, daily:true },
+  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50, daily:true },
+  { id:"tab-ads",       name:"Visit Ads tab",       reward:50, daily:true },
+  { id:"tab-quest",     name:"Visit Quest tab",     reward:50, daily:true },
 
-  { id:"craft-item",    name:"Craft an item",       reward:100 },
-  { id:"buy-material",  name:"Buy material",        reward:100 },
-  { id:"buy-market",    name:"Buy from market",     reward:100 },
-  { id:"publish-ad",    name:"Publish an ad",       reward:100 },
-  { id:"post-market",   name:"Post on market",      reward:100 },
-  { id:"send-gold",     name:"Send gold",           reward:100 },
-  { id:"click-discord", name:"Discord button",      reward:500 }
+  { id:"craft-item",    name:"Craft an item",       reward:100, daily:true },
+  { id:"buy-material",  name:"Buy material",        reward:100, daily:true },
+  { id:"buy-market",    name:"Buy from market",     reward:100, daily:true },
+  { id:"publish-ad",    name:"Publish an ad",       reward:100, daily:true },
+  { id:"post-market",   name:"Post on market",      reward:100, daily:true },
+  { id:"send-gold",     name:"Send gold",           reward:100, daily:true },
+  { id:"click-discord", name:"Discord button",      reward:500, daily:true }
 ];
+
 
 /* =====================================
    GLOBAL STATE (from server)
@@ -1613,33 +1609,6 @@ window.renderQuests = function(){
     box.appendChild(row);
   }
 };
-
-// ažuriraj dugmad
-document.querySelectorAll("[data-claim]").forEach(btn => {
-  const id = btn.dataset.claim;
-  const st = Q(id);
-
-  // RESETUJ handler da ne ostane od prije
-  btn.onclick = null;
-
-  if (st.done) {
-    btn.textContent = "Finished";
-    btn.disabled = true;
-    btn.classList.add("muted");
-  }
-  else if (st.ready) {
-    btn.textContent = "Claim";
-    btn.disabled = false;
-    btn.classList.remove("muted");
-    btn.onclick = () => claimQuest(id);   // OVDJE JEDINO POSTAVITI
-  }
-  else {
-    btn.textContent = "Not completed";
-    btn.disabled = true;
-    btn.classList.add("muted");
-  }
-});
-
 
 // QUEST HOOK FOR TABS (FINAL VERSION)
 window.setTab = (function(orig){
@@ -1792,6 +1761,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
