@@ -320,18 +320,21 @@
   </div>
 </div>
 
+   <!-- quest -->
 <div id="tab-quests" class="card hidden">
   <div class="label">Quests</div>
   <div class="muted">No quests added yet.</div>
 </div>
-<!-- QUESTS -->
-<section id="tab-quest" class="card hidden" style="padding:20px">
-  <h2 class="label">Daily Quests</h2>
+<section id="tab-quest" class="card hidden">
+
+  <div class="label" style="margin-bottom:10px">Daily Quests</div>
   <div id="quest-daily"></div>
 
-  <h2 class="label" style="margin-top:25px;">Lifetime Quests</h2>
+  <div class="label" style="margin-top:25px;margin-bottom:10px">Lifetime Quests</div>
   <div id="quest-life"></div>
+
 </section>
+
 
     
 <!-- ADS -->
@@ -1523,14 +1526,14 @@ async function loadState(){
 let STATE = await loadState();
 
 /* ============================================================
-    HELPER ZA STANJE
+    HELPER
 ============================================================ */
 function getState(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
 /* ============================================================
-    MARK AS READY
+    MARK READY
 ============================================================ */
 async function mark(id){
   await fetch("/api/quest/mark", {
@@ -1538,7 +1541,6 @@ async function mark(id){
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:id })
   });
-
   STATE = await loadState();
   render();
 }
@@ -1561,7 +1563,7 @@ async function claim(q){
 }
 
 /* ============================================================
-    RENDER REDA — LIJEPI UI + DATA-ID
+    UI RENDER - FINALNA, LJEPŠA VERZIJA
 ============================================================ */
 function row(q){
   const st = getState(q.id);
@@ -1570,12 +1572,12 @@ function row(q){
   let cls   = "btn muted";
   let dis   = "disabled";
 
-  if (st.done){
+  if(st.done){
     label = "Finished";
     cls   = "btn claimed";
     dis   = "disabled";
   }
-  else if (st.ready){
+  else if(st.ready){
     label = "Claim";
     cls   = "btn";
     dis   = "";
@@ -1583,16 +1585,13 @@ function row(q){
 
   return `
     <div class="itemrow" data-id="${q.id}">
-
-      <div class="label" style="margin-bottom:6px;color:var(--text)">
+      <div class="label" style="color:var(--text)">
         ${q.name}
       </div>
-
       <div class="row" style="gap:10px;align-items:center">
         <span class="badge">+${q.reward} gold</span>
         <button class="${cls}" ${dis}>${label}</button>
       </div>
-
     </div>
   `;
 }
@@ -1610,15 +1609,12 @@ function render(){
 
   document.querySelectorAll("#tab-quest .btn").forEach(btn=>{
     btn.onclick = ()=>{
-      if (btn.textContent !== "Claim") return;
+      if(btn.textContent !== "Claim") return;
 
-      const parent = btn.closest(".itemrow");
-      if (!parent) return;
-
-      const id = parent.dataset.id;
+      const id = btn.closest(".itemrow").dataset.id;
       const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x => x.id === id);
 
-      if (q) claim(q);
+      if(q) claim(q);
     };
   });
 }
@@ -1630,32 +1626,29 @@ window.renderQuests = render;
 window.questMarkReady = mark;
 
 /* ============================================================
-    setTab HOOK
+    setTab HOOK — FINAL
 ============================================================ */
 setTimeout(()=>{
-  if (!window.setTab) return;
+  if(!window.setTab) return;
 
   const orig = window.setTab;
 
   window.setTab = function(tab){
     orig(tab);
 
-    const el = document.getElementById("tab-quest");
-    if (el){
-      el.classList.toggle("hidden", tab !== "quest");
-    }
+    const q = document.getElementById("tab-quest");
+    if(q) q.classList.toggle("hidden", tab !== "quest");
 
-    if (tab === "quest"){
-      render();
-    }
+    if(tab === "quest") render();
 
-    mark("tab-" + tab);
+    mark("tab-"+tab);
   };
 
 }, 200);
 
 })();
 </script>
+
 
 
 
@@ -1791,6 +1784,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
