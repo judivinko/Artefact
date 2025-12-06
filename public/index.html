@@ -319,9 +319,22 @@
   </div>
 </div>
 
-<div id="daily-box">
-  <button id="btn-daily">Claim Daily Reward</button>
-  <div id="daily-status"></div>
+<div id="tab-daily" class="hidden panel-soft" style="padding:16px">
+
+  <h2 style="margin-bottom:10px">Daily Rewards</h2>
+
+  <div id="daily-grid" style="
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:12px;
+  "></div>
+
+  <div style="margin-top:20px;text-align:center">
+    <button id="btn-daily-claim" class="btn-green">Claim Reward</button>
+  </div>
+
+  <div id="daily-msg" style="margin-top:14px;color:#9ca3af"></div>
+
 </div>
 
 
@@ -1426,30 +1439,81 @@
 </script>
 
 <script>
-async function claimDaily(){
-  const r = await fetch("/api/daily/login", {
-    method:"POST",
-    credentials:"include"
+(function(){
+
+  const DAYS = [
+    1000, 2000, 3000, 4000, 5000, 6000, 7000
+  ];
+
+  window.renderDaily = async function(){
+
+    const grid = document.getElementById("daily-grid");
+    const msg = document.getElementById("daily-msg");
+    if (!grid) return;
+
+    const r = await fetch("/api/daily/status", { credentials:"include" });
+    const j = await r.json();
+    if (!j.ok) return;
+
+    const day = j.currentDay;
+    const todayClaimed = j.claimedToday;
+
+    grid.innerHTML = "";
+
+    for (let i=1; i<=7; i++){
+      const box = document.createElement("div");
+      box.style = `
+        border:1px solid var(--border-soft);
+        padding:12px;
+        text-align:center;
+        border-radius:10px;
+        background:#0b1220;
+      `;
+
+      let txt = `Dan ${i}<br>${DAYS[i-1]} gold`;
+
+      if (i < day)       txt += `<br><span style='color:#22c55e'>✔</span>`;
+      if (i === day)     txt += `<br><span style='color:#4ade80'>(danas)</span>`;
+
+      box.innerHTML = txt;
+      grid.appendChild(box);
+    }
+
+    msg.textContent = todayClaimed
+      ? "Današnja nagrada je već uzeta."
+      : "Klikni Claim Reward za nagradu.";
+
+  };
+
+  document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
+    const r = await fetch("/api/daily/login", {
+      method:"POST",
+      credentials:"include"
+    });
+
+    const j = await r.json();
+
+    if (!j.ok){
+      if (j.error === "already_claimed"){
+        toast("Već si dobio današnju nagradu");
+        return;
+      }
+      toast("Greška: "+j.error);
+      return;
+    }
+
+    toast(`Dobio si ${j.reward} golda!`);
+    window.refreshMeLight?.();
+    window.renderDaily();
   });
 
-  const j = await r.json();
-
-  if (!j.ok){
-    if (j.error === "already_claimed"){
-      return toast("Već si uzeo današnju nagradu!");
-    }
-    return toast("Greška: " + j.error);
-  }
-
-  toast("Dobili ste " + j.reward + " golda! (Dan " + j.currentDay + ")");
-  window.refreshMeLight();
-}
-
-document.getElementById("btn-daily").onclick = claimDaily;
+})();
 </script>
+
     
 </body>
 </html>
+
 
 
 
