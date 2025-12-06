@@ -319,6 +319,29 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
 }
 
+/* ================================
+   FIX WIDTH — DAILY & ADS TABOVI
+   poravnanje kao Crafting/Shop
+================================ */
+
+#tab-daily,
+#tab-ads {
+  max-width: 1160px;      /* isto kao #app container */
+  margin: 0 auto;         /* centrirano */
+  padding: 20px 12px !important;
+}
+
+/* Lijeva kolona uža (sadržaj), desna prazna */
+#tab-daily .daily-panel,
+#tab-ads .ads-panel {
+  max-width: 820px;       /* ključno — suziti */
+}
+
+/* grid sekcije isto sužene */
+#daily-grid,
+#tab-ads .ads-section {
+  max-width: 820px;
+}
 
 
 
@@ -531,6 +554,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
