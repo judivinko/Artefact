@@ -1855,6 +1855,7 @@ app.get("/api/daily/status", (req, res) => {
 
 
 
+// RANDOM COURSE CODE
 function makeCode(){
   const c="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let out="WS-";
@@ -1876,11 +1877,18 @@ app.post("/api/ads/buy-course", (req,res)=>{
       return res.json({ok:false, error:"not_enough_gold"});
     }
 
+    // Skinuti gold
     db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
       .run(cost, uid);
 
+    // Generirati kurs kod
     const code = makeCode();
 
+    // SPASITI KOD KAO COURSE:CODE
+    db.prepare("INSERT INTO ads_links(user_id, link) VALUES (?, ?)")
+      .run(uid, "COURSE:" + code);
+
+    // Vratiti korisniku
     return res.json({ ok:true, code });
 
   }catch(e){
@@ -1923,6 +1931,7 @@ app.get("/api/ads/my-links", (req,res)=>{
 });
 
 
+
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
 (function ensureDefaultAdmin(){
   if (!DEFAULT_ADMIN_EMAIL) return;
@@ -1951,6 +1960,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
