@@ -1630,45 +1630,53 @@ function initAds(){
       });
 
       const j = await r.json();
-      const err = document.getElementById("ads-error");
+
+      // PRAVI error div za BUY COURSE
+      const err = document.getElementById("ads-buy-error");
+      if (err){
+        err.classList.add("hidden");
+      }
 
       if (!j.ok){
-        if (err){
-          err.classList.remove("hidden");
-          err.style.color = "#ef4444";       // red
-          err.style.marginTop = "10px";
-
-          if (j.error === "not_enough_gold"){
+        if (j.error === "not_enough_gold"){
+          if (err){
             err.textContent = "You don't have enough gold!";
-            return;
+            err.style.color = "#ef4444";
+            err.classList.remove("hidden");
           }
+          return;
+        }
 
+        if (err){
           err.textContent = "Error: " + j.error;
+          err.style.color = "#ef4444";
+          err.classList.remove("hidden");
         }
         return;
       }
 
-      // Show course code
+      // uspješno kupljeno
       document.getElementById("ads-course-box").style.display = "block";
       document.getElementById("ads-course-code").textContent =
         "Your Course Code: " + j.code;
 
-      // Success message
       if (err){
-        err.classList.remove("hidden");
-        err.style.color = "#22c55e"; // green
         err.textContent = "Course purchased successfully!";
+        err.style.color = "#22c55e";
+        err.classList.remove("hidden");
       }
 
       window.refreshMeLight?.();
     });
   }
 }
+
 </script>
 
     
 </body>
 </html>
+
 
 
 
