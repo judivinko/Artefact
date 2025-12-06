@@ -1530,23 +1530,24 @@ window.questMarkReady = async function(id){
   renderQuests();
 };
 
-/* ---------------- CLAIM QUEST ---------------- */
 async function claimQuest(id){
+  const q = QUESTS.find(x=>x.id===id);
+
   await fetch("/api/quest/claim",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id })
+    body: JSON.stringify({ quest_id:id, reward:q.reward })
   });
 
   STATE = await loadState();
   renderQuests();
 
-  const q = QUESTS.find(x=>x.id===id);
   if (q && window.WHO){
-    WHO.balance_silver += q.reward * 100; 
+    WHO.balance_silver += q.reward * 100;
     renderBalance();
   }
 }
+
 
 /* ---------------- RENDER QUESTS ---------------- */
 window.renderQuests = function(){
@@ -1630,6 +1631,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
