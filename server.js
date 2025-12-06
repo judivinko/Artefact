@@ -1857,20 +1857,28 @@ app.post("/api/ads/buy-course", (req, res) => {
   try {
     const uid = requireAuth(req);
 
-    // generiše kod
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const cost_silver = 100000 * 100;
+
+    const row = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
+    if (!row || row.balance_silver < cost_silver)
+      return res.json({ ok:false, error:"Not enough gold" });
+
+    // Naplati
+    db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
+      .run(cost_silver, uid);
 
     db.prepare(`
-      INSERT INTO ads_purchases (user_id, code)
-      VALUES (?, ?)
-    `).run(uid, code);
+      INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
+      VALUES (?,?,?,?,?)
+    `).run(uid, -cost_silver, "BUY_COURSE", "web_server_course", nowISO());
 
-    res.json({ ok:true, code });
+    return res.json({ ok:true });
 
   } catch(e){
-    res.json({ ok:false, error:e.message });
+    return res.json({ ok:false, error:e.message });
   }
 });
+
 
 app.post("/api/ads/send-link", (req, res) => {
   try {
@@ -1926,6 +1934,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
