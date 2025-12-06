@@ -88,6 +88,31 @@ app.get("/admin", (_req, res) => res.sendFile(path.join(__dirname, "public", "ad
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 
+// --- NOVO: Library Tables (safe add) ---
+
+// 1. Sve knjige u igri (admin dodaje)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS library_books (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  );
+`);
+
+// 2. Koje knjige korisnik posjeduje
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_books (
+    user_id INTEGER NOT NULL,
+    book_id INTEGER NOT NULL,
+    qty INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (user_id, book_id),
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(book_id) REFERENCES library_books(id)
+  );
+`);
+
 
 // -------- Helpers --------
 const nowISO = () => new Date().toISOString();
@@ -353,6 +378,7 @@ ensure(`
 `);
 
 /* ---- PayPal uplate (idempot) + bonus_code reference ---- */
+/* ---- PayPal uplate (idempot) + bonus_code reference ---- */
 ensure(`
   CREATE TABLE IF NOT EXISTS paypal_payments(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -383,57 +409,13 @@ ensure(`
   );
 `);
 
-// =============================
-// QUEST TABLE AUTO-MIGRATION
-// =============================
-try {
-  // 1) Provjeri kolone u user_quests
-  const cols = db.prepare(`
-    PRAGMA table_info(user_quests)
-  `).all();
-
-  const hasQuestId = cols.some(c => c.name === "quest_id");
-
-  if (!hasQuestId) {
-    console.log("[MIGRATION] user_quests nema quest_id kolonu → popravljam…");
-
-    // 2) Kreiraj novu ispravnu tabelu
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS user_quests_new (
-        user_id INTEGER NOT NULL,
-        quest_id TEXT NOT NULL,
-        ready INTEGER NOT NULL DEFAULT 0,
-        done INTEGER NOT NULL DEFAULT 0,
-        ts INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-        PRIMARY KEY (user_id, quest_id)
-      );
-    `);
-
-    // 3) Prebaci stare podatke (ako postoje)
-    // Stara tabela je imala kolonu "quest" umjesto "quest_id"
-    try {
-      db.exec(`
-        INSERT INTO user_quests_new (user_id, quest_id, ready, done, ts)
-        SELECT user_id, quest AS quest_id, ready, done, ts FROM user_quests;
-      `);
-    } catch (e) {
-      console.log("[MIGRATION] Nema starih podataka za prebaciti.");
-    }
-
-    // 4) Obriši staru tabelu
-    db.exec(`DROP TABLE IF EXISTS user_quests;`);
-
-    // 5) Preimenuj novu
-    db.exec(`
-      ALTER TABLE user_quests_new RENAME TO user_quests;
-    `);
-
-    console.log("[MIGRATION] user_quests tabela uspješno popravljena!");
-  }
-} catch (err) {
-  console.error("[MIGRATION] Greška:", err);
-}
-
+ensure(`
+  CREATE TABLE IF NOT EXISTS daily_login (
+    user_id INTEGER PRIMARY KEY,
+    current_day INTEGER NOT NULL DEFAULT 1,
+    last_claim INTEGER NOT NULL DEFAULT 0
+  );
+`);
 
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
@@ -688,46 +670,7 @@ ensureItem("ARTEFACT","Artefact",6,0);
 // prefiks "R "
 try { db.prepare(`UPDATE recipes SET name = 'R ' || name WHERE name NOT LIKE 'R %'`).run(); } catch {}
 
-// --- QUEST SYSTEM BACKEND ---
 
-function questMark(user_id, quest_id){
-  db.prepare(`
-    INSERT INTO user_quests (user_id, quest_id, ready, done, ts)
-    VALUES (?, ?, 1, 0, strftime('%s','now'))
-    ON CONFLICT(user_id, quest_id)
-    DO UPDATE SET ready=1, done=0, ts=strftime('%s','now');
-  `).run(user_id, quest_id);
-}
-
-function questComplete(user_id, quest_id){
-  db.prepare(`
-    UPDATE user_quests
-    SET ready=0, done=1, ts=strftime('%s','now')
-    WHERE user_id=? AND quest_id=?;
-  `).run(user_id, quest_id);
-}
-
-function questState(user_id){
-  return db.prepare(`
-    SELECT quest_id, ready, done, ts
-    FROM user_quests
-    WHERE user_id=?;
-  `).all(user_id);
-}
-
-function getUser(req){
-  const tok = req.cookies && req.cookies[TOKEN_NAME];
-  if (!tok) return null;
-
-  try{
-    const data = jwt.verify(tok, JWT_SECRET);
-    const u = db.prepare("SELECT id, email, is_disabled FROM users WHERE id=?").get(data.uid);
-    if (!u || u.is_disabled) return null;
-    return u;
-  }catch{
-    return null;
-  }
-}
 
 
 // ----------------- AUTH -----------------
@@ -1797,82 +1740,66 @@ app.post("/api/transfer-gold", (req, res) => {
   }
 });
 
-//---------------QUESTS----------//
-app.get("/api/quest/state", (req,res)=>{
-  const u = getUser(req);
-  if (!u) return res.status(401).json({ error:"Not logged in" });
-  res.json({ ok:true, quests: questState(u.id) });
-});
+app.post("/api/daily/login", (req, res) => {
+  try {
+    const uid = requireAuth(req);
 
-app.post("/api/quest/mark", (req,res)=>{
-  const u = getUser(req);
-  if (!u) return res.status(401).json({ error:"Not logged in" });
-  const { quest_id } = req.body;
-  if (!quest_id) return res.json({ ok:false });
-  questMark(u.id, quest_id);
-  res.json({ ok:true });
-});
+    const row = db.prepare(`
+      SELECT current_day, last_claim FROM daily_login
+      WHERE user_id = ?
+    `).get(uid);
 
-app.post("/api/quest/claim", (req,res)=>{
-  const u = getUser(req);
-  if (!u) return res.status(401).json({ error:"Not logged in" });
-  const { quest_id, reward } = req.body;
-  if (!quest_id || !reward) return res.json({ ok:false });
-  questComplete(u.id, quest_id);
-  const silver = reward * 100;
-  db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`)
-    .run(silver, u.id);
-  res.json({ ok:true, added: silver });
-});
+    const now = Math.floor(Date.now() / 1000);
+    const today = Math.floor(now / 86400);
 
-app.post("/api/craft", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "craft-item");
-  if (req.body?.outCode === "ARTEFACT") questMark(user.id, "life-artefact");
-  res.json({ ok:true });
-});
+    let currentDay = 1;
+    let lastClaim = 0;
 
-app.post("/api/buy-material", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "buy-material");
-  res.json({ ok:true });
-});
+    if (!row) {
+      db.prepare(`
+        INSERT INTO daily_login (user_id, current_day, last_claim)
+        VALUES (?, 1, 0)
+      `).run(uid);
+    } else {
+      currentDay = row.current_day;
+      lastClaim = row.last_claim;
+    }
 
-app.post("/api/market/buy", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "buy-market");
-  res.json({ ok:true });
-});
+    const lastClaimDay = Math.floor(lastClaim / 86400);
 
-app.post("/api/market/post", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "post-market");
-  res.json({ ok:true });
-});
+    if (today === lastClaimDay) {
+      return res.json({ ok: false, error: "already_claimed" });
+    }
 
-app.post("/api/send-gold", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "send-gold");
-  res.json({ ok:true });
-});
+    // check streak
+    if (today - lastClaimDay > 1 && lastClaim !== 0) {
+      currentDay = 1;
+    } else {
+      currentDay = Math.min(currentDay + 1, 7);
+    }
 
-app.post("/api/ad/post", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "publish-ad");
-  res.json({ ok:true });
-});
+    // reward formula
+    const reward = currentDay * 1000;
 
-app.post("/api/buy/course", (req,res)=>{
-  const user = getUser(req);
-  if (!user) return res.status(401).json({ error:"Not logged in" });
-  questMark(user.id, "life-course");
-  res.json({ ok:true });
+    // give reward
+    db.prepare(`
+      UPDATE users SET balance_silver = balance_silver + ?
+      WHERE id = ?
+    `).run(reward, uid);
+
+    // update login
+    db.prepare(`
+      INSERT INTO daily_login (user_id, current_day, last_claim)
+      VALUES (?, ?, ?)
+      ON CONFLICT(user_id)
+      DO UPDATE SET current_day = excluded.current_day, last_claim = excluded.last_claim
+    `).run(uid, currentDay, now);
+
+    res.json({ ok: true, reward, currentDay });
+
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
 
