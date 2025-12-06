@@ -319,23 +319,27 @@
   </div>
 </div>
 
-<div id="tab-daily" class="hidden panel-soft" style="padding:16px">
+<div id="tab-daily" class="hidden" style="padding:20px">
 
-  <h2 style="margin-bottom:10px">Daily Rewards</h2>
+  <h2 style="margin-bottom:20px">Daily Rewards</h2>
 
   <div id="daily-grid" style="
     display:grid;
     grid-template-columns: repeat(3, 1fr);
-    gap:12px;
+    gap:16px;
+    max-width:600px;
   "></div>
 
-  <div style="margin-top:20px;text-align:center">
-    <button id="btn-daily-claim" class="btn-green">Claim Reward</button>
+  <div style="margin-top:25px;text-align:center">
+    <button id="btn-daily-claim" class="btn-green" style="padding:10px 18px;font-size:16px">
+      Claim Reward
+    </button>
   </div>
 
-  <div id="daily-msg" style="margin-top:14px;color:#9ca3af"></div>
+  <div id="daily-msg" style="margin-top:14px;color:var(--muted)"></div>
 
 </div>
+
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
@@ -465,25 +469,36 @@
       $("#market-min-inline")?.classList.toggle("hidden", !minNote);
     }
 
-    async function setTab(tab){
-      showApp();
-      $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
-      $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
-      $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
-      $("#tab-market")?.classList.toggle("hidden", tab !== "market");
-      $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
-      $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-      $("#tab-daily")?.classList.toggle("hidden", tab !== "daily");
+ async function setTab(tab){
+  showApp();
+  $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
 
+  $("#tab-shop")  ?.classList.toggle("hidden", tab !== "shop");
+  $("#tab-craft") ?.classList.toggle("hidden", tab !== "craft");
+  $("#tab-market")?.classList.toggle("hidden", tab !== "market");
+  $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
+  $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
+  $("#tab-daily") ?.classList.toggle("hidden", tab !== "daily");
 
-      if (tab === "market") {
-        safeCall("loadInventoryPanel");
-        safeCall("loadMarket");
-        safeCall("loadMine");
-      }
-      if (tab === "inv")   safeCall("loadInventoryFull");
-      if (tab === "bonus") { try { await loadBonus(); } catch(e){ console.warn(e); } }
-    }
+  if (tab === "market") {
+    safeCall("loadInventoryPanel");
+    safeCall("loadMarket");
+    safeCall("loadMine");
+  }
+
+  if (tab === "inv")   safeCall("loadInventoryFull");
+
+  if (tab === "bonus") { 
+    try { await loadBonus(); } 
+    catch(e){ console.warn(e); } 
+  }
+
+  // ⭐ OVO JE FALILO
+  if (tab === "daily"){
+    safeCall("renderDaily");
+  }
+}
+
 
     function initPayPalPanelButtons(){
       try{
@@ -1441,9 +1456,7 @@
 <script>
 (function(){
 
-  const DAYS = [
-    1000, 2000, 3000, 4000, 5000, 6000, 7000
-  ];
+  const DAYS = [1000,2000,3000,4000,5000,6000,7000];
 
   window.renderDaily = async function(){
 
@@ -1451,58 +1464,59 @@
     const msg = document.getElementById("daily-msg");
     if (!grid) return;
 
+    grid.innerHTML = `<div style='color:var(--muted)'>Loading...</div>`;
+
     const r = await fetch("/api/daily/status", { credentials:"include" });
     const j = await r.json();
-    if (!j.ok) return;
 
-    const day = j.currentDay;
-    const todayClaimed = j.claimedToday;
+    if (!j.ok){
+      grid.innerHTML = "<div>Greška.</div>";
+      return;
+    }
 
     grid.innerHTML = "";
 
     for (let i=1; i<=7; i++){
       const box = document.createElement("div");
-      box.style = `
-        border:1px solid var(--border-soft);
-        padding:12px;
-        text-align:center;
-        border-radius:10px;
-        background:#0b1220;
+      box.className = "daily-box";
+
+      let html = `
+        <div style="font-size:18px;margin-bottom:6px">Dan ${i}</div>
+        <div style="font-size:14px;color:var(--muted)">${DAYS[i-1]} gold</div>
       `;
 
-      let txt = `Dan ${i}<br>${DAYS[i-1]} gold`;
+      if (i < j.currentDay) {
+        html += `<div style="color:#22c55e;margin-top:6px">✔ Claimed</div>`;
+      }
+      else if (i === j.currentDay) {
+        html += `<div style="color:#4ade80;margin-top:6px">(danas)</div>`;
+      }
 
-      if (i < day)       txt += `<br><span style='color:#22c55e'>✔</span>`;
-      if (i === day)     txt += `<br><span style='color:#4ade80'>(danas)</span>`;
-
-      box.innerHTML = txt;
+      box.innerHTML = html;
       grid.appendChild(box);
     }
 
-    msg.textContent = todayClaimed
-      ? "Današnja nagrada je već uzeta."
-      : "Klikni Claim Reward za nagradu.";
+    msg.textContent = j.claimedToday
+      ? "Danas si već uzeo nagradu."
+      : "Klikni Claim Reward.";
 
   };
 
   document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
-    const r = await fetch("/api/daily/login", {
-      method:"POST",
-      credentials:"include"
-    });
 
+    const r = await fetch("/api/daily/login", { method:"POST", credentials:"include" });
     const j = await r.json();
 
     if (!j.ok){
       if (j.error === "already_claimed"){
-        toast("Već si dobio današnju nagradu");
+        toast("Već si danas claim-ao.");
         return;
       }
       toast("Greška: "+j.error);
       return;
     }
 
-    toast(`Dobio si ${j.reward} golda!`);
+    toast(`Dobili ste ${j.reward} gold!`);
     window.refreshMeLight?.();
     window.renderDaily();
   });
@@ -1510,9 +1524,11 @@
 })();
 </script>
 
+
     
 </body>
 </html>
+
 
 
 
