@@ -511,7 +511,7 @@
       $("#tab-market")?.classList.toggle("hidden", tab !== "market");
       $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
       $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-      $("#tab-quests")?.classList.toggle("hidden", tab !== "quests");
+     $("#tab-quests")?.classList.toggle("hidden", tab !== "quest");
       $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
 
 
@@ -1479,144 +1479,193 @@
 
 
 <script>
-/* ============================================================
-   QUESTS – GLOBALAN I ČIST SISTEM (kao Crafting)
-============================================================ */
+(function(){
 
-/* ----------------------- DEFINICIJA ----------------------- */
-window.QUESTS_DAILY = [
-  { id:"tab-shop",   name:"Visit Shop",      reward:50 },
-  { id:"tab-craft",  name:"Visit Crafting",  reward:50 },
-  { id:"tab-market", name:"Visit Market",    reward:50 },
-  { id:"tab-inv",    name:"Visit Inventory", reward:50 },
-  { id:"tab-bonus",  name:"Visit Bonus",     reward:50 },
-  { id:"tab-ads",    name:"Visit Ads",       reward:50 },
-  { id:"tab-quest",  name:"Visit Quest",     reward:50 }
-];
+  /* ===================== DEFINICIJA ===================== */
+  const DAILY = [
+    { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
+    { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
+    { id:"tab-market",    name:"Visit Market tab",    reward:50 },
+    { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
+    { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
+    { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
+    { id:"tab-quest",     name:"Visit Quest tab",     reward:50 },
 
-window.QUESTS_LIFE = [
-  { id:"life-artefact", name:"Craft an Artefact", reward:20000 },
-  { id:"life-course",   name:"Buy Course",        reward:20000 }
-];
+    { id:"craft-item",    name:"Craft an item",       reward:100 },
+    { id:"buy-material",  name:"Buy material",        reward:100 },
+    { id:"buy-market",    name:"Buy from market",     reward:100 },
+    { id:"publish-ad",    name:"Publish an ad",       reward:100 },
+    { id:"post-market",   name:"Post on market",      reward:100 },
+    { id:"send-gold",     name:"Send gold",           reward:100 },
+    { id:"click-discord", name:"Discord button",      reward:500 }
+  ];
 
-/* ----------------------- STATE ----------------------- */
-window.QUEST_STATE = [];
+  const LIFE = [
+    { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
+    { id:"life-course",   name:"Buy Programming Course", reward:20000 }
+  ];
 
-window.questLoadState = async function(){
-  try {
-    const r = await fetch("/api/quest/state");
-    const j = await r.json();
-    window.QUEST_STATE = j.ok ? j.quests : [];
-  } catch {
-    window.QUEST_STATE = [];
-  }
-};
+  /* ===================== STATE (localStorage) ===================== */
 
-window.questGet = function(id){
-  return window.QUEST_STATE.find(x=>x.quest_id===id) || {ready:0, done:0};
-};
-
-/* ----------------------- MARK READY ----------------------- */
-window.questReady = async function(id){
-  await fetch("/api/quest/mark",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({quest_id:id})
-  });
-
-  await window.questLoadState();
-  window.questRender();
-};
-
-/* ----------------------- CLAIM ----------------------- */
-window.questClaim = async function(q){
-  await fetch("/api/quest/claim",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({quest_id:q.id})
-  });
-
-  await window.questLoadState();
-  window.questRender();
-
-  if (window.WHO){
-    WHO.balance_silver += q.reward * 100;
-    if (typeof renderBalance==="function") renderBalance();
-  }
-};
-
-/* ----------------------- RENDER ----------------------- */
-window.questRow = function(q){
-  const st = window.questGet(q.id);
-  let text="Not completed", cls="quest-btn disabled", dis="disabled";
-
-  if (st.done){
-    text="Finished";
-    cls="quest-btn finished";
-  } else if (st.ready){
-    text="Claim";
-    cls="quest-btn claim";
-    dis="";
+  function userKey(){
+    const email = (window.WHO && WHO.email) || "";
+    return (email || "guest").toLowerCase();
   }
 
-  return `
-    <div class="quest-row" data-id="${q.id}">
-      <span>${q.name}</span>
-      <div class="quest-right">
-        <span class="quest-reward">+${q.reward} gold</span>
-        <button class="${cls}" ${dis}>${text}</button>
+  function loadState(){
+    try{
+      const raw = localStorage.getItem("af_quests_v1_" + userKey());
+      if (!raw) return { daily:{}, life:{} };
+      const parsed = JSON.parse(raw);
+      return {
+        daily: parsed.daily || {},
+        life:  parsed.life  || {}
+      };
+    }catch{
+      return { daily:{}, life:{} };
+    }
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem("af_quests_v1_" + userKey(), JSON.stringify(STATE));
+    }catch{}
+  }
+
+  let STATE = loadState();
+
+  function bucketFor(id){
+    return DAILY.some(q=>q.id===id) ? "daily" : "life";
+  }
+
+  function getEntry(id){
+    const b = bucketFor(id);
+    if (!STATE[b][id]) STATE[b][id] = { ready:false, done:false };
+    return STATE[b][id];
+  }
+
+  /* ===================== PUBLIC FUNKCIJE ===================== */
+
+  function markReady(id){
+    const entry = getEntry(id);
+    if (!entry.done){
+      entry.ready = true;
+      saveState();
+      render();
+    }
+  }
+
+  function claim(id){
+    const q = DAILY.find(q=>q.id===id) || LIFE.find(q=>q.id===id);
+    if (!q) return;
+
+    const entry = getEntry(id);
+    if (!entry.ready || entry.done) return;
+
+    entry.ready = false;
+    entry.done  = true;
+    saveState();
+
+    if (window.WHO){
+      WHO.balance_silver = (WHO.balance_silver|0) + q.reward*100;
+      if (typeof window.renderBalance === "function") window.renderBalance();
+    }
+    if (typeof window.showToast === "function"){
+      window.showToast(`+${q.reward} gold`);
+    }
+    render();
+  }
+
+  /* ===================== RENDER ===================== */
+
+  function row(q){
+    const e = getEntry(q.id);
+
+    let label = "Not completed";
+    let cls   = "quest-btn disabled";
+    let dis   = "disabled";
+
+    if (e.done){
+      label = "Finished";
+      cls   = "quest-btn finished";
+      dis   = "disabled";
+    } else if (e.ready){
+      label = "Claim";
+      cls   = "quest-btn claim";
+      dis   = "";
+    }
+
+    return `
+      <div class="quest-row" data-id="${q.id}">
+        <span>${q.name}</span>
+        <div class="quest-right">
+          <span class="quest-reward">+${q.reward} gold</span>
+          <button class="${cls}" ${dis}>${label}</button>
+        </div>
       </div>
-    </div>
-  `;
-};
-
-window.questRender = function(){
-  const d = document.getElementById("quest-daily");
-  const l = document.getElementById("quest-life");
-  if (!d || !l) return;
-
-  d.innerHTML = window.QUESTS_DAILY.map(window.questRow).join("");
-  l.innerHTML = window.QUESTS_LIFE.map(window.questRow).join("");
-};
-
-/* ----------------------- DELEGIRANI CLICK (kao crafting) ----------------------- */
-document.addEventListener("click", (e)=>{
-  const btn = e.target;
-  if (!btn.classList.contains("claim")) return;
-
-  const row = btn.closest(".quest-row");
-  if (!row) return;
-
-  const id = row.dataset.id;
-  const q = [...window.QUESTS_DAILY, ...window.QUESTS_LIFE].find(x=>x.id===id);
-  if (q) window.questClaim(q);
-});
-
-/* ----------------------- TAB PROMJENA ----------------------- */
-/* Ne diramo tvoj setTab.
-   Samo slušamo koje je aktivno dugme u tab baru (chip). */
-
-document.addEventListener("click", (e)=>{
-  const chip = e.target.closest(".chip");
-  if (!chip) return;
-
-  const tab = chip.dataset.tab;
-  if (!tab) return;
-
-  // mark visit questovi
-  const match = window.QUESTS_DAILY.find(q=>q.id==="tab-"+tab);
-  if (match) window.questReady(match.id);
-
-  // ako ulaziš u quest tab → render
-  if (tab === "quest"){
-    setTimeout(window.questRender, 50);
+    `;
   }
-});
 
-/* ----------------------- INIT ----------------------- */
-(async function(){
-  await window.questLoadState();
-  window.questRender();
+  function render(){
+    const d = document.getElementById("quest-daily");
+    const l = document.getElementById("quest-life");
+    if (!d || !l) return;
+    d.innerHTML = DAILY.map(row).join("");
+    l.innerHTML = LIFE.map(row).join("");
+  }
+
+  /* ===================== EVENTI (kao Crafting) ===================== */
+
+  // Claim button
+  document.addEventListener("click", (e)=>{
+    const btn = e.target;
+    if (!btn.classList || !btn.classList.contains("quest-btn")) return;
+    if (!btn.classList.contains("claim")) return;
+
+    const rowEl = btn.closest(".quest-row");
+    if (!rowEl) return;
+    const id = rowEl.dataset.id;
+    claim(id);
+  });
+
+  // Markanje READY na akcije u igri
+  document.addEventListener("click", (e)=>{
+
+    // TAB promjena (chipovi)
+    const chip = e.target.closest(".chip");
+    if (chip){
+      const tab = chip.dataset.tab;
+      const q = DAILY.find(q=>q.id === "tab-" + tab);
+      if (q) markReady(q.id);
+
+      if (tab === "quest"){
+        setTimeout(render, 50);
+      }
+    }
+
+    // Gumbi za akcije
+    const id = (e.target && e.target.id) || "";
+
+    if (id === "btn-buy-t1")   markReady("buy-material");
+    if (id === "btn-craft")    markReady("craft-item");
+    if (id === "btn-list")     markReady("post-market");
+    if (id === "ads-publish")  markReady("publish-ad");
+    if (id === "btn-transfer") markReady("send-gold");
+    if (id === "ads-discord")  markReady("click-discord");
+    if (id === "ads-buy")      markReady("life-course");
+    if (id === "btn-artefact") markReady("life-artefact");
+  });
+
+  /* ===================== EXPORT NA WINDOW (ako zatreba) ===================== */
+  window.questMarkReady = markReady;
+  window.questRender    = render;
+
+  /* ===================== INIT ===================== */
+  document.addEventListener("DOMContentLoaded", ()=>{
+    STATE = loadState();
+    render();
+  });
+
 })();
 </script>
 
@@ -1753,6 +1802,7 @@ document.addEventListener("click", (e)=>{
     
 </body>
 </html>
+
 
 
 
