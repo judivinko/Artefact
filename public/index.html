@@ -1479,31 +1479,29 @@
 
 
 <script>
-/* =========================================================
-   NOVI QUEST SISTEM — CLEAN + FULL WORKING
-========================================================= */
+/* =============================================================
+   NOVI QUEST SISTEM — ISTA ARHITEKTURA KAO CRAFTING (100% RADI)
+============================================================= */
 
-(function(){
-
-/* ------------------------------
-   1) DEFINICIJA QUESTOVA
------------------------------- */
+/* -------------------------
+   DEFINICIJA
+------------------------- */
 const QUESTS_DAILY = [
-  { id:"visit-shop",   name:"Visit Shop",     reward:50,  trigger:"shop" },
-  { id:"visit-craft",  name:"Visit Craft",    reward:50,  trigger:"craft" },
-  { id:"visit-market", name:"Visit Market",   reward:50,  trigger:"market" },
-  { id:"visit-inv",    name:"Visit Inventory",reward:50,  trigger:"inv" },
-  { id:"visit-bonus",  name:"Visit Bonus",    reward:50,  trigger:"bonus" },
-  { id:"visit-ads",    name:"Visit Ads",      reward:50,  trigger:"ads" },
-  { id:"visit-quest",  name:"Visit Quest tab",reward:50,  trigger:"quest" },
+  { id:"visit-shop",   trigger:"shop",   name:"Visit Shop",    reward:50 },
+  { id:"visit-craft",  trigger:"craft",  name:"Visit Crafting",reward:50 },
+  { id:"visit-market", trigger:"market", name:"Visit Market",  reward:50 },
+  { id:"visit-inv",    trigger:"inv",    name:"Visit Inventory",reward:50 },
+  { id:"visit-bonus",  trigger:"bonus",  name:"Visit Bonus",   reward:50 },
+  { id:"visit-ads",    trigger:"ads",    name:"Visit Ads",     reward:50 },
+  { id:"visit-quest",  trigger:"quest",  name:"Visit Quest",   reward:50 },
 
-  { id:"craft-any",    name:"Craft an item",      reward:100 },
-  { id:"buy-t1",       name:"Buy in Shop",        reward:100 },
-  { id:"market-buy",   name:"Buy from Market",    reward:100 },
-  { id:"market-post",  name:"Post on Market",     reward:100 },
-  { id:"ads-publish",  name:"Publish an Ad",      reward:100 },
-  { id:"send-gold",    name:"Send Gold",          reward:100 },
-  { id:"discord-open", name:"Open Discord",       reward:500 }
+  { id:"craft-item",   name:"Craft an item", reward:100 },
+  { id:"buy-item",     name:"Buy in shop",   reward:100 },
+  { id:"market-buy",   name:"Buy on market", reward:100 },
+  { id:"market-post",  name:"Post on market",reward:100 },
+  { id:"send-gold",    name:"Send gold",     reward:100 },
+  { id:"ads-publish",  name:"Publish ad",    reward:100 },
+  { id:"discord-open", name:"Discord click", reward:500 }
 ];
 
 const QUESTS_LIFE = [
@@ -1511,80 +1509,66 @@ const QUESTS_LIFE = [
   { id:"life-course",   name:"Buy Course",     reward:20000 }
 ];
 
-/* ------------------------------
-   2) INTERNAL STATE
------------------------------- */
-let STATE = [];
+/* -------------------------
+   STATE
+------------------------- */
+let QUEST_STATE = [];
 
-/* ------------------------------
-   3) LOAD STATE
------------------------------- */
-async function loadState(){
+async function questLoadState(){
   try{
     const r = await fetch("/api/quest/state");
     const j = await r.json();
-    STATE = j.ok ? j.quests : [];
-  }catch{
-    STATE = [];
-  }
+    QUEST_STATE = j.ok ? j.quests : [];
+  }catch{ QUEST_STATE = []; }
 }
 
-/* ------------------------------
-   4) CHECK STATE
------------------------------- */
-function getState(id){
-  return STATE.find(q=>q.quest_id===id) || {ready:0, done:0};
+function questGet(id){
+  return QUEST_STATE.find(q=>q.quest_id===id) || {ready:0,done:0};
 }
 
-/* ------------------------------
-   5) MARK START (READY)
------------------------------- */
-async function markReady(id){
-  await fetch("/api/quest/mark", {
+/* -------------------------
+   MARK READY
+------------------------- */
+async function questReady(id){
+  await fetch("/api/quest/mark",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({quest_id:id})
   });
-  await loadState();
-  render();
+  await questLoadState();
+  questRender();
 }
 
-/* ------------------------------
-   6) CLAIM
------------------------------- */
-async function claim(q){
-  await fetch("/api/quest/claim", {
+/* -------------------------
+   CLAIM
+------------------------- */
+async function questClaim(q){
+  await fetch("/api/quest/claim",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({quest_id:q.id})
   });
 
-  await loadState();
-  render();
+  await questLoadState();
+  questRender();
 
   if (window.WHO){
     WHO.balance_silver += q.reward * 100;
-    if (typeof renderBalance==="function") renderBalance();
+    renderBalance?.();
   }
 }
 
-/* ------------------------------
-   7) RENDER ONE ROW
------------------------------- */
-function row(q){
-  const st = getState(q.id);
-
-  let txt = "Not completed";
-  let cls = "quest-btn disabled";
-  let dis = "disabled";
+/* -------------------------
+   RENDER ROW
+------------------------- */
+function questRow(q){
+  const st = questGet(q.id);
+  let txt="Not completed", cls="quest-btn disabled", dis="disabled";
 
   if (st.done){
-    txt = "Finished";
-    cls = "quest-btn finished";
+    txt="Finished"; cls="quest-btn finished";
   } else if (st.ready){
-    txt = "Claim";
-    cls = "quest-btn claim";
-    dis = "";
+    txt="Claim"; cls="quest-btn claim"; dis="";
   }
 
   return `
@@ -1597,64 +1581,53 @@ function row(q){
     </div>`;
 }
 
-/* ------------------------------
-   8) RENDER LIST
------------------------------- */
-function render(){
-  const d = document.getElementById("quest-daily");
-  const l = document.getElementById("quest-life");
-
-  if (!d || !l) return;
-
-  d.innerHTML = QUESTS_DAILY.map(row).join("");
-  l.innerHTML = QUESTS_LIFE.map(row).join("");
-
-  // bind claim buttons
-  document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
-    btn.onclick = ()=>{
-      const id = btn.closest(".quest-row").dataset.id;
-      const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x=>x.id===id);
-      if (q) claim(q);
-    };
-  });
+/* -------------------------
+   RENDER LISTA
+------------------------- */
+function questRender(){
+  $("#quest-daily").innerHTML = QUESTS_DAILY.map(questRow).join("");
+  $("#quest-life").innerHTML  = QUESTS_LIFE.map(questRow).join("");
 }
 
-/* ------------------------------
-   9) HOOK U TVOJ ORIGINALNI setTab()
------------------------------- */
-window.setTab = (function(orig){
-  return function(tab){
-    try{ orig(tab); }catch(e){}
+/* -------------------------
+   DELEGIRANI CLICK (kao crafting)
+------------------------- */
+document.addEventListener("click",(e)=>{
+  const btn = e.target;
 
-    // visit quests
-    QUESTS_DAILY.forEach(q=>{
-      if (q.trigger === tab){
-        markReady(q.id);
-      }
-    });
+  // claim
+  if (btn.classList.contains("claim")){
+    const id = btn.closest(".quest-row").dataset.id;
+    const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x=>x.id===id);
+    if (q) questClaim(q);
+    return;
+  }
+});
 
-    if (tab==="quest") render();
-  };
-})(window.setTab);
+/* -------------------------
+   PRATI PROMJENU TABOVA — BEZ DIRANJA setTab
+------------------------- */
+const tabObs = new MutationObserver(()=>{
+  const tab = $(".chip.active")?.dataset.tab;
+  if (!tab) return;
 
-/* ------------------------------
-   10) PUBLIC API ZA DRUGE AKCIJE
------------------------------- */
-window.questAction = function(id){
-  markReady(id);
-};
+  QUESTS_DAILY.forEach(q=>{
+    if (q.trigger===tab) questReady(q.id);
+  });
 
-/* ------------------------------
-   11) INIT
------------------------------- */
+  if (tab==="quest") questRender();
+});
+
+tabObs.observe(document.body,{subtree:true, attributes:true, attributeFilter:["class"]});
+
+/* -------------------------
+   INIT
+------------------------- */
 (async function(){
-  await loadState();
-  render();
-})();
-
+  await questLoadState();
+  questRender();
 })();
 </script>
-
 
 
 <script>
@@ -1788,6 +1761,7 @@ window.questAction = function(id){
     
 </body>
 </html>
+
 
 
 
