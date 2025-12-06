@@ -1481,7 +1481,11 @@
 </script>
 
 
-<script>
+/* ============================================================
+   QUEST SYSTEM (FINAL VERSION — SINGLE, CLEAN)
+============================================================ */
+
+/* TVOJI QUESTOVI */
 const QUESTS = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50, daily:true },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50, daily:true },
@@ -1500,13 +1504,10 @@ const QUESTS = [
   { id:"click-discord", name:"Discord button",      reward:500, daily:true }
 ];
 
-
-/* =====================================
-   GLOBAL STATE (from server)
-===================================== */
+/* ---------------- GLOBAL STATE ---------------- */
 let STATE = [];
 
-/* učitaj state */
+/* load state */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
@@ -1517,14 +1518,12 @@ async function loadState(){
   }
 }
 
-/* helper */
+/* lookup helper */
 function Q(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* =====================================
-   MARK READY
-===================================== */
+/* ---------------- MARK READY ---------------- */
 window.questMarkReady = async function(id){
   await fetch("/api/quest/mark",{
     method:"POST",
@@ -1536,9 +1535,7 @@ window.questMarkReady = async function(id){
   renderQuests();
 };
 
-/* =====================================
-   CLAIM QUEST
-===================================== */
+/* ---------------- CLAIM QUEST ---------------- */
 async function claimQuest(id){
   await fetch("/api/quest/claim",{
     method:"POST",
@@ -1546,21 +1543,17 @@ async function claimQuest(id){
     body: JSON.stringify({ quest_id:id })
   });
 
-  // refresh
   STATE = await loadState();
   renderQuests();
 
-  // dodaj gold
   const q = QUESTS.find(x=>x.id===id);
   if (q && window.WHO){
-    WHO.balance_silver += q.reward * 100;
+    WHO.balance_silver += q.reward * 100; 
     renderBalance();
   }
 }
 
-/* =====================================
-   RENDER UI
-===================================== */
+/* ---------------- RENDER QUESTS ---------------- */
 window.renderQuests = function(){
   const box = document.getElementById("quest-daily");
   if (!box) return;
@@ -1589,142 +1582,14 @@ window.renderQuests = function(){
     `;
 
     const btn = row.querySelector("[data-claim]");
-
-    if (st.done) {
-      btn.textContent = "Finished";
-      btn.disabled = true;
-      btn.classList.add("muted");
-    }
-    else if (st.ready) {
-      btn.textContent = "Claim";
-      btn.disabled = false;
-      btn.onclick = () => claimQuest(q.id);
-    }
-    else {
-      btn.textContent = "Not completed";
-      btn.disabled = true;
-      btn.classList.add("muted");
-    }
-
-    box.appendChild(row);
-  }
-};
-
-// QUEST HOOK FOR TABS (FINAL VERSION)
-window.setTab = (function(orig){
-  return function(tab){
-    orig(tab);
-
-    // ako smo ušli u quest tab → osvježi
-    if (tab === "quest") {
-      renderQuests();
-    }
-
-    // markiraj ready za quest tipa "tab-*"
-    questMarkReady("tab-" + tab);
-  };
-})(window.setTab);
-
-/* ============================================================
-   QUEST SYSTEM (FINAL VERSION — COMPLETE & CLEAN)
-============================================================ */
-
-/* -------------------------------------
-   GLOBAL STATE
--------------------------------------- */
-let STATE = [];
-
-/* Load quest state from server */
-async function loadState(){
-  try{
-    const r = await fetch("/api/quest/state");
-    const j = await r.json();
-    return j.ok ? j.quests : [];
-  }catch{
-    return [];
-  }
-}
-
-/* helper for state lookup */
-function Q(id){
-  return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
-}
-
-/* -------------------------------------
-   MARK QUEST READY
--------------------------------------- */
-window.questMarkReady = async function(id){
-  await fetch("/api/quest/mark",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id })
-  });
-
-  STATE = await loadState();
-  renderQuests();
-};
-
-/* -------------------------------------
-   CLAIM QUEST
--------------------------------------- */
-async function claimQuest(id){
-  await fetch("/api/quest/claim",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id })
-  });
-
-  STATE = await loadState();
-  renderQuests();
-
-  // add gold to UI
-  const q = QUESTS.find(x=>x.id===id);
-  if (q && window.WHO){
-    WHO.balance_silver += q.reward * 100;
-    renderBalance();
-  }
-}
-
-/* -------------------------------------
-   RENDER QUESTS UI
--------------------------------------- */
-window.renderQuests = function(){
-  const box = document.getElementById("quest-daily");
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  for (const q of QUESTS){
-    const st = Q(q.id);
-
-    const row = document.createElement("div");
-    row.className = "itemrow";
-    row.dataset.id = q.id;
-
-    row.innerHTML = `
-      <div class="row" style="gap:10px;align-items:center">
-        <div>
-          <div class="label">${q.name}</div>
-          <div class="muted">Reward: ${q.reward} gold</div>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px;align-items:center">
-        <span class="badge">+${q.reward}</span>
-        <button class="btn" data-claim="${q.id}"></button>
-      </div>
-    `;
-
-    const btn = row.querySelector("[data-claim]");
-
     btn.onclick = null;
 
-    if (st.done) {
+    if (st.done){
       btn.textContent = "Finished";
       btn.disabled = true;
       btn.classList.add("muted");
     }
-    else if (st.ready) {
+    else if (st.ready){
       btn.textContent = "Claim";
       btn.disabled = false;
       btn.classList.remove("muted");
@@ -1740,55 +1605,34 @@ window.renderQuests = function(){
   }
 };
 
-/* -------------------------------------
-   QUEST HOOKS (CENTRALIZIRANO)
--------------------------------------- */
+/* ---------------- QUEST HOOKS ---------------- */
 window.questHooks = {
-
   craftSuccess() { questMarkReady("craft-item"); },
-
   buyMaterialSuccess() { questMarkReady("buy-material"); },
-
   buyMarketSuccess() { questMarkReady("buy-market"); },
-
   postMarketSuccess() { questMarkReady("post-market"); },
-
   publishAdSuccess() { questMarkReady("publish-ad"); },
-
   sendGoldSuccess() { questMarkReady("send-gold"); },
-
   discordClick() { questMarkReady("click-discord"); }
-
 };
 
-/* -------------------------------------
-   OVERRIDE setTab (tab questovi)
--------------------------------------- */
+/* ---------------- TAB OVERRIDE ---------------- */
 window.setTab = (function(orig){
   return function(tab){
     orig(tab);
 
-    if (tab === "quest") {
-      renderQuests();
-    }
-
+    if (tab === "quest") renderQuests();
     questMarkReady("tab-" + tab);
   };
 })(window.setTab);
 
-/* -------------------------------------
-   INITIAL LOAD
--------------------------------------- */
+/* ---------------- INITIAL LOAD ---------------- */
 (async()=>{
   STATE = await loadState();
   renderQuests();
 })();
-  
 </script>
-
-
-
-
+    
 <script>
 (function(){
 
@@ -1920,6 +1764,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
