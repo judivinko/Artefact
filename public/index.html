@@ -345,14 +345,14 @@
 
 </div>
 
+<!-- ===== ADS TAB ===== -->
 <div id="tab-ads" class="hidden" style="padding:20px">
 
   <h2 style="margin-bottom:20px">ADS & Course</h2>
 
-  <!-- LEFT SIDE -->
   <div style="display:flex;gap:25px;flex-wrap:wrap">
 
-    <!-- LEFT SECTION -->
+    <!-- LEFT SIDE -->
     <div style="flex:1;min-width:220px">
 
       <div style="font-size:20px;margin-bottom:10px">
@@ -376,14 +376,16 @@
           <button class="btn-blue" style="padding:8px 16px">Discord</button>
         </a>
       </div>
+
     </div>
 
-    <!-- RIGHT SECTION -->
+    <!-- RIGHT SIDE -->
     <div style="flex:1;min-width:250px">
+
       <div style="font-size:18px;margin-bottom:8px">Your Ad Link</div>
 
       <input id="ads-link-input"
-             placeholder="Enter your website link"
+             placeholder="https://your-site.com"
              style="width:100%;padding:8px;border-radius:6px;background:#0f172a;border:1px solid #1e293b;color:#fff" />
 
       <button id="ads-send-link" class="btn-green"
@@ -392,59 +394,13 @@
       </button>
 
       <div id="ads-msg" style="color:var(--muted);margin-top:10px"></div>
-    </div>
-
-  </div>
-</div>
-
-
-      <!-- CONTACT + DISCORD -->
-      <div style="background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:14px">
-        <div style="color:#e5e7eb;font-size:15px;margin-bottom:10px;font-weight:600">
-          Contact: Artefact profile on Discord
-        </div>
-
-        <button id="btn-ads-discord" class="btn-blue" style="width:100%;padding:10px;font-size:15px">
-          Discord
-        </button>
-      </div>
-
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div id="ads-right" style="
-      background:#0b1220;
-      border:1px solid #1f2937;
-      border-radius:12px;
-      padding:18px;
-    ">
-
-      <div style="margin-bottom:12px;font-size:17px;color:#e5e7eb">
-        Enter Your Link:
-      </div>
-
-      <input id="ads-link" type="text" placeholder="https://your-link.com" style="
-        width:100%;
-        padding:12px;
-        border-radius:8px;
-        border:1px solid #233047;
-        background:#020617;
-        color:#e5e7eb;
-        margin-bottom:15px;
-        font-size:15px;
-      "/>
-
-      <button id="btn-ads-send" class="btn-green" style="padding:12px 18px;font-size:16px">
-        Send
-      </button>
-
-      <div id="ads-msg" style="margin-top:14px;color:#4ade80;font-weight:600"></div>
 
     </div>
 
   </div>
 
 </div>
+
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
@@ -1641,8 +1597,8 @@ async function setTab(tab){
       credentials:"include",
       headers:{ "Content-Type":"application/json" }
     });
-    const j = await r.json();
 
+    const j = await r.json();
     if (!j.ok){
       toast(j.error === "Not enough gold" ? "Not enough gold!" : ("Error: "+j.error));
       return;
@@ -1650,6 +1606,10 @@ async function setTab(tab){
 
     toast("Course purchased!");
     document.getElementById("ads-course-contact").style.display = "block";
+
+    document.getElementById("ads-msg").textContent =
+      "Your course code: " + j.code;
+
     window.refreshMeLight?.();
   });
 
@@ -1657,7 +1617,7 @@ async function setTab(tab){
   document.getElementById("ads-send-link")?.addEventListener("click", async ()=>{
     const url = document.getElementById("ads-link-input").value.trim();
     if (!url){
-      toast("Enter link first.");
+      toast("Enter a link first.");
       return;
     }
 
@@ -1667,15 +1627,15 @@ async function setTab(tab){
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify({ url })
     });
-    const j = await r.json();
 
+    const j = await r.json();
     const msg = document.getElementById("ads-msg");
 
     if (!j.ok){
       if (j.error === "limit_reached"){
         msg.textContent = "You reached the maximum of 50 links.";
       } else {
-        msg.textContent = "Error: "+j.error;
+        msg.textContent = "Error: " + j.error;
       }
       return;
     }
@@ -1686,13 +1646,6 @@ async function setTab(tab){
 
 })();
 </script>
-
-
     
 </body>
 </html>
-
-
-
-
-
