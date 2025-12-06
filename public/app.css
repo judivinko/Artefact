@@ -168,27 +168,40 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(5,150,105,.20);
 }
 /* ============================================
-      DAILY TAB — USKLAĐEN SA GLOBAL DESIGNOM
+     DAILY – Crafting-style large panel
 ============================================ */
 
-#tab-daily .daily-wrapper {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 900px){
-  #tab-daily .daily-wrapper {
-    grid-template-columns: 1fr;
-  }
+#tab-daily {
+  padding: 12px;
 }
 
-#tab-daily .daily-card {
-  background: var(--glass);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
-  backdrop-filter: blur(8px);
+#tab-daily .daily-panel {
+  border: 2px solid rgba(255,200,0,0.28);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(10,6,0,0.35);
+  box-shadow:
+    0 0 14px rgba(255,180,0,0.18),
+    inset 0 0 6px rgba(255,160,0,0.12);
+}
+
+#tab-daily .daily-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px){
+  #tab-daily .daily-section { grid-template-columns: 1fr; }
+}
+
+#tab-daily .daily-box {
+  background: rgba(20,14,0,0.42);
+  border: 2px solid rgba(255,200,0,0.26);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow:
+    0 0 10px rgba(255,180,0,0.12),
+    inset 0 0 4px rgba(255,140,0,0.10);
 }
 
 #tab-daily .daily-title {
@@ -203,29 +216,44 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 }
 
 
+
+
+
 /* ============================================
-      ADS TAB — USKLAĐEN SA GLOBAL DESIGNOM
+     ADS – Crafting-style large panel
 ============================================ */
 
-#tab-ads .ads-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 900px){
-  #tab-ads .ads-grid {
-    grid-template-columns: 1fr;
-  }
+#tab-ads {
+  padding: 12px;
 }
 
-#tab-ads .ads-card {
-  background: var(--glass);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 12px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+#tab-ads .ads-panel {
+  border: 2px solid rgba(255,200,0,0.28);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(10,6,0,0.35);
+  box-shadow:
+    0 0 14px rgba(255,180,0,0.18),
+    inset 0 0 6px rgba(255,160,0,0.12);
+}
+
+#tab-ads .ads-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px){
+  #tab-ads .ads-section { grid-template-columns: 1fr; }
+}
+
+#tab-ads .ads-box {
+  background: rgba(20,14,0,0.42);
+  border: 2px solid rgba(255,200,0,0.26);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow:
+    0 0 10px rgba(255,180,0,0.12),
+    inset 0 0 4px rgba(255,140,0,0.10);
 }
 
 #tab-ads .ads-title {
@@ -236,7 +264,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #tab-ads .ads-input {
   width: 100%;
   margin-top: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 #tab-ads .ads-error {
@@ -245,19 +273,13 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   color: #ef4444;
 }
 
-#tab-ads .ads-success {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #22c55e;
-}
-
-#tab-ads .ads-code-box {
-  background: rgba(0,0,0,.45);
-  border-left: 3px solid #22c55e;
+#tab-ads .ads-course-box {
+  background: rgba(0,0,0,0.32);
+  border-left: 4px solid #22c55e;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   margin-top: 12px;
-  animation: fadeIn .35s ease;
+  animation: fadeIn .3s ease;
 }
 
 
@@ -472,6 +494,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
