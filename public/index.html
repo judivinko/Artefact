@@ -350,25 +350,21 @@
   <h2 class="ads-title">ADVERTISING PANEL</h2>
 
   <div class="ads-section">
-
-    <!-- ---------------------------
-          SEKCIJA 1 — BUY COURSE
-    ---------------------------- -->
+    
+    <!-- LEFT -->
     <div class="ads-box">
-      <h3 class="ads-subtitle">Buy Course</h3>
 
-      <p class="ads-text">
-        Purchasing a course gives you a unique redeemable code you can share.
-      </p>
+      <h3 class="ads-subtitle">Buy Course</h3>
+      <p class="ads-text">Purchasing a course gives you a unique redeemable code.</p>
 
       <button id="ads-buy" class="btn-green ads-btn">
         BUY COURSE (100,000 gold)
       </button>
 
-      <!-- ERROR ZA BUY COURSE -->
+      <!-- ERROR for Buy -->
       <div id="ads-buy-error" class="ads-error hidden"></div>
 
-      <!-- PRIKAZ COURSE KODA -->
+      <!-- COURSE CODE -->
       <div id="ads-course-box" class="ads-course-box hidden">
         <div class="ads-course-label">Your Course Code:</div>
         <div id="ads-course-code" class="ads-course-code"></div>
@@ -376,29 +372,29 @@
 
       <!-- DISCORD BUTTON -->
       <button id="ads-discord" class="btn-blue ads-btn" style="margin-top:14px">
-        Join Discord Server
+        JOIN DISCORD
       </button>
 
-      <div id="ads-discord-msg" class="muted" style="margin-top:6px;font-size:14px"></div>
     </div>
 
-
-    <!-- ---------------------------
-          SEKCIJA 2 — SUBMIT LINK
-    ---------------------------- -->
+    <!-- RIGHT -->
     <div class="ads-box">
-      <h3 class="ads-subtitle">Submit Your Link</h3>
+      <h3 class="ads-subtitle">Submit Your Link (50 gold)</h3>
 
-      <input id="ads-url" type="text" placeholder="https://your-link.com"
-             class="ads-input" />
+      <input id="ads-url" type="text" placeholder="https://your-link.com" class="ads-input"/>
 
-      <button id="ads-send" class="btn-blue ads-btn">Submit Link</button>
+      <button id="ads-send" class="btn-blue ads-btn">
+        Submit Link
+      </button>
 
-      <!-- ERROR ZA LINK -->
       <div id="ads-error" class="ads-error hidden"></div>
     </div>
-
   </div>
+
+  <h3 class="ads-subtitle" style="margin-top:25px">Your Links</h3>
+  <div id="ads-my-links" class="ads-list"></div>
+</div>
+
 
   <!-- ---------------------------
         SEKCIJA 3 — LISTA LINKOVA
@@ -1783,6 +1779,7 @@ if (sendBtn && !sendBtn._linkBound){
     
 </body>
 </html>
+
 
 
 
