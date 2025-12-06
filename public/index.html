@@ -1497,7 +1497,9 @@
 <script>
 (function(){
 
-/* ===============  DEFINICIJA DAILY QUESTOVA  =============== */
+/* ============================================================
+    DEFINICIJA SVIH DAILY QUESTOVA
+============================================================ */
 const QUESTS = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1516,7 +1518,9 @@ const QUESTS = [
   { id:"click-discord", name:"Discord button",      reward:500 }
 ];
 
-/* ===============  LOAD STATE  =============== */
+/* ============================================================
+    LOAD STATE (SERVER)
+============================================================ */
 let STATE = [];
 
 async function loadState(){
@@ -1529,18 +1533,22 @@ async function loadState(){
   }
 }
 
-/* PRVO UČITAVANJE */
+/* Init state */
 (async ()=>{
   STATE = await loadState();
   renderQuests();
 })();
 
-/* ===============  STATE HELPER  =============== */
+/* ============================================================
+    GET QUEST STATE
+============================================================ */
 function S(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ===============  MARK READY  =============== */
+/* ============================================================
+    MARK AS READY
+============================================================ */
 window.questMarkReady = async function(id){
   try{
     await fetch("/api/quest/mark", {
@@ -1554,7 +1562,9 @@ window.questMarkReady = async function(id){
   }catch{}
 };
 
-/* ===============  CLAIM  =============== */
+/* ============================================================
+    CLAIM QUEST
+============================================================ */
 async function claim(id){
   const q = QUESTS.find(x => x.id === id);
   if (!q) return;
@@ -1574,7 +1584,9 @@ async function claim(id){
   }
 }
 
-/* ===============  RENDER (NEMA DUPLIKATA!)  =============== */
+/* ============================================================
+    RENDER QUEST LIST
+============================================================ */
 window.renderQuests = function(){
 
   const dailyBox = document.getElementById("quest-daily");
@@ -1582,7 +1594,7 @@ window.renderQuests = function(){
 
   if (!dailyBox || !tmpl) return;
 
-  dailyBox.innerHTML = "";   // <<< KLJUČNO — RESET LISTE
+  dailyBox.innerHTML = ""; // reset
 
   for (const q of QUESTS){
     const st = S(q.id);
@@ -1622,7 +1634,9 @@ window.renderQuests = function(){
   });
 };
 
-/* ===============  INTEGRACIJA SA setTab  =============== */
+/* ============================================================
+    INTEGRACIJA SA setTab
+============================================================ */
 setTimeout(()=>{
   if (!window.setTab) return;
 
@@ -1641,6 +1655,7 @@ setTimeout(()=>{
 
 })();
 </script>
+
 
 
 <script>
@@ -1774,6 +1789,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
