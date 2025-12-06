@@ -1707,7 +1707,7 @@ function initAds(){
         window.questHooks.discordClick();
       }
 
-      window.open("https://discord.gg/YOUR_INVITE", "_blank");
+     window.open("https://discord.gg/HWXnQ6cW", "_blank");
 
       if (msgDisc){
         msgDisc.textContent = "Discord opened! ✔";
@@ -1715,48 +1715,60 @@ function initAds(){
     });
   }
 
-  /* ------------------------
-         SUBMIT LINK
-  ------------------------- */
-  if (sendBtn && !sendBtn._linkBound){
-    sendBtn._linkBound = true;
+ /* ------------------------
+       SUBMIT LINK
+------------------------- */
+if (sendBtn && !sendBtn._linkBound){
+  sendBtn._linkBound = true;
 
-    sendBtn.addEventListener("click", async ()=>{
-      const url = document.getElementById("ads-url").value.trim();
-      if (!url){
-        errLink.textContent = "Please enter a link.";
-        errLink.classList.remove("hidden");
-        return;
-      }
-
-      const r = await fetch("/api/ads/send-link", {
-        method:"POST",
-        credentials:"include",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ url })
-      });
-
-      const j = await r.json();
-
-      if (!j.ok){
-        errLink.textContent = "Error: " + j.error;
-        errLink.classList.remove("hidden");
-        return;
-      }
-
-      errLink.textContent = "Link submitted!";
-      errLink.style.color = "#22c55e";
+  sendBtn.addEventListener("click", async ()=>{
+    const url = document.getElementById("ads-url").value.trim();
+    if (!url){
+      errLink.textContent = "Please enter a link.";
+      errLink.style.color = "#ef4444";
       errLink.classList.remove("hidden");
+      return;
+    }
 
-      loadMyLinks();
+    const r = await fetch("/api/ads/send-link", {
+      method:"POST",
+      credentials:"include",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ url })
     });
-  }
+
+    const j = await r.json();
+
+    if (!j.ok){
+
+      if (j.error === "not_enough_gold"){
+        errLink.textContent = "You need 50 gold to submit a link!";
+        errLink.style.color = "#ef4444";
+        errLink.classList.remove("hidden");
+        return;
+      }
+
+      errLink.textContent = "Error: " + j.error;
+      errLink.style.color = "#ef4444";
+      errLink.classList.remove("hidden");
+      return;
+    }
+
+    errLink.textContent = "Link submitted!";
+    errLink.style.color = "#22c55e";
+    errLink.classList.remove("hidden");
+
+    loadMyLinks();
+    window.refreshMeLight?.();
+  });
 }
+
 </script>
 
 
     
 </body>
 </html>
+
 
 
