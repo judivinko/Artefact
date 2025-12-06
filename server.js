@@ -1802,6 +1802,38 @@ app.post("/api/daily/login", (req, res) => {
   }
 });
 
+app.get("/api/daily/status", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+
+    const row = db.prepare(`
+      SELECT current_day, last_claim
+      FROM daily_login WHERE user_id=?
+    `).get(uid);
+
+    if (!row) {
+      return res.json({
+        ok:true,
+        currentDay:1,
+        claimedToday:false
+      });
+    }
+
+    const now = Math.floor(Date.now()/1000);
+    const today = Math.floor(now/86400);
+    const lastDay = Math.floor(row.last_claim/86400);
+
+    res.json({
+      ok:true,
+      currentDay: row.current_day,
+      claimedToday: today === lastDay
+    });
+
+  } catch (e){
+    res.json({ ok:false, error:e.message });
+  }
+});
+
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -1832,6 +1864,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
