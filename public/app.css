@@ -170,67 +170,25 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 /* NEURAĐEN QUEST (default) */
 /* ===== Quests ===== */
 
-.quest-rowX{
+#tab-quest .itemrow{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:10px 16px;
-  margin-bottom:6px;
-  border-radius:10px;
-  background:rgba(255,255,255,0.03);
-  border:1px solid rgba(255,255,255,0.06);
-  font-size:14px;
+  padding:12px 0;
+  border-bottom:1px solid var(--border-soft);
 }
 
-.quest-name{
-  color:var(--text,#e5e7eb);
+#tab-quest .itemrow:last-child{
+  border-bottom:none;
 }
 
-.quest-right{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.quest-reward{
-  color:#facc15;
-}
-
-/* zajedničko za button */
-.quest-btn{
-  min-width:70px;
-  padding:4px 14px;
-  border-radius:999px;
-  border:none;
+#tab-quest .badge{
+  background:var(--accent-soft);
+  border:1px solid var(--accent);
+  padding:2px 8px;
+  border-radius:6px;
   font-size:13px;
-}
-
-/* --- NOT COMPLETED --- */
-.quest-rowX.not .quest-btn{
-  background:#374151;
-  color:#9ca3af;
-  cursor:not-allowed;
-}
-
-/* --- READY / CLAIM --- */
-.quest-rowX.ready{
-  background:rgba(34,197,94,0.18);
-  border-color:#22c55e;
-}
-.quest-rowX.ready .quest-btn{
-  background:#22c55e;
-  color:#000;
-  cursor:pointer;
-}
-
-/* --- FINISHED --- */
-.quest-rowX.done{
-  opacity:0.5;
-}
-.quest-rowX.done .quest-btn{
-  background:#111827;
-  color:#9ca3af;
-  cursor:default;
+  color:var(--accent-strong);
 }
 
 
@@ -443,6 +401,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
