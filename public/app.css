@@ -167,124 +167,99 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   border-color:#064e3b;
   box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(5,150,105,.20);
 }
-.daily-box {
-  background:#0b1220;
-  border:1px solid #1f2937;
-  border-radius:12px;
-  padding:14px;
-  text-align:center;
-  box-shadow:0 0 12px rgba(0,0,0,0.4);
-}
-.daily-box:hover {
-  border-color:#4ade80;
-  transform:scale(1.02);
-  transition:0.15s;
-}
+/* ============================================
+      DAILY TAB — USKLAĐEN SA GLOBAL DESIGNOM
+============================================ */
 
-#tab-ads .ads-title{
-  font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  text-align: center;
-  color: var(--text);
-}
-
-#tab-ads .ads-section{
+#tab-daily .daily-wrapper {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 12px;
 }
-
-@media(max-width:900px){
-  #tab-ads .ads-section{
+@media (max-width: 900px){
+  #tab-daily .daily-wrapper {
     grid-template-columns: 1fr;
   }
 }
 
-#tab-ads .ads-box{
-  background: var(--panel);
-  border: 1px solid var(--border-soft);
-  padding: 18px;
+#tab-daily .daily-card {
+  background: var(--glass);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: var(--shadow-soft);
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  backdrop-filter: blur(8px);
 }
 
-#tab-ads .ads-subtitle{
-  font-size: 18px;
+#tab-daily .daily-title {
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
-#tab-ads .ads-text{
+#tab-daily .daily-msg {
+  margin-top: 8px;
   font-size: 14px;
-  opacity: .8;
-  margin-bottom: 15px;
+  opacity: .85;
 }
 
-#tab-ads .ads-btn{
-  width: 100%;
-  margin-top: 10px;
+
+/* ============================================
+      ADS TAB — USKLAĐEN SA GLOBAL DESIGNOM
+============================================ */
+
+#tab-ads .ads-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 900px){
+  #tab-ads .ads-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+#tab-ads .ads-card {
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   padding: 12px;
-  font-size: 16px;
-  border-radius: 8px;
+  margin-top: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
 }
 
-#tab-ads .ads-input{
+#tab-ads .ads-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+#tab-ads .ads-input {
   width: 100%;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+#tab-ads .ads-error {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #ef4444;
+}
+
+#tab-ads .ads-success {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #22c55e;
+}
+
+#tab-ads .ads-code-box {
+  background: rgba(0,0,0,.45);
+  border-left: 3px solid #22c55e;
   padding: 10px;
-  font-size: 15px;
   border-radius: 8px;
-  margin-bottom: 10px;
-  background: var(--panel-soft);
-  color: var(--text);
-  border: 1px solid var(--border-soft);
+  margin-top: 12px;
+  animation: fadeIn .35s ease;
 }
 
-#tab-ads .ads-course-box{
-  margin-top: 15px;
-  padding: 12px;
-  background: #0f172a;
-  border-left: 4px solid #22c55e;
-  border-radius: 6px;
-  animation: fadeIn .4s ease;
-}
-
-#tab-ads .ads-course-label{
-  font-size: 14px;
-  opacity: .8;
-}
-
-#tab-ads .ads-course-code{
-  font-size: 18px;
-  font-weight: 700;
-  margin-top: 5px;
-  color: var(--accent);
-}
-
-#tab-ads .ads-list{
-  background: var(--panel);
-  border: 1px solid var(--border-soft);
-  padding: 12px;
-  border-radius: 10px;
-  margin-top: 10px;
-  min-height: 40px;
-  white-space: pre-wrap;
-}
-
-.ads-error{
-  color: var(--danger);
-  margin-top: 10px;
-  font-size: 14px;
-}
-
-.hidden{
-  display:none !important;
-}
-
-@keyframes fadeIn{
-  from{opacity:0;transform:translateY(6px);}
-  to{opacity:1;transform:translateY(0);}
-}
 
 
 
@@ -497,6 +472,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
