@@ -1479,96 +1479,84 @@
 
 
 <script>
-/* =============================================================
-   NOVI QUEST SISTEM — ISTA ARHITEKTURA KAO CRAFTING (100% RADI)
-============================================================= */
+/* ============================================================
+   QUESTS – GLOBALAN I ČIST SISTEM (kao Crafting)
+============================================================ */
 
-/* -------------------------
-   DEFINICIJA
-------------------------- */
-const QUESTS_DAILY = [
-  { id:"visit-shop",   trigger:"shop",   name:"Visit Shop",    reward:50 },
-  { id:"visit-craft",  trigger:"craft",  name:"Visit Crafting",reward:50 },
-  { id:"visit-market", trigger:"market", name:"Visit Market",  reward:50 },
-  { id:"visit-inv",    trigger:"inv",    name:"Visit Inventory",reward:50 },
-  { id:"visit-bonus",  trigger:"bonus",  name:"Visit Bonus",   reward:50 },
-  { id:"visit-ads",    trigger:"ads",    name:"Visit Ads",     reward:50 },
-  { id:"visit-quest",  trigger:"quest",  name:"Visit Quest",   reward:50 },
-
-  { id:"craft-item",   name:"Craft an item", reward:100 },
-  { id:"buy-item",     name:"Buy in shop",   reward:100 },
-  { id:"market-buy",   name:"Buy on market", reward:100 },
-  { id:"market-post",  name:"Post on market",reward:100 },
-  { id:"send-gold",    name:"Send gold",     reward:100 },
-  { id:"ads-publish",  name:"Publish ad",    reward:100 },
-  { id:"discord-open", name:"Discord click", reward:500 }
+/* ----------------------- DEFINICIJA ----------------------- */
+window.QUESTS_DAILY = [
+  { id:"tab-shop",   name:"Visit Shop",      reward:50 },
+  { id:"tab-craft",  name:"Visit Crafting",  reward:50 },
+  { id:"tab-market", name:"Visit Market",    reward:50 },
+  { id:"tab-inv",    name:"Visit Inventory", reward:50 },
+  { id:"tab-bonus",  name:"Visit Bonus",     reward:50 },
+  { id:"tab-ads",    name:"Visit Ads",       reward:50 },
+  { id:"tab-quest",  name:"Visit Quest",     reward:50 }
 ];
 
-const QUESTS_LIFE = [
-  { id:"life-artefact", name:"Craft Artefact", reward:20000 },
-  { id:"life-course",   name:"Buy Course",     reward:20000 }
+window.QUESTS_LIFE = [
+  { id:"life-artefact", name:"Craft an Artefact", reward:20000 },
+  { id:"life-course",   name:"Buy Course",        reward:20000 }
 ];
 
-/* -------------------------
-   STATE
-------------------------- */
-let QUEST_STATE = [];
+/* ----------------------- STATE ----------------------- */
+window.QUEST_STATE = [];
 
-async function questLoadState(){
-  try{
+window.questLoadState = async function(){
+  try {
     const r = await fetch("/api/quest/state");
     const j = await r.json();
-    QUEST_STATE = j.ok ? j.quests : [];
-  }catch{ QUEST_STATE = []; }
-}
+    window.QUEST_STATE = j.ok ? j.quests : [];
+  } catch {
+    window.QUEST_STATE = [];
+  }
+};
 
-function questGet(id){
-  return QUEST_STATE.find(q=>q.quest_id===id) || {ready:0,done:0};
-}
+window.questGet = function(id){
+  return window.QUEST_STATE.find(x=>x.quest_id===id) || {ready:0, done:0};
+};
 
-/* -------------------------
-   MARK READY
-------------------------- */
-async function questReady(id){
+/* ----------------------- MARK READY ----------------------- */
+window.questReady = async function(id){
   await fetch("/api/quest/mark",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({quest_id:id})
   });
-  await questLoadState();
-  questRender();
-}
 
-/* -------------------------
-   CLAIM
-------------------------- */
-async function questClaim(q){
+  await window.questLoadState();
+  window.questRender();
+};
+
+/* ----------------------- CLAIM ----------------------- */
+window.questClaim = async function(q){
   await fetch("/api/quest/claim",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({quest_id:q.id})
   });
 
-  await questLoadState();
-  questRender();
+  await window.questLoadState();
+  window.questRender();
 
   if (window.WHO){
     WHO.balance_silver += q.reward * 100;
-    renderBalance?.();
+    if (typeof renderBalance==="function") renderBalance();
   }
-}
+};
 
-/* -------------------------
-   RENDER ROW
-------------------------- */
-function questRow(q){
-  const st = questGet(q.id);
-  let txt="Not completed", cls="quest-btn disabled", dis="disabled";
+/* ----------------------- RENDER ----------------------- */
+window.questRow = function(q){
+  const st = window.questGet(q.id);
+  let text="Not completed", cls="quest-btn disabled", dis="disabled";
 
   if (st.done){
-    txt="Finished"; cls="quest-btn finished";
+    text="Finished";
+    cls="quest-btn finished";
   } else if (st.ready){
-    txt="Claim"; cls="quest-btn claim"; dis="";
+    text="Claim";
+    cls="quest-btn claim";
+    dis="";
   }
 
   return `
@@ -1576,58 +1564,62 @@ function questRow(q){
       <span>${q.name}</span>
       <div class="quest-right">
         <span class="quest-reward">+${q.reward} gold</span>
-        <button class="${cls}" ${dis}>${txt}</button>
+        <button class="${cls}" ${dis}>${text}</button>
       </div>
-    </div>`;
-}
+    </div>
+  `;
+};
 
-/* -------------------------
-   RENDER LISTA
-------------------------- */
-function questRender(){
-  $("#quest-daily").innerHTML = QUESTS_DAILY.map(questRow).join("");
-  $("#quest-life").innerHTML  = QUESTS_LIFE.map(questRow).join("");
-}
+window.questRender = function(){
+  const d = document.getElementById("quest-daily");
+  const l = document.getElementById("quest-life");
+  if (!d || !l) return;
 
-/* -------------------------
-   DELEGIRANI CLICK (kao crafting)
-------------------------- */
-document.addEventListener("click",(e)=>{
+  d.innerHTML = window.QUESTS_DAILY.map(window.questRow).join("");
+  l.innerHTML = window.QUESTS_LIFE.map(window.questRow).join("");
+};
+
+/* ----------------------- DELEGIRANI CLICK (kao crafting) ----------------------- */
+document.addEventListener("click", (e)=>{
   const btn = e.target;
+  if (!btn.classList.contains("claim")) return;
 
-  // claim
-  if (btn.classList.contains("claim")){
-    const id = btn.closest(".quest-row").dataset.id;
-    const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x=>x.id===id);
-    if (q) questClaim(q);
-    return;
+  const row = btn.closest(".quest-row");
+  if (!row) return;
+
+  const id = row.dataset.id;
+  const q = [...window.QUESTS_DAILY, ...window.QUESTS_LIFE].find(x=>x.id===id);
+  if (q) window.questClaim(q);
+});
+
+/* ----------------------- TAB PROMJENA ----------------------- */
+/* Ne diramo tvoj setTab.
+   Samo slušamo koje je aktivno dugme u tab baru (chip). */
+
+document.addEventListener("click", (e)=>{
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+
+  const tab = chip.dataset.tab;
+  if (!tab) return;
+
+  // mark visit questovi
+  const match = window.QUESTS_DAILY.find(q=>q.id==="tab-"+tab);
+  if (match) window.questReady(match.id);
+
+  // ako ulaziš u quest tab → render
+  if (tab === "quest"){
+    setTimeout(window.questRender, 50);
   }
 });
 
-/* -------------------------
-   PRATI PROMJENU TABOVA — BEZ DIRANJA setTab
-------------------------- */
-const tabObs = new MutationObserver(()=>{
-  const tab = $(".chip.active")?.dataset.tab;
-  if (!tab) return;
-
-  QUESTS_DAILY.forEach(q=>{
-    if (q.trigger===tab) questReady(q.id);
-  });
-
-  if (tab==="quest") questRender();
-});
-
-tabObs.observe(document.body,{subtree:true, attributes:true, attributeFilter:["class"]});
-
-/* -------------------------
-   INIT
-------------------------- */
+/* ----------------------- INIT ----------------------- */
 (async function(){
-  await questLoadState();
-  questRender();
+  await window.questLoadState();
+  window.questRender();
 })();
 </script>
+
 
 
 <script>
@@ -1761,6 +1753,7 @@ tabObs.observe(document.body,{subtree:true, attributes:true, attributeFilter:["c
     
 </body>
 </html>
+
 
 
 
