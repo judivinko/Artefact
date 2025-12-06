@@ -1896,34 +1896,28 @@ app.post("/api/ads/buy-course", (req,res)=>{
   }
 });
 
-app.post("/api/ads/send-link", (req,res)=>{
-  try{
+app.post("/api/ads/send-link", (req, res) => {
+  try {
     const uid = requireAuth(req);
-    const { url } = req.body;
+    let { text } = req.body || {};
 
-    if (!url || typeof url !== "string"){
-      return res.json({ ok:false, error:"invalid_url" });
+    if (!text || !text.trim()){
+      return res.json({ ok:false, error:"empty" });
     }
 
-    const COST = 50 * 100; // 50 gold → silver
+    text = text.trim();
 
-    const u = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-    if (!u || u.balance_silver < COST){
-      return res.json({ ok:false, error:"not_enough_gold" });
-    }
+    // upiši kao čisti tekst – bez provjere, bez izmjena
+    db.prepare("INSERT INTO ads_links (user_id, link) VALUES (?, ?)")
+      .run(uid, text);
 
-    db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
-      .run(COST, uid);
+    return res.json({ ok:true, link:text });
 
-    db.prepare("INSERT INTO ads_links (user_id, link, ts) VALUES (?, ?, strftime('%s','now'))")
-      .run(uid, url);
-
-    return res.json({ ok:true });
-
-  }catch(e){
+  } catch (e) {
     return res.json({ ok:false, error:e.message });
   }
 });
+
 
 
 // GET MY LINKS
@@ -1967,6 +1961,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
