@@ -320,80 +320,18 @@
   </div>
 </div>
 
-<!-- QUEST TAB (FINAL) -->
-<div id="tab-quest" class="tab hidden">
-  <div class="inner">
-
-    <div class="row">
-      <div class="label">Daily Quests</div>
-    </div>
-
-    <div class="card" style="margin-top:12px">
-      <div id="quest-daily" class="list">
-
-        <!-- 1 PRIMJER QUEST-A (template koji se klonira) -->
-        <div class="itemrow quest-row" data-id="__ID__">
-
-          <div class="row" style="gap:10px; align-items:center">
-            <div>
-              <div class="label quest-name">Quest name</div>
-              <div class="muted quest-reward">Reward: ___ gold</div>
-            </div>
-          </div>
-
-          <div class="row" style="gap:10px; align-items:center">
-            <span class="badge quest-reward-badge">+0</span>
-            <button class="btn quest-claim" disabled>Not completed</button>
-          </div>
-
-        </div>
-        <!-- JS će klonirati ovaj template i ubaciti nove -->
-
-      </div>
-    </div>
-
-  </div>
-</div>
-
-
-  <!-- DAILY QUESTS -->
-  <div class="card" style="margin-top:12px">
-    <div class="label">Daily Quests</div>
-    <div id="quest-daily" class="list">
-
-      <!-- PRIMJER JEDNOG QUEST REDA – SVE DEFINISANO U DIV-u -->
-      <div class="itemrow" data-id="tab-shop">
-        <div class="row" style="gap:10px;align-items:center">
-          <div>
-            <div class="label">Visit Shop tab</div>
-            <div class="muted">Reward: 50 gold</div>
-          </div>
-        </div>
-
-        <div class="row" style="gap:10px;align-items:center">
-          <span class="badge">+50</span>
-          <button class="btn muted" disabled data-claim="tab-shop">Not completed</button>
-        </div>
-      </div>
-
-      <!-- PRAVI PROGRAM TI OVDJE UBACUJE OSTALO (JS) -->
-    </div>
-  </div>
-
-
 <!-- QUEST TAB -->
 <div id="tab-quest" class="tab hidden">
   <div class="inner">
 
-    <!-- DAILY -->
     <div class="label" style="margin-bottom:10px">Daily Quests</div>
 
     <div class="card">
       <div id="quest-daily" class="list"></div>
     </div>
 
-    <!-- TEMPLATE (JS klonira) -->
-    <div id="quest-template" class="itemrow quest-row hidden">
+    <!-- TEMPLATE — MUST BE ONLY ONE -->
+    <div id="quest-template" class="itemrow hidden">
       <div class="row" style="gap:10px; align-items:center">
         <div>
           <div class="label quest-name">Quest name</div>
@@ -409,7 +347,6 @@
 
   </div>
 </div>
-
 
 
     
@@ -1560,9 +1497,7 @@
 <script>
 (function(){
 
-/* ==========================================
-   DEFINICIJA SAMO DAILY QUESTOVA
-========================================== */
+/* ===============  DEFINICIJA DAILY QUESTOVA  =============== */
 const QUESTS = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1581,9 +1516,7 @@ const QUESTS = [
   { id:"click-discord", name:"Discord button",      reward:500 }
 ];
 
-/* ==========================================
-   LOAD STATE
-========================================== */
+/* ===============  LOAD STATE  =============== */
 let STATE = [];
 
 async function loadState(){
@@ -1596,21 +1529,18 @@ async function loadState(){
   }
 }
 
+/* PRVO UČITAVANJE */
 (async ()=>{
   STATE = await loadState();
   renderQuests();
 })();
 
-/* ==========================================
-   STATE HELPER
-========================================== */
+/* ===============  STATE HELPER  =============== */
 function S(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ==========================================
-   MARK READY
-========================================== */
+/* ===============  MARK READY  =============== */
 window.questMarkReady = async function(id){
   try{
     await fetch("/api/quest/mark", {
@@ -1624,33 +1554,27 @@ window.questMarkReady = async function(id){
   }catch{}
 };
 
-/* ==========================================
-   CLAIM
-========================================== */
+/* ===============  CLAIM  =============== */
 async function claim(id){
   const q = QUESTS.find(x => x.id === id);
   if (!q) return;
 
-  try{
-    await fetch("/api/quest/claim", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ quest_id:id })
-    });
+  await fetch("/api/quest/claim", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ quest_id:id })
+  });
 
-    STATE = await loadState();
-    renderQuests();
+  STATE = await loadState();
+  renderQuests();
 
-    if (WHO){
-      WHO.balance_silver += q.reward * 100;
-      renderBalance();
-    }
-  }catch{}
+  if (WHO){
+    WHO.balance_silver += q.reward * 100;
+    renderBalance();
+  }
 }
 
-/* ==========================================
-   RENDER
-========================================== */
+/* ===============  RENDER (NEMA DUPLIKATA!)  =============== */
 window.renderQuests = function(){
 
   const dailyBox = document.getElementById("quest-daily");
@@ -1658,7 +1582,7 @@ window.renderQuests = function(){
 
   if (!dailyBox || !tmpl) return;
 
-  dailyBox.innerHTML = "";
+  dailyBox.innerHTML = "";   // <<< KLJUČNO — RESET LISTE
 
   for (const q of QUESTS){
     const st = S(q.id);
@@ -1678,13 +1602,13 @@ window.renderQuests = function(){
       btn.textContent = "Finished";
       btn.disabled = true;
       btn.classList.add("muted");
-    }
-    else if (st.ready){
+
+    } else if (st.ready){
       btn.textContent = "Claim";
       btn.disabled = false;
       btn.classList.remove("muted");
-    }
-    else{
+
+    } else {
       btn.textContent = "Not completed";
       btn.disabled = true;
       btn.classList.add("muted");
@@ -1698,9 +1622,7 @@ window.renderQuests = function(){
   });
 };
 
-/* ==========================================
-   CONNECT TO setTab
-========================================== */
+/* ===============  INTEGRACIJA SA setTab  =============== */
 setTimeout(()=>{
   if (!window.setTab) return;
 
@@ -1719,8 +1641,6 @@ setTimeout(()=>{
 
 })();
 </script>
-
-
 
 
 <script>
@@ -1854,6 +1774,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
