@@ -1581,121 +1581,80 @@ async function setTab(tab){
 </script>
 
 <script>
-(function(){
+// ==========================
+//        ADS TAB
+// ==========================
 
-  async function loadMyLinks(){
-    const r = await fetch("/api/ads/my-links", {credentials:"include"});
-    const j = await r.json();
-    const box = document.getElementById("ads-my-links");
-    if (!box) return;
+// Poziva se iz setTab()
+window.setTabAds = function(){
+  loadMyLinks();
+  initAds();
+};
 
-    if(!j.ok){
-      box.innerHTML = "Error";
-      return;
-    }
+// Učitavanje mojih linkova
+async function loadMyLinks(){
+  const r = await fetch("/api/ads/my-links", { credentials:"include" });
+  const j = await r.json();
+  const box = document.getElementById("ads-my-links");
+  if (!box) return;
 
-    if(j.links.length === 0){
-      box.innerHTML = "<div>No links yet.</div>";
-      return;
-    }
-
-    box.innerHTML = j.links.map(l=>`
-      <div style="padding:4px 0">${l.link}</div>
-    `).join("");
+  if(!j.ok){
+    box.innerHTML = "Error loading links.";
+    return;
   }
 
-  function initAds(){
-    const buyBtn  = document.getElementById("ads-buy");
-    const sendBtn = document.getElementById("ads-send");
+  if (j.links.length === 0){
+    box.innerHTML = "<div>No links yet.</div>";
+    return;
+  }
 
-    // ako tab još nije u DOM-u, ništa ne radimo
-    if (!buyBtn && !sendBtn) return;
+  box.innerHTML = j.links.map(l=>`
+    <div style="padding:4px 0">${l.link}</div>
+  `).join("");
+}
 
-    // BUY COURSE
-    if (buyBtn && !buyBtn._adsBound){
-      buyBtn._adsBound = true;
-      buyBtn.addEventListener("click", async ()=>{
-        const r = await fetch("/api/ads/buy-course", {
-          method:"POST",
-          credentials:"include"
-        });
-        const j = await r.json();
+// Inicijalizacija dugmadi
+function initAds(){
+  const buyBtn  = document.getElementById("ads-buy");
 
-        if(!j.ok){
-          if (j.error === "not_enough_gold") {
-            toast("Not enough gold!");
-          } else {
-            toast("Error: " + j.error);
-          }
-          return;
-        }
+  if (buyBtn && !buyBtn._adsBound){
+    buyBtn._adsBound = true;
 
-        // prikaži box + kod
-        const box = document.getElementById("ads-course-box");
-        const codeEl = document.getElementById("ads-course-code");
-        if (box) box.style.display = "block";
-        if (codeEl) codeEl.textContent = "Your Course Code: " + j.code;
-
-        window.refreshMeLight?.();
+    buyBtn.addEventListener("click", async ()=>{
+      const r = await fetch("/api/ads/buy-course", {
+        method:"POST",
+        credentials:"include"
       });
-    }
 
-    // SEND LINK
-    if (sendBtn && !sendBtn._adsBound){
-      sendBtn._adsBound = true;
-      sendBtn.addEventListener("click", async ()=>{
-        const urlInput = document.getElementById("ads-link");
-        const url = urlInput?.value.trim() || "";
-        if(!url){
-          toast("Enter a valid link.");
+      const j = await r.json();
+
+      if (!j.ok){
+        if (j.error === "not_enough_gold"){
+          alert("Not enough gold!");
           return;
         }
+        alert("Error: " + j.error);
+        return;
+      }
 
-        const r = await fetch("/api/ads/send-link", {
-          method:"POST",
-          credentials:"include",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ url })
-        });
+      // Prikaz kurs koda
+      document.getElementById("ads-course-box").style.display = "block";
+      document.getElementById("ads-course-code").textContent =
+        "Your Course Code: " + j.code;
 
-        const j = await r.json();
-        if(!j.ok){
-          if(j.error==="limit_reached"){
-            toast("You reached 50 link limit!");
-          } else {
-            toast("Error sending link.");
-          }
-          return;
-        }
-
-        toast("Link saved!");
-        if (urlInput) urlInput.value = "";
-        loadMyLinks();
-      });
-    }
+      window.refreshMeLight?.();
+    });
   }
-
-  // kad god se otvori ADS tab
-  window.setTabAds = function(){
-    loadMyLinks();
-    initAds();
-  };
-
-  // inicijalno – kad se DOM učita
-  if (document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", initAds);
-  } else {
-    initAds();
-  }
-
-})();
+}
 </script>
+
 
 
 
     
 </body>
 </html>
+
 
 
 
