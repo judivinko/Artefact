@@ -417,6 +417,24 @@ ensure(`
   );
 `);
 
+ensure(`
+CREATE TABLE IF NOT EXISTS ads_links (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  link TEXT NOT NULL,
+  ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+`);
+
+ensure(`
+CREATE TABLE IF NOT EXISTS ads_purchases (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  code TEXT NOT NULL,
+  ts INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+  );
+`);
+
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
 if (!hasColumn("bonus_codes", "total_credited_silver")) {
@@ -1865,4 +1883,5 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
