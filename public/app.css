@@ -167,29 +167,20 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   border-color:#064e3b;
   box-shadow: inset 0 0 0 1px rgba(16,185,129,.35), 0 6px 16px rgba(5,150,105,.20);
 }
-/* NEURAĐEN QUEST (default) */
-/* ===== Quests ===== */
-
-#tab-quest .itemrow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:12px 0;
-  border-bottom:1px solid var(--border-soft);
+.daily-box {
+  background:#0b1220;
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:14px;
+  text-align:center;
+  box-shadow:0 0 12px rgba(0,0,0,0.4);
+}
+.daily-box:hover {
+  border-color:#4ade80;
+  transform:scale(1.02);
+  transition:0.15s;
 }
 
-#tab-quest .itemrow:last-child{
-  border-bottom:none;
-}
-
-#tab-quest .badge{
-  background:var(--accent-soft);
-  border:1px solid var(--accent);
-  padding:2px 8px;
-  border-radius:6px;
-  font-size:13px;
-  color:var(--accent-strong);
-}
 
 
 
@@ -401,6 +392,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
