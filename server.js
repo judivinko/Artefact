@@ -1896,21 +1896,35 @@ app.post("/api/ads/buy-course", (req,res)=>{
   }
 });
 
-app.post("/api/ads/send-link", (req, res) => {
-  try {
+// SEND LINK (košta 50 golda)
+app.post("/api/ads/send-link", (req,res)=>{
+  try{
     const uid = requireAuth(req);
-    let { text } = req.body || {};
+    const { text } = req.body || {};
 
-    if (!text) text = "";                 // dozvoli prazan
-    text = text.toString();               // pretvori sve u string
+    if(!text){
+      return res.json({ ok:false, error:"empty_text" });
+    }
 
-    db.prepare("INSERT INTO ads_links (user_id, link) VALUES (?, ?)")
+    // ⚠ SKINUTI 50 golda (50 * 100 silvera)
+    const COST = 50 * 100;
+
+    const bal = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
+    if (!bal || bal.balance_silver < COST){
+      return res.json({ ok:false, error:"not_enough_gold" });
+    }
+
+    db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
+      .run(COST, uid);
+
+    // Spremi post
+    db.prepare("INSERT INTO ads_links(user_id, link) VALUES (?, ?)")
       .run(uid, text);
 
-    return res.json({ ok: true, link: text });
+    return res.json({ ok:true });
 
-  } catch (e) {
-    return res.json({ ok: false, error: e.message });
+  }catch(e){
+    return res.json({ ok:false, error:e.message });
   }
 });
 
@@ -1957,6 +1971,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
