@@ -324,25 +324,12 @@
 <div id="tab-quest" class="tab hidden">
   <div class="inner">
 
-    <div class="label" style="margin-bottom:10px">Daily Quests</div>
-
-    <div class="card">
-      <div id="quest-daily" class="list"></div>
+    <div class="row">
+      <div class="label">Daily Quests</div>
     </div>
 
-    <!-- TEMPLATE — MUST BE ONLY ONE -->
-    <div id="quest-template" class="itemrow hidden">
-      <div class="row" style="gap:10px; align-items:center">
-        <div>
-          <div class="label quest-name">Quest name</div>
-          <div class="muted quest-reward-text">Reward: ___ gold</div>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px; align-items:center">
-        <span class="badge quest-reward-badge">+0</span>
-        <button class="btn quest-btn" disabled>Not completed</button>
-      </div>
+    <div class="card" style="margin-top:12px">
+      <div id="quest-daily" class="list"></div>
     </div>
 
   </div>
@@ -1495,11 +1482,11 @@
 
 
 <script>
-(function(){
+(() => {
 
-/* ============================================================
-    DEFINICIJA SVIH DAILY QUESTOVA
-============================================================ */
+/* =====================================
+   TVOJI QUESTOVI
+===================================== */
 const QUESTS = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
@@ -1518,11 +1505,12 @@ const QUESTS = [
   { id:"click-discord", name:"Discord button",      reward:500 }
 ];
 
-/* ============================================================
-    LOAD STATE (SERVER)
-============================================================ */
+/* =====================================
+   GLOBAL STATE (from server)
+===================================== */
 let STATE = [];
 
+/* učitaj state */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
@@ -1533,43 +1521,16 @@ async function loadState(){
   }
 }
 
-/* Init state */
-(async ()=>{
-  STATE = await loadState();
-  renderQuests();
-})();
-
-/* ============================================================
-    GET QUEST STATE
-============================================================ */
-function S(id){
+/* helper */
+function Q(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ============================================================
-    MARK AS READY
-============================================================ */
+/* =====================================
+   MARK READY
+===================================== */
 window.questMarkReady = async function(id){
-  try{
-    await fetch("/api/quest/mark", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ quest_id:id })
-    });
-
-    STATE = await loadState();
-    renderQuests();
-  }catch{}
-};
-
-/* ============================================================
-    CLAIM QUEST
-============================================================ */
-async function claim(id){
-  const q = QUESTS.find(x => x.id === id);
-  if (!q) return;
-
-  await fetch("/api/quest/claim", {
+  await fetch("/api/quest/mark",{
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:id })
@@ -1577,84 +1538,126 @@ async function claim(id){
 
   STATE = await loadState();
   renderQuests();
+};
 
-  if (WHO){
+/* =====================================
+   CLAIM QUEST
+===================================== */
+async function claimQuest(id){
+  await fetch("/api/quest/claim",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ quest_id:id })
+  });
+
+  // refresh
+  STATE = await loadState();
+  renderQuests();
+
+  // dodaj gold
+  const q = QUESTS.find(x=>x.id===id);
+  if (q && window.WHO){
     WHO.balance_silver += q.reward * 100;
     renderBalance();
   }
 }
 
-/* ============================================================
-    RENDER QUEST LIST
-============================================================ */
+/* =====================================
+   RENDER UI
+===================================== */
 window.renderQuests = function(){
+  const box = document.getElementById("quest-daily");
+  if (!box) return;
 
-  const dailyBox = document.getElementById("quest-daily");
-  const tmpl     = document.getElementById("quest-template");
-
-  if (!dailyBox || !tmpl) return;
-
-  dailyBox.innerHTML = ""; // reset
+  box.innerHTML = "";
 
   for (const q of QUESTS){
-    const st = S(q.id);
+    const st = Q(q.id);
 
-    const row = tmpl.cloneNode(true);
-    row.classList.remove("hidden");
+    const row = document.createElement("div");
+    row.className = "itemrow";
     row.dataset.id = q.id;
 
-    row.querySelector(".quest-name").textContent = q.name;
-    row.querySelector(".quest-reward-text").textContent = `Reward: ${q.reward} gold`;
-    row.querySelector(".quest-reward-badge").textContent = `+${q.reward}`;
+    row.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <div>
+          <div class="label">${q.name}</div>
+          <div class="muted">Reward: ${q.reward} gold</div>
+        </div>
+      </div>
 
-    const btn = row.querySelector(".quest-btn");
-    btn.dataset.claim = q.id;
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="badge">+${q.reward}</span>
+        <button class="btn" data-claim="${q.id}"></button>
+      </div>
+    `;
 
-    if (st.done){
+    const btn = row.querySelector("[data-claim]");
+
+    if (st.done) {
       btn.textContent = "Finished";
       btn.disabled = true;
       btn.classList.add("muted");
-
-    } else if (st.ready){
+    }
+    else if (st.ready) {
       btn.textContent = "Claim";
       btn.disabled = false;
-      btn.classList.remove("muted");
-
-    } else {
+      btn.onclick = () => claimQuest(q.id);
+    }
+    else {
       btn.textContent = "Not completed";
       btn.disabled = true;
       btn.classList.add("muted");
     }
 
-    dailyBox.appendChild(row);
+    box.appendChild(row);
   }
-
-  document.querySelectorAll(".quest-btn").forEach(btn=>{
-    btn.onclick = ()=> claim(btn.dataset.claim);
-  });
 };
 
-/* ============================================================
-    INTEGRACIJA SA setTab
-============================================================ */
-setTimeout(()=>{
-  if (!window.setTab) return;
+// ažuriraj dugmad
+document.querySelectorAll("[data-claim]").forEach(btn => {
+  const id = btn.dataset.claim;
+  const st = Q(id);
 
-  const orig = window.setTab;
+  // RESETUJ handler da ne ostane od prije
+  btn.onclick = null;
 
-  window.setTab = function(tab){
+  if (st.done) {
+    btn.textContent = "Finished";
+    btn.disabled = true;
+    btn.classList.add("muted");
+  }
+  else if (st.ready) {
+    btn.textContent = "Claim";
+    btn.disabled = false;
+    btn.classList.remove("muted");
+    btn.onclick = () => claimQuest(id);   // OVDJE JEDINO POSTAVITI
+  }
+  else {
+    btn.textContent = "Not completed";
+    btn.disabled = true;
+    btn.classList.add("muted");
+  }
+});
+
+
+// QUEST HOOK FOR TABS (FINAL VERSION)
+window.setTab = (function(orig){
+  return function(tab){
     orig(tab);
 
-    if (tab === "quest"){
+    // ako smo ušli u quest tab → osvježi
+    if (tab === "quest") {
       renderQuests();
     }
 
-    window.questMarkReady("tab-" + tab);
+    // markiraj ready za quest tipa "tab-*"
+    questMarkReady("tab-" + tab);
   };
-}, 200);
+})(window.setTab);
 
-})();
 </script>
+
 
 
 
@@ -1789,6 +1792,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
