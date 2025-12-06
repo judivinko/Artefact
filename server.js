@@ -1778,8 +1778,8 @@ app.post("/api/daily/login", (req, res) => {
       currentDay = Math.min(currentDay + 1, 7);
     }
 
-   // reward formula (BIG REWARD in GOLD)
-const reward = currentDay * 1000 * 100;  // gold → silver
+// reward formula (big rewards in gold)
+const reward = currentDay * 1000 * 100; // gold → silver
 
 // give reward
 db.prepare(`
@@ -1865,11 +1865,4 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
-
-
-
-
-
-
-
 
