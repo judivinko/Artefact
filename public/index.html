@@ -319,23 +319,60 @@
     </div>
   </div>
 </div>
-<!-- quest -->
-<div class="itemrow" data-id="quest-id">
-  
-  <div class="row" style="gap:10px;align-items:center">
-    <div>
-      <div class="label" style="text-transform:none;color:var(--text)">
-        Quest Name
+
+<!-- QUESTS -->
+<div id="tab-quest" class="card hidden">
+
+  <div class="row">
+    <div class="label">Quests</div>
+  </div>
+
+  <!-- DAILY QUESTS -->
+  <div class="card" style="margin-top:12px">
+    <div class="label">Daily Quests</div>
+    <div id="quest-daily" class="list">
+
+      <!-- PRIMJER JEDNOG QUEST REDA – SVE DEFINISANO U DIV-u -->
+      <div class="itemrow" data-id="tab-shop">
+        <div class="row" style="gap:10px;align-items:center">
+          <div>
+            <div class="label">Visit Shop tab</div>
+            <div class="muted">Reward: 50 gold</div>
+          </div>
+        </div>
+
+        <div class="row" style="gap:10px;align-items:center">
+          <span class="badge">+50</span>
+          <button class="btn muted" disabled data-claim="tab-shop">Not completed</button>
+        </div>
       </div>
-      <div class="muted">Reward: 50 gold</div>
+
+      <!-- PRAVI PROGRAM TI OVDJE UBACUJE OSTALO (JS) -->
     </div>
   </div>
 
-  <div class="row" style="gap:10px;align-items:center">
-    <span class="badge">+50</span>
 
-    <!-- OVDJE JE DUGME KOJE SI TRAŽIO -->
-    <button class="btn" data-claim="quest-id">Claim</button>
+  <!-- LIFETIME QUESTS -->
+  <div class="card" style="margin-top:12px">
+    <div class="label">Lifetime Quests</div>
+    <div id="quest-life" class="list">
+
+      <!-- PRIMJER JEDNOG QUESTA -->
+      <div class="itemrow" data-id="life-artefact">
+        <div class="row" style="gap:10px;align-items:center">
+          <div>
+            <div class="label">Craft an Artefact</div>
+            <div class="muted">Reward: 20000 gold</div>
+          </div>
+        </div>
+
+        <div class="row" style="gap:10px;align-items:center">
+          <span class="badge">+20000</span>
+          <button class="btn muted" disabled data-claim="life-artefact">Not completed</button>
+        </div>
+      </div>
+
+    </div>
   </div>
 
 </div>
@@ -1486,16 +1523,11 @@
 </script>
 
 
-<!-- ==========================
-     QUEST SYSTEM SCRIPT
-========================== -->
 <script>
 (async function(){
 
-/* ----------------------------
-   DEFINICIJA QUESTOVA
----------------------------- */
-const QUEST_DAILY = [
+/* ====================== DEFINITION ====================== */
+const QUESTS = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
   { id:"tab-market",    name:"Visit Market tab",    reward:50 },
@@ -1510,161 +1542,100 @@ const QUEST_DAILY = [
   { id:"publish-ad",    name:"Publish an ad",       reward:100 },
   { id:"post-market",   name:"Post on market",      reward:100 },
   { id:"send-gold",     name:"Send gold",           reward:100 },
-  { id:"click-discord", name:"Discord button",      reward:500 }
-];
+  { id:"click-discord", name:"Discord button",      reward:500 },
 
-const QUEST_LIFE = [
-  { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
+  { id:"life-artefact", name:"Craft an Artefact",   reward:20000 },
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ----------------------------
-   FETCH STANJA
----------------------------- */
+/* ====================== LOAD STATE ====================== */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
     const j = await r.json();
     return j.ok ? j.quests : [];
-  }catch(e){
-    return [];
-  }
+  }catch{ return []; }
 }
+let STATE = await loadState();
 
-let QUEST_STATE = await loadState();
-
-/* ----------------------------
-   GET STATE ZA QUEST
----------------------------- */
 function getState(id){
-  return QUEST_STATE.find(x => x.quest_id === id) || { ready:0, done:0 };
+  return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ----------------------------
-   MARK AS READY
----------------------------- */
-async function questMark(id){
+/* ====================== MARK READY ====================== */
+async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:id })
   });
-
-  QUEST_STATE = await loadState();
-  renderQuests();
+  STATE = await loadState();
+  render();
 }
 
-/* ----------------------------
-   CLAIM
----------------------------- */
-async function questClaim(q){
+/* ====================== CLAIM ====================== */
+async function claim(id){
+  const q = QUESTS.find(x => x.id === id);
+  if (!q) return;
+
   await fetch("/api/quest/claim", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:q.id })
+    body: JSON.stringify({ quest_id:id })
   });
 
-  QUEST_STATE = await loadState();
-  renderQuests();
+  STATE = await loadState();
+  render();
 
-  // Dodaj gold
   WHO.balance_silver += q.reward * 100;
   renderBalance();
 }
 
-/* ----------------------------
-   RENDER JEDNOG REDA
----------------------------- */
-function makeRow(q){
-  const st = getState(q.id);
-
-  let btn = "";
-  if (st.done){
-    btn = `<button class="btn muted" disabled>Finished</button>`;
-  } else if (st.ready){
-    btn = `<button class="btn" data-claim="${q.id}">Claim</button>`;
-  } else {
-    btn = `<button class="btn muted" disabled>Not completed</button>`;
-  }
-
-  return `
-    <div class="itemrow" data-id="${q.id}">
-      <div class="row" style="gap:10px;align-items:center">
-        <div>
-          <div class="label" style="text-transform:none">${q.name}</div>
-          <div class="muted">Reward: ${q.reward} gold</div>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px;align-items:center">
-        <span class="badge">+${q.reward}</span>
-        ${btn}
-      </div>
-    </div>`;
-}
-
-/* ----------------------------
-   RENDER LISTE
----------------------------- */
-function renderQuests(){
-  document.getElementById("quest-daily").innerHTML =
-    QUEST_DAILY.map(makeRow).join("");
-
-  document.getElementById("quest-life").innerHTML =
-    QUEST_LIFE.map(makeRow).join("");
-
-  // Bind claim
+/* ====================== RENDER ====================== */
+function render(){
   document.querySelectorAll("[data-claim]").forEach(btn=>{
-    btn.onclick = ()=>{
-      const id = btn.getAttribute("data-claim");
-      const q = [...QUEST_DAILY, ...QUEST_LIFE].find(x => x.id === id);
-      if (q) questClaim(q);
-    };
+    const id = btn.dataset.claim;
+    const st = getState(id);
+
+    if (st.done){
+      btn.textContent = "Finished";
+      btn.className = "btn muted";
+      btn.disabled = true;
+    }
+    else if (st.ready){
+      btn.textContent = "Claim";
+      btn.className = "btn";
+      btn.disabled = false;
+    }
+    else{
+      btn.textContent = "Not completed";
+      btn.className = "btn muted";
+      btn.disabled = true;
+    }
+
+    btn.onclick = ()=> claim(id);
   });
 }
 
-/* ----------------------------
-   SETTAB HOOK — 100% FIXED
----------------------------- */
+/* ====================== TAB HOOK ====================== */
 setTimeout(()=>{
-  if (!window.setTab){
-    console.warn("setTab missing");
-    return;
-  }
+  if (!window.setTab) return;
 
   const orig = window.setTab;
 
   window.setTab = function(tab){
     orig(tab);
 
-    // Mark quest
-    questMark("tab-" + tab);
-
-    // Show quest tab
-    const qtab = document.getElementById("tab-quest");
-    if (qtab){
-      qtab.classList.toggle("hidden", tab !== "quest");
-    }
-
     if (tab === "quest"){
-      renderQuests();
+      render();
     }
+
+    mark("tab-" + tab);
   };
-
 }, 200);
-
-/* ----------------------------
-   GLOBAL
----------------------------- */
-window.renderQuests = renderQuests;
-window.questMark = questMark;
 
 })();
 </script>
-
-
-
-
 
 
 <script>
@@ -1798,6 +1769,7 @@ window.questMark = questMark;
     
 </body>
 </html>
+
 
 
 
