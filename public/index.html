@@ -1601,6 +1601,7 @@ window.setTabAds = function(){
   initAds();
 };
 
+
 // MY LINKS
 async function loadMyLinks(){
   const r = await fetch("/api/ads/my-links", { credentials:"include" });
@@ -1633,7 +1634,7 @@ function initAds(){
     buyBtn.addEventListener("click", buyCourse);
   }
 
-  // DISCORD
+  // DISCORD BUTTON
   if (discBtn && !discBtn._bound){
     discBtn._bound = true;
     discBtn.addEventListener("click", ()=>{
@@ -1641,7 +1642,7 @@ function initAds(){
     });
   }
 
-  // SEND LINK
+  // SEND LINK (bez validacije)
   if (sendBtn && !sendBtn._bound){
     sendBtn._bound = true;
     sendBtn.addEventListener("click", sendLink);
@@ -1658,6 +1659,8 @@ async function buyCourse(){
 
   const j = await r.json();
   const err = document.getElementById("ads-buy-error");
+
+  if (!err) return;
 
   err.classList.add("hidden");
   err.textContent = "";
@@ -1676,7 +1679,7 @@ async function buyCourse(){
     return;
   }
 
-  // SUCCESS → show code
+  // SUCCESS — show course code
   document.getElementById("ads-course-box").style.display = "block";
   document.getElementById("ads-course-code").textContent =
     "Your Course Code: " + j.code;
@@ -1689,29 +1692,34 @@ async function buyCourse(){
 }
 
 
-// SEND LINK (50 gold)
+// SEND LINK — bez ograničenja, bez validacije
 async function sendLink(){
-  const url = document.getElementById("ads-url").value.trim();
+  const text = document.getElementById("ads-url").value;
   const err = document.getElementById("ads-error");
 
-  err.classList.add("hidden");
-  err.textContent = "";
+  if (err){
+    err.classList.add("hidden");
+    err.textContent = "";
+  }
 
   const r = await fetch("/api/ads/send-link", {
     method:"POST",
     credentials:"include",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ link:url })
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({ text })  // ⬅ OVO JE KONAČNO ISPRAVNO
   });
 
   const j = await r.json();
 
   if (!j.ok){
-    err.textContent = j.error || "Error";
-    err.classList.remove("hidden");
+    if (err){
+      err.textContent = j.error || "Error sending link";
+      err.classList.remove("hidden");
+    }
     return;
   }
 
+  document.getElementById("ads-url").value = "";
   await loadMyLinks();
 }
 </script>
@@ -1720,6 +1728,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
