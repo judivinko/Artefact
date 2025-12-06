@@ -95,8 +95,6 @@
       <div class="chip" data-tab="market">Market</div>
       <div class="chip" data-tab="inv">Inventory</div>
       <div class="chip" data-tab="bonus">Bonus</div>
-     <div class="chip" data-tab="quest">Quests</div>
-      <div class="chip" data-tab="ads">Ads</div>
     </div>
 
     <!-- SHOP -->
@@ -320,58 +318,10 @@
   </div>
 </div>
 
-<!-- QUEST TAB -->
-<div id="tab-quest" class="card hidden">
-  <div class="row">
-    <div class="label">Daily Quests</div>
-  </div>
-
-  <div id="quest-daily" class="list"></div>
+<div id="daily-box">
+  <button id="btn-daily">Claim Daily Reward</button>
+  <div id="daily-status"></div>
 </div>
-
-
-
-    
-<!-- ADS -->
-<section id="tab-ads" class="card hidden">
-
-  <div class="grid" style="grid-template-columns: 260px 1fr; gap:20px">
-
-    <!-- LEFT -->
-    <div class="card" style="padding:16px">
-      <div class="label">Ads</div>
-
-      <button id="ads-buy" class="btn" style="margin-top:12px">
-        Buy Server Programming Course (100,000 gold)
-      </button>
-
-      <div id="ads-result" class="muted" style="margin-top:12px; white-space:pre-line"></div>
-
-      <button id="ads-discord" class="btn secondary" style="margin-top:12px"
-        onclick="window.open('https://discord.gg/HWXnQ6cW','_blank')">
-        Discord
-      </button>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="card" style="padding:16px">
-      <div class="label">Publish Ads (100 gold each)</div>
-
-      <div class="row" style="gap:10px; margin-top:8px">
-        <input id="ads-link-input" class="input" placeholder="https://your-link.com" style="flex:1">
-        <button id="ads-publish" class="btn">Publish</button>
-      </div>
-
-      <div id="ads-links" class="list" style="margin-top:10px; max-height:380px; overflow-y:auto">
-        No links yet.
-      </div>
-    </div>
-
-  </div>
-
-</section>
-
-
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
@@ -509,9 +459,6 @@
       $("#tab-market")?.classList.toggle("hidden", tab !== "market");
       $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
       $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-      $("#tab-quest")?.classList.toggle("hidden", tab !== "quest");
-      $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
-
 
       if (tab === "market") {
         safeCall("loadInventoryPanel");
@@ -1476,183 +1423,30 @@
 </script>
 
 <script>
-/* ============================================================
-   QUEST SYSTEM (FINAL VERSION — SINGLE, CLEAN)
-============================================================ */
-
-/* TVOJI QUESTOVI */
-const QUESTS = [
-  { id:"tab-shop",      name:"Visit Shop tab",      reward:50, daily:true },
-  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50, daily:true },
-  { id:"tab-market",    name:"Visit Market tab",    reward:50, daily:true },
-  { id:"tab-inv",       name:"Visit Inventory tab", reward:50, daily:true },
-  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50, daily:true },
-  { id:"tab-ads",       name:"Visit Ads tab",       reward:50, daily:true },
-  { id:"tab-quest",     name:"Visit Quest tab",     reward:50, daily:true },
-
-  { id:"craft-item",    name:"Craft an item",       reward:100, daily:true },
-  { id:"buy-material",  name:"Buy material",        reward:100, daily:true },
-  { id:"buy-market",    name:"Buy from market",     reward:100, daily:true },
-  { id:"publish-ad",    name:"Publish an ad",       reward:100, daily:true },
-  { id:"post-market",   name:"Post on market",      reward:100, daily:true },
-  { id:"send-gold",     name:"Send gold",           reward:100, daily:true },
-  { id:"click-discord", name:"Discord button",      reward:500, daily:true }
-];
-
-/* ---------------- GLOBAL STATE ---------------- */
-let STATE = [];
-
-/* load state */
-async function loadState(){
-  try{
-    const r = await fetch("/api/quest/state");
-    const j = await r.json();
-    return j.ok ? j.quests : [];
-  }catch{
-    return [];
-  }
-}
-
-/* lookup helper */
-function Q(id){
-  return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
-}
-
-/* ---------------- MARK READY ---------------- */
-window.questMarkReady = async function(id){
-  await fetch("/api/quest/mark",{
+async function claimDaily(){
+  const r = await fetch("/api/daily/login", {
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id })
+    credentials:"include"
   });
 
-  STATE = await loadState();
-  renderQuests();
-};
+  const j = await r.json();
 
-async function claimQuest(id){
-  const q = QUESTS.find(x=>x.id===id);
-
-  await fetch("/api/quest/claim",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id, reward:q.reward })
-  });
-
-  STATE = await loadState();
-  renderQuests();
-
-  if (q && window.WHO){
-    WHO.balance_silver += q.reward * 100;
-    renderBalance();
+  if (!j.ok){
+    if (j.error === "already_claimed"){
+      return toast("Već si uzeo današnju nagradu!");
+    }
+    return toast("Greška: " + j.error);
   }
+
+  toast("Dobili ste " + j.reward + " golda! (Dan " + j.currentDay + ")");
+  window.refreshMeLight();
 }
 
-
-/* ---------------- RENDER QUESTS ---------------- */
-window.renderQuests = function(){
-  const box = document.getElementById("quest-daily");
-  if (!box) return;
-
-  box.innerHTML = "";
-
-  for (const q of QUESTS){
-    const st = Q(q.id);
-
-    const row = document.createElement("div");
-    row.className = "itemrow";
-    row.dataset.id = q.id;
-
-    row.innerHTML = `
-      <div class="row" style="gap:10px;align-items:center">
-        <div>
-          <div class="label">${q.name}</div>
-          <div class="muted">Reward: ${q.reward} gold</div>
-        </div>
-      </div>
-
-      <div class="row" style="gap:10px;align-items:center">
-        <span class="badge">+${q.reward}</span>
-        <button class="btn" data-claim="${q.id}"></button>
-      </div>
-    `;
-
-    const btn = row.querySelector("[data-claim]");
-    btn.onclick = null;
-
-    if (st.done){
-      btn.textContent = "Finished";
-      btn.disabled = true;
-      btn.classList.add("muted");
-    }
-    else if (st.ready){
-      btn.textContent = "Claim";
-      btn.disabled = false;
-      btn.classList.remove("muted");
-      btn.onclick = () => claimQuest(q.id);
-    }
-    else {
-      btn.textContent = "Not completed";
-      btn.disabled = true;
-      btn.classList.add("muted");
-    }
-
-    box.appendChild(row);
-  }
-};
-
-/* ---------------- QUEST HOOKS ---------------- */
-window.questHooks = {
-  craftSuccess() { questMarkReady("craft-item"); },
-  buyMaterialSuccess() { questMarkReady("buy-material"); },
-  buyMarketSuccess() { questMarkReady("buy-market"); },
-  postMarketSuccess() { questMarkReady("post-market"); },
-  publishAdSuccess() { questMarkReady("publish-ad"); },
-  sendGoldSuccess() { questMarkReady("send-gold"); },
-  discordClick() { questMarkReady("click-discord"); }
-};
-
-/* ---------------- TAB OVERRIDE ---------------- */
-window.setTab = (function(orig){
-  return function(tab){
-    orig(tab);
-
-    if (tab === "quest") renderQuests();
-    questMarkReady("tab-" + tab);
-  };
-})(window.setTab);
-
-/* ---------------- INITIAL LOAD ---------------- */
-(async()=>{
-  STATE = await loadState();
-  renderQuests();
-})();
+document.getElementById("btn-daily").onclick = claimDaily;
 </script>
     
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
