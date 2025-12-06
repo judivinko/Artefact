@@ -214,6 +214,18 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   font-size: 14px;
   opacity: .85;
 }
+/* SUŽENI TABOVI — izgled kao na slici */
+.chip{
+  padding:6px 12px !important;
+  font-size:14px !important;
+  border-radius:10px;
+}
+
+/* Active tab – također suženi */
+.chip.active{
+  padding:6px 12px !important;
+  font-size:14px !important;
+}
 
 
 
@@ -494,6 +506,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
