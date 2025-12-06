@@ -1875,21 +1875,27 @@ app.post("/api/ads/buy-course", (req, res) => {
 app.post("/api/ads/send-link", (req, res) => {
   try {
     const uid = requireAuth(req);
-    const link = (req.body.link || "").trim();
+    const { url } = req.body || {};
 
-    if (!link) return res.json({ ok:false, error:"invalid_link" });
+    if (!url || typeof url !== "string")
+      return res.json({ ok:false, error:"Bad link" });
+
+    const count = db.prepare("SELECT COUNT(*) AS n FROM ads_links WHERE user_id=?").get(uid).n;
+    if (count >= 50)
+      return res.json({ ok:false, error:"limit_reached" });
 
     db.prepare(`
-      INSERT INTO ads_links (user_id, link)
-      VALUES (?, ?)
-    `).run(uid, link);
+      INSERT INTO ads_links(user_id, url, created_at)
+      VALUES (?, ?, ?)
+    `).run(uid, url, nowISO());
 
-    res.json({ ok:true });
+    return res.json({ ok:true });
 
   } catch(e){
     res.json({ ok:false, error:e.message });
   }
 });
+
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -1920,6 +1926,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
