@@ -181,18 +181,111 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   transition:0.15s;
 }
 
-.btn-blue {
-  background:#2563eb;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  transition:0.15s;
+#tab-ads .ads-title{
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--text);
 }
-.btn-blue:hover {
-  background:#3b82f6;
-  transform:scale(1.03);
+
+#tab-ads .ads-section{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
+
+@media(max-width:900px){
+  #tab-ads .ads-section{
+    grid-template-columns: 1fr;
+  }
+}
+
+#tab-ads .ads-box{
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+#tab-ads .ads-subtitle{
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+#tab-ads .ads-text{
+  font-size: 14px;
+  opacity: .8;
+  margin-bottom: 15px;
+}
+
+#tab-ads .ads-btn{
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 8px;
+}
+
+#tab-ads .ads-input{
+  width: 100%;
+  padding: 10px;
+  font-size: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: var(--panel-soft);
+  color: var(--text);
+  border: 1px solid var(--border-soft);
+}
+
+#tab-ads .ads-course-box{
+  margin-top: 15px;
+  padding: 12px;
+  background: #0f172a;
+  border-left: 4px solid #22c55e;
+  border-radius: 6px;
+  animation: fadeIn .4s ease;
+}
+
+#tab-ads .ads-course-label{
+  font-size: 14px;
+  opacity: .8;
+}
+
+#tab-ads .ads-course-code{
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 5px;
+  color: var(--accent);
+}
+
+#tab-ads .ads-list{
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  min-height: 40px;
+  white-space: pre-wrap;
+}
+
+.ads-error{
+  color: var(--danger);
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.hidden{
+  display:none !important;
+}
+
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(6px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
 
 
 
@@ -404,6 +497,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
