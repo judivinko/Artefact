@@ -1624,6 +1624,7 @@ function initAds(){
     buyBtn._adsBound = true;
 
     buyBtn.addEventListener("click", async ()=>{
+
       const r = await fetch("/api/ads/buy-course", {
         method:"POST",
         credentials:"include"
@@ -1631,10 +1632,11 @@ function initAds(){
 
       const j = await r.json();
 
-      // PRAVI error div za BUY COURSE
+      // ERROR za BUY COURSE (poseban!)
       const err = document.getElementById("ads-buy-error");
       if (err){
         err.classList.add("hidden");
+        err.textContent = "";
       }
 
       if (!j.ok){
@@ -1655,7 +1657,7 @@ function initAds(){
         return;
       }
 
-      // uspješno kupljeno
+      // USPJEH — prikaži kod
       document.getElementById("ads-course-box").style.display = "block";
       document.getElementById("ads-course-code").textContent =
         "Your Course Code: " + j.code;
@@ -1671,11 +1673,13 @@ function initAds(){
   }
 }
 
+
 </script>
 
     
 </body>
 </html>
+
 
 
 
