@@ -352,26 +352,26 @@
   </div>
 
 
-  <!-- LIFETIME QUESTS -->
+<!-- QUESTS -->
+<div id="tab-quest" class="card hidden">
+
+  <div class="row">
+    <div class="label">Quests</div>
+  </div>
+
+  <!-- DAILY -->
+  <div class="card" style="margin-top:12px">
+    <div class="label">Daily Quests</div>
+    <div id="quest-daily" class="list">
+      <!-- AUTO-GENERIRANO IZ JS -->
+    </div>
+  </div>
+
+  <!-- LIFETIME -->
   <div class="card" style="margin-top:12px">
     <div class="label">Lifetime Quests</div>
     <div id="quest-life" class="list">
-
-      <!-- PRIMJER JEDNOG QUESTA -->
-      <div class="itemrow" data-id="life-artefact">
-        <div class="row" style="gap:10px;align-items:center">
-          <div>
-            <div class="label">Craft an Artefact</div>
-            <div class="muted">Reward: 20000 gold</div>
-          </div>
-        </div>
-
-        <div class="row" style="gap:10px;align-items:center">
-          <span class="badge">+20000</span>
-          <button class="btn muted" disabled data-claim="life-artefact">Not completed</button>
-        </div>
-      </div>
-
+      <!-- AUTO-GENERIRANO IZ JS -->
     </div>
   </div>
 
@@ -556,7 +556,7 @@
       $("#tab-market")?.classList.toggle("hidden", tab !== "market");
       $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
       $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
-     $("#tab-quests")?.classList.toggle("hidden", tab !== "quest");
+      $("#tab-quest")?.classList.toggle("hidden", tab !== "quest");
       $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
 
 
@@ -1524,58 +1524,105 @@
 
 
 <script>
-(async function(){
+window.setTab = async function(tab){
+  showApp();
+  $$(".chip").forEach(c => c.classList.toggle("active", c.dataset.tab === tab));
 
-/* ====================== DEFINITION ====================== */
+$("#tab-shop")?.classList.toggle("hidden", tab !== "shop");
+$("#tab-craft")?.classList.toggle("hidden", tab !== "craft");
+$("#tab-market")?.classList.toggle("hidden", tab !== "market");
+$("#tab-inv")?.classList.toggle("hidden", tab !== "inv");
+$("#tab-bonus")?.classList.toggle("hidden", tab !== "bonus");
+$("#tab-quest")?.classList.toggle("hidden", tab !== "quest");
+$("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
+
+  if (tab === "quest"){
+     window.renderQuests();
+  }
+
+  window.questMarkReady("tab-" + tab);
+
+  if (tab === "market"){
+    safeCall("loadInventoryPanel");
+    safeCall("loadMarket");
+    safeCall("loadMine");
+  }
+  if (tab === "inv") safeCall("loadInventoryFull");
+  if (tab === "bonus") try{ await loadBonus(); }catch(e){}
+};
+
+
+
+  
+(function(){
+
+/* ============================================================
+   DEFINICIJA QUESTOVA
+============================================================ */
 const QUESTS = [
-  { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
-  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
-  { id:"tab-market",    name:"Visit Market tab",    reward:50 },
-  { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
-  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
-  { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
-  { id:"tab-quest",     name:"Visit Quest tab",     reward:50 },
+  { id:"tab-shop",      name:"Visit Shop tab",      reward:50,   daily:true },
+  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50,   daily:true },
+  { id:"tab-market",    name:"Visit Market tab",    reward:50,   daily:true },
+  { id:"tab-inv",       name:"Visit Inventory tab", reward:50,   daily:true },
+  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50,   daily:true },
+  { id:"tab-ads",       name:"Visit Ads tab",       reward:50,   daily:true },
+  { id:"tab-quest",     name:"Visit Quest tab",     reward:50,   daily:true },
 
-  { id:"craft-item",    name:"Craft an item",       reward:100 },
-  { id:"buy-material",  name:"Buy material",        reward:100 },
-  { id:"buy-market",    name:"Buy from market",     reward:100 },
-  { id:"publish-ad",    name:"Publish an ad",       reward:100 },
-  { id:"post-market",   name:"Post on market",      reward:100 },
-  { id:"send-gold",     name:"Send gold",           reward:100 },
-  { id:"click-discord", name:"Discord button",      reward:500 },
+  { id:"craft-item",    name:"Craft an item",       reward:100,  daily:true },
+  { id:"buy-material",  name:"Buy material",        reward:100,  daily:true },
+  { id:"buy-market",    name:"Buy from market",     reward:100,  daily:true },
+  { id:"publish-ad",    name:"Publish an ad",       reward:100,  daily:true },
+  { id:"post-market",   name:"Post on market",      reward:100,  daily:true },
+  { id:"send-gold",     name:"Send gold",           reward:100,  daily:true },
+  { id:"click-discord", name:"Discord button",      reward:500,  daily:true },
 
-  { id:"life-artefact", name:"Craft an Artefact",   reward:20000 },
-  { id:"life-course",   name:"Buy Programming Course", reward:20000 }
+  { id:"life-artefact", name:"Craft an Artefact",      reward:20000, daily:false },
+  { id:"life-course",   name:"Buy Programming Course", reward:20000, daily:false }
 ];
 
-/* ====================== LOAD STATE ====================== */
+/* ============================================================
+   LOAD STATE
+============================================================ */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
     const j = await r.json();
     return j.ok ? j.quests : [];
-  }catch{ return []; }
+  }catch{
+    return [];
+  }
 }
-let STATE = await loadState();
 
-function getState(id){
+let STATE = [];
+(async ()=>{ STATE = await loadState(); renderQuests(); })();
+
+/* ============================================================
+   GET STATE
+============================================================ */
+function S(id){
   return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ====================== MARK READY ====================== */
-async function mark(id){
-  await fetch("/api/quest/mark", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ quest_id:id })
-  });
-  STATE = await loadState();
-  render();
-}
+/* ============================================================
+   MARK READY
+============================================================ */
+window.questMarkReady = async function(id){
+  try{
+    await fetch("/api/quest/mark", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ quest_id:id })
+    });
+    STATE = await loadState();
+    renderQuests();
+  }catch{}
+};
 
-/* ====================== CLAIM ====================== */
+/* ============================================================
+   CLAIM
+============================================================ */
 async function claim(id){
-  const q = QUESTS.find(x => x.id === id);
+  const q = QUESTS.find(x=>x.id===id);
   if (!q) return;
 
   await fetch("/api/quest/claim", {
@@ -1585,17 +1632,54 @@ async function claim(id){
   });
 
   STATE = await loadState();
-  render();
+  renderQuests();
 
-  WHO.balance_silver += q.reward * 100;
-  renderBalance();
+  if (WHO){
+    WHO.balance_silver += q.reward * 100;
+    renderBalance();
+  }
 }
 
-/* ====================== RENDER ====================== */
-function render(){
+/* ============================================================
+   RENDER ALL QUESTS
+============================================================ */
+window.renderQuests = function(){
+
+  const dailyBox = document.getElementById("quest-daily");
+  const lifeBox  = document.getElementById("quest-life");
+
+  if (!dailyBox || !lifeBox) return;
+
+  dailyBox.innerHTML = "";
+  lifeBox.innerHTML = "";
+
+  for (const q of QUESTS){
+    const st = S(q.id);
+
+    const row = document.createElement("div");
+    row.className = "itemrow";
+    row.dataset.id = q.id;
+
+    row.innerHTML = `
+      <div class="row" style="gap:10px;align-items:center">
+        <div>
+          <div class="label">${q.name}</div>
+          <div class="muted">Reward: ${q.reward} gold</div>
+        </div>
+      </div>
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="badge">+${q.reward}</span>
+        <button class="btn muted" disabled data-claim="${q.id}">...</button>
+      </div>
+    `;
+
+    if (q.daily) dailyBox.appendChild(row);
+    else lifeBox.appendChild(row);
+  }
+
   document.querySelectorAll("[data-claim]").forEach(btn=>{
     const id = btn.dataset.claim;
-    const st = getState(id);
+    const st = S(id);
 
     if (st.done){
       btn.textContent = "Finished";
@@ -1615,9 +1699,11 @@ function render(){
 
     btn.onclick = ()=> claim(id);
   });
-}
+};
 
-/* ====================== TAB HOOK ====================== */
+/* ============================================================
+   TAB HOOK – READY
+============================================================ */
 setTimeout(()=>{
   if (!window.setTab) return;
 
@@ -1627,15 +1713,16 @@ setTimeout(()=>{
     orig(tab);
 
     if (tab === "quest"){
-      render();
+      renderQuests();
     }
 
-    mark("tab-" + tab);
+    window.questMarkReady("tab-" + tab);
   };
 }, 200);
 
 })();
 </script>
+
 
 
 <script>
@@ -1769,6 +1856,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
