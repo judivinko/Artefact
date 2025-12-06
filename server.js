@@ -1901,20 +1901,16 @@ app.post("/api/ads/send-link", (req, res) => {
     const uid = requireAuth(req);
     let { text } = req.body || {};
 
-    if (!text || !text.trim()){
-      return res.json({ ok:false, error:"empty" });
-    }
+    if (!text) text = "";                 // dozvoli prazan
+    text = text.toString();               // pretvori sve u string
 
-    text = text.trim();
-
-    // upiši kao čisti tekst – bez provjere, bez izmjena
     db.prepare("INSERT INTO ads_links (user_id, link) VALUES (?, ?)")
       .run(uid, text);
 
-    return res.json({ ok:true, link:text });
+    return res.json({ ok: true, link: text });
 
   } catch (e) {
-    return res.json({ ok:false, error:e.message });
+    return res.json({ ok: false, error: e.message });
   }
 });
 
@@ -1961,6 +1957,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
