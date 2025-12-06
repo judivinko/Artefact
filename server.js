@@ -1853,24 +1853,74 @@ app.get("/api/daily/status", (req, res) => {
   }
 });
 
+function generateCourseCode() {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let out = "WS-";
+  for (let i = 0; i < 10; i++) {
+    if (i === 4 || i === 8) out += "-";
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+
 app.post("/api/ads/buy-course", (req, res) => {
   try {
     const uid = requireAuth(req);
+    const cost_silver = 100000 * 100; // 100k gold
 
-    const cost_silver = 100000 * 100;
-
+    // balance
     const row = db.prepare("SELECT balance_silver FROM users WHERE id=?").get(uid);
-    if (!row || row.balance_silver < cost_silver)
+    if (!row || row.balance_silver < cost_silver) {
       return res.json({ ok:false, error:"Not enough gold" });
+    }
 
-    // Naplati
+    // skini pare
     db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
       .run(cost_silver, uid);
 
+    // ledger
     db.prepare(`
       INSERT INTO gold_ledger(user_id,delta_s,reason,ref,created_at)
       VALUES (?,?,?,?,?)
     `).run(uid, -cost_silver, "BUY_COURSE", "web_server_course", nowISO());
+
+    // random code
+    const code = generateCourseCode();
+
+    // spremi kao course entry
+    db.prepare(`
+      INSERT INTO ads_links(user_id, link, created_at)
+      VALUES (?, ?, ?)
+    `).run(uid, "COURSE:" + code, nowISO());
+
+    return res.json({ ok:true, code });
+
+  } catch(e){
+    return res.json({ ok:false, error:e.message });
+  }
+});
+
+
+
+app.post("/api/ads/send-link", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+    const { url } = req.body || {};
+
+    if (!url || typeof url !== "string") {
+      return res.json({ ok:false, error:"bad_link" });
+    }
+
+    const count = db.prepare("SELECT COUNT(*) AS n FROM ads_links WHERE user_id=?").get(uid).n;
+    if (count >= 50) {
+      return res.json({ ok:false, error:"limit_reached" });
+    }
+
+    db.prepare(`
+      INSERT INTO ads_links(user_id, link, created_at)
+      VALUES (?, ?, ?)
+    `).run(uid, url, nowISO());
 
     return res.json({ ok:true });
 
@@ -1879,30 +1929,6 @@ app.post("/api/ads/buy-course", (req, res) => {
   }
 });
 
-
-app.post("/api/ads/send-link", (req, res) => {
-  try {
-    const uid = requireAuth(req);
-    const { url } = req.body || {};
-
-    if (!url || typeof url !== "string")
-      return res.json({ ok:false, error:"Bad link" });
-
-    const count = db.prepare("SELECT COUNT(*) AS n FROM ads_links WHERE user_id=?").get(uid).n;
-    if (count >= 50)
-      return res.json({ ok:false, error:"limit_reached" });
-
-    db.prepare(`
-      INSERT INTO ads_links(user_id, url, created_at)
-      VALUES (?, ?, ?)
-    `).run(uid, url, nowISO());
-
-    return res.json({ ok:true });
-
-  } catch(e){
-    res.json({ ok:false, error:e.message });
-  }
-});
 
 
 
@@ -1934,6 +1960,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
