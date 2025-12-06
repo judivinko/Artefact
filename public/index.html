@@ -1625,6 +1625,42 @@ window.setTab = (function(orig){
   };
 })(window.setTab);
 
+// =====================================
+// QUEST HOOKS — CENTRALIZIRANO
+// =====================================
+window.questHooks = {
+
+  craftSuccess() {
+    questMarkReady("craft-item");
+  },
+
+  buyMaterialSuccess() {
+    questMarkReady("buy-material");
+  },
+
+  buyMarketSuccess() {
+    questMarkReady("buy-market");
+  },
+
+  postMarketSuccess() {
+    questMarkReady("post-market");
+  },
+
+  publishAdSuccess() {
+    questMarkReady("publish-ad");
+  },
+
+  sendGoldSuccess() {
+    questMarkReady("send-gold");
+  },
+
+  discordClick() {
+    questMarkReady("click-discord");
+  }
+
+};
+
+  
 </script>
 
 
@@ -1761,6 +1797,7 @@ window.setTab = (function(orig){
     
 </body>
 </html>
+
 
 
 
