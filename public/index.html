@@ -1568,7 +1568,7 @@ async function setTab(tab){
 })();
 </script>
 
-<script>
+<script> 
 // ==========================
 //        ADS TAB
 // ==========================
@@ -1615,13 +1615,21 @@ function initAds(){
       });
 
       const j = await r.json();
+      const err = document.getElementById("ads-error");
 
       if (!j.ok){
-        if (j.error === "not_enough_gold"){
-          alert("You don't have enough gold!");
-          return;
+        if (err){
+          err.classList.remove("hidden");
+          err.style.color = "#ef4444";       // red
+          err.style.marginTop = "10px";
+
+          if (j.error === "not_enough_gold"){
+            err.textContent = "You don't have enough gold!";
+            return;
+          }
+
+          err.textContent = "Error: " + j.error;
         }
-        alert("Error: " + j.error);
         return;
       }
 
@@ -1630,19 +1638,23 @@ function initAds(){
       document.getElementById("ads-course-code").textContent =
         "Your Course Code: " + j.code;
 
+      // Success message
+      if (err){
+        err.classList.remove("hidden");
+        err.style.color = "#22c55e"; // green
+        err.textContent = "Course purchased successfully!";
+      }
+
       window.refreshMeLight?.();
     });
   }
 }
-
 </script>
-
-
-
 
     
 </body>
 </html>
+
 
 
 
