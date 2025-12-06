@@ -1475,10 +1475,15 @@ async function setTab(tab){
       const box = document.createElement("div");
       box.className = "daily-box";
 
+      let gold = DAYS[i-1];
+      let usd = (gold / 1000).toFixed(2);
       let html = `
-        <div style="font-size:18px;margin-bottom:6px">Dan ${i}</div>
-        <div style="font-size:14px;color:var(--muted)">${DAYS[i-1]} gold</div>
+      <div style="font-size:18px;margin-bottom:6px">Day ${i}</div>
+      <div style="font-size:14px;color:var(--muted)">
+      ${gold} Gold • $${usd}
+      </div>
       `;
+    
 
       if (i < j.currentDay) {
         box.classList.add("daily-box-claimed");
@@ -1523,5 +1528,6 @@ async function setTab(tab){
     
 </body>
 </html>
+
 
 
