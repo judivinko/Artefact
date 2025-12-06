@@ -344,53 +344,41 @@
   <div id="daily-msg" style="margin-top:14px;color:var(--muted)"></div>
 
 </div>
+<div id="tab-ads" class="panel hidden">
 
-<div id="tab-ads" class="hidden" style="padding:20px">
-  <h2>ADS & Course</h2>
+  <h2 class="ads-title">ADVERTISING PANEL</h2>
 
-  <div style="display:flex;gap:40px;flex-wrap:wrap">
+  <div class="ads-section">
+    <div class="ads-box">
+      <h3 class="ads-subtitle">Buy Course</h3>
 
-    <!-- LEFT -->
-    <div style="flex:1;min-width:250px">
+      <p class="ads-text">
+        Purchasing a course gives you a unique redeemable code you can share.
+      </p>
 
-      <h3>Buy Web Server Course</h3>
-      <div>Price: <b>100 000 gold</b></div>
+      <button id="ads-buy" class="btn-green ads-btn">BUY COURSE (100,000 gold)</button>
 
-      <button id="ads-buy" class="btn-green" style="margin-top:10px">
-        Buy Course
-      </button>
-
-      <div id="ads-course-box" style="display:none;margin-top:20px">
-        <div>Contact: <b>Artefact on Discord</b></div>
-        <a href="https://discord.gg/HWXnQ6cW" target="_blank">
-          <button class="btn-blue" style="margin-top:8px">Discord</button>
-        </a>
+      <div id="ads-course-box" class="ads-course-box hidden">
+        <div class="ads-course-label">Your Course Code:</div>
+        <div id="ads-course-code" class="ads-course-code"></div>
       </div>
-
-      <div id="ads-course-code" style="margin-top:15px;color:#4ade80;font-weight:bold"></div>
-
     </div>
 
-    <!-- RIGHT -->
-    <div style="flex:2;min-width:300px">
-      <h3>Your Ad Link</h3>
+    <div class="ads-box">
+      <h3 class="ads-subtitle">Submit Your Link</h3>
 
-      <input id="ads-link" placeholder="https://your-site.com"
-             style="width:100%;padding:10px;border-radius:6px;margin-bottom:10px">
+      <input id="ads-url" type="text" placeholder="https://your-link.com" class="ads-input" />
 
-      <button id="ads-send" class="btn-green">Send</button>
+      <button id="ads-send" class="btn-blue ads-btn">Submit Link</button>
 
-      <div id="ads-msg" style="margin-top:10px;color:#aaa"></div>
-
-      <h4 style="margin-top:25px">Your Links</h4>
-      <div id="ads-my-links" style="color:#ccc"></div>
+      <div id="ads-error" class="ads-error hidden"></div>
     </div>
-
   </div>
+
+  <h3 class="ads-subtitle" style="margin-top:25px">Your Links</h3>
+  <div id="ads-my-links" class="ads-list"></div>
+
 </div>
-
-
-
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
@@ -1655,6 +1643,7 @@ function initAds(){
     
 </body>
 </html>
+
 
 
 
