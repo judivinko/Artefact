@@ -181,6 +181,18 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   transition:0.15s;
 }
 
+.btn-blue {
+  background:#2563eb;
+  color:#fff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.15s;
+}
+.btn-blue:hover {
+  background:#3b82f6;
+  transform:scale(1.03);
+}
 
 
 
@@ -392,6 +404,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
