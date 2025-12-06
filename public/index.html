@@ -530,19 +530,22 @@ async function setTab(tab){
   $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
   $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
   $("#tab-daily") ?.classList.toggle("hidden", tab !== "daily");
-  $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
-  
+  $("#tab-ads")   ?.classList.toggle("hidden", tab !== "ads");
 
   if (tab === "market") {
     safeCall("loadInventoryPanel");
     safeCall("loadMarket");
     safeCall("loadMine");
   }
-  if (tab === "inv") safeCall("loadInventoryFull");
-  if (tab === "bonus") safeCall("loadBonus");
 
+  if (tab === "inv")   safeCall("loadInventoryFull");
+  if (tab === "bonus") safeCall("loadBonus");
   if (tab === "daily") safeCall("renderDaily");
+
+  // ⭐ OVO DODANO – BEZ OVOGA ADS DUGMAD NE RADE
+  if (tab === "ads")   safeCall("setTabAds");
 }
+
 
 
 
@@ -1693,6 +1696,7 @@ async function setTab(tab){
     
 </body>
 </html>
+
 
 
 
