@@ -1630,14 +1630,14 @@ function initAds(){
 
       if (!j.ok){
         if (j.error === "not_enough_gold"){
-          alert("Not enough gold!");
+          alert("You don't have enough gold!");
           return;
         }
         alert("Error: " + j.error);
         return;
       }
 
-      // Prikaz kurs koda
+      // Show course code
       document.getElementById("ads-course-box").style.display = "block";
       document.getElementById("ads-course-code").textContent =
         "Your Course Code: " + j.code;
@@ -1646,6 +1646,7 @@ function initAds(){
     });
   }
 }
+
 </script>
 
 
@@ -1654,6 +1655,7 @@ function initAds(){
     
 </body>
 </html>
+
 
 
 
