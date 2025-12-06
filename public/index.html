@@ -1481,49 +1481,49 @@
 <script>
 (async function(){
 
-/* ================================
+/* ============================================================
     DEFINICIJA QUESTOVA
-================================ */
+============================================================ */
 const QUESTS_DAILY = [
-  { id:"tab-shop",      name:"Visit Shop tab", reward:50 },
-  { id:"tab-craft",     name:"Visit Crafting tab", reward:50 },
-  { id:"tab-market",    name:"Visit Market tab", reward:50 },
+  { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
+  { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
+  { id:"tab-market",    name:"Visit Market tab",    reward:50 },
   { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
-  { id:"tab-bonus",     name:"Visit Bonus tab", reward:50 },
-  { id:"tab-ads",       name:"Visit Ads tab", reward:50 },
-  { id:"tab-quest",     name:"Visit Quest tab", reward:50 }
+  { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
+  { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
+  { id:"tab-quest",     name:"Visit Quest tab",     reward:50 }
 ];
 
 const QUESTS_LIFE = [
-  { id:"life-artefact", name:"Craft an Artefact", reward:20000 },
+  { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ================================
-    LOAD STATE
-================================ */
+/* ============================================================
+    FETCH STANJA
+============================================================ */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
     const j = await r.json();
     return j.ok ? j.quests : [];
-  }catch(e){
+  }catch{
     return [];
   }
 }
 
 let STATE = await loadState();
 
-/* ================================
-    GET STATE
-================================ */
+/* ============================================================
+    HELPER ZA STANJE
+============================================================ */
 function getState(id){
-  return STATE.find(x => x.quest_id === id) || { ready:0, done:0 };
+  return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ================================
-    MARK READY
-================================ */
+/* ============================================================
+    MARK AS READY
+============================================================ */
 async function mark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
@@ -1535,9 +1535,9 @@ async function mark(id){
   render();
 }
 
-/* ================================
-      CLAIM QUEST
-================================ */
+/* ============================================================
+    CLAIM
+============================================================ */
 async function claim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
@@ -1552,40 +1552,48 @@ async function claim(q){
   renderBalance();
 }
 
-/* ================================
-    RENDER JEDNOG REDA
-================================ */
+/* ============================================================
+    RENDER REDA — NOVI UI (kao Crafting)
+============================================================ */
 function row(q){
   const st = getState(q.id);
 
-  let text  = "Not completed";
-  let cls   = "quest-btn disabled";
+  let label = "Not completed";
+  let cls   = "btn muted";
   let dis   = "disabled";
 
   if (st.done){
-    text = "Finished";
-    cls  = "quest-btn finished";
+    label = "Finished";
+    cls   = "btn claimed";
+    dis   = "disabled";
   }
   else if (st.ready){
-    text = "Claim";
-    cls  = "quest-btn claim";
-    dis  = "";
+    label = "Claim";
+    cls   = "btn";
+    dis   = "";
   }
 
   return `
-    <div class="quest-row" data-id="${q.id}">
-      <span>${q.name}</span>
-      <div class="quest-right">
-        <span class="quest-reward">+${q.reward} gold</span>
-        <button class="${cls}" ${dis}>${text}</button>
+    <div class="itemrow">
+
+      <div class="row" style="gap:10px;align-items:center">
+        <div class="label" style="text-transform:none;color:var(--text)">
+          ${q.name}
+        </div>
       </div>
+
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="badge">+${q.reward} gold</span>
+        <button class="${cls}" ${dis}>${label}</button>
+      </div>
+
     </div>
   `;
 }
 
-/* ================================
-        RENDER CIJELE LISTE
-================================ */
+/* ============================================================
+    RENDER LISTE
+============================================================ */
 function render(){
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
@@ -1593,24 +1601,28 @@ function render(){
   document.getElementById("quest-life").innerHTML =
     QUESTS_LIFE.map(row).join("");
 
-  document.querySelectorAll(".quest-btn.claim").forEach(btn=>{
+  document.querySelectorAll(".btn:not(.muted):not(.claimed)").forEach(btn=>{
     btn.onclick = ()=>{
-      const id = btn.closest(".quest-row").dataset.id;
+      if (btn.textContent !== "Claim") return;
+      const id = btn.closest(".itemrow").dataset?.id || 
+                 btn.closest(".quest-row")?.dataset?.id ||
+                 btn.parentElement.parentElement.dataset?.id;
+
       const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x => x.id === id);
       if (q) claim(q);
     };
   });
 }
 
-/* ================================
-        GLOBAL EXPORTS
-================================ */
+/* ============================================================
+    GLOBAL EXPORTI
+============================================================ */
 window.renderQuests = render;
 window.questMarkReady = mark;
 
-/* ================================
-        setTab HOOK
-================================ */
+/* ============================================================
+    setTab HOOK
+============================================================ */
 setTimeout(()=>{
   if (!window.setTab) return;
 
@@ -1619,13 +1631,13 @@ setTimeout(()=>{
   window.setTab = function(tab){
     orig(tab);
 
-    // prikaz / skrivanje quest taba
-    const q = document.getElementById("tab-quest");
-    if (q){
-      q.classList.toggle("hidden", tab !== "quest");
+    // prikaz/sakrivanje
+    const el = document.getElementById("tab-quest");
+    if (el){
+      el.classList.toggle("hidden", tab !== "quest");
     }
 
-    // render kada se otvori
+    // render prilikom otvaranja
     if (tab === "quest"){
       render();
     }
@@ -1773,6 +1785,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
