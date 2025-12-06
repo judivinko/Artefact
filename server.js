@@ -1853,6 +1853,43 @@ app.get("/api/daily/status", (req, res) => {
   }
 });
 
+app.post("/api/ads/buy-course", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+
+    // generiše kod
+    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    db.prepare(`
+      INSERT INTO ads_purchases (user_id, code)
+      VALUES (?, ?)
+    `).run(uid, code);
+
+    res.json({ ok:true, code });
+
+  } catch(e){
+    res.json({ ok:false, error:e.message });
+  }
+});
+
+app.post("/api/ads/send-link", (req, res) => {
+  try {
+    const uid = requireAuth(req);
+    const link = (req.body.link || "").trim();
+
+    if (!link) return res.json({ ok:false, error:"invalid_link" });
+
+    db.prepare(`
+      INSERT INTO ads_links (user_id, link)
+      VALUES (?, ?)
+    `).run(uid, link);
+
+    res.json({ ok:true });
+
+  } catch(e){
+    res.json({ ok:false, error:e.message });
+  }
+});
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -1883,5 +1920,6 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
