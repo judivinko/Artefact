@@ -95,6 +95,7 @@
       <div class="chip" data-tab="market">Market</div>
       <div class="chip" data-tab="inv">Inventory</div>
       <div class="chip" data-tab="bonus">Bonus</div>
+      <div class="chip" data-tab="daily">Daily</div>
     </div>
 
     <!-- SHOP -->
@@ -459,6 +460,8 @@
       $("#tab-market")?.classList.toggle("hidden", tab !== "market");
       $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
       $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
+      $("#tab-daily")?.classList.toggle("hidden", tab !== "daily");
+
 
       if (tab === "market") {
         safeCall("loadInventoryPanel");
@@ -1447,6 +1450,7 @@ document.getElementById("btn-daily").onclick = claimDaily;
     
 </body>
 </html>
+
 
 
 
