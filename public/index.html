@@ -319,21 +319,26 @@
     </div>
   </div>
 </div>
+<!-- quest -->
+<div class="itemrow" data-id="quest-id">
+  
+  <div class="row" style="gap:10px;align-items:center">
+    <div>
+      <div class="label" style="text-transform:none;color:var(--text)">
+        Quest Name
+      </div>
+      <div class="muted">Reward: 50 gold</div>
+    </div>
+  </div>
 
-   <!-- quest -->
-<div id="tab-quests" class="card hidden">
-  <div class="label">Quests</div>
-  <div class="muted">No quests added yet.</div>
+  <div class="row" style="gap:10px;align-items:center">
+    <span class="badge">+50</span>
+
+    <!-- OVDJE JE DUGME KOJE SI TRAŽIO -->
+    <button class="btn" data-claim="quest-id">Claim</button>
+  </div>
+
 </div>
-<section id="tab-quest" class="card hidden">
-
-  <div class="label" style="margin-bottom:10px">Daily Quests</div>
-  <div id="quest-daily"></div>
-
-  <div class="label" style="margin-top:25px;margin-bottom:10px">Lifetime Quests</div>
-  <div id="quest-life"></div>
-
-</section>
 
 
     
@@ -1481,13 +1486,16 @@
 </script>
 
 
+<!-- ==========================
+     QUEST SYSTEM SCRIPT
+========================== -->
 <script>
 (async function(){
 
-/* ============================================================
-    DEFINICIJA QUESTOVA
-============================================================ */
-const QUESTS_DAILY = [
+/* ----------------------------
+   DEFINICIJA QUESTOVA
+---------------------------- */
+const QUEST_DAILY = [
   { id:"tab-shop",      name:"Visit Shop tab",      reward:50 },
   { id:"tab-craft",     name:"Visit Crafting tab",  reward:50 },
   { id:"tab-market",    name:"Visit Market tab",    reward:50 },
@@ -1505,149 +1513,155 @@ const QUESTS_DAILY = [
   { id:"click-discord", name:"Discord button",      reward:500 }
 ];
 
-const QUESTS_LIFE = [
+const QUEST_LIFE = [
   { id:"life-artefact", name:"Craft an Artefact",      reward:20000 },
   { id:"life-course",   name:"Buy Programming Course", reward:20000 }
 ];
 
-/* ============================================================
-    FETCH STANJA
-============================================================ */
+/* ----------------------------
+   FETCH STANJA
+---------------------------- */
 async function loadState(){
   try{
     const r = await fetch("/api/quest/state");
     const j = await r.json();
     return j.ok ? j.quests : [];
-  }catch{
+  }catch(e){
     return [];
   }
 }
 
-let STATE = await loadState();
+let QUEST_STATE = await loadState();
 
-/* ============================================================
-    HELPER
-============================================================ */
+/* ----------------------------
+   GET STATE ZA QUEST
+---------------------------- */
 function getState(id){
-  return STATE.find(q => q.quest_id === id) || { ready:0, done:0 };
+  return QUEST_STATE.find(x => x.quest_id === id) || { ready:0, done:0 };
 }
 
-/* ============================================================
-    MARK READY
-============================================================ */
-async function mark(id){
+/* ----------------------------
+   MARK AS READY
+---------------------------- */
+async function questMark(id){
   await fetch("/api/quest/mark", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:id })
   });
-  STATE = await loadState();
-  render();
+
+  QUEST_STATE = await loadState();
+  renderQuests();
 }
 
-/* ============================================================
-    CLAIM
-============================================================ */
-async function claim(q){
+/* ----------------------------
+   CLAIM
+---------------------------- */
+async function questClaim(q){
   await fetch("/api/quest/claim", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
     body: JSON.stringify({ quest_id:q.id })
   });
 
-  STATE = await loadState();
-  render();
+  QUEST_STATE = await loadState();
+  renderQuests();
 
+  // Dodaj gold
   WHO.balance_silver += q.reward * 100;
   renderBalance();
 }
 
-/* ============================================================
-    UI RENDER - FINALNA, LJEPŠA VERZIJA
-============================================================ */
-function row(q){
+/* ----------------------------
+   RENDER JEDNOG REDA
+---------------------------- */
+function makeRow(q){
   const st = getState(q.id);
 
-  let label = "Not completed";
-  let cls   = "btn muted";
-  let dis   = "disabled";
-
-  if(st.done){
-    label = "Finished";
-    cls   = "btn claimed";
-    dis   = "disabled";
-  }
-  else if(st.ready){
-    label = "Claim";
-    cls   = "btn";
-    dis   = "";
+  let btn = "";
+  if (st.done){
+    btn = `<button class="btn muted" disabled>Finished</button>`;
+  } else if (st.ready){
+    btn = `<button class="btn" data-claim="${q.id}">Claim</button>`;
+  } else {
+    btn = `<button class="btn muted" disabled>Not completed</button>`;
   }
 
   return `
     <div class="itemrow" data-id="${q.id}">
-      <div class="label" style="color:var(--text)">
-        ${q.name}
-      </div>
       <div class="row" style="gap:10px;align-items:center">
-        <span class="badge">+${q.reward} gold</span>
-        <button class="${cls}" ${dis}>${label}</button>
+        <div>
+          <div class="label" style="text-transform:none">${q.name}</div>
+          <div class="muted">Reward: ${q.reward} gold</div>
+        </div>
       </div>
-    </div>
-  `;
+
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="badge">+${q.reward}</span>
+        ${btn}
+      </div>
+    </div>`;
 }
 
-/* ============================================================
-    RENDER LISTE
-============================================================ */
-function render(){
-
+/* ----------------------------
+   RENDER LISTE
+---------------------------- */
+function renderQuests(){
   document.getElementById("quest-daily").innerHTML =
-    QUESTS_DAILY.map(row).join("");
+    QUEST_DAILY.map(makeRow).join("");
 
   document.getElementById("quest-life").innerHTML =
-    QUESTS_LIFE.map(row).join("");
+    QUEST_LIFE.map(makeRow).join("");
 
-  document.querySelectorAll("#tab-quest .btn").forEach(btn=>{
+  // Bind claim
+  document.querySelectorAll("[data-claim]").forEach(btn=>{
     btn.onclick = ()=>{
-      if(btn.textContent !== "Claim") return;
-
-      const id = btn.closest(".itemrow").dataset.id;
-      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x => x.id === id);
-
-      if(q) claim(q);
+      const id = btn.getAttribute("data-claim");
+      const q = [...QUEST_DAILY, ...QUEST_LIFE].find(x => x.id === id);
+      if (q) questClaim(q);
     };
   });
 }
 
-/* ============================================================
-    EXPORTS
-============================================================ */
-window.renderQuests = render;
-window.questMarkReady = mark;
-
-/* ============================================================
-    setTab HOOK — FINAL
-============================================================ */
+/* ----------------------------
+   SETTAB HOOK — 100% FIXED
+---------------------------- */
 setTimeout(()=>{
-  if(!window.setTab) return;
+  if (!window.setTab){
+    console.warn("setTab missing");
+    return;
+  }
 
   const orig = window.setTab;
 
   window.setTab = function(tab){
     orig(tab);
 
-    const q = document.getElementById("tab-quest");
-    if(q) q.classList.toggle("hidden", tab !== "quest");
+    // Mark quest
+    questMark("tab-" + tab);
 
-    if(tab === "quest") render();
+    // Show quest tab
+    const qtab = document.getElementById("tab-quest");
+    if (qtab){
+      qtab.classList.toggle("hidden", tab !== "quest");
+    }
 
-    mark("tab-"+tab);
+    if (tab === "quest"){
+      renderQuests();
+    }
   };
 
 }, 200);
 
+/* ----------------------------
+   GLOBAL
+---------------------------- */
+window.renderQuests = renderQuests;
+window.questMark = questMark;
+
 })();
 </script>
+
 
 
 
@@ -1784,6 +1798,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
