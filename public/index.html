@@ -87,16 +87,19 @@
     </div>
   </section>
 
-  <!-- ===== App (tabs) ===== -->
-  <section id="app">
-    <div class="tabbar row">
-      <div class="chip active" data-tab="shop">Shop</div>
-      <div class="chip" data-tab="craft">Crafting</div>
-      <div class="chip" data-tab="market">Market</div>
-      <div class="chip" data-tab="inv">Inventory</div>
-      <div class="chip" data-tab="bonus">Bonus</div>
-      <div class="chip" data-tab="daily">Daily</div>
-    </div>
+ <!-- ===== App (tabs) ===== -->
+<section id="app">
+  <div class="tabbar row">
+    <div class="chip active" data-tab="shop">Shop</div>
+    <div class="chip" data-tab="craft">Crafting</div>
+    <div class="chip" data-tab="market">Market</div>
+    <div class="chip" data-tab="inv">Inventory</div>
+    <div class="chip" data-tab="bonus">Bonus</div>
+    <div class="chip" data-tab="daily">Daily</div>
+    <div class="chip" data-tab="ads">Ads</div>
+  </div>
+</section>
+
 
     <!-- SHOP -->
     <div id="tab-shop" class="card">
@@ -342,6 +345,79 @@
 
 </div>
 
+<!-- ===== ADS TAB ===== -->
+<div id="tab-ads" class="hidden" style="padding:20px">
+
+  <h2 style="margin-bottom:20px">ADS Panel</h2>
+
+  <div id="ads-wrapper" style="
+    display:grid;
+    grid-template-columns: 220px 1fr;
+    gap:20px;
+  ">
+
+    <!-- LEFT SIDE -->
+    <div id="ads-left" style="display:flex;flex-direction:column;gap:20px;">
+
+      <!-- BUY COURSE BOX -->
+      <div style="background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:14px">
+        <h3 style="margin:0 0 10px 0">Buy Web Server Course</h3>
+        <div style="color:var(--muted);font-size:14px;margin-bottom:10px">
+          Full Web Server Course + API + Database
+        </div>
+
+        <button id="btn-course-buy" class="btn-green" style="width:100%;padding:10px;font-size:15px">
+          Buy
+        </button>
+      </div>
+
+      <!-- CONTACT + DISCORD -->
+      <div style="background:#0b1220;border:1px solid #1f2937;border-radius:10px;padding:14px">
+        <div style="color:#e5e7eb;font-size:15px;margin-bottom:10px;font-weight:600">
+          Contact: Artefact profile on Discord
+        </div>
+
+        <button id="btn-ads-discord" class="btn-blue" style="width:100%;padding:10px;font-size:15px">
+          Discord
+        </button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE -->
+    <div id="ads-right" style="
+      background:#0b1220;
+      border:1px solid #1f2937;
+      border-radius:12px;
+      padding:18px;
+    ">
+
+      <div style="margin-bottom:12px;font-size:17px;color:#e5e7eb">
+        Enter Your Link:
+      </div>
+
+      <input id="ads-link" type="text" placeholder="https://your-link.com" style="
+        width:100%;
+        padding:12px;
+        border-radius:8px;
+        border:1px solid #233047;
+        background:#020617;
+        color:#e5e7eb;
+        margin-bottom:15px;
+        font-size:15px;
+      "/>
+
+      <button id="btn-ads-send" class="btn-green" style="padding:12px 18px;font-size:16px">
+        Send
+      </button>
+
+      <div id="ads-msg" style="margin-top:14px;color:#4ade80;font-weight:600"></div>
+
+    </div>
+
+  </div>
+
+</div>
 
 
   <!-- ===== Helpers: $, $$, toast, api, safeCall (GLOBAL, PRIJE SVEGA) ===== -->
@@ -481,6 +557,8 @@ async function setTab(tab){
   $("#tab-inv")   ?.classList.toggle("hidden", tab !== "inv");
   $("#tab-bonus") ?.classList.toggle("hidden", tab !== "bonus");
   $("#tab-daily") ?.classList.toggle("hidden", tab !== "daily");
+  $("#tab-ads")?.classList.toggle("hidden", tab !== "ads");
+  
 
   if (tab === "market") {
     safeCall("loadInventoryPanel");
@@ -1525,9 +1603,69 @@ async function setTab(tab){
 
 })();
 </script>
+
+<script>
+(function(){
+
+  // BUY COURSE
+  document.getElementById("btn-course-buy")?.addEventListener("click", async ()=>{
+
+    const r = await fetch("/api/ads/buy-course", {
+      method:"POST",
+      credentials:"include"
+    });
+
+    const j = await r.json();
+
+    if (!j.ok){
+      toast("Error: " + j.error);
+      return;
+    }
+
+    toast("Course purchased successfully!");
+    document.getElementById("ads-msg").textContent =
+      "Your course code: " + j.code;
+  });
+
+  // SEND LINK
+  document.getElementById("btn-ads-send")?.addEventListener("click", async ()=>{
+    const link = document.getElementById("ads-link").value.trim();
+    if (!link){
+      toast("Enter a valid link!");
+      return;
+    }
+
+    const r = await fetch("/api/ads/send-link", {
+      method:"POST",
+      credentials:"include",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ link })
+    });
+
+    const j = await r.json();
+
+    if (!j.ok){
+      toast("Error: " + j.error);
+      return;
+    }
+
+    toast("Link submitted.");
+    document.getElementById("ads-msg").textContent = "Link submitted.";
+  });
+
+  // DISCORD
+  document.getElementById("btn-ads-discord")?.addEventListener("click", ()=>{
+    window.open("https://discord.com/", "_blank");
+  });
+
+})();
+</script>
+
+
     
 </body>
 </html>
+
 
 
 
