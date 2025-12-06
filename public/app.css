@@ -343,6 +343,24 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
   max-width: 820px;
 }
 
+/* =========================================
+   GLOBAL FIX – SUŽENI SVI TABOVI
+   (Shop, Craft, Market, Inventory, Bonus, Daily, Ads)
+   ========================================= */
+
+#tab-shop,
+#tab-craft,
+#tab-market,
+#tab-inv,
+#tab-bonus,
+#tab-daily,
+#tab-ads,
+#tab-quest {
+  max-width: 1150px;   /* ista širina kao glavni container */
+  margin: 0 auto;      /* centrirano */
+  padding: 18px 12px;  /* normalni padding */
+  box-sizing: border-box;
+}
 
 
 
@@ -554,6 +572,7 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-button-container{ transform:scale(.95); transform-origin:left center }
 @media (max-width:520px){ #paypal-button-container{ transform:scale(.9) } }
 #paypal-wrap{ display:none !important }
+
 
 
 
