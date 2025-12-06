@@ -345,54 +345,70 @@
 
 </div>
 
-<!-- === ADS TAB === -->
-<div id="tab-ads" class="hidden">
+<div id="tab-ads" class="panel hidden">
 
-  <div class="ads-panel">
+  <h2 class="ads-title">ADVERTISING PANEL</h2>
 
-    <h2 class="ads-title">ADVERTISING PANEL</h2>
+  <div class="ads-section">
 
-    <div class="ads-section">
+    <!-- ---------------------------
+          SEKCIJA 1 — BUY COURSE
+    ---------------------------- -->
+    <div class="ads-box">
+      <h3 class="ads-subtitle">Buy Course</h3>
 
-      <!-- BUY COURSE -->
-      <div class="ads-box">
-        <h3 class="ads-subtitle">Buy Course</h3>
+      <p class="ads-text">
+        Purchasing a course gives you a unique redeemable code you can share.
+      </p>
 
-        <p class="ads-text">
-          Purchasing a course gives you a unique redeemable code you can share.
-        </p>
+      <button id="ads-buy" class="btn-green ads-btn">
+        BUY COURSE (100,000 gold)
+      </button>
 
-        <button id="ads-buy" class="btn btn-green ads-btn">
-          BUY COURSE (100,000 gold)
-        </button>
+      <!-- ERROR ZA BUY COURSE -->
+      <div id="ads-buy-error" class="ads-error hidden"></div>
 
-        <div id="ads-course-box" class="ads-course-box hidden">
-          <div class="ads-course-label">Your Course Code:</div>
-          <div id="ads-course-code" class="ads-course-code"></div>
-        </div>
+      <!-- PRIKAZ COURSE KODA -->
+      <div id="ads-course-box" class="ads-course-box hidden">
+        <div class="ads-course-label">Your Course Code:</div>
+        <div id="ads-course-code" class="ads-course-code"></div>
       </div>
 
-      <!-- SUBMIT LINK -->
-      <div class="ads-box">
-        <h3 class="ads-subtitle">Submit Your Link</h3>
+      <!-- DISCORD BUTTON -->
+      <button id="ads-discord" class="btn-blue ads-btn" style="margin-top:14px">
+        Join Discord Server
+      </button>
 
-        <input id="ads-url" type="text"
-               placeholder="https://your-link.com"
-               class="ads-input" />
-
-        <button id="ads-send" class="btn btn-blue ads-btn">Submit Link</button>
-
-        <div id="ads-error" class="ads-error hidden"></div>
-      </div>
-
+      <div id="ads-discord-msg" class="muted" style="margin-top:6px;font-size:14px"></div>
     </div>
 
-    <h3 class="ads-subtitle" style="margin-top:20px">Your Links</h3>
-    <div id="ads-my-links" class="ads-list"></div>
+
+    <!-- ---------------------------
+          SEKCIJA 2 — SUBMIT LINK
+    ---------------------------- -->
+    <div class="ads-box">
+      <h3 class="ads-subtitle">Submit Your Link</h3>
+
+      <input id="ads-url" type="text" placeholder="https://your-link.com"
+             class="ads-input" />
+
+      <button id="ads-send" class="btn-blue ads-btn">Submit Link</button>
+
+      <!-- ERROR ZA LINK -->
+      <div id="ads-error" class="ads-error hidden"></div>
+    </div>
 
   </div>
 
+  <!-- ---------------------------
+        SEKCIJA 3 — LISTA LINKOVA
+  ---------------------------- -->
+  <h3 class="ads-subtitle" style="margin-top:25px">Your Links</h3>
+  <div id="ads-my-links" class="ads-list"></div>
+
 </div>
+
+
 
 
 
@@ -1583,7 +1599,7 @@ async function setTab(tab){
 })();
 </script>
 
-<script> 
+<script>
 // ==========================
 //        ADS TAB
 // ==========================
@@ -1594,7 +1610,7 @@ window.setTabAds = function(){
   initAds();
 };
 
-// Učitavanje mojih linkova
+// Učitavanje linkova
 async function loadMyLinks(){
   const r = await fetch("/api/ads/my-links", { credentials:"include" });
   const j = await r.json();
@@ -1611,29 +1627,35 @@ async function loadMyLinks(){
     return;
   }
 
-  box.innerHTML = j.links.map(l=>`
-    <div style="padding:4px 0">${l.link}</div>
-  `).join("");
+  box.innerHTML = j.links
+    .map(l => `<div style="padding:4px 0">${l.link}</div>`)
+    .join("");
 }
 
-// Inicijalizacija dugmadi
+// Inicijalizacija svega
 function initAds(){
-  const buyBtn  = document.getElementById("ads-buy");
+  const buyBtn   = document.getElementById("ads-buy");
+  const discord  = document.getElementById("ads-discord");
+  const msgDisc  = document.getElementById("ads-discord-msg");
+  const sendBtn  = document.getElementById("ads-send");
+  const errLink  = document.getElementById("ads-error");
 
+  /* ------------------------
+          BUY COURSE
+  ------------------------- */
   if (buyBtn && !buyBtn._adsBound){
     buyBtn._adsBound = true;
 
     buyBtn.addEventListener("click", async ()=>{
-
       const r = await fetch("/api/ads/buy-course", {
         method:"POST",
         credentials:"include"
       });
 
       const j = await r.json();
-
-      // ERROR za BUY COURSE (poseban!)
       const err = document.getElementById("ads-buy-error");
+
+      // reset error
       if (err){
         err.classList.add("hidden");
         err.textContent = "";
@@ -1657,10 +1679,10 @@ function initAds(){
         return;
       }
 
-      // USPJEH — prikaži kod
-      document.getElementById("ads-course-box").style.display = "block";
+      // prikaz course koda
+      document.getElementById("ads-course-box").classList.remove("hidden");
       document.getElementById("ads-course-code").textContent =
-        "Your Course Code: " + j.code;
+        "COURSE: " + j.code;
 
       if (err){
         err.textContent = "Course purchased successfully!";
@@ -1671,22 +1693,70 @@ function initAds(){
       window.refreshMeLight?.();
     });
   }
+
+  /* ------------------------
+          DISCORD
+  ------------------------- */
+  if (discord && !discord._dBound){
+    discord._dBound = true;
+
+    discord.addEventListener("click", ()=>{
+
+      // quest hook
+      if (window.questHooks?.discordClick){
+        window.questHooks.discordClick();
+      }
+
+      window.open("https://discord.gg/YOUR_INVITE", "_blank");
+
+      if (msgDisc){
+        msgDisc.textContent = "Discord opened! ✔";
+      }
+    });
+  }
+
+  /* ------------------------
+         SUBMIT LINK
+  ------------------------- */
+  if (sendBtn && !sendBtn._linkBound){
+    sendBtn._linkBound = true;
+
+    sendBtn.addEventListener("click", async ()=>{
+      const url = document.getElementById("ads-url").value.trim();
+      if (!url){
+        errLink.textContent = "Please enter a link.";
+        errLink.classList.remove("hidden");
+        return;
+      }
+
+      const r = await fetch("/api/ads/send-link", {
+        method:"POST",
+        credentials:"include",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      const j = await r.json();
+
+      if (!j.ok){
+        errLink.textContent = "Error: " + j.error;
+        errLink.classList.remove("hidden");
+        return;
+      }
+
+      errLink.textContent = "Link submitted!";
+      errLink.style.color = "#22c55e";
+      errLink.classList.remove("hidden");
+
+      loadMyLinks();
+    });
+  }
 }
-
-
 </script>
+
 
     
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
 
