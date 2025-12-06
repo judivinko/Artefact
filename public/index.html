@@ -1715,14 +1715,20 @@ function initAds(){
     });
   }
 
- /* ------------------------
+
+/* ------------------------
        SUBMIT LINK
 ------------------------- */
 if (sendBtn && !sendBtn._linkBound){
   sendBtn._linkBound = true;
 
   sendBtn.addEventListener("click", async ()=>{
-    const url = document.getElementById("ads-url").value.trim();
+
+    const urlEl = document.getElementById("ads-url");
+    const url = urlEl ? urlEl.value.trim() : "";
+
+    if (!errLink) return;   // sigurnosno
+
     if (!url){
       errLink.textContent = "Please enter a link.";
       errLink.style.color = "#ef4444";
@@ -1730,25 +1736,32 @@ if (sendBtn && !sendBtn._linkBound){
       return;
     }
 
-    const r = await fetch("/api/ads/send-link", {
-      method:"POST",
-      credentials:"include",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ url })
-    });
+    let r, j;
+    try {
+      r = await fetch("/api/ads/send-link", {
+        method:"POST",
+        credentials:"include",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ url })
+      });
+      j = await r.json();
+    } catch (e){
+      errLink.textContent = "Network error.";
+      errLink.style.color = "#ef4444";
+      errLink.classList.remove("hidden");
+      return;
+    }
 
-    const j = await r.json();
+    if (!j?.ok){
 
-    if (!j.ok){
-
-      if (j.error === "not_enough_gold"){
+      if (j?.error === "not_enough_gold"){
         errLink.textContent = "You need 50 gold to submit a link!";
         errLink.style.color = "#ef4444";
         errLink.classList.remove("hidden");
         return;
       }
 
-      errLink.textContent = "Error: " + j.error;
+      errLink.textContent = "Error: " + (j?.error || "unknown");
       errLink.style.color = "#ef4444";
       errLink.classList.remove("hidden");
       return;
@@ -1758,10 +1771,11 @@ if (sendBtn && !sendBtn._linkBound){
     errLink.style.color = "#22c55e";
     errLink.classList.remove("hidden");
 
-    loadMyLinks();
+    loadMyLinks?.();
     window.refreshMeLight?.();
   });
 }
+
 
 </script>
 
@@ -1769,6 +1783,7 @@ if (sendBtn && !sendBtn._linkBound){
     
 </body>
 </html>
+
 
 
 
