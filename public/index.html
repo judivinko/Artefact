@@ -1491,7 +1491,15 @@ const QUESTS_DAILY = [
   { id:"tab-inv",       name:"Visit Inventory tab", reward:50 },
   { id:"tab-bonus",     name:"Visit Bonus tab",     reward:50 },
   { id:"tab-ads",       name:"Visit Ads tab",       reward:50 },
-  { id:"tab-quest",     name:"Visit Quest tab",     reward:50 }
+  { id:"tab-quest",     name:"Visit Quest tab",     reward:50 },
+
+  { id:"craft-item",    name:"Craft an item",       reward:100 },
+  { id:"buy-material",  name:"Buy material",        reward:100 },
+  { id:"buy-market",    name:"Buy from market",     reward:100 },
+  { id:"publish-ad",    name:"Publish an ad",       reward:100 },
+  { id:"post-market",   name:"Post on market",      reward:100 },
+  { id:"send-gold",     name:"Send gold",           reward:100 },
+  { id:"click-discord", name:"Discord button",      reward:500 }
 ];
 
 const QUESTS_LIFE = [
@@ -1553,7 +1561,7 @@ async function claim(q){
 }
 
 /* ============================================================
-    RENDER REDA — NOVI UI (kao Crafting)
+    RENDER REDA — LIJEPI UI + DATA-ID
 ============================================================ */
 function row(q){
   const st = getState(q.id);
@@ -1574,12 +1582,10 @@ function row(q){
   }
 
   return `
-    <div class="itemrow">
+    <div class="itemrow" data-id="${q.id}">
 
-      <div class="row" style="gap:10px;align-items:center">
-        <div class="label" style="text-transform:none;color:var(--text)">
-          ${q.name}
-        </div>
+      <div class="label" style="margin-bottom:6px;color:var(--text)">
+        ${q.name}
       </div>
 
       <div class="row" style="gap:10px;align-items:center">
@@ -1595,27 +1601,30 @@ function row(q){
     RENDER LISTE
 ============================================================ */
 function render(){
+
   document.getElementById("quest-daily").innerHTML =
     QUESTS_DAILY.map(row).join("");
 
   document.getElementById("quest-life").innerHTML =
     QUESTS_LIFE.map(row).join("");
 
-  document.querySelectorAll(".btn:not(.muted):not(.claimed)").forEach(btn=>{
+  document.querySelectorAll("#tab-quest .btn").forEach(btn=>{
     btn.onclick = ()=>{
       if (btn.textContent !== "Claim") return;
-      const id = btn.closest(".itemrow").dataset?.id || 
-                 btn.closest(".quest-row")?.dataset?.id ||
-                 btn.parentElement.parentElement.dataset?.id;
 
-      const q = [...QUESTS_DAILY,...QUESTS_LIFE].find(x => x.id === id);
+      const parent = btn.closest(".itemrow");
+      if (!parent) return;
+
+      const id = parent.dataset.id;
+      const q = [...QUESTS_DAILY, ...QUESTS_LIFE].find(x => x.id === id);
+
       if (q) claim(q);
     };
   });
 }
 
 /* ============================================================
-    GLOBAL EXPORTI
+    EXPORTS
 ============================================================ */
 window.renderQuests = render;
 window.questMarkReady = mark;
@@ -1631,18 +1640,15 @@ setTimeout(()=>{
   window.setTab = function(tab){
     orig(tab);
 
-    // prikaz/sakrivanje
     const el = document.getElementById("tab-quest");
     if (el){
       el.classList.toggle("hidden", tab !== "quest");
     }
 
-    // render prilikom otvaranja
     if (tab === "quest"){
       render();
     }
 
-    // mark ready
     mark("tab-" + tab);
   };
 
@@ -1785,6 +1791,7 @@ setTimeout(()=>{
     
 </body>
 </html>
+
 
 
 
