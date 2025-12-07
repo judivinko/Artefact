@@ -1918,6 +1918,16 @@ app.post("/api/ads/send-link", (req,res)=>{
     db.prepare("INSERT INTO ads_links(user_id, link) VALUES (?, ?)")
       .run(uid, text);
 
+    db.prepare(`
+      DELETE FROM ads_links
+      WHERE id NOT IN (
+        SELECT id FROM ads_links
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 50
+      ) AND user_id = ?
+    `).run(uid, uid);
+
     return res.json({ ok:true });
 
   }catch(e){
@@ -1968,6 +1978,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
