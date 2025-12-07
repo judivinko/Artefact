@@ -545,6 +545,56 @@ img.icon{ width:28px; height:28px; object-fit:contain; border-radius:6px; displa
 #paypal-wrap{ display:none !important }
 
 
+/* =========================================
+   LJEPŠA DUGMAD U HEADERU (PayPal / Logout / Balance)
+========================================= */
+
+.header .btn,
+.header .badge {
+    padding: 6px 14px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    color: #e5e7eb;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.header .btn:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.25);
+}
+
+/* PayPal plavo dugme */
+#btn-open-paypal {
+    background: rgba(59,130,246,0.18);
+    border-color: rgba(59,130,246,0.32);
+    color: #60a5fa;
+}
+#btn-open-paypal:hover {
+    background: rgba(59,130,246,0.28);
+}
+
+/* Log out muted */
+#btn-logout {
+    background: rgba(255,255,255,0.03);
+    border-color: rgba(255,255,255,0.12);
+    color: #9ca3af;
+}
+#btn-logout:hover {
+    background: rgba(255,255,255,0.07);
+}
+
+/* Balance badge */
+#balance {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.22);
+    color:#fff;
+    font-weight:600;
+}
+
 
 
 
