@@ -351,49 +351,56 @@
 
   <div class="ads-section">
     
-    <!-- LEFT -->
-    <div class="ads-box">
+    <div id="tab-ads" class="hidden panel" style="padding:20px">
 
-      <h3 class="ads-subtitle">Buy Course</h3>
-      <p class="ads-text">Purchasing a course gives you a unique redeemable code.</p>
+  <h2 class="ads-title" style="margin-bottom:15px">ADVERTISING PANEL</h2>
 
-      <button id="ads-buy" class="btn-green ads-btn">
-        BUY COURSE (100,000 gold)
-      </button>
+  <div class="ads-panel">
 
-      <!-- ERROR for Buy -->
-      <div id="ads-buy-error" class="ads-error hidden"></div>
+    <div class="ads-section">
+      
+      <!-- BUY COURSE -->
+      <div class="ads-box">
+        <h3 class="ads-subtitle">Buy Course</h3>
 
-      <!-- COURSE CODE -->
-      <div id="ads-course-box" class="ads-course-box hidden">
-        <div class="ads-course-label">Your Course Code:</div>
-        <div id="ads-course-code" class="ads-course-code"></div>
+        <p class="ads-text">
+          Purchasing a course gives you a unique redeemable code you can share.
+        </p>
+
+        <div class="row" style="gap:10px;margin-top:6px">
+          <button id="ads-buy" class="btn-green ads-btn">BUY COURSE (100,000 gold)</button>
+          <button id="ads-discord" class="btn-blue ads-btn">JOIN DISCORD</button>
+        </div>
+
+        <div id="ads-buy-error" class="ads-error hidden"></div>
+
+        <div id="ads-course-box" class="ads-course-box hidden">
+          <div class="ads-course-label">Your Course Code:</div>
+          <div id="ads-course-code" class="ads-course-code"></div>
+        </div>
       </div>
 
-      <!-- DISCORD BUTTON -->
-      <button id="ads-discord" class="btn-blue ads-btn" style="margin-top:14px">
-        JOIN DISCORD
-      </button>
+
+      <!-- SUBMIT LINK -->
+      <div class="ads-box">
+        <h3 class="ads-subtitle">Submit Your Link (50 gold)</h3>
+
+        <input id="ads-url" type="text" placeholder="Write anything..." class="ads-input" />
+
+        <button id="ads-send" class="btn-blue ads-btn">Submit Link</button>
+
+        <div id="ads-error" class="ads-error hidden"></div>
+      </div>
 
     </div>
 
-    <!-- RIGHT -->
-    <div class="ads-box">
-      <h3 class="ads-subtitle">Submit Your Link (50 gold)</h3>
+    <!-- YOUR LINKS -->
+    <h3 class="ads-subtitle" style="margin-top:25px">Your Links</h3>
+    <div id="ads-my-links" class="ads-list"></div>
 
-      <input id="ads-url" type="text" placeholder="https://your-link.com" class="ads-input"/>
-
-      <button id="ads-send" class="btn-blue ads-btn">
-        Submit Link
-      </button>
-
-      <div id="ads-error" class="ads-error hidden"></div>
-    </div>
   </div>
-
-  <h3 class="ads-subtitle" style="margin-top:25px">Your Links</h3>
-  <div id="ads-my-links" class="ads-list"></div>
 </div>
+
 
 
   <!-- ---------------------------
@@ -1728,6 +1735,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
