@@ -1599,13 +1599,17 @@ window.setTabAds = function(){
 
 
 // MY LINKS
-async function loadMyLinks(){
-  const r = await fetch("/api/ads/my-links", { credentials:"include" });
+async function loadGlobalLinks(){
+  const r = await fetch("/api/ads/global-links", { credentials:"include" });
   const j = await r.json();
   const box = document.getElementById("ads-my-links");
 
   if (!box) return;
-  if (!j.ok){ box.innerHTML = "Error loading links."; return; }
+
+  if (!j.ok){
+    box.innerHTML = "Error loading links.";
+    return;
+  }
 
   if (j.links.length === 0){
     box.innerHTML = "<div>No links yet.</div>";
@@ -1613,7 +1617,7 @@ async function loadMyLinks(){
   }
 
   box.innerHTML = j.links.map(l =>
-    `<div style="padding:4px 0">${l.link}</div>`
+    `<div style="padding:6px 0; border-bottom:1px solid #333">${l.link}</div>`
   ).join("");
 }
 
@@ -1729,6 +1733,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
