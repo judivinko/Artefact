@@ -445,6 +445,17 @@ CREATE TABLE IF NOT EXISTS ads_purchases (
   );
 `);
 
+ensure(`
+CREATE TRIGGER IF NOT EXISTS limit_ads_links
+AFTER INSERT ON ads_links
+BEGIN
+  DELETE FROM ads_links
+  WHERE id NOT IN (
+    SELECT id FROM ads_links ORDER BY id DESC LIMIT 50
+  );
+END;
+`);
+
 
 // MIGRACIJE za stare baze (CREATE IF NOT EXISTS ne dodaje nove kolone):
 if (!hasColumn("bonus_codes", "total_credited_silver")) {
@@ -1987,15 +1998,17 @@ app.post("/api/ads/send-link", (req,res)=>{
     db.prepare("INSERT INTO ads_links(user_id, link) VALUES (?, ?)")
       .run(uid, text);
 
+    // GLOBALNI LIMIT — briše najstarije obične linkove
     db.prepare(`
       DELETE FROM ads_links
       WHERE id NOT IN (
         SELECT id FROM ads_links
-        WHERE user_id = ?
+        WHERE link NOT LIKE 'COURSE:%'
         ORDER BY id DESC
         LIMIT 50
-      ) AND user_id = ?
-    `).run(uid, uid);
+      )
+      AND link NOT LIKE 'COURSE:%'
+    `).run();
 
     return res.json({ ok:true });
 
@@ -2003,6 +2016,7 @@ app.post("/api/ads/send-link", (req,res)=>{
     return res.json({ ok:false, error:e.message });
   }
 });
+
 
 
 
@@ -2062,6 +2076,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
