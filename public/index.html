@@ -1726,14 +1726,18 @@ async function sendLink(){
   }
 
   document.getElementById("ads-url").value = "";
-  await loadMyLinks();
+
+  // ❗ PRAVILNO: ovo prikazuje globalne linkove
+  await loadGlobalLinks();
 }
+
 </script>
 
 
     
 </body>
 </html>
+
 
 
 
