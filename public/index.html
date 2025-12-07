@@ -1676,9 +1676,14 @@ async function buyCourse(){
   }
 
   // SUCCESS — show course code
-  document.getElementById("ads-course-box").style.display = "block";
-  document.getElementById("ads-course-code").textContent =
-    "Your Course Code: " + j.code;
+  const box = document.getElementById("ads-course-box");
+  const codeEl = document.getElementById("ads-course-code");
+
+  // 🔥 FIX — ovo je nedostajalo!
+  box.classList.remove("hidden");
+  box.style.display = "block";
+
+  codeEl.textContent = j.code;
 
   err.textContent = "Course purchased successfully!";
   err.style.color = "#22c55e";
@@ -1724,6 +1729,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
