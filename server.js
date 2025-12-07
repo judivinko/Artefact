@@ -418,6 +418,16 @@ ensure(`
 `);
 
 ensure(`
+  CREATE TABLE IF NOT EXISTS daily_claims (
+    user_id INTEGER NOT NULL,
+    day INTEGER NOT NULL,      -- 1–7
+    claimed INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, day)
+  );
+`);
+
+
+ensure(`
 CREATE TABLE IF NOT EXISTS ads_links (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -1762,18 +1772,21 @@ app.post("/api/daily/login", (req, res) => {
   try {
     const uid = requireAuth(req);
 
-    const row = db.prepare(`
-      SELECT current_day, last_claim FROM daily_login
-      WHERE user_id = ?
-    `).get(uid);
+    const now = Math.floor(Date.now()/1000);
+    const today = Math.floor(now/86400);
 
-    const now = Math.floor(Date.now() / 1000);
-    const today = Math.floor(now / 86400);
+    // === 1) UČITAJ daily_login ===
+    let row = db.prepare(`
+      SELECT current_day, last_claim
+      FROM daily_login
+      WHERE user_id=?
+    `).get(uid);
 
     let currentDay = 1;
     let lastClaim = 0;
 
     if (!row) {
+      // Prvi put u životu
       db.prepare(`
         INSERT INTO daily_login (user_id, current_day, last_claim)
         VALUES (?, 1, 0)
@@ -1783,75 +1796,131 @@ app.post("/api/daily/login", (req, res) => {
       lastClaim = row.last_claim;
     }
 
-    const lastClaimDay = Math.floor(lastClaim / 86400);
+    const lastClaimDay = Math.floor(lastClaim/86400);
 
+    // === 2) Ako je već claimao danas → STOP ===
     if (today === lastClaimDay) {
-      return res.json({ ok: false, error: "already_claimed" });
+      return res.json({ ok:false, error:"already_claimed" });
     }
 
-    // check streak
+    // === 3) Ako je preskočio dan → reset na 1 ===
     if (today - lastClaimDay > 1 && lastClaim !== 0) {
       currentDay = 1;
-    } else {
-      currentDay = Math.min(currentDay + 1, 7);
     }
 
-// reward formula (big rewards in gold)
-const reward = currentDay * 1000 * 100; // gold → silver
+    // === 4) Provjeri da li je ovaj dan već ZAUVIJEK claimed ===
+    const already = db.prepare(`
+      SELECT claimed FROM daily_claims
+      WHERE user_id=? AND day=?
+    `).get(uid, currentDay);
 
-// give reward
-db.prepare(`
-  UPDATE users SET balance_silver = balance_silver + ?
-  WHERE id = ?
-`).run(reward, uid);
+    if (already && already.claimed === 1) {
+      return res.json({
+        ok:false,
+        error:"day_already_claimed_forever"
+      });
+    }
 
+    // === 5) Dodijeli reward po novom sistemu ===
+    const rewardGold = currentDay * 1000; // GOLD
+    const rewardSilver = rewardGold * 100; // pretvaraš gold → silver
 
-    // update login
+    db.prepare(`
+      UPDATE users
+      SET balance_silver = balance_silver + ?
+      WHERE id=?
+    `).run(rewardSilver, uid);
+
+    // === 6) Zapiši da je ovaj dan zauzvik claimed ===
+    db.prepare(`
+      INSERT INTO daily_claims (user_id, day, claimed)
+      VALUES (?, ?, 1)
+      ON CONFLICT(user_id, day) DO UPDATE SET claimed=1
+    `).run(uid, currentDay);
+
+    // === 7) Pomjeri se na sljedeći dan (max 7) ===
+    const nextDay = Math.min(currentDay + 1, 7);
+
+    // === 8) Upis u daily_login ===
     db.prepare(`
       INSERT INTO daily_login (user_id, current_day, last_claim)
       VALUES (?, ?, ?)
       ON CONFLICT(user_id)
-      DO UPDATE SET current_day = excluded.current_day, last_claim = excluded.last_claim
-    `).run(uid, currentDay, now);
+      DO UPDATE SET current_day=?, last_claim=?
+    `).run(uid, nextDay, now, nextDay, now);
 
-    res.json({ ok: true, reward, currentDay });
+    res.json({
+      ok: true,
+      reward: rewardGold,
+      dayClaimed: currentDay,
+      nextDay
+    });
 
   } catch (e) {
-    res.json({ ok: false, error: e.message });
+    res.json({ ok:false, error:e.message });
   }
 });
+
 
 app.get("/api/daily/status", (req, res) => {
   try {
     const uid = requireAuth(req);
 
+    // --- Učitamo daily_login info
     const row = db.prepare(`
       SELECT current_day, last_claim
       FROM daily_login WHERE user_id=?
     `).get(uid);
 
+    const now = Math.floor(Date.now()/1000);
+    const today = Math.floor(now/86400);
+
+    let current = 1;
+    let claimedToday = false;
+
     if (!row) {
+      // prvi put ikad
       return res.json({
-        ok:true,
-        currentDay:1,
-        claimedToday:false
+        ok: true,
+        currentDay: 1,
+        claimedToday: false
       });
     }
 
-    const now = Math.floor(Date.now()/1000);
-    const today = Math.floor(now/86400);
     const lastDay = Math.floor(row.last_claim/86400);
 
+    // Ako je claimao danas
+    if (today === lastDay) {
+      claimedToday = true;
+    } else {
+      // Ako je preskočio dan – reset
+      if (today - lastDay > 1) {
+        current = 1;
+      } else {
+        current = row.current_day;
+      }
+    }
+
+    // Provjera da li je dan već trajno claiman
+    const already = db.prepare(`
+      SELECT claimed FROM daily_claims
+      WHERE user_id=? AND day=?
+    `).get(uid, current);
+
+    let isClaimedForever = !!(already && already.claimed === 1);
+
     res.json({
-      ok:true,
-      currentDay: row.current_day,
-      claimedToday: today === lastDay
+      ok: true,
+      currentDay: current,
+      claimedToday,
+      claimedForever: isClaimedForever
     });
 
-  } catch (e){
+  } catch (e) {
     res.json({ ok:false, error:e.message });
   }
 });
+
 
 
 
@@ -1978,6 +2047,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
