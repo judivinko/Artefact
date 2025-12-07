@@ -2017,6 +2017,21 @@ app.get("/api/ads/my-links", (req,res)=>{
   }
 });
 
+app.get("/api/ads/global-links", (req, res) => {
+  try{
+    const rows = db.prepare(`
+      SELECT link FROM ads_links
+      WHERE link NOT LIKE 'COURSE:%'
+      ORDER BY id DESC
+      LIMIT 50
+    `).all();
+
+    res.json({ ok:true, links: rows });
+
+  }catch(e){
+    res.json({ ok:false, error:e.message });
+  }
+});
 
 
 // ----------------- DEFAULT ADMIN USER (optional) -----------------
@@ -2047,6 +2062,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
