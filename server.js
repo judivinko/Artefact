@@ -1866,7 +1866,7 @@ function makeCode(){
   return out;
 }
 
-// BUY COURSE
+// BUY COURSE (NE SPAŠAVA SE NIGDJE)
 app.post("/api/ads/buy-course", (req,res)=>{
   try{
     const uid = requireAuth(req);
@@ -1877,24 +1877,21 @@ app.post("/api/ads/buy-course", (req,res)=>{
       return res.json({ok:false, error:"not_enough_gold"});
     }
 
-    // Skinuti gold
+    // SKINI GOLD
     db.prepare("UPDATE users SET balance_silver = balance_silver - ? WHERE id=?")
       .run(cost, uid);
 
-    // Generirati kurs kod
+    // GENERIŠI KOD
     const code = makeCode();
 
-    // SPASITI KOD KAO COURSE:CODE
-    db.prepare("INSERT INTO ads_links(user_id, link) VALUES (?, ?)")
-      .run(uid, "COURSE:" + code);
-
-    // Vratiti korisniku
+    // ✨ NEMA SPAŠAVANJA – SAMO VRATI KOD!
     return res.json({ ok:true, code });
 
   }catch(e){
     return res.json({ ok:false, error:e.message });
   }
 });
+
 
 // SEND LINK (košta 50 golda)
 app.post("/api/ads/send-link", (req,res)=>{
@@ -1971,6 +1968,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
