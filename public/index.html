@@ -1536,25 +1536,36 @@ async function setTab(tab){
 
     grid.innerHTML = "";
 
-    for (let i=1; i<=7; i++){
+    for (let i = 1; i <= 7; i++) {
       const box = document.createElement("div");
       box.className = "daily-box";
 
       let gold = DAYS[i-1];
       let usd = (gold / 1000).toFixed(2);
       let html = `
-      <div style="font-size:18px;margin-bottom:6px">Day ${i}</div>
-      <div style="font-size:14px;color:var(--muted)">
-      ${gold} Gold • $${usd}
-      </div>
+        <div style="font-size:18px;margin-bottom:6px">Day ${i}</div>
+        <div style="font-size:14px;color:var(--muted)">
+          ${gold} Gold • $${usd}
+        </div>
       `;
-    
 
+      // ==== OZNAKE DANA ====
+
+      // ✔ već claimani dani
       if (i < j.currentDay) {
         box.classList.add("daily-box-claimed");
         html += `<div style="color:#22c55e;margin-top:6px">✔ Claimed</div>`;
       }
-      else if (i === j.currentDay) {
+
+      // 🔒 zaključan dan
+      else if (i === j.currentDay && j.locked) {
+        box.classList.add("daily-box-locked");
+        const h = Math.ceil(j.secondsLeft / 3600);
+        html += `<div style="color:#f59e0b;margin-top:6px">${h}h left</div>`;
+      }
+
+      // 🟢 spreman za claim
+      else if (i === j.currentDay && !j.locked) {
         box.classList.add("daily-box-today");
         html += `<div style="color:#4ade80;margin-top:6px">(danas)</div>`;
       }
@@ -1563,55 +1574,61 @@ async function setTab(tab){
       grid.appendChild(box);
     }
 
-    msg.textContent = j.claimedToday
-      ? "Reward already claimed today."
-      : "Claim Reward.";
+    // ==== DONJA PORUKA ====
+
+    if (j.done) {
+      msg.textContent = "All daily rewards claimed.";
+    }
+    else if (j.locked) {
+      const h = Math.ceil(j.secondsLeft / 3600);
+      msg.textContent = `Next reward unlocks in ${h} hours.`;
+    }
+    else {
+      msg.textContent = "Reward ready — claim now.";
+    }
 
   };
 
   // ——— Claim dugme ———
-document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
-  const r = await fetch("/api/daily/login", {
-    method:"POST",
-    credentials:"include"
+  document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
+    const r = await fetch("/api/daily/login", {
+      method:"POST",
+      credentials:"include"
+    });
+
+    const j = await r.json();
+
+    if (!j.ok){
+
+      // 24h lock
+      if (j.error === "wait_24_hours"){
+        const h = Math.ceil(j.secondsLeft / 3600);
+        toast(`Moraš sačekati još ${h}h.`);
+        return;
+      }
+
+      if (j.error === "already_claimed"){
+        toast("Ovaj dan je već claiman.");
+        return;
+      }
+
+      if (j.error === "all_claimed"){
+        toast("Sve daily nagrade su završene.");
+        return;
+      }
+
+      toast("Greška: " + j.error);
+      return;
+    }
+
+    toast(`Dobili ste ${j.reward} gold!`);
+    window.refreshMeLight?.();
+    window.renderDaily();
   });
 
-  const j = await r.json();
-
-  // === GREŠKE ===
-  if (!j.ok){
-
-    // ⏳ Mora proći 24h
-    if (j.error === "wait_24_hours"){
-      const h = Math.ceil(j.secondsLeft / 3600);
-      toast(`Moraš sačekati još ${h}h.`);
-      return;
-    }
-
-    // ✔ Taj dan je već claiman (backend ne dozvoljava dupli)
-    if (j.error === "already_claimed"){
-      toast("Ovaj dan je već claiman.");
-      return;
-    }
-
-    // ✔ Sva 7 dana završena
-    if (j.error === "all_claimed"){
-      toast("Sve daily nagrade su završene.");
-      return;
-    }
-
-    toast("Greška: " + j.error);
-    return;
-  }
-
-  // === USPJEŠAN CLAIM ===
-  toast(`Dobili ste ${j.reward} gold!`);
-
-  window.refreshMeLight?.();
-  window.renderDaily();
-});
-
+})();
 </script>
+
 
 
 <script>
@@ -1753,6 +1770,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
