@@ -1570,32 +1570,42 @@ async function setTab(tab){
   };
 
   // ——— Claim dugme ———
-  document.getElementById("btn-daily-claim")?.addEventListener("click", async ()=>{
-    const r = await fetch("/api/daily/login", { method:"POST", credentials:"include" });
-    const j = await r.json();
+document.getElementById("btn-daily-claim")?.addEventListener("click", async () => {
+  const r = await fetch("/api/daily/login", { 
+    method:"POST", 
+    credentials:"include" 
+  });
 
-    if (!j.ok){
-      if (j.error === "already_claimed"){
-        toast("Već si danas claim-ao.");
-        return;
-      }
-      toast("Greška: "+j.error);
+  const j = await r.json();
+
+  if (!j.ok){
+
+    if (j.error === "wait_24_hours") {
+      const h = Math.ceil(j.secondsLeft / 3600);
+      toast(`Moraš sačekati još ${h}h.`);
       return;
     }
 
-    toast(`Dobili ste ${j.reward} gold!`);
-    window.refreshMeLight?.();
-    window.renderDaily();
-  });
+    if (j.error === "already_claimed") {
+      toast("Ovaj dan je već claiman.");
+      return;
+    }
 
-})();
-</script>
+    if (j.error === "all_claimed") {
+      toast("Sve daily nagrade su već claimane.");
+      return;
+    }
 
-<script>
-window.setTabAds = function(){
-  loadGlobalLinks();
-  initAds();
-};
+    toast("Greška: " + j.error);
+    return;
+  }
+
+  toast(`Dobili ste ${j.reward} gold!`);
+
+  window.refreshMeLight?.();
+  window.renderDaily();
+});
+
 
 
 
@@ -1737,6 +1747,7 @@ async function sendLink(){
     
 </body>
 </html>
+
 
 
 
