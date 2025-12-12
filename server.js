@@ -1781,53 +1781,106 @@ app.post("/api/transfer-gold", (req, res) => {
 });
 
 
-
-
-app.post("/api/daily/login", (req,res)=>{
-  try{
+app.get("/api/daily/status", (req, res) => {
+  try {
     const uid = requireAuth(req);
     const now = Math.floor(Date.now()/1000);
 
-    // Rewards po danima
-    const DAYS = [1000,2000,3000,4000,5000,6000,7000];
-
-    // Učitaj progress
     let row = db.prepare(`
       SELECT current_day, last_claim
       FROM daily_login
       WHERE user_id=?
     `).get(uid);
 
-    // Ako korisnik tek počinje
-    if (!row){
-      const reward = DAYS[0];
-
-      // napravi zapis
-      db.prepare(`
-        INSERT INTO daily_login (user_id, current_day, last_claim)
-        VALUES (?,?,?)
-      `).run(uid, 2, now);   // odmah prebacujemo na dan 2
-
-      // dodaj reward
-      db.prepare(`UPDATE users SET balance_silver = balance_silver + ? WHERE id=?`)
-        .run(reward, uid);
-
+    // Ako korisnik nikad nije claimao → Dan 1 je spreman
+    if (!row) {
       return res.json({
-        ok:true,
-        reward,
-        nextDay:2
+        ok: true,
+        currentDay: 1,
+        locked: false,
+        secondsLeft: 0,
+        done: false
       });
     }
 
     let current = row.current_day;
     let last = row.last_claim;
 
-    // sve claimano?
-    if (current > 7){
-      return res.json({ ok:false, error:"all_claimed" });
+    // Završeno svih 7 dana
+    if (current > 7) {
+      return res.json({
+        ok:true,
+        currentDay:7,
+        locked:true,
+        secondsLeft:0,
+        done:true
+      });
     }
 
-    // Ako mora čekati 24h
+    let locked = false;
+    let secondsLeft = 0;
+
+    if (last > 0) {
+      const diff = now - last;
+      if (diff < 86400 && current > 1) {
+        locked = true;
+        secondsLeft = 86400 - diff;
+      }
+    }
+
+    res.json({
+      ok:true,
+      currentDay: current,
+      locked,
+      secondsLeft,
+      done:false
+    });
+
+  } catch (e) {
+    console.log("STATUS ERROR:", e);
+    res.json({ ok:false, error:e.message });
+  }
+});
+
+
+
+app.post("/api/daily/login", (req,res)=>{
+  try{
+    const uid = requireAuth(req);
+    const now = Math.floor(Date.now()/1000);
+    const DAYS = [1000,2000,3000,4000,5000,6000,7000];
+
+    let row = db.prepare(`
+      SELECT current_day, last_claim
+      FROM daily_login
+      WHERE user_id=?
+    `).get(uid);
+
+    // 1) Prvi claim u životu → Day 1 reward
+    if (!row){
+      const reward = DAYS[0];
+
+      db.prepare(`
+        INSERT INTO daily_login (user_id, current_day, last_claim)
+        VALUES (?,?,?)
+      `).run(uid, 2, now); // sljedeći je Day 2
+
+      db.prepare(`
+        UPDATE users SET balance_silver = balance_silver + ?
+        WHERE id=?
+      `).run(reward, uid);
+
+      return res.json({ ok:true, reward, nextDay:2 });
+    }
+
+    let current = row.current_day;
+    let last = row.last_claim;
+
+    // 2) sve završeno
+    if (current > 7)
+      return res.json({ ok:false, error:"all_claimed" });
+
+    // 3) čekanje 24h
     if (last > 0){
       const diff = now - last;
       if (diff < 86400){
@@ -1839,21 +1892,17 @@ app.post("/api/daily/login", (req,res)=>{
       }
     }
 
-    // Reward za trenutni dan
+    // 4) reward
     const reward = DAYS[current-1];
 
-    // dodaj reward
     db.prepare(`
-      UPDATE users
-      SET balance_silver = balance_silver + ?
+      UPDATE users SET balance_silver = balance_silver + ?
       WHERE id=?
     `).run(reward, uid);
 
-    // napredak → prelazimo na sljedeći dan
+    // 5) Napredak
     db.prepare(`
-      UPDATE daily_login
-      SET current_day = current_day + 1,
-          last_claim = ?
+      UPDATE daily_login SET current_day = current_day + 1, last_claim = ?
       WHERE user_id=?
     `).run(now, uid);
 
@@ -1864,9 +1913,11 @@ app.post("/api/daily/login", (req,res)=>{
     });
 
   }catch(e){
+    console.log("LOGIN ERROR:", e);
     res.json({ ok:false, error:e.message });
   }
 });
+
 
 
 
@@ -2013,18 +2064,6 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
