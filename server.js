@@ -1780,22 +1780,6 @@ app.post("/api/transfer-gold", (req, res) => {
   }
 });
 
-ensure(`
-  CREATE TABLE IF NOT EXISTS daily_login (
-    user_id INTEGER PRIMARY KEY,
-    current_day INTEGER NOT NULL DEFAULT 1,
-    last_claim INTEGER NOT NULL DEFAULT 0
-  );
-`);
-
-ensure(`
-  CREATE TABLE IF NOT EXISTS daily_claims (
-    user_id INTEGER NOT NULL,
-    day INTEGER NOT NULL,      -- 1–7
-    claimed INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (user_id, day)
-  );
-`);
 
 
 
@@ -2005,6 +1989,7 @@ app.get(/^\/(?!api\/).*/, (_req, res) =>
 server.listen(PORT, HOST, () => {
   console.log(`ARTEFACT server listening at http://${HOST}:${PORT}`);
 });
+
 
 
 
